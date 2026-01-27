@@ -31,10 +31,10 @@ export default function CheckoutScreen() {
 
   return (
     <View className="flex-1">
-      <ScrollView className="flex-1" contentContainerClassName="p-4">
+      <ScrollView className="flex-1" contentContainerClassName="p-5">
         <View className="flex-row gap-4">
           {/* Left Column - Order Details */}
-          <View className="flex-1 bg-white rounded-lg p-4">
+          <View className="flex-1 bg-white rounded-lg p-5">
             <View className="flex-row gap-4">
               {/* Order Type */}
               <View className="flex-1">

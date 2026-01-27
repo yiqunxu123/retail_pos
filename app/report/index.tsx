@@ -1,6 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { Pressable, ScrollView, Text, View } from "react-native";
+import { PageHeader } from "../../components";
 
 interface ReportItem {
   id: string;
@@ -39,7 +40,7 @@ export default function ReportingScreen() {
   const ReportRow = ({ item }: { item: ReportItem }) => (
     <Pressable
       onPress={() => router.push(item.route as any)}
-      className="flex-row items-center justify-between py-4 px-4 border-b border-gray-100 active:bg-gray-50"
+      className="flex-row items-center justify-between py-4 px-5 border-b border-gray-100 active:bg-gray-50"
     >
       <Text className="text-gray-800 text-base flex-1">{item.name}</Text>
       <Ionicons name="chevron-forward" size={20} color="#9ca3af" />
@@ -49,12 +50,10 @@ export default function ReportingScreen() {
   return (
     <View className="flex-1 bg-white">
       {/* Header */}
-      <View className="px-4 py-4 border-b border-gray-200">
-        <Text className="text-2xl font-bold text-gray-800">Business Reporting</Text>
-      </View>
+      <PageHeader title="Business Reporting" />
 
       {/* Reports Grid */}
-      <ScrollView className="flex-1" contentContainerClassName="p-4">
+      <ScrollView className="flex-1" contentContainerClassName="p-5">
         <View className="flex-row">
           {/* Left Column */}
           <View className="flex-1 border-r border-gray-100">

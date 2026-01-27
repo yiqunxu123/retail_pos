@@ -115,7 +115,6 @@ function LayoutContent() {
             isLandscape={isLandscape}
             onClockInPress={handleClockInPress}
             onClockOutPress={() => setShowClockOutModal(true)}
-            onExitProgram={logout}
           />
         )}
       </View>

@@ -48,9 +48,9 @@ export default function AddProductsScreen() {
 
   return (
     <View className="flex-1">
-      <ScrollView className="flex-1" contentContainerClassName="p-4">
+      <ScrollView className="flex-1" contentContainerClassName="p-5">
         {/* Top Controls */}
-        <View className="bg-white rounded-lg p-4 mb-4">
+        <View className="bg-white rounded-lg p-5 mb-4">
           <View className="flex-row items-center gap-4">
             {/* Channel Select */}
             <View>

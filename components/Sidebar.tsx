@@ -6,21 +6,42 @@ import { useAuth } from "../contexts/AuthContext";
 import { useClock } from "../contexts/ClockContext";
 import { SidebarButton } from "./SidebarButton";
 
-// Sidebar width constant - exported for use in layout calculations
+// ============================================================================
+// Constants
+// ============================================================================
+
+/** Sidebar width constant - exported for use in layout calculations */
 export const SIDEBAR_WIDTH = 220;
 
-// Define section types
+// ============================================================================
+// Types
+// ============================================================================
+
 type SectionType = "dashboard" | "catalog" | "inventory" | "sale" | "report";
 
-// Menu item interface
 interface MenuItem {
   label: string;
   icon: string;
   route: string;
 }
 
-// Section menu configurations
-const sectionMenus: Record<SectionType, { title: string; items: MenuItem[] }> = {
+interface SectionConfig {
+  title: string;
+  items: MenuItem[];
+}
+
+interface SidebarProps {
+  isLandscape: boolean;
+  onClockInPress: () => void;
+  onClockOutPress: () => void;
+  onExitProgram?: () => void;
+}
+
+// ============================================================================
+// Section Menu Configurations
+// ============================================================================
+
+const SECTION_MENUS: Record<SectionType, SectionConfig> = {
   dashboard: {
     title: "Dashboard",
     items: [],
@@ -60,23 +81,81 @@ const sectionMenus: Record<SectionType, { title: string; items: MenuItem[] }> = 
   },
 };
 
-interface SidebarProps {
-  isLandscape: boolean;
-  onClockInPress: () => void;
-  onClockOutPress: () => void;
-  onExitProgram?: () => void;
+// ============================================================================
+// Helper Functions
+// ============================================================================
+
+/** Determines the current section based on the pathname */
+function getSectionFromPath(pathname: string): SectionType {
+  if (pathname.startsWith("/catalog")) return "catalog";
+  if (pathname.startsWith("/inventory")) return "inventory";
+  if (pathname.startsWith("/sale")) return "sale";
+  if (pathname.startsWith("/report")) return "report";
+  return "dashboard";
 }
+
+// ============================================================================
+// Sub-components
+// ============================================================================
+
+/** Displays clock status when user is clocked in */
+function ClockStatusCard({
+  clockInTime,
+  elapsedTime,
+}: {
+  clockInTime: string;
+  elapsedTime: string;
+}) {
+  return (
+    <View className="bg-purple-100 rounded-lg p-3 gap-2">
+      <View className="flex-row justify-between">
+        <View className="flex-1">
+          <Text className="text-purple-600 text-xs font-medium">Clock In Time:</Text>
+          <Text className="text-purple-800 text-sm font-bold">{clockInTime}</Text>
+        </View>
+        <View className="flex-1 items-end">
+          <Text className="text-purple-600 text-xs font-medium">Clock In Duration:</Text>
+          <Text className="text-purple-800 text-sm font-bold">{elapsedTime}</Text>
+        </View>
+      </View>
+    </View>
+  );
+}
+
+/** Branding placeholder section */
+function BrandingSection({ isLandscape }: { isLandscape: boolean }) {
+  return (
+    <View className={`${!isLandscape ? "w-full" : ""}`}>
+      <View className="bg-gray-200 rounded-lg p-4 items-center mb-2">
+        <Text className="text-gray-600 text-sm font-medium">Branding</Text>
+        <Text className="text-gray-600 text-sm font-medium">Section</Text>
+      </View>
+    </View>
+  );
+}
+
+/** User info display */
+function UserInfoCard({ userName }: { userName: string }) {
+  return (
+    <View className="bg-gray-100 rounded-lg p-3 mb-2">
+      <Text className="text-gray-600 text-xs">Logged in as</Text>
+      <Text className="text-gray-800 font-medium">{userName}</Text>
+    </View>
+  );
+}
+
+// ============================================================================
+// Main Component
+// ============================================================================
 
 /**
  * Sidebar - Global navigation sidebar
- * Sticky component that appears on all screens
  * Shows context-aware submenus based on current section
  */
 export function Sidebar({
   isLandscape,
   onClockInPress,
   onClockOutPress,
-  onExitProgram,
 }: SidebarProps) {
   const router = useRouter();
   const pathname = usePathname();
@@ -84,7 +163,17 @@ export function Sidebar({
   const { isClockedIn, getClockInTimeString, getElapsedTime } = useClock();
   const [elapsedTime, setElapsedTime] = useState("00:00:00");
 
-  // Handle logout with confirmation
+  // Derive current section state
+  const currentSection = getSectionFromPath(pathname);
+  const isInSubsection = currentSection !== "dashboard";
+  const sectionConfig = SECTION_MENUS[currentSection];
+
+  // Navigation handler
+  const navigateTo = (path: string) => {
+    router.push(path as any);
+  };
+
+  // Logout with confirmation
   const handleLogout = () => {
     Alert.alert(
       "Logout",
@@ -102,28 +191,6 @@ export function Sidebar({
     );
   };
 
-  // Determine current section based on pathname
-  const getCurrentSection = (): SectionType => {
-    if (pathname.startsWith("/catalog")) return "catalog";
-    if (pathname.startsWith("/inventory")) return "inventory";
-    if (pathname.startsWith("/sale")) return "sale";
-    if (pathname.startsWith("/report")) return "report";
-    return "dashboard";
-  };
-
-  const currentSection = getCurrentSection();
-  const isInSubsection = currentSection !== "dashboard";
-  const sectionConfig = sectionMenus[currentSection];
-
-  // Navigation handlers
-  const navigateTo = (path: string) => {
-    router.push(path as any);
-  };
-
-  const goToDashboard = () => {
-    router.push("/");
-  };
-
   // Update elapsed time every second when clocked in
   useEffect(() => {
     if (!isClockedIn) {
@@ -138,38 +205,40 @@ export function Sidebar({
     return () => clearInterval(interval);
   }, [isClockedIn, getElapsedTime]);
 
-  // Render subsection menu
+  // -------------------------------------------------------------------------
+  // Render Functions
+  // -------------------------------------------------------------------------
+
+  /** Renders the subsection navigation menu */
   const renderSubsectionMenu = () => (
     <>
       {/* Section Title */}
-      <View className="bg-blue-500 rounded-lg p-3 mb-2">
-        <Text className="text-white font-bold text-center">{sectionConfig.title}</Text>
+      <View className="p-3 mb-2">
+        <Text className="text-black font-bold text-center">{sectionConfig.title}</Text>
       </View>
 
-      {/* Back to Dashboard */}
-      <SidebarButton
-        label="Back to Dashboard"
-        icon={<Ionicons name="arrow-back-outline" size={18} color="#374151" />}
-        onPress={goToDashboard}
-      />
-
       {/* Section Menu Items */}
-      {sectionConfig.items.map((item, index) => (
-        <SidebarButton
-          key={index}
-          label={item.label}
-          icon={<Ionicons name={item.icon as any} size={18} color={pathname === item.route ? "#3b82f6" : "#374151"} />}
-          onPress={() => navigateTo(item.route)}
-          variant={pathname === item.route ? "primary" : "default"}
-        />
-      ))}
+      {sectionConfig.items.map((item, index) => {
+        const isActive = pathname === item.route;
+        const iconColor = isActive ? "#1d4ed8" : "#374151";
+
+        return (
+          <SidebarButton
+            key={index}
+            label={item.label}
+            icon={<Ionicons name={item.icon as any} size={18} color={iconColor} />}
+            onPress={() => navigateTo(item.route)}
+            variant={isActive ? "active" : "default"}
+          />
+        );
+      })}
     </>
   );
 
-  // Render dashboard menu
+  /** Renders the main dashboard menu */
   const renderDashboardMenu = () => (
     <>
-      {/* Clock In/Out - Side by side */}
+      {/* Clock In/Out Buttons */}
       <View className="flex-row gap-2">
         <SidebarButton
           label="Clock In"
@@ -188,53 +257,40 @@ export function Sidebar({
         />
       </View>
 
-      {/* Clock Status - Only show when clocked in */}
+      {/* Clock Status (visible when clocked in) */}
       {isClockedIn && (
-        <View className="bg-purple-100 rounded-lg p-3 gap-2">
-          <View className="flex-row justify-between">
-            <View className="flex-1">
-              <Text className="text-purple-600 text-xs font-medium">Clock In Time:</Text>
-              <Text className="text-purple-800 text-sm font-bold">{getClockInTimeString()}</Text>
-            </View>
-            <View className="flex-1 items-end">
-              <Text className="text-purple-600 text-xs font-medium">Clock In Duration:</Text>
-              <Text className="text-purple-800 text-sm font-bold">{elapsedTime}</Text>
-            </View>
-          </View>
-        </View>
+        <ClockStatusCard
+          clockInTime={getClockInTimeString()}
+          elapsedTime={elapsedTime}
+        />
       )}
 
-      {/* Navigation buttons */}
+      {/* Quick Navigation Buttons */}
       <SidebarButton
         label="Sales History"
         icon={<Ionicons name="receipt-outline" size={18} color="#374151" />}
         onPress={() => navigateTo("/sale/sales-history")}
       />
-
       <SidebarButton
         label="View Reports"
         icon={<Ionicons name="bar-chart-outline" size={18} color="#374151" />}
         onPress={() => {}}
       />
-
       <SidebarButton
         label="View Customers"
         icon={<Ionicons name="people-outline" size={18} color="#374151" />}
         onPress={() => navigateTo("/sale/customers")}
       />
-
       <SidebarButton
         label="View Parked Orders"
         icon={<Ionicons name="pause-circle-outline" size={18} color="#374151" />}
         onPress={() => {}}
       />
-
       <SidebarButton
         label="Resume Last Parked"
         icon={<Ionicons name="play-circle-outline" size={18} color="#374151" />}
         onPress={() => {}}
       />
-
       <SidebarButton
         label="Time Clock"
         icon={<Ionicons name="time-outline" size={18} color="#374151" />}
@@ -242,6 +298,32 @@ export function Sidebar({
       />
     </>
   );
+
+  /** Renders dashboard-only footer actions */
+  const renderDashboardFooter = () => (
+    <>
+      {/* User Info */}
+      {user && <UserInfoCard userName={user.name || user.username} />}
+
+      {/* Action Buttons */}
+      <SidebarButton
+        label="Refresh"
+        icon={<Ionicons name="refresh" size={18} color="#374151" />}
+        variant="warning"
+        fullWidth={false}
+      />
+      <SidebarButton
+        label="Logout"
+        icon={<Ionicons name="log-out-outline" size={18} color="white" />}
+        variant="danger"
+        onPress={handleLogout}
+      />
+    </>
+  );
+
+  // -------------------------------------------------------------------------
+  // Main Render
+  // -------------------------------------------------------------------------
 
   return (
     <View
@@ -257,49 +339,13 @@ export function Sidebar({
         showsVerticalScrollIndicator={false}
         contentContainerClassName={`gap-2 ${!isLandscape ? "flex-row flex-wrap" : ""}`}
       >
-        {/* Branding Section */}
-        <View className={`${!isLandscape ? "w-full" : ""}`}>
-          <View className="bg-gray-200 rounded-lg p-4 items-center mb-2">
-            <Text className="text-gray-600 text-sm font-medium">Branding</Text>
-            <Text className="text-gray-600 text-sm font-medium">Section</Text>
-          </View>
-        </View>
+        <BrandingSection isLandscape={isLandscape} />
 
-        {/* Render menu based on current section */}
+        {/* Context-aware menu rendering */}
         {isInSubsection ? renderSubsectionMenu() : renderDashboardMenu()}
 
-        {/* User info */}
-        {user && (
-          <View className="bg-gray-100 rounded-lg p-3 mb-2">
-            <Text className="text-gray-600 text-xs">Logged in as</Text>
-            <Text className="text-gray-800 font-medium">{user.name || user.username}</Text>
-          </View>
-        )}
-
-        {/* Bottom action buttons */}
-        <View className="flex-row gap-2 mt-2">
-          <SidebarButton
-            label="Refresh"
-            icon={<Ionicons name="refresh" size={18} color="#374151" />}
-            variant="warning"
-            fullWidth={false}
-          />
-          <SidebarButton
-            label="Exit Program"
-            icon={<Ionicons name="close-circle-outline" size={18} color="white" />}
-            variant="danger"
-            fullWidth={false}
-            onPress={onExitProgram}
-          />
-        </View>
-
-        {/* Logout button */}
-        <SidebarButton
-          label="Logout"
-          icon={<Ionicons name="log-out-outline" size={18} color="white" />}
-          variant="danger"
-          onPress={handleLogout}
-        />
+        {/* Dashboard-only footer */}
+        {!isInSubsection && renderDashboardFooter()}
       </ScrollView>
     </View>
   );

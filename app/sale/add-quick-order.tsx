@@ -11,24 +11,7 @@ import {
   useWindowDimensions,
 } from "react-native";
 import { SearchProductModal, SearchProduct } from "../../components/SearchProductModal";
-
-// Order product interface
-interface OrderProduct {
-  id: string;
-  sku: string;
-  name: string;
-  price: number;
-  quantity: number;
-  total: number;
-}
-
-// Customer interface
-interface Customer {
-  id: string;
-  name: string;
-  email: string;
-  phone: string;
-}
+import { OrderProduct, OrderCustomer } from "../../types";
 
 export default function AddQuickOrderScreen() {
   const router = useRouter();
@@ -37,7 +20,7 @@ export default function AddQuickOrderScreen() {
 
   // Customer state
   const [customerSearch, setCustomerSearch] = useState("");
-  const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
+  const [selectedCustomer, setSelectedCustomer] = useState<OrderCustomer | null>(null);
   const [paymentTerms, setPaymentTerms] = useState("Due Immediately");
   const [invoiceDate, setInvoiceDate] = useState("2026-01-26");
   const [orderNumber, setOrderNumber] = useState("");
@@ -146,26 +129,26 @@ export default function AddQuickOrderScreen() {
   return (
     <View className="flex-1 bg-gray-100">
       {/* Header */}
-      <View className="bg-white px-4 py-4 border-b border-gray-200 flex-row items-center justify-between">
-        <View className="flex-row items-center gap-3">
-          <Pressable onPress={() => router.back()} className="p-2">
+      <View className="bg-white px-5 py-4 border-b border-gray-200 flex-row items-center justify-between">
+        <View className="flex-row items-center gap-4">
+          <Pressable onPress={() => router.push("/")} className="p-2">
             <Ionicons name="arrow-back" size={24} color="#374151" />
           </Pressable>
           <Text className="text-xl font-bold text-gray-800">Add Quick Order</Text>
         </View>
         <View className="flex-row gap-2">
-          <Pressable className="bg-blue-500 px-4 py-2 rounded-lg flex-row items-center gap-2">
+          <Pressable className="bg-blue-500 px-4 py-2.5 rounded-lg flex-row items-center gap-2">
             <Ionicons name="save-outline" size={18} color="white" />
             <Text className="text-white font-medium">Save Order</Text>
           </Pressable>
         </View>
       </View>
 
-      <ScrollView className="flex-1" contentContainerClassName="p-4">
+      <ScrollView className="flex-1" contentContainerClassName="p-5">
         <View className={`${isWideScreen ? "flex-row gap-4" : "gap-4"}`}>
           
           {/* LEFT PANEL - Customer Selection */}
-          <View className={`bg-white rounded-xl p-4 ${isWideScreen ? "w-80" : ""}`}>
+          <View className={`bg-white rounded-xl p-5 ${isWideScreen ? "w-80" : ""}`}>
             <Text className="text-lg font-bold text-gray-800 mb-4">Customer</Text>
             
             {/* Search Inputs */}

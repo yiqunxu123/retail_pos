@@ -122,85 +122,48 @@ Cookies               x3    $6.00
   };
 
   return (
-    <View className="flex-1">
+    <View className="flex-1 bg-gray-50">
       <ScrollView
         className="flex-1"
         contentContainerClassName="p-4"
         showsVerticalScrollIndicator={false}
       >
-        {/* Header Section */}
-        <Header
-          title={`Welcome, ${user?.name || "User"}`}
-          subtitle="Access sales, reporting, and system actions quickly and securely."
-          badge={user?.role?.toUpperCase() || "USER"}
-        />
+        {/* ===== HEADER GROUP: Welcome + Status Alert ===== */}
+        <View className="bg-white rounded-xl p-4 border border-gray-100">
+          <Header
+            title={`Welcome, ${user?.name || "User"}`}
+            subtitle="Access sales, reporting, and system actions quickly and securely."
+            badge={user?.role?.toUpperCase() || "USER"}
+          />
 
-        {/* Instructions when not clocked in */}
-        {!isClockedIn && !selectedPosLine && (
-          <View className="bg-blue-50 border border-blue-200 rounded-lg p-3 mt-4">
-            <Text className="text-blue-700 text-sm">
-              👆 Select a POS Line below, then press "Clock In" to start your shift.
-            </Text>
-          </View>
-        )}
+          {/* Status Alert - grouped with header */}
+          {!isClockedIn && !selectedPosLine && (
+            <View className="bg-blue-50/70 border border-blue-100 rounded-lg p-3 mt-3">
+              <Text className="text-blue-600 text-sm">
+                👆 Select a POS Line below, then press "Clock In" to start your shift.
+              </Text>
+            </View>
+          )}
 
-        {/* Selected POS Line indicator */}
-        {!isClockedIn && selectedPosLine && (
-          <View className="bg-green-50 border border-green-200 rounded-lg p-3 mt-4">
-            <Text className="text-green-700 text-sm">
-              ✓ POS Line {selectedPosLine} selected. Press "Clock In" and enter your ID.
-            </Text>
-          </View>
-        )}
+          {!isClockedIn && selectedPosLine && (
+            <View className="bg-emerald-50/70 border border-emerald-100 rounded-lg p-3 mt-3">
+              <Text className="text-emerald-600 text-sm">
+                ✓ POS Line {selectedPosLine} selected. Press "Clock In" and enter your ID.
+              </Text>
+            </View>
+          )}
 
-        {/* Clocked in - tap to open */}
-        {isClockedIn && (
-          <View className="bg-purple-50 border border-purple-200 rounded-lg p-3 mt-4">
-            <Text className="text-purple-700 text-sm">
-              ✓ You are clocked in on POS Line {selectedPosLine}. Tap it to open the sales screen.
-            </Text>
-          </View>
-        )}
-
-        {/* Navigation Buttons */}
-        <View className="mt-4">
-          <View className="flex-row flex-wrap gap-3">
-            <TouchableOpacity
-              onPress={() => router.push("/catalog/products")}
-              className="flex-1 min-w-[140px] bg-blue-500 rounded-xl p-4 flex-row items-center justify-center gap-2"
-            >
-              <Ionicons name="cube-outline" size={22} color="white" />
-              <Text className="text-white font-semibold text-base">Product Catalog</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              onPress={() => router.push("/inventory/stocks")}
-              className="flex-1 min-w-[140px] bg-emerald-500 rounded-xl p-4 flex-row items-center justify-center gap-2"
-            >
-              <Ionicons name="layers-outline" size={22} color="white" />
-              <Text className="text-white font-semibold text-base">Inventory</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              onPress={() => router.push("/sale/customers")}
-              className="flex-1 min-w-[140px] bg-purple-500 rounded-xl p-4 flex-row items-center justify-center gap-2"
-            >
-              <Ionicons name="cart-outline" size={22} color="white" />
-              <Text className="text-white font-semibold text-base">Sales</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              onPress={() => router.push("/report")}
-              className="flex-1 min-w-[140px] bg-orange-500 rounded-xl p-4 flex-row items-center justify-center gap-2"
-            >
-              <Ionicons name="bar-chart-outline" size={22} color="white" />
-              <Text className="text-white font-semibold text-base">Report</Text>
-            </TouchableOpacity>
-          </View>
+          {isClockedIn && (
+            <View className="bg-violet-50/70 border border-violet-100 rounded-lg p-3 mt-3">
+              <Text className="text-violet-600 text-sm">
+                ✓ You are clocked in on POS Line {selectedPosLine}. Tap it to open the sales screen.
+              </Text>
+            </View>
+          )}
         </View>
 
-        {/* POS Lines Section */}
-        <View className="mt-4">
+        {/* ===== POS LINES SECTION ===== */}
+        <View className="mt-4 bg-white rounded-xl p-4 border border-gray-100">
           <Text className="text-gray-700 font-semibold text-lg mb-3">
             POS Lines
           </Text>
@@ -210,8 +173,8 @@ Cookies               x3    $6.00
                 key={num}
                 style={{
                   width: isLandscape
-                    ? (contentWidth - 44) / 4
-                    : (contentWidth - 36) / 2,
+                    ? (contentWidth - 56) / 4
+                    : (contentWidth - 48) / 2,
                 }}
               >
                 <POSLineCard
@@ -227,14 +190,54 @@ Cookies               x3    $6.00
           </View>
         </View>
 
-        {/* Dashboard Stats - Only visible for admin */}
+        {/* ===== NAVIGATION GROUP ===== */}
+        <View className="mt-4 bg-white rounded-xl p-4 border border-gray-100">
+          <Text className="text-gray-700 font-semibold text-lg mb-3">
+            Quick Actions
+          </Text>
+          <View className="flex-row flex-wrap gap-2">
+            <TouchableOpacity
+              onPress={() => router.push("/catalog/products")}
+              className="flex-1 min-w-[140px] bg-blue-400 rounded-lg p-3 flex-row items-center justify-center gap-2"
+            >
+              <Ionicons name="cube-outline" size={20} color="white" />
+              <Text className="text-white font-medium text-sm">Product Catalog</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              onPress={() => router.push("/inventory/stocks")}
+              className="flex-1 min-w-[140px] bg-emerald-400 rounded-lg p-3 flex-row items-center justify-center gap-2"
+            >
+              <Ionicons name="layers-outline" size={20} color="white" />
+              <Text className="text-white font-medium text-sm">Inventory</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              onPress={() => router.push("/sale/customers")}
+              className="flex-1 min-w-[140px] bg-violet-400 rounded-lg p-3 flex-row items-center justify-center gap-2"
+            >
+              <Ionicons name="cart-outline" size={20} color="white" />
+              <Text className="text-white font-medium text-sm">Sales</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              onPress={() => router.push("/report")}
+              className="flex-1 min-w-[140px] bg-amber-400 rounded-lg p-3 flex-row items-center justify-center gap-2"
+            >
+              <Ionicons name="bar-chart-outline" size={20} color="white" />
+              <Text className="text-white font-medium text-sm">Report</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+
+        {/* ===== DASHBOARD OVERVIEW GROUP ===== */}
         {showAdminStats && (
-          <View className="mt-6 gap-4">
-            <Text className="text-gray-700 font-semibold text-lg">
-              Dashboard Overview (All POS Lines)
+          <View className="mt-4 bg-white rounded-xl p-4 border border-gray-100">
+            <Text className="text-gray-700 font-semibold text-lg mb-3">
+              Dashboard Overview
             </Text>
             {/* First row: 3 stat cards */}
-            <View className="flex-row gap-3 mb-3">
+            <View className="flex-row gap-2 mb-2">
               <StatCard
                 title="Total Sale/Revenue"
                 value="$233.92K"
@@ -258,7 +261,7 @@ Cookies               x3    $6.00
             </View>
 
             {/* Second row: 3 stat cards */}
-            <View className="flex-row gap-3">
+            <View className="flex-row gap-2">
               <StatCard
                 title="Receivable Amount"
                 value="$203.50K"
