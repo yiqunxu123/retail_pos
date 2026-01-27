@@ -1,7 +1,7 @@
 import { FontAwesome5, Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { useEffect } from "react";
-import { Alert, Platform, ScrollView, Text, TouchableOpacity, useWindowDimensions, View } from "react-native";
+import { Alert, ScrollView, Text, TouchableOpacity, useWindowDimensions, View } from "react-native";
 import {
   Header,
   POSLineCard,
@@ -245,33 +245,64 @@ Cookies               x3    $6.00
         )}
       </ScrollView>
 
-      {/* TEST BUTTON - Floating for easy testing */}
-      <TouchableOpacity
-        onPress={handleTestPrint}
+      {/* Test Buttons - Floating for easy testing */}
+      <View
         style={{
           position: "absolute",
           bottom: 30,
           right: 20,
-          backgroundColor: "#ef4444",
-          paddingVertical: 16,
-          paddingHorizontal: 24,
-          borderRadius: 12,
-          flexDirection: "row",
-          alignItems: "center",
-          gap: 8,
-          shadowColor: "#000",
-          shadowOffset: { width: 0, height: 4 },
-          shadowOpacity: 0.3,
-          shadowRadius: 4,
-          elevation: 8,
+          gap: 12,
           zIndex: 999,
         }}
       >
-        <Ionicons name="print" size={24} color="white" />
-        <Text style={{ color: "white", fontWeight: "bold", fontSize: 16 }}>
-          TEST PRINT
-        </Text>
-      </TouchableOpacity>
+        {/* Sync Test Button */}
+        <TouchableOpacity
+          onPress={() => router.push("/test-sync")}
+          style={{
+            backgroundColor: "#3B82F6",
+            paddingVertical: 16,
+            paddingHorizontal: 24,
+            borderRadius: 12,
+            flexDirection: "row",
+            alignItems: "center",
+            gap: 8,
+            shadowColor: "#000",
+            shadowOffset: { width: 0, height: 4 },
+            shadowOpacity: 0.3,
+            shadowRadius: 4,
+            elevation: 8,
+          }}
+        >
+          <Ionicons name="sync" size={24} color="white" />
+          <Text style={{ color: "white", fontWeight: "bold", fontSize: 16 }}>
+            TEST SYNC
+          </Text>
+        </TouchableOpacity>
+
+        {/* Print Test Button */}
+        <TouchableOpacity
+          onPress={handleTestPrint}
+          style={{
+            backgroundColor: "#ef4444",
+            paddingVertical: 16,
+            paddingHorizontal: 24,
+            borderRadius: 12,
+            flexDirection: "row",
+            alignItems: "center",
+            gap: 8,
+            shadowColor: "#000",
+            shadowOffset: { width: 0, height: 4 },
+            shadowOpacity: 0.3,
+            shadowRadius: 4,
+            elevation: 8,
+          }}
+        >
+          <Ionicons name="print" size={24} color="white" />
+          <Text style={{ color: "white", fontWeight: "bold", fontSize: 16 }}>
+            TEST PRINT
+          </Text>
+        </TouchableOpacity>
+      </View>
     </View>
   );
 }

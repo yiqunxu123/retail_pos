@@ -1,50 +1,228 @@
-# Welcome to your Expo app 👋
+# iTitans POS App
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+A React Native (Expo) POS (Point of Sale) application with offline-first architecture using PowerSync for data synchronization and Supabase as the backend.
 
-## Get started
+## Features
 
-1. Install dependencies
+### POS System
+- **Multi POS Lines**: Support for multiple concurrent POS terminals
+- **Clock In/Out**: Employee time tracking with PIN authentication
+- **Thermal Printing**: Receipt printing via Ethernet/USB/Bluetooth
+- **Print Queue**: Prevents app freezing with sequential print job processing
+- **Role-Based Access**: Admin, Manager, Cashier, Supervisor roles
 
-   ```bash
-   npm install
-   ```
+### Offline-First Architecture
+- **Offline-First**: Works without internet, syncs when connected
+- **Real-time Sync**: Changes sync instantly across devices
+- **Sync Streams**: Dynamic data subscription based on filters
+- **Self-Hosted PowerSync**: Docker-based local deployment
 
-2. Start the app
+## Tech Stack
 
-   ```bash
-   npx expo start
-   ```
+- React Native (Expo) with Expo Router
+- TypeScript
+- NativeWind (Tailwind CSS)
+- PowerSync (self-hosted)
+- Supabase (PostgreSQL + Auth)
+- react-native-thermal-receipt-printer
 
-In the output, you'll find options to open the app in a
+## Prerequisites
 
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
+- Node.js 18+
+- Docker & Docker Compose
+- Supabase account with IPv4 enabled
+- Android device/emulator or iOS Simulator
 
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
+## Quick Start
 
-## Get a fresh project
-
-When you're ready, run:
+### 1. Install Dependencies
 
 ```bash
-npm run reset-project
+npm install
 ```
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+### 2. Configure Environment
 
-## Learn more
+```bash
+# App configuration
+cp env.example .env.local
+# Edit .env.local with your Supabase credentials
+```
 
-To learn more about developing your project with Expo, look at the following resources:
+Required environment variables:
+```bash
+EXPO_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
+EXPO_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
+EXPO_PUBLIC_POWERSYNC_URL=http://localhost:8080
+```
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+### 3. Start PowerSync Service (Optional - for sync features)
 
-## Join the community
+```bash
+cd powersync
+cp .env.example .env
+# Edit .env with your Supabase database credentials
+docker compose up -d
+```
 
-Join our community of developers creating universal apps.
+### 4. Run the App
 
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+```bash
+# Development build (required for native modules like thermal printer)
+npx expo run:android
+npx expo run:ios
+
+# Or start dev server
+npx expo start --dev-client
+```
+
+## Project Structure
+
+```
+├── app/                          # Expo Router pages
+│   ├── _layout.tsx               # Root layout with providers
+│   ├── index.tsx                 # Dashboard / Home
+│   ├── login.tsx                 # Login screen
+│   ├── pos-line.tsx              # POS sales interface
+│   ├── catalog/                  # Product catalog screens
+│   ├── inventory/                # Stock management screens
+│   ├── sale/                     # Sales related screens
+│   └── order/                    # Order flow screens
+├── components/                   # Reusable UI components
+│   ├── Sidebar.tsx               # Main navigation sidebar
+│   ├── POSSidebar.tsx            # POS-specific sidebar
+│   ├── Header.tsx                # Page header component
+│   └── ...
+├── contexts/                     # React Context providers
+│   ├── AuthContext.tsx           # Authentication state
+│   └── ClockContext.tsx          # Clock in/out state
+├── utils/
+│   ├── PrintQueue.ts             # Print queue management
+│   └── powersync/                # PowerSync integration
+│       ├── PowerSyncProvider.tsx
+│       ├── SupabaseConnector.ts
+│       ├── useSyncStream.ts
+│       └── schema.ts
+└── powersync/                    # Self-hosted PowerSync config
+    ├── docker-compose.yaml
+    ├── config.yaml
+    ├── sync_rules.yaml
+    └── .env.example
+```
+
+## PowerSync Configuration
+
+### Environment Variables (powersync/.env)
+
+```bash
+PS_SUPABASE_DB_HOST=db.xxxxx.supabase.co
+PS_SUPABASE_DB_PORT=5432
+PS_SUPABASE_DB_NAME=postgres
+PS_SUPABASE_DB_USER=postgres
+PS_SUPABASE_DB_PASSWORD=your-password
+PS_SUPABASE_JWKS={"keys":[...]}  # From Supabase JWKS endpoint
+```
+
+### Getting JWKS
+
+```bash
+curl https://YOUR_PROJECT.supabase.co/auth/v1/.well-known/jwks.json
+```
+
+### Sync Rules (powersync/sync_rules.yaml)
+
+```yaml
+bucket_definitions:
+  global:
+    data:
+      - SELECT * FROM todos
+```
+
+## Supabase Setup
+
+1. Create tables for your POS data
+
+2. Create PowerSync publication:
+```sql
+CREATE PUBLICATION powersync FOR ALL TABLES;
+```
+
+3. Enable Row Level Security as needed
+
+4. Enable Anonymous Auth in Supabase Dashboard
+
+5. Enable IPv4 Add-on (required for self-hosted PowerSync)
+
+## Thermal Printer Setup
+
+The app supports thermal receipt printing via:
+- **Ethernet**: Configure IP and port (default: 192.168.1.100:9100)
+- **USB**: Android only, auto-detects connected printers
+- **Bluetooth**: Scans and connects to BLE printers
+
+Printer configuration in `app/pos-line.tsx`:
+```typescript
+const PRINTER_IP = "192.168.1.100";
+const PRINTER_PORT = 9100;
+```
+
+## Test Accounts
+
+| Username | Password | Role |
+|----------|----------|------|
+| admin | admin123 | Admin |
+| manager | manager123 | Manager |
+| cashier | cashier123 | Cashier |
+| supervisor | super123 | Supervisor |
+
+## Useful Commands
+
+```bash
+# Start development
+npx expo start --dev-client
+
+# Build for Android
+npx expo run:android
+
+# Build APK
+cd android && ./gradlew assembleRelease
+
+# Start PowerSync
+cd powersync && docker compose up -d
+
+# View PowerSync logs
+docker compose logs -f powersync
+
+# Install on device via ADB
+adb install android/app/build/outputs/apk/debug/app-debug.apk
+```
+
+## Troubleshooting
+
+### PowerSync can't connect to Supabase
+- Ensure IPv4 is enabled in Supabase (Settings → Add-ons)
+- Check database password in `.env`
+
+### JWT authentication errors
+- Refresh JWKS from Supabase endpoint
+- Ensure anonymous auth is enabled
+
+### Thermal printer not working
+- Requires development build (not Expo Go)
+- Check printer IP/port configuration
+- Ensure printer is on same network
+
+### Print jobs freezing
+- Print queue system handles this automatically
+- Check `utils/PrintQueue.ts` for configuration
+
+## Learn More
+
+- [Expo documentation](https://docs.expo.dev/)
+- [PowerSync documentation](https://docs.powersync.com/)
+- [Supabase documentation](https://supabase.com/docs)
+- [NativeWind documentation](https://www.nativewind.dev/)
+
+## License
+
+MIT

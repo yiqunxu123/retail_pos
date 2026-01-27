@@ -1,0 +1,6 @@
+# Sync Rules - Define which data to sync
+# Add more tables here as you develop
+bucket_definitions:
+  global:
+    data:
+      - SELECT * FROM todos

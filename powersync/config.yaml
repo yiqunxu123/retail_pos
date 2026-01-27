@@ -1,0 +1,32 @@
+# yaml-language-server: $schema=https://unpkg.com/@powersync/service-schema@latest/json-schema/powersync-config.json
+# PowerSync Self-Hosted Configuration
+# Environment variables are loaded from .env file using !env tag
+
+# Replication source database (Supabase Postgres)
+replication:
+  connections:
+    - type: postgresql
+      hostname: !env PS_SUPABASE_DB_HOST
+      port: !env PS_SUPABASE_DB_PORT
+      database: !env PS_SUPABASE_DB_NAME
+      username: !env PS_SUPABASE_DB_USER
+      password: !env PS_SUPABASE_DB_PASSWORD
+      sslmode: verify-full
+
+# Storage for sync buckets (MongoDB)
+storage:
+  type: mongodb
+  uri: mongodb://mongo:27017/powersync?replicaSet=rs0
+
+# API configuration
+api:
+  port: 8080
+
+# Client authentication - Supabase JWT
+client_auth:
+  supabase: true
+  supabase_jwt_secret_json: !env PS_SUPABASE_JWKS
+
+# Sync Rules
+sync_rules:
+  path: /config/sync_rules.yaml

@@ -7,6 +7,7 @@ import { ClockInModal } from "../components/ClockInModal";
 import { ClockOutModal } from "../components/ClockOutModal";
 import { AuthProvider, useAuth } from "../contexts/AuthContext";
 import { ClockProvider, useClock } from "../contexts/ClockContext";
+import { PowerSyncProvider } from "../utils/powersync/PowerSyncProvider";
 import "../global.css";
 import LoginScreen from "./login";
 
@@ -132,14 +133,16 @@ function LayoutContent() {
 
 /**
  * RootLayout - Main app layout with sticky sidebar
- * Wraps app with AuthProvider and ClockProvider for global state
+ * Wraps app with PowerSyncProvider, AuthProvider and ClockProvider for global state
  */
 export default function RootLayout() {
   return (
-    <AuthProvider>
-      <ClockProvider>
-        <LayoutContent />
-      </ClockProvider>
-    </AuthProvider>
+    <PowerSyncProvider>
+      <AuthProvider>
+        <ClockProvider>
+          <LayoutContent />
+        </ClockProvider>
+      </AuthProvider>
+    </PowerSyncProvider>
   );
 }
