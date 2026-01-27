@@ -162,6 +162,43 @@ Cookies               x3    $6.00
           </View>
         )}
 
+        {/* Navigation Buttons */}
+        <View className="mt-4">
+          <View className="flex-row flex-wrap gap-3">
+            <TouchableOpacity
+              onPress={() => router.push("/catalog/products")}
+              className="flex-1 min-w-[140px] bg-blue-500 rounded-xl p-4 flex-row items-center justify-center gap-2"
+            >
+              <Ionicons name="cube-outline" size={22} color="white" />
+              <Text className="text-white font-semibold text-base">Product Catalog</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              onPress={() => router.push("/inventory/stocks")}
+              className="flex-1 min-w-[140px] bg-emerald-500 rounded-xl p-4 flex-row items-center justify-center gap-2"
+            >
+              <Ionicons name="layers-outline" size={22} color="white" />
+              <Text className="text-white font-semibold text-base">Inventory</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              onPress={() => router.push("/sale/customers")}
+              className="flex-1 min-w-[140px] bg-purple-500 rounded-xl p-4 flex-row items-center justify-center gap-2"
+            >
+              <Ionicons name="cart-outline" size={22} color="white" />
+              <Text className="text-white font-semibold text-base">Sales</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              onPress={() => router.push("/report")}
+              className="flex-1 min-w-[140px] bg-orange-500 rounded-xl p-4 flex-row items-center justify-center gap-2"
+            >
+              <Ionicons name="bar-chart-outline" size={22} color="white" />
+              <Text className="text-white font-semibold text-base">Report</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+
         {/* POS Lines Section */}
         <View className="mt-4">
           <Text className="text-gray-700 font-semibold text-lg mb-3">

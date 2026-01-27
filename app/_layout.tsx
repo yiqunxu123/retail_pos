@@ -7,8 +7,8 @@ import { ClockInModal } from "../components/ClockInModal";
 import { ClockOutModal } from "../components/ClockOutModal";
 import { AuthProvider, useAuth } from "../contexts/AuthContext";
 import { ClockProvider, useClock } from "../contexts/ClockContext";
-import { PowerSyncProvider } from "../utils/powersync/PowerSyncProvider";
 import "../global.css";
+import { PowerSyncProvider } from "../utils/powersync/PowerSyncProvider";
 import LoginScreen from "./login";
 
 /**
@@ -74,16 +74,6 @@ function LayoutContent() {
     setShowClockOutModal(false);
   };
 
-  // Handle Checkout - navigate to order flow
-  const handleCheckout = () => {
-    router.push("/order/add-customer");
-  };
-
-  // Handle Go to Menu - navigate back to home
-  const handleGoToMenu = () => {
-    router.push("/");
-  };
-
   return (
     <View
       className="flex-1 bg-gray-100"
@@ -107,8 +97,6 @@ function LayoutContent() {
             isLandscape={isLandscape}
             onClockInPress={handleClockInPress}
             onClockOutPress={() => setShowClockOutModal(true)}
-            onCheckout={handleCheckout}
-            onGoToMenu={handleGoToMenu}
             onExitProgram={logout}
           />
         )}
