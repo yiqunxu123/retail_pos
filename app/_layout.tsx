@@ -1,6 +1,6 @@
 import { Slot, usePathname, useRouter } from "expo-router";
 import { useState } from "react";
-import { View, useWindowDimensions } from "react-native";
+import { ActivityIndicator, Text, View, useWindowDimensions } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Sidebar } from "../components";
 import { ClockInModal } from "../components/ClockInModal";
@@ -19,7 +19,7 @@ function LayoutContent() {
   const insets = useSafeAreaInsets();
   const pathname = usePathname();
   const router = useRouter();
-  const { isAuthenticated, user, logout } = useAuth();
+  const { isAuthenticated, isLoading, user, logout } = useAuth();
   const { isClockedIn, selectedPosLine, clockIn, clockOut, selectPosLine } = useClock();
 
   const [showClockInModal, setShowClockInModal] = useState(false);
@@ -30,6 +30,24 @@ function LayoutContent() {
 
   // Check if we're on the POS line screen (hide default sidebar)
   const isPosLineScreen = pathname === "/pos-line";
+
+  // Show loading screen while checking stored authentication
+  if (isLoading) {
+    return (
+      <View
+        className="flex-1 bg-gray-100 justify-center items-center"
+        style={{
+          paddingTop: insets.top,
+          paddingBottom: insets.bottom,
+          paddingLeft: insets.left,
+          paddingRight: insets.right,
+        }}
+      >
+        <ActivityIndicator size="large" color="#ef4444" />
+        <Text className="text-gray-500 mt-4">Loading...</Text>
+      </View>
+    );
+  }
 
   // If not authenticated, show login screen
   if (!isAuthenticated) {

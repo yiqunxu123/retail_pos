@@ -1,7 +1,8 @@
 import { PowerSyncDatabase, SyncStatus } from '@powersync/react-native'
 import React, { createContext, ReactNode, useContext, useEffect, useState } from 'react'
+import { isAuthenticated } from '../api/auth'
+import { KhubConnector } from './KhubConnector'
 import { AppSchema } from './schema'
-import { SupabaseConnector } from './SupabaseConnector'
 
 // Create the PowerSync database instance
 const powerSyncDb = new PowerSyncDatabase({
@@ -16,6 +17,7 @@ interface PowerSyncContextType {
   db: PowerSyncDatabase
   isConnected: boolean
   isInitialized: boolean
+  reconnect: () => Promise<void>
 }
 
 const PowerSyncContext = createContext<PowerSyncContextType | null>(null)
@@ -25,9 +27,48 @@ export function PowerSyncProvider({ children }: { children: ReactNode }) {
   const [isInitialized, setIsInitialized] = useState(false)
   const [isConnected, setIsConnected] = useState(false)
 
-  useEffect(() => {
-    let connector: SupabaseConnector | null = null
+  const connectToSync = async () => {
+    const powersyncUrl = process.env.EXPO_PUBLIC_POWERSYNC_URL
+    if (!powersyncUrl) {
+      console.log('PowerSync URL not configured, running in local-only mode')
+      return
+    }
 
+    // Check if user is authenticated with KHUB
+    const authenticated = await isAuthenticated()
+    if (!authenticated) {
+      console.log('User not authenticated, skipping PowerSync connection')
+      return
+    }
+
+    try {
+      const connector = new KhubConnector()
+      
+      // Connect - PowerSync will automatically:
+      // 1. Download changes from server
+      // 2. Upload pending local changes
+      // 3. Continue syncing in both directions
+      await powerSyncDb.connect(connector)
+      setIsConnected(true)
+      console.log('[PowerSync] Connected - auto-sync enabled')
+
+      // Listen for sync status changes
+      powerSyncDb.registerListener({
+        statusChanged: (status: SyncStatus) => {
+          console.log('[Sync] Status:', {
+            connected: status.connected,
+            downloading: status.dataFlowStatus?.downloading,
+            uploading: status.dataFlowStatus?.uploading,
+          })
+          setIsConnected(status.connected)
+        },
+      })
+    } catch (connectError) {
+      console.log('[PowerSync] Connection failed, using local-only mode:', connectError)
+    }
+  }
+
+  useEffect(() => {
     const init = async () => {
       try {
         // Initialize the database (local SQLite)
@@ -35,37 +76,8 @@ export function PowerSyncProvider({ children }: { children: ReactNode }) {
         console.log('PowerSync local database initialized')
         setIsInitialized(true)
 
-        // Try to connect to PowerSync cloud service
-        const powersyncUrl = process.env.EXPO_PUBLIC_POWERSYNC_URL
-        if (powersyncUrl) {
-          try {
-            connector = new SupabaseConnector()
-            await powerSyncDb.connect(connector)
-            setIsConnected(true)
-            console.log('Connected to PowerSync service')
-
-            // Listen for sync status changes
-            powerSyncDb.registerListener({
-              statusChanged: (status: SyncStatus) => {
-                console.log('[Sync] Status changed:', {
-                  connected: status.connected,
-                  downloading: status.dataFlowStatus?.downloading,
-                  uploading: status.dataFlowStatus?.uploading,
-                  lastSyncedAt: status.lastSyncedAt,
-                })
-              },
-            })
-
-            // Upload all pending changes on connect
-            console.log('[Init] Uploading pending changes...')
-            await connector.uploadData(powerSyncDb)
-            console.log('[Init] Pending changes uploaded')
-          } catch (connectError) {
-            console.log('PowerSync connection failed, using local-only mode:', connectError)
-          }
-        } else {
-          console.log('PowerSync URL not configured, running in local-only mode')
-        }
+        // Try to connect if authenticated
+        await connectToSync()
       } catch (error) {
         console.error('PowerSync initialization error:', error)
         setIsInitialized(true)
@@ -79,8 +91,15 @@ export function PowerSyncProvider({ children }: { children: ReactNode }) {
     }
   }, [])
 
+  // Reconnect function for when user logs in
+  const reconnect = async () => {
+    if (!isConnected) {
+      await connectToSync()
+    }
+  }
+
   return (
-    <PowerSyncContext.Provider value={{ db: powerSyncDb, isConnected, isInitialized }}>
+    <PowerSyncContext.Provider value={{ db: powerSyncDb, isConnected, isInitialized, reconnect }}>
       {children}
     </PowerSyncContext.Provider>
   )

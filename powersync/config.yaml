@@ -1,17 +1,16 @@
 # yaml-language-server: $schema=https://unpkg.com/@powersync/service-schema@latest/json-schema/powersync-config.json
-# PowerSync Self-Hosted Configuration
-# Environment variables are loaded from .env file using !env tag
+# PowerSync Self-Hosted Configuration - Connected to KHUB PostgreSQL
 
-# Replication source database (Supabase Postgres)
+# Replication source database (KHUB PostgreSQL)
 replication:
   connections:
     - type: postgresql
-      hostname: !env PS_SUPABASE_DB_HOST
-      port: !env PS_SUPABASE_DB_PORT
-      database: !env PS_SUPABASE_DB_NAME
-      username: !env PS_SUPABASE_DB_USER
-      password: !env PS_SUPABASE_DB_PASSWORD
-      sslmode: verify-full
+      hostname: !env PS_KHUB_DB_HOST
+      port: !env PS_KHUB_DB_PORT
+      database: !env PS_KHUB_DB_NAME
+      username: !env PS_KHUB_DB_USER
+      password: !env PS_KHUB_DB_PASSWORD
+      sslmode: disable
 
 # Storage for sync buckets (MongoDB)
 storage:
@@ -22,10 +21,14 @@ storage:
 api:
   port: 8080
 
-# Client authentication - Supabase JWT
+# Client authentication - KHUB JWT (HS256)
 client_auth:
-  supabase: true
-  supabase_jwt_secret_json: !env PS_SUPABASE_JWKS
+  audience: ["powersync"]
+  jwks:
+    keys:
+      - kty: oct
+        k: !env PS_JWT_SECRET_BASE64
+        alg: HS256
 
 # Sync Rules
 sync_rules:

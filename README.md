@@ -1,6 +1,6 @@
 # iTitans POS App
 
-A React Native (Expo) POS (Point of Sale) application with offline-first architecture using PowerSync for data synchronization and Supabase as the backend.
+A React Native (Expo) POS (Point of Sale) application with offline-first architecture using PowerSync for real-time data synchronization with KHUB backend.
 
 ## Features
 
@@ -13,8 +13,8 @@ A React Native (Expo) POS (Point of Sale) application with offline-first archite
 
 ### Offline-First Architecture
 - **Offline-First**: Works without internet, syncs when connected
-- **Real-time Sync**: Changes sync instantly across devices
-- **Sync Streams**: Dynamic data subscription based on filters
+- **Real-time Sync**: Changes sync instantly across devices via PostgreSQL WAL
+- **Two-way Sync**: Local changes automatically sync to backend
 - **Self-Hosted PowerSync**: Docker-based local deployment
 
 ## Tech Stack
@@ -23,14 +23,12 @@ A React Native (Expo) POS (Point of Sale) application with offline-first archite
 - TypeScript
 - NativeWind (Tailwind CSS)
 - PowerSync (self-hosted)
-- Supabase (PostgreSQL + Auth)
-- react-native-thermal-receipt-printer
+- KHUB Backend (Flask + PostgreSQL)
 
 ## Prerequisites
 
 - Node.js 18+
 - Docker & Docker Compose
-- Supabase account with IPv4 enabled
 - Android device/emulator or iOS Simulator
 
 ## Quick Start
@@ -44,31 +42,28 @@ npm install
 ### 2. Configure Environment
 
 ```bash
-# App configuration
 cp env.example .env.local
-# Edit .env.local with your Supabase credentials
 ```
 
-Required environment variables:
+Edit `.env.local`:
 ```bash
-EXPO_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
-EXPO_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
-EXPO_PUBLIC_POWERSYNC_URL=http://localhost:8080
+EXPO_PUBLIC_KHUB_API_URL=http://YOUR_IP:5002
+EXPO_PUBLIC_POWERSYNC_URL=http://YOUR_IP:8080
 ```
 
-### 3. Start PowerSync Service (Optional - for sync features)
+### 3. Start PowerSync Service
 
 ```bash
 cd powersync
-cp .env.example .env
-# Edit .env with your Supabase database credentials
-docker compose up -d
+cp env.example .env
+# Edit .env with your KHUB database credentials
+docker-compose up -d
 ```
 
 ### 4. Run the App
 
 ```bash
-# Development build (required for native modules like thermal printer)
+# Development build (required for native modules)
 npx expo run:android
 npx expo run:ios
 
@@ -84,30 +79,29 @@ npx expo start --dev-client
 │   ├── index.tsx                 # Dashboard / Home
 │   ├── login.tsx                 # Login screen
 │   ├── pos-line.tsx              # POS sales interface
+│   ├── test-sync.tsx             # PowerSync test page
 │   ├── catalog/                  # Product catalog screens
 │   ├── inventory/                # Stock management screens
 │   ├── sale/                     # Sales related screens
 │   └── order/                    # Order flow screens
 ├── components/                   # Reusable UI components
-│   ├── Sidebar.tsx               # Main navigation sidebar
-│   ├── POSSidebar.tsx            # POS-specific sidebar
-│   ├── Header.tsx                # Page header component
-│   └── ...
 ├── contexts/                     # React Context providers
 │   ├── AuthContext.tsx           # Authentication state
-│   └── ClockContext.tsx          # Clock in/out state
+│   ├── ClockContext.tsx          # Clock in/out state
+│   └── OrderContext.tsx          # Order state management
 ├── utils/
+│   ├── api/                      # KHUB API utilities
 │   ├── PrintQueue.ts             # Print queue management
 │   └── powersync/                # PowerSync integration
 │       ├── PowerSyncProvider.tsx
-│       ├── SupabaseConnector.ts
+│       ├── KhubConnector.ts
 │       ├── useSyncStream.ts
 │       └── schema.ts
 └── powersync/                    # Self-hosted PowerSync config
     ├── docker-compose.yaml
     ├── config.yaml
     ├── sync_rules.yaml
-    └── .env.example
+    └── .env
 ```
 
 ## PowerSync Configuration
@@ -115,112 +109,103 @@ npx expo start --dev-client
 ### Environment Variables (powersync/.env)
 
 ```bash
-PS_SUPABASE_DB_HOST=db.xxxxx.supabase.co
-PS_SUPABASE_DB_PORT=5432
-PS_SUPABASE_DB_NAME=postgres
-PS_SUPABASE_DB_USER=postgres
-PS_SUPABASE_DB_PASSWORD=your-password
-PS_SUPABASE_JWKS={"keys":[...]}  # From Supabase JWKS endpoint
-```
+# KHUB PostgreSQL Database
+PS_KHUB_DB_HOST=host.docker.internal  # or your host IP
+PS_KHUB_DB_PORT=5434
+PS_KHUB_DB_NAME=your_database_name
+PS_KHUB_DB_USER=your_username
+PS_KHUB_DB_PASSWORD=your_password
 
-### Getting JWKS
-
-```bash
-curl https://YOUR_PROJECT.supabase.co/auth/v1/.well-known/jwks.json
+# JWT Secret (base64 encoded, must match KHUB's JWT_SECRET_KEY)
+# Generate: echo -n "YOUR_JWT_SECRET" | base64
+PS_JWT_SECRET_BASE64=your_base64_encoded_jwt_secret
 ```
 
 ### Sync Rules (powersync/sync_rules.yaml)
 
+Defines which tables to sync:
 ```yaml
-bucket_definitions:
-  global:
-    data:
-      - SELECT * FROM todos
+streams:
+  products:
+    auto_subscribe: true
+    query: "SELECT id, name, sku, ... FROM products"
+  
+  customers:
+    auto_subscribe: true
+    query: "SELECT id, name, email, ... FROM customers"
+  
+  tenant_users:
+    auto_subscribe: true
+    query: "SELECT id, first_name, last_name, ... FROM tenant_users"
+
+config:
+  edition: 2
 ```
-
-## Supabase Setup
-
-1. Create tables for your POS data
-
-2. Create PowerSync publication:
-```sql
-CREATE PUBLICATION powersync FOR ALL TABLES;
-```
-
-3. Enable Row Level Security as needed
-
-4. Enable Anonymous Auth in Supabase Dashboard
-
-5. Enable IPv4 Add-on (required for self-hosted PowerSync)
-
-## Thermal Printer Setup
-
-The app supports thermal receipt printing via:
-- **Ethernet**: Configure IP and port (default: 192.168.1.100:9100)
-- **USB**: Android only, auto-detects connected printers
-- **Bluetooth**: Scans and connects to BLE printers
-
-Printer configuration in `app/pos-line.tsx`:
-```typescript
-const PRINTER_IP = "192.168.1.100";
-const PRINTER_PORT = 9100;
-```
-
-## Test Accounts
-
-| Username | Password | Role |
-|----------|----------|------|
-| admin | admin123 | Admin |
-| manager | manager123 | Manager |
-| cashier | cashier123 | Cashier |
-| supervisor | super123 | Supervisor |
 
 ## Useful Commands
 
 ```bash
-# Start development
-npx expo start --dev-client
+# Start PowerSync
+cd powersync && docker-compose up -d
 
-# Build for Android
+# View PowerSync logs
+cd powersync && docker-compose logs -f powersync
+
+# Run app on Android
 npx expo run:android
 
 # Build APK
 cd android && ./gradlew assembleRelease
-
-# Start PowerSync
-cd powersync && docker compose up -d
-
-# View PowerSync logs
-docker compose logs -f powersync
-
-# Install on device via ADB
-adb install android/app/build/outputs/apk/debug/app-debug.apk
 ```
 
 ## Troubleshooting
 
-### PowerSync can't connect to Supabase
-- Ensure IPv4 is enabled in Supabase (Settings → Add-ons)
-- Check database password in `.env`
+### PowerSync JWT errors
+- Ensure KHUB backend has JWT audience configured for PowerSync
+- Re-login in app to get new token after config changes
 
-### JWT authentication errors
-- Refresh JWKS from Supabase endpoint
-- Ensure anonymous auth is enabled
+### PowerSync can't connect to PostgreSQL
+- Check `PS_KHUB_DB_HOST` - use `host.docker.internal` on Mac/Windows
+- Ensure PostgreSQL has logical replication enabled
+- Check firewall allows the database port
 
-### Thermal printer not working
-- Requires development build (not Expo Go)
-- Check printer IP/port configuration
-- Ensure printer is on same network
+### Sync not working
+- Check PowerSync logs: `docker-compose logs -f powersync`
+- Verify tables are in `sync_rules.yaml`
+- Ensure schema matches between PowerSync and app
 
-### Print jobs freezing
-- Print queue system handles this automatically
-- Check `utils/PrintQueue.ts` for configuration
+### Data not persisting after restart
+- Use `docker-compose down` (NOT `docker-compose down -v`)
+- `-v` flag deletes volumes including database data
+
+## Architecture
+
+```
+┌─────────────────────────────────────────────────────┐
+│                 React Native App                     │
+│   ┌─────────────┐    ┌─────────────────────────┐   │
+│   │ PowerSync   │    │ KHUB API Client         │   │
+│   │ (SQLite)    │    │ (REST calls)            │   │
+│   └──────┬──────┘    └───────────┬─────────────┘   │
+└──────────┼───────────────────────┼─────────────────┘
+           │ WebSocket             │ HTTP
+           ▼                       ▼
+┌──────────────────┐    ┌─────────────────────────┐
+│ PowerSync Server │    │ KHUB Backend (Flask)    │
+│ (Docker)         │    │                         │
+└────────┬─────────┘    └───────────┬─────────────┘
+         │ WAL Stream               │
+         ▼                          ▼
+┌─────────────────────────────────────────────────────┐
+│              PostgreSQL Database                     │
+│         (Logical Replication enabled)               │
+└─────────────────────────────────────────────────────┘
+```
 
 ## Learn More
 
 - [Expo documentation](https://docs.expo.dev/)
 - [PowerSync documentation](https://docs.powersync.com/)
-- [Supabase documentation](https://supabase.com/docs)
 - [NativeWind documentation](https://www.nativewind.dev/)
 
 ## License

@@ -1,7 +1,8 @@
 import { Ionicons } from "@expo/vector-icons";
 import { usePathname, useRouter } from "expo-router";
 import { useEffect, useState } from "react";
-import { ScrollView, Text, View } from "react-native";
+import { Alert, ScrollView, Text, View } from "react-native";
+import { useAuth } from "../contexts/AuthContext";
 import { useClock } from "../contexts/ClockContext";
 import { SidebarButton } from "./SidebarButton";
 
@@ -79,8 +80,27 @@ export function Sidebar({
 }: SidebarProps) {
   const router = useRouter();
   const pathname = usePathname();
+  const { logout, user } = useAuth();
   const { isClockedIn, getClockInTimeString, getElapsedTime } = useClock();
   const [elapsedTime, setElapsedTime] = useState("00:00:00");
+
+  // Handle logout with confirmation
+  const handleLogout = () => {
+    Alert.alert(
+      "Logout",
+      "Are you sure you want to logout?",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Confirm",
+          style: "destructive",
+          onPress: async () => {
+            await logout();
+          },
+        },
+      ]
+    );
+  };
 
   // Determine current section based on pathname
   const getCurrentSection = (): SectionType => {
@@ -248,6 +268,14 @@ export function Sidebar({
         {/* Render menu based on current section */}
         {isInSubsection ? renderSubsectionMenu() : renderDashboardMenu()}
 
+        {/* User info */}
+        {user && (
+          <View className="bg-gray-100 rounded-lg p-3 mb-2">
+            <Text className="text-gray-600 text-xs">Logged in as</Text>
+            <Text className="text-gray-800 font-medium">{user.name || user.username}</Text>
+          </View>
+        )}
+
         {/* Bottom action buttons */}
         <View className="flex-row gap-2 mt-2">
           <SidebarButton
@@ -264,6 +292,14 @@ export function Sidebar({
             onPress={onExitProgram}
           />
         </View>
+
+        {/* Logout button */}
+        <SidebarButton
+          label="Logout"
+          icon={<Ionicons name="log-out-outline" size={18} color="white" />}
+          variant="danger"
+          onPress={handleLogout}
+        />
       </ScrollView>
     </View>
   );

@@ -1,6 +1,47 @@
-# Sync Rules - Define which data to sync
-# Add more tables here as you develop
-bucket_definitions:
-  global:
-    data:
-      - SELECT * FROM todos
+# Sync Rules - KHUB Database Tables
+# Using stream mode for real-time sync
+
+streams:
+  # Products stream
+  products:
+    auto_subscribe: true
+    query: "SELECT id, brand_id, name, sku, upc, description, is_online, status, slug, main_category_id, created_at, updated_at FROM products"
+
+  # Categories stream
+  categories:
+    auto_subscribe: true
+    query: "SELECT id, name, code, slug, is_featured, image, parent_id, created_at, updated_at FROM categories"
+
+  # Brands stream
+  brands:
+    auto_subscribe: true
+    query: "SELECT id, name, slug, image, created_at, updated_at FROM brands"
+
+  # Stocks stream
+  stocks:
+    auto_subscribe: true
+    query: "SELECT id, product_id, qty, created_at, updated_at FROM stocks"
+
+  # Tags stream
+  tags:
+    auto_subscribe: true
+    query: "SELECT id, name, slug, created_at, updated_at FROM tags"
+
+  # Customers stream
+  customers:
+    auto_subscribe: true
+    query: "SELECT id, no, name, email, phone_no, business_name, address, status, created_at, updated_at FROM customers"
+
+  # Settings stream
+  settings:
+    auto_subscribe: true
+    query: "SELECT id, type, sub_type, value, created_at, updated_at FROM settings"
+
+  # Tenant Users stream (exclude sensitive fields: password, salt, reset_key, login_pin)
+  tenant_users:
+    auto_subscribe: true
+    query: "SELECT id, first_name, last_name, username, email, phone_no, image, master_admin, status, assign_customer, view_all_customers, created_at, updated_at FROM tenant_users"
+
+# Required for streams
+config:
+  edition: 2
