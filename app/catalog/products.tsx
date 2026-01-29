@@ -1,16 +1,24 @@
+/**
+ * Products Screen
+ * 
+ * Displays product catalog with real-time sync from PowerSync.
+ * Data source: products + unit_prices (joined)
+ */
+
 import { Ionicons } from "@expo/vector-icons";
 import { useMemo, useState } from "react";
 import {
+  ActivityIndicator,
   FlatList,
-  Image,
   Pressable,
+  RefreshControl,
   ScrollView,
   Text,
   TextInput,
   View,
 } from "react-native";
 import { FilterDropdown, PageHeader } from "../../components";
-import { Product } from "../../types";
+import { ProductView, useProducts } from "../../utils/powersync/hooks";
 
 // ============================================================================
 // Constants
@@ -30,27 +38,8 @@ const SORT_OPTIONS = [
 
 const PRODUCT_TYPE_OPTIONS = [
   { label: "All Products", value: "all" },
-  { label: "With Variants", value: "variants" },
-  { label: "MSA Products", value: "msa" },
   { label: "Online Sale", value: "online" },
-];
-
-const CHANNEL_OPTIONS = [
-  { label: "Primary", value: "primary" },
-  { label: "Secondary", value: "secondary" },
-  { label: "Online", value: "online" },
-];
-
-// ============================================================================
-// Sample Data
-// ============================================================================
-
-const SAMPLE_PRODUCTS: Product[] = [
-  { id: "1", variant: false, name: "Pillow", onlineSale: false, netCostPrice: 12, baseCostPrice: 10, salePrice: 20, isMSA: false },
-  { id: "2", variant: false, name: "Desi drink 420", onlineSale: true, netCostPrice: 20, baseCostPrice: 20, salePrice: 25, isMSA: false },
-  { id: "3", variant: true, name: "MEXICAN CHIPS 1CT 100g-tazm", onlineSale: false, netCostPrice: 420, baseCostPrice: 420, salePrice: 500, isMSA: false },
-  { id: "4", variant: false, name: "Energy Drink XL", onlineSale: true, netCostPrice: 5, baseCostPrice: 4.50, salePrice: 8, isMSA: true },
-  { id: "5", variant: false, name: "Snack Pack Mix", onlineSale: true, netCostPrice: 15, baseCostPrice: 12, salePrice: 22, isMSA: false },
+  { label: "Featured", value: "featured" },
 ];
 
 // ============================================================================
@@ -70,18 +59,33 @@ function TableCheckbox() {
 }
 
 // ============================================================================
+// Helpers
+// ============================================================================
+
+const formatCurrency = (value: number) =>
+  value > 0 ? `$${value.toFixed(2)}` : "-";
+
+// ============================================================================
 // Main Component
 // ============================================================================
 
 export default function ProductsScreen() {
+  // Data from PowerSync
+  const { products, isLoading, isStreaming, refresh, count } = useProducts();
+  const [refreshing, setRefreshing] = useState(false);
+
   // Search & Filter State
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string | null>("active");
   const [sortBy, setSortBy] = useState<string | null>(null);
   const [productTypeFilter, setProductTypeFilter] = useState<string | null>(null);
-  const [channelFilter, setChannelFilter] = useState<string | null>("primary");
 
-  const [products] = useState<Product[]>(SAMPLE_PRODUCTS);
+  // Pull to refresh
+  const onRefresh = async () => {
+    setRefreshing(true);
+    await refresh();
+    setRefreshing(false);
+  };
 
   // Apply filters and sorting
   const filteredProducts = useMemo(() => {
@@ -90,20 +94,29 @@ export default function ProductsScreen() {
     // Search filter
     if (searchQuery) {
       const query = searchQuery.toLowerCase();
-      result = result.filter((p) => p.name.toLowerCase().includes(query));
+      result = result.filter(
+        (p) =>
+          p.name.toLowerCase().includes(query) ||
+          p.sku.toLowerCase().includes(query) ||
+          p.upc.toLowerCase().includes(query)
+      );
+    }
+
+    // Status filter
+    if (statusFilter) {
+      result = result.filter((p) =>
+        statusFilter === "active" ? p.isActive : !p.isActive
+      );
     }
 
     // Product type filter
-    if (productTypeFilter) {
+    if (productTypeFilter && productTypeFilter !== "all") {
       switch (productTypeFilter) {
-        case "variants":
-          result = result.filter((p) => p.variant);
-          break;
-        case "msa":
-          result = result.filter((p) => p.isMSA);
-          break;
         case "online":
           result = result.filter((p) => p.onlineSale);
+          break;
+        case "featured":
+          result = result.filter((p) => p.isFeatured);
           break;
       }
     }
@@ -127,45 +140,55 @@ export default function ProductsScreen() {
     }
 
     return result;
-  }, [products, searchQuery, statusFilter, sortBy, productTypeFilter, channelFilter]);
+  }, [products, searchQuery, statusFilter, productTypeFilter, sortBy]);
 
-  // Build active filters display
-  const activeFilters = useMemo(() => {
-    const filters: string[] = [];
-    if (statusFilter) filters.push(`Status: ${STATUS_OPTIONS.find(o => o.value === statusFilter)?.label}`);
-    if (channelFilter) filters.push(`Channel: ${CHANNEL_OPTIONS.find(o => o.value === channelFilter)?.label}`);
-    if (productTypeFilter) filters.push(`Type: ${PRODUCT_TYPE_OPTIONS.find(o => o.value === productTypeFilter)?.label}`);
-    if (sortBy) filters.push(`Sort: ${SORT_OPTIONS.find(o => o.value === sortBy)?.label}`);
-    return filters;
-  }, [statusFilter, channelFilter, productTypeFilter, sortBy]);
-
-  const renderProductRow = ({ item }: { item: Product }) => (
+  const renderProductRow = ({ item }: { item: ProductView }) => (
     <Pressable className="flex-row items-center py-3 px-5 border-b border-gray-100 bg-white">
       <View className="w-8 mr-4">
         <TableCheckbox />
       </View>
-      <Text className="w-16 text-gray-600 text-center">
-        {item.variant ? "Yes" : "No"}
-      </Text>
-      <Text className="w-52 text-blue-600 font-medium">{item.name}</Text>
-      <View className="w-24 items-center">
+      <View className="w-12 h-12 bg-gray-100 rounded-lg items-center justify-center mr-3">
+        <Ionicons name="cube-outline" size={24} color="#9ca3af" />
+      </View>
+      <View className="flex-1">
+        <Text className="text-gray-800 font-medium" numberOfLines={1}>
+          {item.name || "-"}
+        </Text>
+        <Text className="text-gray-500 text-sm">SKU: {item.sku || "-"}</Text>
+      </View>
+      <View className="w-28">
+        <Text className="text-gray-600 text-sm">{item.upc || "-"}</Text>
+      </View>
+      <View className="w-16 items-center">
         <BooleanIcon value={item.onlineSale} />
       </View>
-      <Text className="w-28 text-gray-800 text-center">${item.netCostPrice}</Text>
-      <Text className="w-28 text-gray-800 text-center">${item.baseCostPrice}</Text>
-      <Text className="w-24 text-blue-600 text-center">${item.salePrice}</Text>
       <View className="w-20 items-center">
-        <BooleanIcon value={item.isMSA} />
+        <Text className="text-gray-700">{formatCurrency(item.costPrice)}</Text>
       </View>
-      <View className="w-20 h-12 bg-gray-100 rounded items-center justify-center">
-        {item.imageUrl ? (
-          <Image source={{ uri: item.imageUrl }} className="w-full h-full rounded" />
-        ) : (
-          <Ionicons name="image-outline" size={24} color="#d1d5db" />
-        )}
+      <View className="w-20 items-center">
+        <Text className="text-gray-700">{formatCurrency(item.unitPrice)}</Text>
+      </View>
+      <View className="w-20 items-center">
+        <Text className="text-green-600 font-medium">{formatCurrency(item.salePrice)}</Text>
+      </View>
+      <View className="w-14 items-center">
+        <BooleanIcon value={item.isActive} size={18} />
       </View>
     </Pressable>
   );
+
+  // Loading state
+  if (isLoading && products.length === 0) {
+    return (
+      <View className="flex-1 bg-gray-50">
+        <PageHeader title="Products" />
+        <View className="flex-1 justify-center items-center">
+          <ActivityIndicator size="large" color="#3B82F6" />
+          <Text className="mt-4 text-gray-600">Loading products...</Text>
+        </View>
+      </View>
+    );
+  }
 
   return (
     <View className="flex-1 bg-gray-50">
@@ -173,117 +196,85 @@ export default function ProductsScreen() {
 
       {/* Toolbar */}
       <View className="bg-white px-5 py-4 border-b border-gray-200">
-        {/* Title & Action Buttons */}
-        <View className="flex-row items-center justify-between mb-4">
-          <Text className="text-lg font-semibold text-gray-800">
-            Products list ({filteredProducts.length})
-          </Text>
-          <View className="flex-row gap-2">
-            <Pressable className="bg-blue-500 px-4 py-2 rounded-lg flex-row items-center gap-2">
-              <Text className="text-white font-medium">Bulk Actions</Text>
-              <Ionicons name="chevron-down" size={16} color="white" />
-            </Pressable>
-            <Pressable className="bg-cyan-500 px-4 py-2 rounded-lg flex-row items-center gap-2">
-              <Text className="text-white font-medium">Import</Text>
-              <Ionicons name="cloud-upload" size={16} color="white" />
-            </Pressable>
-            <Pressable className="bg-green-500 px-4 py-2 rounded-lg flex-row items-center gap-2">
-              <Text className="text-white font-medium">Export</Text>
-              <Ionicons name="cloud-upload" size={16} color="white" />
-            </Pressable>
-            <Pressable className="bg-red-500 px-4 py-2 rounded-lg">
-              <Text className="text-white font-medium">Add Product</Text>
-            </Pressable>
-          </View>
+        {/* Action Buttons */}
+        <View className="flex-row items-center gap-3 mb-4">
+          <Pressable className="bg-red-500 px-4 py-2 rounded-lg flex-row items-center gap-2">
+            <Text className="text-white font-medium">Bulk Actions</Text>
+            <Ionicons name="chevron-down" size={16} color="white" />
+          </Pressable>
+          <Pressable className="bg-gray-100 px-4 py-2 rounded-lg flex-row items-center gap-2">
+            <Ionicons name="grid" size={16} color="#374151" />
+            <Text className="text-gray-700">Columns</Text>
+          </Pressable>
+          {isStreaming && (
+            <View className="flex-row items-center gap-1 ml-2">
+              <Text className="text-green-600 text-xs">● Live</Text>
+            </View>
+          )}
         </View>
 
-        {/* Filter Controls */}
-        <View className="flex-row gap-4 mb-4">
-          {/* Search Input */}
+        {/* Search & Filters */}
+        <Text className="text-gray-500 text-sm mb-2">
+          Search by Product Name, SKU, UPC
+        </Text>
+        <View className="flex-row gap-4">
           <View className="flex-1">
-            <Text className="text-gray-500 text-xs mb-1">Search by Name, SKU/UPC</Text>
             <TextInput
-              className="bg-gray-50 border border-gray-200 rounded-lg px-3 py-2"
+              className="bg-gray-50 border border-gray-200 rounded-lg px-4 py-2.5"
               placeholder="Search products..."
               placeholderTextColor="#9ca3af"
               value={searchQuery}
               onChangeText={setSearchQuery}
             />
           </View>
-
-          {/* Status Filter */}
           <FilterDropdown
-            label="Select by Status"
+            label=""
             value={statusFilter}
             options={STATUS_OPTIONS}
             onChange={setStatusFilter}
-            placeholder="All Status"
+            placeholder="Status"
             width={120}
           />
-
-          {/* Sort Filter */}
           <FilterDropdown
-            label="Sort By"
+            label=""
             value={sortBy}
             options={SORT_OPTIONS}
             onChange={setSortBy}
-            placeholder="Sort By..."
-            width={140}
+            placeholder="Sort By"
+            width={150}
           />
-
-          {/* Products Filter */}
           <FilterDropdown
-            label="Select by Products"
+            label=""
             value={productTypeFilter}
             options={PRODUCT_TYPE_OPTIONS}
             onChange={setProductTypeFilter}
-            placeholder="All Products"
-            width={140}
-          />
-
-          {/* Channel Selector */}
-          <FilterDropdown
-            label="Channel Name"
-            value={channelFilter}
-            options={CHANNEL_OPTIONS}
-            onChange={setChannelFilter}
-            placeholder="Select Channel"
-            width={120}
-            variant="danger"
-            allowClear={false}
+            placeholder="Product Type"
+            width={150}
           />
         </View>
 
-        {/* Active Filters & Print Labels */}
-        <View className="flex-row items-center justify-between">
-          <Pressable className="bg-gray-100 px-4 py-2 rounded-lg flex-row items-center gap-2">
-            <Ionicons name="print-outline" size={16} color="#374151" />
-            <Text className="text-gray-700">Print Labels</Text>
-          </Pressable>
-          {activeFilters.length > 0 && (
-            <Text className="text-gray-500 text-sm">
-              Filters: {activeFilters.join(" | ")}
-            </Text>
-          )}
-        </View>
+        {/* Results count */}
+        <Text className="text-gray-400 text-sm mt-2">
+          Showing {filteredProducts.length} of {count} products
+        </Text>
       </View>
 
       {/* Data Table */}
       <ScrollView horizontal showsHorizontalScrollIndicator={false} className="flex-1">
-        <View style={{ minWidth: 850 }}>
+        <View style={{ minWidth: 900 }}>
           {/* Table Header */}
           <View className="flex-row bg-gray-50 py-3 px-5 border-b border-gray-200">
             <View className="w-8 mr-4">
               <TableCheckbox />
             </View>
-            <Text className="w-16 text-gray-500 text-xs font-semibold uppercase text-center">Variant</Text>
-            <Text className="w-52 text-gray-500 text-xs font-semibold uppercase">Name</Text>
-            <Text className="w-24 text-gray-500 text-xs font-semibold uppercase text-center">Online Sale</Text>
-            <Text className="w-28 text-gray-500 text-xs font-semibold uppercase text-center">Net Cost Price</Text>
-            <Text className="w-28 text-gray-500 text-xs font-semibold uppercase text-center">Base Cost Price</Text>
-            <Text className="w-24 text-gray-500 text-xs font-semibold uppercase text-center">Sale Price</Text>
-            <Text className="w-20 text-gray-500 text-xs font-semibold uppercase text-center">Is MSA</Text>
-            <Text className="w-20 text-gray-500 text-xs font-semibold uppercase text-center">Image</Text>
+            <View className="w-12 mr-3" />
+            <Text className="flex-1 text-gray-500 text-xs font-semibold uppercase">Product Name</Text>
+            <Text className="w-28 text-gray-500 text-xs font-semibold uppercase">UPC</Text>
+            <Text className="w-16 text-gray-500 text-xs font-semibold uppercase text-center">Online</Text>
+            <Text className="w-20 text-gray-500 text-xs font-semibold uppercase text-center">Cost</Text>
+            <Text className="w-20 text-gray-500 text-xs font-semibold uppercase text-center">Unit</Text>
+            <Text className="w-20 text-gray-500 text-xs font-semibold uppercase text-center">Sale</Text>
+            <Text className="w-14 text-gray-500 text-xs font-semibold uppercase text-center">Active</Text>
           </View>
 
           {/* Table Body */}
@@ -292,9 +283,12 @@ export default function ProductsScreen() {
             keyExtractor={(item) => item.id}
             renderItem={renderProductRow}
             showsVerticalScrollIndicator={false}
+            refreshControl={
+              <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+            }
             ListEmptyComponent={
               <View className="py-16 items-center">
-                <Ionicons name="search-outline" size={48} color="#d1d5db" />
+                <Ionicons name="cube-outline" size={48} color="#d1d5db" />
                 <Text className="text-gray-400 mt-2">No products found</Text>
               </View>
             }

@@ -33,7 +33,6 @@ const categories = new Table({
   is_featured: column.integer, // boolean
   image: column.text,
   parent_id: column.integer,
-  description: column.text,
   created_at: column.text,
   updated_at: column.text,
 })
@@ -64,34 +63,50 @@ const customers = new Table({
   business_phone_no: column.text,
   address: column.text,
   status: column.integer,
+  allow_ecom: column.text, // 'Y' or 'N'
   created_at: column.text,
   updated_at: column.text,
 })
 
 // Customer groups table
+// NOTE: description field does not exist in database
 const customer_groups = new Table({
   name: column.text,
-  description: column.text,
+  is_active: column.integer, // boolean
+  tier_id: column.integer,
   created_at: column.text,
   updated_at: column.text,
 })
 
+// Customer groups - customer relation (for counting customers per group)
+// NOTE: id is a synthetic composite key (customer_group_id-customer_id)
+const customer_groups_customer = new Table({
+  customer_group_id: column.integer,
+  customer_id: column.integer,
+})
+
 // Stocks table
+// NOTE: qty_alert, location fields do not exist in database
 const stocks = new Table({
+  channel_id: column.integer,
   product_id: column.integer,
-  qty: column.real,
-  qty_alert: column.real,
-  location: column.text,
+  qty: column.integer,
+  status: column.integer,
   created_at: column.text,
   updated_at: column.text,
 })
 
 // Unit prices table
+// NOTE: actual field names differ from initial design
 const unit_prices = new Table({
   product_id: column.integer,
-  unit_price: column.real,
-  sale_price: column.real,
-  cost_price: column.real,
+  channel_id: column.integer,
+  cost: column.real,        // cost price
+  price: column.real,       // sale price
+  base_cost: column.real,   // base cost
+  ecom_price: column.real,  // ecommerce price
+  upc: column.text,
+  unit: column.integer,
   created_at: column.text,
   updated_at: column.text,
 })
@@ -108,15 +123,19 @@ const taxes = new Table({
 
 // Sale orders table
 const sale_orders = new Table({
-  order_no: column.text,
   customer_id: column.integer,
-  user_id: column.integer,
+  no: column.text,
+  order_type: column.integer,
+  sale_type: column.integer,
   status: column.integer,
-  sub_total: column.real,
-  discount: column.real,
+  total_price: column.real,
   tax: column.real,
-  total: column.real,
-  notes: column.text,
+  discount: column.real,
+  total_discount: column.real,
+  delivery_charges: column.real,
+  shipping_type: column.integer,
+  fulfilment_status: column.integer,
+  order_date: column.text,
   created_at: column.text,
   updated_at: column.text,
 })
@@ -125,22 +144,37 @@ const sale_orders = new Table({
 const sale_order_details = new Table({
   sale_order_id: column.integer,
   product_id: column.integer,
+  channel_id: column.integer,
+  unit_price_id: column.integer,
   qty: column.real,
-  unit_price: column.real,
+  price: column.real,
   discount: column.real,
-  tax: column.real,
-  total: column.real,
+  total_price: column.real,
   created_at: column.text,
   updated_at: column.text,
 })
 
 // Payments table
 const payments = new Table({
-  sale_order_id: column.integer,
   customer_id: column.integer,
+  invoice_id: column.integer,
+  no: column.text,
+  status: column.integer,
+  payment_type: column.integer,
+  payment_date: column.text,
   amount: column.real,
-  method: column.text,
-  reference: column.text,
+  category: column.integer,
+  memo: column.text,
+  created_at: column.text,
+  updated_at: column.text,
+})
+
+// Suppliers table (for payable amount)
+const suppliers = new Table({
+  name: column.text,
+  email: column.text,
+  phone_no: column.text,
+  balance: column.real,
   status: column.integer,
   created_at: column.text,
   updated_at: column.text,
@@ -160,6 +194,16 @@ const tags = new Table({
   name: column.text,
   slug: column.text,
   type: column.text,
+  created_at: column.text,
+  updated_at: column.text,
+})
+
+// Channels table
+const channels = new Table({
+  name: column.text,
+  description: column.text,
+  is_primary: column.integer, // boolean
+  type: column.integer,
   created_at: column.text,
   updated_at: column.text,
 })
@@ -187,14 +231,17 @@ export const AppSchema = new Schema({
   brands,
   customers,
   customer_groups,
+  customer_groups_customer,
   stocks,
   unit_prices,
   taxes,
   sale_orders,
   sale_order_details,
   payments,
+  suppliers,
   settings,
   tags,
+  channels,
   tenant_users,
 })
 
@@ -211,6 +258,8 @@ export type Tax = Database['taxes']
 export type SaleOrder = Database['sale_orders']
 export type SaleOrderDetail = Database['sale_order_details']
 export type Payment = Database['payments']
+export type Supplier = Database['suppliers']
 export type Setting = Database['settings']
 export type Tag = Database['tags']
+export type Channel = Database['channels']
 export type TenantUser = Database['tenant_users']

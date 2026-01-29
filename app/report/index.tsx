@@ -11,27 +11,16 @@ interface ReportItem {
 
 const REPORTS_LEFT: ReportItem[] = [
   { id: "1", name: "Brand Velocity Report", route: "/report/brand-velocity" },
-  { id: "2", name: "Customer Velocity Report (Year on Year)", route: "/report/customer-velocity-yoy" },
-  { id: "3", name: "Category Velocity Report", route: "/report/category-velocity" },
-  { id: "4", name: "Customer Category Velocity Report", route: "/report/brand-velocity" },
-  { id: "5", name: "Customer Category Sales Report", route: "/report/customer-category-sales" },
-  { id: "6", name: "Customer Brand Velocity Report", route: "/report/brand-velocity" },
-  { id: "7", name: "Customer Product Velocity Report", route: "/report/brand-velocity" },
-  { id: "8", name: "County Velocity Report", route: "/report/brand-velocity" },
-  { id: "9", name: "Customer Velocity Report", route: "/report/brand-velocity" },
-  { id: "10", name: "Customer Performance Report", route: "/report/brand-velocity" },
+  { id: "2", name: "Category Velocity Report", route: "/report/category-velocity" },
+  { id: "3", name: "Customer Sales Report", route: "/report/customer-category-sales" },
+  { id: "4", name: "Customer Velocity Report", route: "/report/customer-velocity-yoy" },
 ];
 
 const REPORTS_RIGHT: ReportItem[] = [
-  { id: "11", name: "Detail Sale Report", route: "/report/brand-velocity" },
-  { id: "12", name: "Item Velocity Report", route: "/report/brand-velocity" },
-  { id: "13", name: "Item Velocity Report (Week on Week)", route: "/report/brand-velocity" },
-  { id: "14", name: "Item Velocity Report (Month on Month)", route: "/report/brand-velocity" },
-  { id: "15", name: "Lost Sale Report", route: "/report/brand-velocity" },
-  { id: "16", name: "Sales Summary Report", route: "/report/brand-velocity" },
-  { id: "17", name: "Sales Rep Category Report", route: "/report/brand-velocity" },
-  { id: "18", name: "Sales Rep Product Report", route: "/report/brand-velocity" },
-  { id: "19", name: "Sales Rep Brand Report", route: "/report/brand-velocity" },
+  { id: "5", name: "Lost Sale Report", route: "/report/lost-sales" },
+  { id: "6", name: "Detail Sale Report", route: "/report/detail-sales" },
+  { id: "7", name: "Sales Summary Report", route: "/report/sales-summary" },
+  { id: "8", name: "Sales Rep Category Report", route: "/report/sales-rep-category" },
 ];
 
 export default function ReportingScreen() {

@@ -75,7 +75,6 @@ const SECTION_MENUS: Record<SectionType, SectionConfig> = {
     title: "Report",
     items: [
       { label: "Business Reporting", icon: "bar-chart-outline", route: "/report" },
-      { label: "Brand Velocity Report", icon: "analytics-outline", route: "/report/brand-velocity" },
       { label: "Print", icon: "print-outline", route: "/report/print" },
     ],
   },
@@ -274,7 +273,7 @@ export function Sidebar({
       <SidebarButton
         label="View Reports"
         icon={<Ionicons name="bar-chart-outline" size={18} color="#374151" />}
-        onPress={() => {}}
+        onPress={() => navigateTo("/report")}
       />
       <SidebarButton
         label="View Customers"
@@ -295,6 +294,11 @@ export function Sidebar({
         label="Time Clock"
         icon={<Ionicons name="time-outline" size={18} color="#374151" />}
         onPress={() => {}}
+      />
+      <SidebarButton
+        label="Settings"
+        icon={<Ionicons name="settings-outline" size={18} color="#374151" />}
+        onPress={() => navigateTo("/settings")}
       />
     </>
   );

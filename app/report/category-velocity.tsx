@@ -2,8 +2,8 @@ import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { useMemo, useState } from "react";
 import {
+  ActivityIndicator,
   FlatList,
-  Pressable,
   ScrollView,
   Text,
   TextInput,
@@ -11,7 +11,7 @@ import {
   View,
 } from "react-native";
 import { FilterDropdown } from "../../components";
-import { CategoryReport } from "../../types";
+import { useCategoryVelocityReport, CategoryReportView } from "../../utils/powersync/hooks";
 
 // ============================================================================
 // Constants
@@ -29,34 +29,9 @@ const SORT_OPTIONS = [
 
 const MARGIN_FILTER_OPTIONS = [
   { label: "All Margins", value: "all" },
-  { label: "High (≥15%)", value: "high" },
+  { label: "High (>=15%)", value: "high" },
   { label: "Medium (8-15%)", value: "medium" },
   { label: "Low (<8%)", value: "low" },
-];
-
-const DATE_RANGE_OPTIONS = [
-  { label: "Last 7 Days", value: "7days" },
-  { label: "Last 30 Days", value: "30days" },
-  { label: "This Month", value: "month" },
-  { label: "This Quarter", value: "quarter" },
-];
-
-// ============================================================================
-// Sample Data
-// ============================================================================
-
-const SAMPLE_DATA: CategoryReport[] = [
-  { id: "1", categoryName: "DRINKS", qtySold: 1028, salesRevenue: 25710.92, cost: 20581.37, margin: 5129.55, marginPercentage: 19.9 },
-  { id: "2", categoryName: "E-CIG", qtySold: 283, salesRevenue: 12524.13, cost: 11349.13, margin: 1175.00, marginPercentage: 9.4 },
-  { id: "3", categoryName: "KAVA SHOTS", qtySold: 61, salesRevenue: 6175.00, cost: 5777.50, margin: 397.50, marginPercentage: 6.4 },
-  { id: "4", categoryName: "CIGARS", qtySold: 147, salesRevenue: 3163.69, cost: 2943.97, margin: 219.72, marginPercentage: 6.9 },
-  { id: "5", categoryName: "ENERGY DRINKS", qtySold: 77, salesRevenue: 3029.36, cost: 2614.61, margin: 414.75, marginPercentage: 13.7 },
-  { id: "6", categoryName: "NICOTINE POUCHES", qtySold: 115, salesRevenue: 2414.00, cost: 2240.50, margin: 173.50, marginPercentage: 7.2 },
-  { id: "7", categoryName: "Cigarette", qtySold: 58, salesRevenue: 1443.72, cost: 1407.32, margin: 36.40, marginPercentage: 2.5 },
-  { id: "8", categoryName: "MUSHROOM PRE-ROLLS", qtySold: 8, salesRevenue: 1000.00, cost: 760.00, margin: 240.00, marginPercentage: 24.0 },
-  { id: "9", categoryName: "GENERAL MERCHANDISE", qtySold: 4, salesRevenue: 857.83, cost: 697.76, margin: 160.07, marginPercentage: 18.7 },
-  { id: "10", categoryName: "SNACKS", qtySold: 156, salesRevenue: 780.50, cost: 624.40, margin: 156.10, marginPercentage: 20.0 },
-  { id: "11", categoryName: "CANDY", qtySold: 89, salesRevenue: 445.00, cost: 356.00, margin: 89.00, marginPercentage: 20.0 },
 ];
 
 // ============================================================================
@@ -97,16 +72,14 @@ function MarginBadge({ percentage }: { percentage: number }) {
 
 export default function CategoryVelocityReportScreen() {
   const router = useRouter();
+  
+  // Data from PowerSync
+  const { reports, isLoading, isStreaming } = useCategoryVelocityReport();
 
   // Search & Filter State
   const [searchQuery, setSearchQuery] = useState("");
   const [sortBy, setSortBy] = useState<string | null>("revenue_desc");
   const [marginFilter, setMarginFilter] = useState<string | null>(null);
-  const [dateRange, setDateRange] = useState<string | null>("7days");
-
-  const [reports] = useState<CategoryReport[]>(SAMPLE_DATA);
-  const [startDate] = useState("2026-01-20");
-  const [endDate] = useState("2026-01-26");
 
   // Apply filters and sorting
   const filteredReports = useMemo(() => {
@@ -162,7 +135,7 @@ export default function CategoryVelocityReportScreen() {
     }
 
     return result;
-  }, [reports, searchQuery, sortBy, marginFilter, dateRange]);
+  }, [reports, searchQuery, sortBy, marginFilter]);
 
   // Calculate totals
   const totals = filteredReports.reduce(
@@ -177,7 +150,25 @@ export default function CategoryVelocityReportScreen() {
 
   const avgMarginPercentage = totals.revenue > 0 ? (totals.margin / totals.revenue) * 100 : 0;
 
-  const renderReport = ({ item }: { item: CategoryReport }) => (
+  // Loading state
+  if (isLoading && reports.length === 0) {
+    return (
+      <View className="flex-1 bg-gray-50">
+        <View className="bg-white px-5 py-4 border-b border-gray-200 flex-row items-center">
+          <TouchableOpacity onPress={() => router.push("/")} className="mr-3 p-1">
+            <Ionicons name="arrow-back" size={24} color="#374151" />
+          </TouchableOpacity>
+          <Text className="text-2xl font-bold text-gray-800">Category Velocity Report</Text>
+        </View>
+        <View className="flex-1 justify-center items-center">
+          <ActivityIndicator size="large" color="#3B82F6" />
+          <Text className="mt-4 text-gray-600">Loading report...</Text>
+        </View>
+      </View>
+    );
+  }
+
+  const renderReport = ({ item }: { item: CategoryReportView }) => (
     <View className="flex-row items-center py-4 px-5 border-b border-gray-100 bg-white">
       <Text className="w-64 text-gray-800 font-medium pr-2">{item.categoryName}</Text>
       <Text className="w-28 text-gray-800 text-center">{item.qtySold.toLocaleString()}</Text>
@@ -214,12 +205,9 @@ export default function CategoryVelocityReportScreen() {
             <Ionicons name="arrow-back" size={24} color="#374151" />
           </TouchableOpacity>
           <Text className="text-2xl font-bold text-gray-800">Category Velocity Report</Text>
-        </View>
-        <View className="flex-row gap-3">
-          <Pressable className="bg-emerald-500 px-5 py-2.5 rounded-lg flex-row items-center gap-2">
-            <Text className="text-white font-medium">Export</Text>
-            <Ionicons name="cloud-download" size={18} color="white" />
-          </Pressable>
+          {isStreaming && (
+            <Text className="text-green-600 text-xs ml-3">● Live</Text>
+          )}
         </View>
       </View>
 
@@ -252,24 +240,13 @@ export default function CategoryVelocityReportScreen() {
             placeholder="All Margins"
             width={140}
           />
-          <FilterDropdown
-            label="Date Range"
-            value={dateRange}
-            options={DATE_RANGE_OPTIONS}
-            onChange={setDateRange}
-            placeholder="Select Range"
-            width={150}
-          />
         </View>
 
         {/* Applied Filters */}
         <View className="flex-row items-center">
-          <Text className="text-gray-600 text-sm">Applied Filters: </Text>
-          <Text className="text-red-500 font-medium text-sm">Date Range </Text>
-          <Text className="text-gray-600 text-sm">{startDate} to {endDate}</Text>
-          {marginFilter && marginFilter !== "all" && (
-            <Text className="text-gray-600 text-sm"> | Margin: {MARGIN_FILTER_OPTIONS.find(o => o.value === marginFilter)?.label}</Text>
-          )}
+          <Text className="text-gray-600 text-sm">
+            Showing {filteredReports.length} of {reports.length} categories
+          </Text>
         </View>
       </View>
 

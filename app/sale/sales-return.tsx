@@ -55,10 +55,10 @@ const SOLD_BY_OPTIONS = [
 // ============================================================================
 
 const SAMPLE_RETURNS: SalesReturn[] = [
-  { id: "1", returnNumber: "RE-260121-05890", dateTime: "01/21/2026, 07:45:09, CST", businessName: "RAJ PATEL/ OM JAY KALI INC", customerName: "Raj Patel", channelName: "Primary", soldBy: "Admin/Cashier", invoiceTotal: 245.50, returnedTotal: 89.99, status: "Completed" },
-  { id: "2", returnNumber: "RE-260120-05868", dateTime: "01/20/2026, 12:42:34, CST", businessName: "A&J EXPRESS INC/ NEW HOPE WAVAHO", customerName: "NEHA SANKET PATEL", channelName: "Primary", soldBy: "Admin/Cashier", invoiceTotal: 532.00, returnedTotal: 150.00, status: "Pending" },
-  { id: "3", returnNumber: "RE-260120-05865", dateTime: "01/20/2026, 12:01:15, CST", businessName: "A&J EXPRESS INC/ NEW HOPE WAVAHO", customerName: "NEHA SANKET PATEL", channelName: "Primary", soldBy: "Admin/Cashier", invoiceTotal: 178.25, returnedTotal: 178.25, status: "Processing" },
-  { id: "4", returnNumber: "RE-260120-05859", dateTime: "01/20/2026, 10:32:04, CST", businessName: "JAY SHIV LLC", customerName: "AMITKUMAR PATEL/ BHAVESHBHAI PATEL", channelName: "Primary", soldBy: "Admin/Cashier", invoiceTotal: 890.00, returnedTotal: 45.00, status: "Rejected" },
+  { id: "1", returnNumber: "RE-260121-05890", dateTime: "01/21/2026 07:45 AM", businessName: "RAJ PATEL/ OM JAY KALI INC", customerName: "Raj Patel", channelName: "Primary", soldBy: "Admin/Cashier", invoiceTotal: 245.50, returnedTotal: 89.99, status: "Completed" },
+  { id: "2", returnNumber: "RE-260120-05868", dateTime: "01/20/2026 12:42 PM", businessName: "A&J EXPRESS INC/ NEW HOPE WAVAHO", customerName: "NEHA SANKET PATEL", channelName: "Primary", soldBy: "Admin/Cashier", invoiceTotal: 532.00, returnedTotal: 150.00, status: "Pending" },
+  { id: "3", returnNumber: "RE-260120-05865", dateTime: "01/20/2026 12:01 PM", businessName: "A&J EXPRESS INC/ NEW HOPE WAVAHO", customerName: "NEHA SANKET PATEL", channelName: "Primary", soldBy: "Admin/Cashier", invoiceTotal: 178.25, returnedTotal: 178.25, status: "Processing" },
+  { id: "4", returnNumber: "RE-260120-05859", dateTime: "01/20/2026 10:32 AM", businessName: "JAY SHIV LLC", customerName: "AMITKUMAR PATEL/ BHAVESHBHAI PATEL", channelName: "Primary", soldBy: "Admin/Cashier", invoiceTotal: 890.00, returnedTotal: 45.00, status: "Rejected" },
 ];
 
 const STATUS_COLORS: Record<SalesReturn["status"], { bg: string; text: string }> = {
@@ -120,7 +120,7 @@ export default function SalesReturnScreen() {
         <View className="w-5 h-5 border border-gray-300 rounded" />
       </View>
       <Text className="w-36 text-blue-600 font-medium">{item.returnNumber}</Text>
-      <Text className="w-48 text-gray-600 text-sm">{item.dateTime}</Text>
+      <Text className="w-40 text-gray-600 text-sm">{item.dateTime}</Text>
       <View className="w-64">
         <Text className="text-blue-600" numberOfLines={1}>{item.businessName}</Text>
         <Text className="text-blue-500 text-sm" numberOfLines={1}>{item.customerName}</Text>
@@ -209,7 +209,7 @@ export default function SalesReturnScreen() {
               <View className="w-5 h-5 border border-gray-300 rounded" />
             </View>
             <Text className="w-36 text-gray-500 text-xs font-semibold uppercase">Return Number</Text>
-            <Text className="w-48 text-gray-500 text-xs font-semibold uppercase">Date / Time</Text>
+            <Text className="w-40 text-gray-500 text-xs font-semibold uppercase">Date / Time</Text>
             <Text className="w-64 text-gray-500 text-xs font-semibold uppercase">Business / Customer</Text>
             <Text className="w-24 text-gray-500 text-xs font-semibold uppercase text-center">Channel</Text>
             <Text className="w-28 text-gray-500 text-xs font-semibold uppercase text-center">Sold By</Text>

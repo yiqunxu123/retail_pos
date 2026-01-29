@@ -1,8 +1,8 @@
 import {
-  AbstractPowerSyncDatabase,
-  CrudEntry,
-  PowerSyncBackendConnector,
-  UpdateType,
+    AbstractPowerSyncDatabase,
+    CrudEntry,
+    PowerSyncBackendConnector,
+    UpdateType,
 } from '@powersync/react-native'
 import { getAccessToken, refreshAuthToken } from '../api/auth'
 import khubApi from '../api/khub'
@@ -10,21 +10,33 @@ import khubApi from '../api/khub'
 // PowerSync URL from environment
 const POWERSYNC_URL = process.env.EXPO_PUBLIC_POWERSYNC_URL!
 
+// Retry configuration
+const MAX_RETRIES = 3
+const RETRY_DELAY_MS = 1000
+
+// Helper to delay execution
+const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms))
+
 // PowerSync connector for KHUB backend
 export class KhubConnector implements PowerSyncBackendConnector {
+  private tokenRefreshPromise: Promise<string | null> | null = null
+
   async fetchCredentials() {
     // Get the current access token from storage
     let token = await getAccessToken()
 
     if (!token) {
       // Try to refresh the token
-      const refreshed = await refreshAuthToken()
-      if (refreshed) {
-        token = await getAccessToken()
+      try {
+        token = await this.refreshToken()
+      } catch (e) {
+        console.warn('[PowerSync] Token refresh failed, user needs to re-login')
       }
     }
 
     if (!token) {
+      // Return empty credentials - PowerSync will handle gracefully
+      console.log('[PowerSync] No token available, sync disabled until login')
       throw new Error('No authentication token available. Please log in.')
     }
 
@@ -35,18 +47,45 @@ export class KhubConnector implements PowerSyncBackendConnector {
     }
   }
 
+  // Refresh token with deduplication (prevent multiple simultaneous refreshes)
+  private async refreshToken(): Promise<string | null> {
+    if (this.tokenRefreshPromise) {
+      return this.tokenRefreshPromise
+    }
+
+    this.tokenRefreshPromise = (async () => {
+      try {
+        console.log('[PowerSync] Refreshing token...')
+        const refreshed = await refreshAuthToken()
+        if (refreshed) {
+          const token = await getAccessToken()
+          console.log('[PowerSync] Token refreshed successfully')
+          return token
+        }
+        return null
+      } finally {
+        this.tokenRefreshPromise = null
+      }
+    })()
+
+    return this.tokenRefreshPromise
+  }
+
   async uploadData(database: AbstractPowerSyncDatabase): Promise<void> {
+    console.log('[Upload] >>> uploadData called - checking for pending transactions...')
     let totalUploaded = 0
+    let consecutiveErrors = 0
 
     // Loop through ALL pending transactions
     while (true) {
       const transaction = await database.getNextCrudTransaction()
+      console.log('[Upload] Got transaction:', transaction ? `${transaction.crud.length} ops` : 'null')
 
       if (!transaction) {
         if (totalUploaded > 0) {
           console.log(`[Upload] All done! Uploaded ${totalUploaded} transactions`)
         } else {
-          console.log('[Upload] No pending transactions')
+          console.log('[Upload] No pending transactions to upload')
         }
         return
       }
@@ -56,17 +95,53 @@ export class KhubConnector implements PowerSyncBackendConnector {
       try {
         for (const op of transaction.crud) {
           console.log(`[Upload] Operation: ${op.op} on ${op.table}, id: ${op.id}`)
-          await this.applyOperation(op)
+          await this.applyOperationWithRetry(op)
         }
 
         // Mark transaction as complete
         await transaction.complete()
         totalUploaded++
+        consecutiveErrors = 0 // Reset error counter on success
         console.log(`[Upload] Transaction ${totalUploaded} completed`)
-      } catch (error) {
-        console.error('[Upload] Error:', error)
-        throw error
+      } catch (error: any) {
+        consecutiveErrors++
+        console.error(`[Upload] Error (attempt ${consecutiveErrors}):`, error.message)
+        
+        // If we've had too many consecutive errors, stop trying
+        if (consecutiveErrors >= MAX_RETRIES) {
+          console.error('[Upload] Too many consecutive errors, stopping upload')
+          throw error
+        }
+        
+        // Wait before retrying the transaction
+        await delay(RETRY_DELAY_MS * consecutiveErrors)
       }
+    }
+  }
+
+  // Apply operation with retry logic
+  private async applyOperationWithRetry(op: CrudEntry, attempt = 1): Promise<void> {
+    try {
+      await this.applyOperation(op)
+    } catch (error: any) {
+      const isAuthError = error.response?.status === 401 || error.response?.status === 403
+      const isRetryable = error.response?.status >= 500 || error.code === 'ECONNABORTED' || error.code === 'ETIMEDOUT'
+      
+      // Handle auth errors by refreshing token
+      if (isAuthError && attempt === 1) {
+        console.log('[Upload] Auth error, refreshing token and retrying...')
+        await this.refreshToken()
+        return this.applyOperationWithRetry(op, attempt + 1)
+      }
+      
+      // Retry on server errors or network issues
+      if (isRetryable && attempt < MAX_RETRIES) {
+        console.log(`[Upload] Retryable error, attempt ${attempt + 1}/${MAX_RETRIES}...`)
+        await delay(RETRY_DELAY_MS * attempt)
+        return this.applyOperationWithRetry(op, attempt + 1)
+      }
+      
+      throw error
     }
   }
 

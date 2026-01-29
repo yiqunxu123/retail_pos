@@ -1,15 +1,23 @@
+/**
+ * Customers Screen
+ * 
+ * Displays customer list with real-time sync from PowerSync.
+ * Data source: customers table
+ */
+
 import { Ionicons } from "@expo/vector-icons";
 import { useMemo, useState } from "react";
 import {
+  ActivityIndicator,
   FlatList,
   Pressable,
-  ScrollView,
+  RefreshControl,
   Text,
   TextInput,
   View,
 } from "react-native";
 import { FilterDropdown, PageHeader } from "../../components";
-import { Customer } from "../../types";
+import { CustomerView, useCustomers } from "../../utils/powersync/hooks";
 
 // ============================================================================
 // Constants
@@ -20,29 +28,10 @@ const STATUS_OPTIONS = [
   { label: "Inactive", value: "inactive" },
 ];
 
-const ECOM_OPTIONS = [
-  { label: "All", value: "all" },
-  { label: "E-commerce Enabled", value: "enabled" },
-  { label: "E-commerce Disabled", value: "disabled" },
-];
-
 const BALANCE_OPTIONS = [
   { label: "All", value: "all" },
   { label: "With Balance", value: "with_balance" },
   { label: "No Balance", value: "no_balance" },
-];
-
-// ============================================================================
-// Sample Data
-// ============================================================================
-
-const SAMPLE_CUSTOMERS: Customer[] = [
-  { id: "475", businessName: "ALASKA TAX CUSTOMER", name: "", allowEcom: false, onAccountBalance: 0, isActive: true },
-  { id: "474", businessName: "fatima", name: "fatima", allowEcom: true, onAccountBalance: 150, isActive: true },
-  { id: "473", businessName: "KHUB Test Ecom", name: "", allowEcom: true, onAccountBalance: 0, isActive: true },
-  { id: "472", businessName: "ARIYA529 LLC", name: "JIGNESH PATEL", allowEcom: false, onAccountBalance: 500, isActive: true },
-  { id: "471", businessName: "1 VINAYAKK FUELS INC / CHEVRON WOODMONT", name: "VIRAL BHAI", allowEcom: false, onAccountBalance: 0, isActive: false },
-  { id: "470", businessName: "BALCH RD SHELL INC/JAY PATEL", name: "C J PATEL", allowEcom: false, onAccountBalance: 0, isActive: true },
 ];
 
 // ============================================================================
@@ -62,13 +51,21 @@ function BooleanIcon({ value, size = 20 }: { value: boolean; size?: number }) {
 // ============================================================================
 
 export default function CustomersScreen() {
+  // Data from PowerSync
+  const { customers, isLoading, isStreaming, refresh, count } = useCustomers();
+  const [refreshing, setRefreshing] = useState(false);
+
   // Search & Filter State
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string | null>("active");
-  const [ecomFilter, setEcomFilter] = useState<string | null>(null);
   const [balanceFilter, setBalanceFilter] = useState<string | null>(null);
 
-  const [customers] = useState<Customer[]>(SAMPLE_CUSTOMERS);
+  // Pull to refresh
+  const onRefresh = async () => {
+    setRefreshing(true);
+    await refresh();
+    setRefreshing(false);
+  };
 
   // Apply filters
   const filteredCustomers = useMemo(() => {
@@ -81,6 +78,8 @@ export default function CustomersScreen() {
         (c) =>
           c.businessName.toLowerCase().includes(query) ||
           c.name.toLowerCase().includes(query) ||
+          c.email.toLowerCase().includes(query) ||
+          c.phone.toLowerCase().includes(query) ||
           c.id.includes(query)
       );
     }
@@ -92,45 +91,54 @@ export default function CustomersScreen() {
       );
     }
 
-    // E-commerce filter
-    if (ecomFilter && ecomFilter !== "all") {
-      result = result.filter((c) =>
-        ecomFilter === "enabled" ? c.allowEcom : !c.allowEcom
-      );
-    }
-
     // Balance filter
     if (balanceFilter && balanceFilter !== "all") {
       result = result.filter((c) =>
-        balanceFilter === "with_balance" ? c.onAccountBalance > 0 : c.onAccountBalance === 0
+        balanceFilter === "with_balance" ? c.balance > 0 : c.balance === 0
       );
     }
 
     return result;
-  }, [customers, searchQuery, statusFilter, ecomFilter, balanceFilter]);
+  }, [customers, searchQuery, statusFilter, balanceFilter]);
 
-  const renderCustomerRow = ({ item }: { item: Customer }) => (
+  const renderCustomerRow = ({ item }: { item: CustomerView }) => (
     <Pressable className="flex-row items-center py-3 px-5 border-b border-gray-100 bg-white">
       <View className="flex-1">
-        <Text className="text-blue-600 font-medium">{item.businessName}</Text>
-        {item.name && <Text className="text-gray-500 text-sm">{item.name}</Text>}
+        <Text className="text-blue-600 font-medium">{item.businessName || "-"}</Text>
+        {item.name ? <Text className="text-gray-500 text-sm">{item.name}</Text> : null}
+      </View>
+      <View className="w-32">
+        <Text className="text-gray-600 text-sm" numberOfLines={1}>{item.email || "-"}</Text>
+      </View>
+      <View className="w-24">
+        <Text className="text-gray-600 text-sm">{item.phone || "-"}</Text>
+      </View>
+      <View className="w-16 items-center">
+        <BooleanIcon value={item.allowEcom} size={18} />
       </View>
       <View className="w-24 items-center">
-        <BooleanIcon value={item.allowEcom} />
-      </View>
-      <View className="w-28 items-center">
-        <View className={`rounded-full px-3 py-1 ${item.onAccountBalance > 0 ? "bg-orange-500" : "bg-green-500"}`}>
-          <Text className="text-white text-xs font-medium">${item.onAccountBalance}</Text>
+        <View className={`rounded-full px-3 py-1 ${item.balance > 0 ? "bg-orange-500" : "bg-green-500"}`}>
+          <Text className="text-white text-xs font-medium">${item.balance.toFixed(2)}</Text>
         </View>
       </View>
-      <View className="w-16 items-center">
-        <Text className="text-gray-600 text-sm">{item.id}</Text>
-      </View>
-      <View className="w-16 items-center">
+      <View className="w-14 items-center">
         <BooleanIcon value={item.isActive} size={18} />
       </View>
     </Pressable>
   );
+
+  // Loading state
+  if (isLoading && customers.length === 0) {
+    return (
+      <View className="flex-1 bg-gray-50">
+        <PageHeader title="Customers" />
+        <View className="flex-1 justify-center items-center">
+          <ActivityIndicator size="large" color="#3B82F6" />
+          <Text className="mt-4 text-gray-600">Loading customers...</Text>
+        </View>
+      </View>
+    );
+  }
 
   return (
     <View className="flex-1 bg-gray-50">
@@ -144,12 +152,14 @@ export default function CustomersScreen() {
             <Text className="text-white font-medium">Bulk Actions</Text>
             <Ionicons name="chevron-down" size={16} color="white" />
           </Pressable>
-          <Pressable className="bg-green-500 px-4 py-2 rounded-lg">
-            <Text className="text-white font-medium">Export</Text>
-          </Pressable>
           <Pressable className="bg-red-500 px-4 py-2 rounded-lg">
             <Text className="text-white font-medium">Add Customer</Text>
           </Pressable>
+          {isStreaming && (
+            <View className="flex-row items-center gap-1 ml-2">
+              <Text className="text-green-600 text-xs">● Live</Text>
+            </View>
+          )}
         </View>
 
         {/* Search & Filters */}
@@ -176,14 +186,6 @@ export default function CustomersScreen() {
           />
           <FilterDropdown
             label=""
-            value={ecomFilter}
-            options={ECOM_OPTIONS}
-            onChange={setEcomFilter}
-            placeholder="E-commerce"
-            width={160}
-          />
-          <FilterDropdown
-            label=""
             value={balanceFilter}
             options={BALANCE_OPTIONS}
             onChange={setBalanceFilter}
@@ -194,37 +196,39 @@ export default function CustomersScreen() {
 
         {/* Results count */}
         <Text className="text-gray-400 text-sm mt-2">
-          Showing {filteredCustomers.length} of {customers.length} customers
+          Showing {filteredCustomers.length} of {count} customers
         </Text>
       </View>
 
       {/* Data Table */}
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} className="flex-1">
-        <View style={{ minWidth: 700 }}>
-          {/* Table Header */}
-          <View className="flex-row bg-gray-50 py-3 px-5 border-b border-gray-200">
-            <Text className="flex-1 text-gray-500 text-xs font-semibold uppercase">Business Name</Text>
-            <Text className="w-24 text-gray-500 text-xs font-semibold uppercase text-center">Allow Ecom</Text>
-            <Text className="w-28 text-gray-500 text-xs font-semibold uppercase text-center">Balance</Text>
-            <Text className="w-16 text-gray-500 text-xs font-semibold uppercase text-center">ID</Text>
-            <Text className="w-16 text-gray-500 text-xs font-semibold uppercase text-center">Active</Text>
-          </View>
-
-          {/* Table Body */}
-          <FlatList
-            data={filteredCustomers}
-            keyExtractor={(item) => item.id}
-            renderItem={renderCustomerRow}
-            showsVerticalScrollIndicator={false}
-            ListEmptyComponent={
-              <View className="py-16 items-center">
-                <Ionicons name="people-outline" size={48} color="#d1d5db" />
-                <Text className="text-gray-400 mt-2">No customers found</Text>
-              </View>
-            }
-          />
+      <View className="flex-1">
+        {/* Table Header */}
+        <View className="flex-row bg-gray-50 py-3 px-5 border-b border-gray-200">
+          <Text className="flex-1 text-gray-500 text-xs font-semibold uppercase">Business Name</Text>
+          <Text className="w-32 text-gray-500 text-xs font-semibold uppercase">Email</Text>
+          <Text className="w-24 text-gray-500 text-xs font-semibold uppercase">Phone</Text>
+          <Text className="w-16 text-gray-500 text-xs font-semibold uppercase text-center">Ecom</Text>
+          <Text className="w-24 text-gray-500 text-xs font-semibold uppercase text-center">Balance</Text>
+          <Text className="w-14 text-gray-500 text-xs font-semibold uppercase text-center">Active</Text>
         </View>
-      </ScrollView>
+
+        {/* Table Body */}
+        <FlatList
+          data={filteredCustomers}
+          keyExtractor={(item) => item.id}
+          renderItem={renderCustomerRow}
+          showsVerticalScrollIndicator={false}
+          refreshControl={
+            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+          }
+          ListEmptyComponent={
+            <View className="py-16 items-center">
+              <Ionicons name="people-outline" size={48} color="#d1d5db" />
+              <Text className="text-gray-400 mt-2">No customers found</Text>
+            </View>
+          }
+        />
+      </View>
     </View>
   );
 }

@@ -1,29 +1,60 @@
 import { FontAwesome5, Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useRouter } from "expo-router";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { Alert, ScrollView, Text, TouchableOpacity, useWindowDimensions, View } from "react-native";
 import {
   Header,
-  POSLineCard,
   SIDEBAR_WIDTH,
-  StatCard,
+  StatCard
 } from "../components";
 import { useAuth } from "../contexts/AuthContext";
 import { useClock } from "../contexts/ClockContext";
 import { addPrintJob, isPrinterAvailable, printQueue, setPrinterConfig } from "../utils/PrintQueue";
+import { useDashboardStats } from "../utils/powersync/hooks";
 
-// Printer configuration for test
-const PRINTER_IP = "192.168.1.100";
-const PRINTER_PORT = 9100;
+// Default printer configuration
+const DEFAULT_PRINTER_IP = "192.168.1.100";
+const DEFAULT_PRINTER_PORT = 9100;
+
+// Format currency
+const formatCurrency = (value: number): string => {
+  if (value >= 1000000) {
+    return `$${(value / 1000000).toFixed(2)}M`;
+  } else if (value >= 1000) {
+    return `$${(value / 1000).toFixed(2)}K`;
+  }
+  return `$${value.toFixed(2)}`;
+};
 
 export default function Dashboard() {
   const { width, height } = useWindowDimensions();
   const router = useRouter();
   const { user, isAdmin } = useAuth();
   const { isClockedIn, selectedPosLine, selectPosLine, clockIn } = useClock();
+  const { stats } = useDashboardStats();
+  
+  // Printer config state (loaded from AsyncStorage)
+  const [printerIp, setPrinterIp] = useState(DEFAULT_PRINTER_IP);
+  const [printerPort, setPrinterPort] = useState(DEFAULT_PRINTER_PORT);
   
   // Check if user is admin
   const showAdminStats = isAdmin();
+  
+  // Load saved printer settings on mount
+  useEffect(() => {
+    const loadSettings = async () => {
+      try {
+        const savedIp = await AsyncStorage.getItem("printer_ip");
+        const savedPort = await AsyncStorage.getItem("printer_port");
+        if (savedIp) setPrinterIp(savedIp);
+        if (savedPort) setPrinterPort(parseInt(savedPort, 10) || DEFAULT_PRINTER_PORT);
+      } catch (e) {
+        console.log("Failed to load printer settings");
+      }
+    };
+    loadSettings();
+  }, []);
 
   // Test receipt content
   const buildTestReceipt = (): string => {
@@ -52,7 +83,7 @@ Cookies               x3    $6.00
 
   // Initialize printer config and listen to queue (only alert on failure)
   useEffect(() => {
-    setPrinterConfig({ ip: PRINTER_IP, port: PRINTER_PORT });
+    setPrinterConfig({ ip: printerIp, port: printerPort });
     
     const unsubscribe = printQueue.addListener((status, job) => {
       if (status === 'failed') {
@@ -61,7 +92,7 @@ Cookies               x3    $6.00
     });
 
     return () => unsubscribe();
-  }, []);
+  }, [printerIp, printerPort]);
 
   // Test print function - directly print via Ethernet
   const handleTestPrint = () => {
@@ -162,7 +193,7 @@ Cookies               x3    $6.00
           )}
         </View>
 
-        {/* ===== POS LINES SECTION ===== */}
+        {/* ===== POS LINES SECTION (COMMENTED OUT) =====
         <View className="mt-4 bg-white rounded-xl p-4 border border-gray-100">
           <Text className="text-gray-700 font-semibold text-lg mb-3">
             POS Lines
@@ -189,6 +220,7 @@ Cookies               x3    $6.00
             ))}
           </View>
         </View>
+        */}
 
         {/* ===== NAVIGATION GROUP ===== */}
         <View className="mt-4 bg-white rounded-xl p-4 border border-gray-100">
@@ -240,21 +272,20 @@ Cookies               x3    $6.00
             <View className="flex-row gap-2 mb-2">
               <StatCard
                 title="Total Sale/Revenue"
-                value="$233.92K"
-                subtitle="$100.92K • 70.5%"
+                value={formatCurrency(stats.totalRevenue)}
+                subtitle={`${stats.orderCount} orders`}
                 icon={<Ionicons name="pricetag" size={20} color="white" />}
                 variant="green"
               />
               <StatCard
                 title="Paid Amount"
-                value="$8.25"
-                subtitle="$4,000.00 • 70.5%"
+                value={formatCurrency(stats.paidAmount)}
                 icon={<FontAwesome5 name="coins" size={18} color="white" />}
                 variant="yellow"
               />
               <StatCard
                 title="Payable Amount"
-                value="$0.00"
+                value={formatCurrency(stats.payableAmount)}
                 icon={<Ionicons name="cart" size={20} color="white" />}
                 variant="purple"
               />
@@ -264,19 +295,21 @@ Cookies               x3    $6.00
             <View className="flex-row gap-2">
               <StatCard
                 title="Receivable Amount"
-                value="$203.50K"
+                value={formatCurrency(stats.receivableAmount)}
+                subtitle={`${stats.customerCount} customers`}
                 icon={<MaterialCommunityIcons name="cash-multiple" size={20} color="white" />}
                 variant="red"
               />
               <StatCard
                 title="Total Extended Stock"
-                value="$12,7,831.82"
+                value={formatCurrency(stats.extendedStockValue)}
+                subtitle={`${stats.productCount} products`}
                 icon={<MaterialCommunityIcons name="package-variant" size={20} color="white" />}
                 variant="yellow"
               />
               <StatCard
                 title="Delivery Orders"
-                value="0"
+                value={String(stats.deliveryOrdersCount)}
                 icon={<MaterialCommunityIcons name="clipboard-list-outline" size={20} color="white" />}
                 variant="orange"
               />

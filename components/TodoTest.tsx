@@ -166,8 +166,9 @@ const SettingItem = ({
 
 // Main Test component
 export default function TodoTest() {
-  const { db, isConnected, isInitialized } = usePowerSync()
+  const { db, isConnected, isInitialized, isSyncing, lastSyncTime, reconnect } = usePowerSync()
   const [refreshing, setRefreshing] = useState(false)
+  const [syncError, setSyncError] = useState<string | null>(null)
   const [stats, setStats] = useState({
     settings: 0,
     products: 0,
@@ -249,20 +250,102 @@ export default function TodoTest() {
       </Text>
       
       {/* Connection Status */}
-      <View className="flex-row justify-center items-center mb-4">
-        <Text className="text-sm">
-          {isStreaming ? '📡' : isConnected ? '✅' : '📴'}
-        </Text>
-        <Text className="text-sm text-gray-600 ml-2">
-          {isStreaming ? 'Streaming Live' : isConnected ? 'Connected' : 'Offline'}
-        </Text>
-        <TouchableOpacity onPress={onRefresh} className="ml-4 px-3 py-1 bg-blue-500 rounded-xl">
-          <Text className="text-xs text-white font-semibold">🔄 Refresh</Text>
-        </TouchableOpacity>
+      <View className="bg-white rounded-xl p-4 mb-4">
+        <View className="flex-row items-center justify-between mb-3">
+          <View className="flex-row items-center">
+            <Text className="text-lg mr-2">
+              {isSyncing ? '🔄' : isConnected ? '✅' : '📴'}
+            </Text>
+            <View>
+              <Text className="text-sm font-semibold text-gray-800">
+                {isSyncing ? 'Syncing...' : isConnected ? 'Connected' : 'Disconnected'}
+              </Text>
+              {lastSyncTime && (
+                <Text className="text-xs text-gray-500">
+                  Last sync: {lastSyncTime.toLocaleTimeString()}
+                </Text>
+              )}
+            </View>
+          </View>
+          <View className="flex-row gap-2">
+            {!isConnected && (
+              <TouchableOpacity 
+                onPress={async () => {
+                  setSyncError(null)
+                  try {
+                    await reconnect()
+                  } catch (e: any) {
+                    setSyncError(e.message)
+                  }
+                }} 
+                className="px-3 py-2 bg-orange-500 rounded-lg"
+              >
+                <Text className="text-xs text-white font-semibold">Reconnect</Text>
+              </TouchableOpacity>
+            )}
+            <TouchableOpacity 
+              onPress={async () => {
+                setSyncError(null)
+                try {
+                  await reconnect()
+                  await loadStats()
+                } catch (e: any) {
+                  setSyncError(e.message)
+                }
+              }} 
+              disabled={isSyncing}
+              className={`px-3 py-2 rounded-lg ${isSyncing ? 'bg-gray-300' : 'bg-blue-500'}`}
+            >
+              <Text className="text-xs text-white font-semibold">
+                {isSyncing ? 'Syncing...' : 'Refresh Sync'}
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+        
+        {syncError && (
+          <View className="bg-red-50 border border-red-200 rounded-lg p-2 mt-2">
+            <Text className="text-xs text-red-600">{syncError}</Text>
+          </View>
+        )}
+        
+        {isStreaming && (
+          <View className="bg-green-50 border border-green-200 rounded-lg p-2 mt-2">
+            <Text className="text-xs text-green-600">📡 Streaming live updates...</Text>
+          </View>
+        )}
       </View>
 
       {/* Profile Editor - Two-way sync test */}
       <ProfileEditor />
+
+      {/* Clear Pending Transactions Button */}
+      <View className="bg-white rounded-xl p-4 mb-4">
+        <View className="flex-row items-center justify-between">
+          <View>
+            <Text className="text-sm font-semibold text-gray-700">Clear Failed Uploads</Text>
+            <Text className="text-xs text-gray-500">Clear pending transactions that can't sync</Text>
+          </View>
+          <TouchableOpacity 
+            onPress={async () => {
+              if (!db) return
+              setSyncError(null)
+              try {
+                // Clear all pending CRUD transactions
+                await db.execute('DELETE FROM ps_crud')
+                await loadStats()
+                Alert.alert('Success', 'Cleared pending transactions. Errors should stop now.')
+              } catch (e: any) {
+                console.error('[Clear] Error:', e)
+                setSyncError('Clear failed: ' + e.message)
+              }
+            }} 
+            className="px-4 py-2 rounded-lg bg-red-500"
+          >
+            <Text className="text-white font-semibold">Clear Queue</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
 
       {/* Stats Grid */}
       <View className="bg-white rounded-xl p-4 mb-4">

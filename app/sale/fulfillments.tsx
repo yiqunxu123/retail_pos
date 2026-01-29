@@ -3,7 +3,6 @@ import { useMemo, useState } from "react";
 import {
   FlatList,
   Pressable,
-  ScrollView,
   Text,
   TextInput,
   View,
@@ -124,9 +123,9 @@ export default function FulfillmentsScreen() {
           <Text className="text-blue-500 text-sm">{item.customerName}</Text>
         )}
       </View>
-      <Text className="w-40 text-blue-600 text-center">{item.orderNo}</Text>
-      <Text className="w-28 text-gray-600 text-center">{item.shippingType}</Text>
-      <View className="w-36">
+      <Text className="w-36 text-blue-600 text-center">{item.orderNo}</Text>
+      <Text className="w-24 text-gray-600 text-center">{item.shippingType}</Text>
+      <View className="w-32">
         <PickerBadge isAssigned={item.pickerAssigned} details={item.pickerDetails} />
       </View>
     </Pressable>
@@ -211,42 +210,40 @@ export default function FulfillmentsScreen() {
       </View>
 
       {/* Data Table */}
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} className="flex-1">
-        <View style={{ minWidth: 850 }}>
-          {/* Table Header */}
-          <View className="flex-row bg-gray-50 py-3 px-5 border-b border-gray-200">
-            <View className="w-8 mr-4">
-              <TableCheckbox />
-            </View>
-            <Text className="flex-1 text-gray-500 text-xs font-semibold uppercase">
-              Business Name / Customer Name
-            </Text>
-            <Text className="w-40 text-gray-500 text-xs font-semibold uppercase text-center">
-              Order No / Date
-            </Text>
-            <Text className="w-28 text-gray-500 text-xs font-semibold uppercase text-center">
-              Shipping Type
-            </Text>
-            <Text className="w-36 text-gray-500 text-xs font-semibold uppercase text-center">
-              Picker Details
-            </Text>
+      <View className="flex-1">
+        {/* Table Header */}
+        <View className="flex-row bg-gray-50 py-3 px-5 border-b border-gray-200">
+          <View className="w-8 mr-4">
+            <TableCheckbox />
           </View>
-
-          {/* Table Body */}
-          <FlatList
-            data={filteredFulfillments}
-            keyExtractor={(item) => item.id}
-            renderItem={renderFulfillmentRow}
-            showsVerticalScrollIndicator={false}
-            ListEmptyComponent={
-              <View className="py-16 items-center">
-                <Ionicons name="cube-outline" size={48} color="#d1d5db" />
-                <Text className="text-gray-400 mt-2">No fulfillments found</Text>
-              </View>
-            }
-          />
+          <Text className="flex-1 text-gray-500 text-xs font-semibold uppercase">
+            Business Name / Customer Name
+          </Text>
+          <Text className="w-36 text-gray-500 text-xs font-semibold uppercase text-center">
+            Order No
+          </Text>
+          <Text className="w-24 text-gray-500 text-xs font-semibold uppercase text-center">
+            Shipping
+          </Text>
+          <Text className="w-32 text-gray-500 text-xs font-semibold uppercase text-center">
+            Picker
+          </Text>
         </View>
-      </ScrollView>
+
+        {/* Table Body */}
+        <FlatList
+          data={filteredFulfillments}
+          keyExtractor={(item) => item.id}
+          renderItem={renderFulfillmentRow}
+          showsVerticalScrollIndicator={false}
+          ListEmptyComponent={
+            <View className="py-16 items-center">
+              <Ionicons name="cube-outline" size={48} color="#d1d5db" />
+              <Text className="text-gray-400 mt-2">No fulfillments found</Text>
+            </View>
+          }
+        />
+      </View>
     </View>
   );
 }
