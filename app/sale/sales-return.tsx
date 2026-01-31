@@ -1,6 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import {
+  Alert,
   FlatList,
   Pressable,
   ScrollView,
@@ -8,7 +9,7 @@ import {
   TextInput,
   View,
 } from "react-native";
-import { FilterDropdown, PageHeader } from "../../components";
+import StaffPageLayout, { SidebarButton } from "../../components/StaffPageLayout";
 
 // ============================================================================
 // Types
@@ -18,222 +19,229 @@ interface SalesReturn {
   id: string;
   returnNumber: string;
   dateTime: string;
-  businessName: string;
   customerName: string;
+  createdBy: string;
   channelName: string;
-  soldBy: string;
   invoiceTotal: number;
-  returnedTotal: number;
-  status: "Completed" | "Pending" | "Processing" | "Rejected";
+  returnTotal: number;
+  status: "Complete" | "Pending";
 }
-
-// ============================================================================
-// Constants
-// ============================================================================
-
-const STATUS_OPTIONS = [
-  { label: "All", value: "all" },
-  { label: "Completed", value: "Completed" },
-  { label: "Pending", value: "Pending" },
-  { label: "Processing", value: "Processing" },
-  { label: "Rejected", value: "Rejected" },
-];
-
-const CHANNEL_OPTIONS = [
-  { label: "All", value: "all" },
-  { label: "Primary", value: "Primary" },
-  { label: "Secondary", value: "Secondary" },
-];
-
-const SOLD_BY_OPTIONS = [
-  { label: "All", value: "all" },
-  { label: "Admin/Cashier", value: "Admin/Cashier" },
-];
 
 // ============================================================================
 // Sample Data
 // ============================================================================
 
 const SAMPLE_RETURNS: SalesReturn[] = [
-  { id: "1", returnNumber: "RE-260121-05890", dateTime: "01/21/2026 07:45 AM", businessName: "RAJ PATEL/ OM JAY KALI INC", customerName: "Raj Patel", channelName: "Primary", soldBy: "Admin/Cashier", invoiceTotal: 245.50, returnedTotal: 89.99, status: "Completed" },
-  { id: "2", returnNumber: "RE-260120-05868", dateTime: "01/20/2026 12:42 PM", businessName: "A&J EXPRESS INC/ NEW HOPE WAVAHO", customerName: "NEHA SANKET PATEL", channelName: "Primary", soldBy: "Admin/Cashier", invoiceTotal: 532.00, returnedTotal: 150.00, status: "Pending" },
-  { id: "3", returnNumber: "RE-260120-05865", dateTime: "01/20/2026 12:01 PM", businessName: "A&J EXPRESS INC/ NEW HOPE WAVAHO", customerName: "NEHA SANKET PATEL", channelName: "Primary", soldBy: "Admin/Cashier", invoiceTotal: 178.25, returnedTotal: 178.25, status: "Processing" },
-  { id: "4", returnNumber: "RE-260120-05859", dateTime: "01/20/2026 10:32 AM", businessName: "JAY SHIV LLC", customerName: "AMITKUMAR PATEL/ BHAVESHBHAI PATEL", channelName: "Primary", soldBy: "Admin/Cashier", invoiceTotal: 890.00, returnedTotal: 45.00, status: "Rejected" },
+  { id: "1", returnNumber: "RE-260129-05970", dateTime: "01/28/2026, 09:49:11", customerName: "Test Customer Name", createdBy: "User 1", channelName: "Primary", invoiceTotal: -88888.00, returnTotal: -88888.00, status: "Complete" },
+  { id: "2", returnNumber: "RE-260129-05970", dateTime: "01/28/2026, 09:49:11", customerName: "Test Customer Name", createdBy: "User 1", channelName: "Primary", invoiceTotal: -88888.00, returnTotal: -88888.00, status: "Pending" },
+  { id: "3", returnNumber: "RE-260129-05970", dateTime: "01/28/2026, 09:49:11", customerName: "Test Customer Name", createdBy: "User 1", channelName: "Primary", invoiceTotal: -88888.00, returnTotal: -88888.00, status: "Pending" },
+  { id: "4", returnNumber: "RE-260129-05970", dateTime: "01/28/2026, 09:49:11", customerName: "Test Customer Name", createdBy: "User 1", channelName: "Primary", invoiceTotal: -88888.00, returnTotal: -88888.00, status: "Complete" },
+  { id: "5", returnNumber: "RE-260129-05970", dateTime: "01/28/2026, 09:49:11", customerName: "Test Customer Name", createdBy: "User 1", channelName: "Primary", invoiceTotal: -88888.00, returnTotal: -88888.00, status: "Pending" },
+  { id: "6", returnNumber: "RE-260129-05970", dateTime: "01/28/2026, 09:49:11", customerName: "Test Customer Name", createdBy: "User 1", channelName: "Primary", invoiceTotal: -88888.00, returnTotal: -88888.00, status: "Complete" },
+  { id: "7", returnNumber: "RE-260129-05970", dateTime: "01/28/2026, 09:49:11", customerName: "Test Customer Name", createdBy: "User 1", channelName: "Primary", invoiceTotal: -88888.00, returnTotal: -88888.00, status: "Pending" },
+  { id: "8", returnNumber: "RE-260129-05970", dateTime: "01/28/2026, 09:49:11", customerName: "Test Customer Name", createdBy: "User 1", channelName: "Primary", invoiceTotal: -88888.00, returnTotal: -88888.00, status: "Complete" },
+  { id: "9", returnNumber: "RE-260129-05970", dateTime: "01/28/2026, 09:49:11", customerName: "Test Customer Name", createdBy: "User 1", channelName: "Primary", invoiceTotal: -88888.00, returnTotal: -88888.00, status: "Pending" },
+  { id: "10", returnNumber: "RE-260129-05970", dateTime: "01/28/2026, 09:49:11", customerName: "Test Customer Name", createdBy: "User 1", channelName: "Primary", invoiceTotal: -88888.00, returnTotal: -88888.00, status: "Pending" },
 ];
 
-const STATUS_COLORS: Record<SalesReturn["status"], { bg: string; text: string }> = {
-  Completed: { bg: "bg-green-100", text: "text-green-700" },
-  Pending: { bg: "bg-yellow-100", text: "text-yellow-700" },
-  Processing: { bg: "bg-blue-100", text: "text-blue-700" },
-  Rejected: { bg: "bg-red-100", text: "text-red-700" },
-};
+// ============================================================================
+// Helper Functions
+// ============================================================================
+
+function formatCurrency(value: number): string {
+  const isNegative = value < 0;
+  return `${isNegative ? '-' : ''}$${Math.abs(value).toFixed(2)}`;
+}
 
 // ============================================================================
 // Main Component
 // ============================================================================
 
 export default function SalesReturnScreen() {
-  // Search & Filter State
   const [searchQuery, setSearchQuery] = useState("");
-  const [statusFilter, setStatusFilter] = useState<string | null>(null);
-  const [channelFilter, setChannelFilter] = useState<string | null>(null);
-  const [soldByFilter, setSoldByFilter] = useState<string | null>(null);
 
-  const [returns] = useState<SalesReturn[]>(SAMPLE_RETURNS);
+  // Custom Sidebar Buttons for Sales Return
+  const sidebarButtons = (
+    <>
+      <SidebarButton 
+        title="Create Sale Return"
+        icon={<Ionicons name="add-circle-outline" size={20} color="#FFFFFF" />}
+        onPress={() => Alert.alert("Create Return", "Create new return function")}
+        bgColor="#EC1A52"
+        textColor="#FFFFFF"
+        borderColor="#EC1A52"
+      />
+      <SidebarButton 
+        title="Print Return Invoice"
+        icon={<Ionicons name="print-outline" size={20} color="#1A1A1A" />}
+        onPress={() => Alert.alert("Print", "Printing return invoice list...")}
+        bgColor="#FCD34D" // Yellow
+        borderColor="#FCD34D"
+      />
+      <SidebarButton 
+        title="View Return Invoice"
+        icon={<Ionicons name="document-text-outline" size={20} color="#EC1A52" />}
+        onPress={() => Alert.alert("View Invoice", "Select a return to view invoice")}
+        textColor="#EC1A52"
+        borderColor="#EC1A52"
+      />
+      <SidebarButton 
+        title="Edit Return"
+        icon={<Ionicons name="create-outline" size={20} color="#EC1A52" />}
+        onPress={() => Alert.alert("Edit Return", "Select a return to edit")}
+        textColor="#EC1A52"
+        borderColor="#EC1A52"
+      />
+    </>
+  );
 
-  // Apply filters
-  const filteredReturns = useMemo(() => {
-    let result = [...returns];
+  const StatusBadge = ({ status }: { status: "Complete" | "Pending" }) => (
+    <View 
+      className="px-2 py-1 rounded"
+      style={{ backgroundColor: status === "Complete" ? "#22C55E" : "#F59E0B" }}
+    >
+      <Text className="text-white text-xs font-medium">{status}</Text>
+    </View>
+  );
 
-    // Search filter
-    if (searchQuery) {
-      const query = searchQuery.toLowerCase();
-      result = result.filter(
-        (r) =>
-          r.businessName.toLowerCase().includes(query) ||
-          r.customerName.toLowerCase().includes(query) ||
-          r.returnNumber.toLowerCase().includes(query)
-      );
-    }
-
-    // Status filter
-    if (statusFilter && statusFilter !== "all") {
-      result = result.filter((r) => r.status === statusFilter);
-    }
-
-    // Channel filter
-    if (channelFilter && channelFilter !== "all") {
-      result = result.filter((r) => r.channelName === channelFilter);
-    }
-
-    // Sold by filter
-    if (soldByFilter && soldByFilter !== "all") {
-      result = result.filter((r) => r.soldBy === soldByFilter);
-    }
-
-    return result;
-  }, [returns, searchQuery, statusFilter, channelFilter, soldByFilter]);
-
-  const renderReturn = ({ item }: { item: SalesReturn }) => (
-    <View className="flex-row items-center py-3 px-5 border-b border-gray-100 bg-white">
-      <View className="w-8 mr-4">
-        <View className="w-5 h-5 border border-gray-300 rounded" />
-      </View>
-      <Text className="w-36 text-blue-600 font-medium">{item.returnNumber}</Text>
-      <Text className="w-40 text-gray-600 text-sm">{item.dateTime}</Text>
-      <View className="w-64">
-        <Text className="text-blue-600" numberOfLines={1}>{item.businessName}</Text>
-        <Text className="text-blue-500 text-sm" numberOfLines={1}>{item.customerName}</Text>
-      </View>
-      <Text className="w-24 text-gray-600 text-center">{item.channelName}</Text>
-      <Text className="w-28 text-gray-600 text-center">{item.soldBy}</Text>
-      <Text className="w-28 text-gray-800 text-center font-medium">${item.invoiceTotal.toFixed(2)}</Text>
-      <Text className="w-28 text-red-600 text-center font-medium">${item.returnedTotal.toFixed(2)}</Text>
-      <View className="w-28 items-center">
-        <View className={`px-2 py-1 rounded-full ${STATUS_COLORS[item.status].bg}`}>
-          <Text className={`text-xs font-medium ${STATUS_COLORS[item.status].text}`}>{item.status}</Text>
+  const renderReturn = ({ item, index }: { item: SalesReturn; index: number }) => (
+    <View 
+      className={`flex-row items-center px-4 py-3 border-b border-gray-100 ${index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}`}
+    >
+      <Text className="w-32 text-blue-600 text-xs font-medium" numberOfLines={1}>
+        {item.returnNumber}
+      </Text>
+      <Text className="w-40 text-gray-600 text-xs">
+        {item.dateTime}
+      </Text>
+      <Text className="w-40 text-blue-600 text-xs" numberOfLines={1}>
+        {item.customerName}
+      </Text>
+      <Text className="w-24 text-gray-600 text-xs">{item.createdBy}</Text>
+      <View className="w-24">
+        <View className="bg-pink-100 px-2 py-1 rounded self-start">
+          <Text className="text-pink-600 text-xs font-medium">{item.channelName}</Text>
         </View>
       </View>
-      <View className="w-28 flex-row items-center justify-center gap-2">
-        <Pressable className="bg-blue-100 p-2 rounded-lg">
-          <Ionicons name="eye" size={16} color="#3b82f6" />
+      <Text className="w-28 text-red-600 text-xs font-bold">
+        {formatCurrency(item.invoiceTotal)}
+      </Text>
+      <Text className="w-28 text-red-600 text-xs font-bold">
+        {formatCurrency(item.returnTotal)}
+      </Text>
+      <View className="w-24">
+        <StatusBadge status={item.status} />
+      </View>
+      <View className="w-20 flex-row gap-2">
+        <Pressable className="bg-red-50 p-1.5 rounded">
+          <Ionicons name="print-outline" size={14} color="#EC1A52" />
         </Pressable>
-        <Pressable className="bg-green-100 p-2 rounded-lg">
-          <Ionicons name="pencil" size={16} color="#22c55e" />
-        </Pressable>
-        <Pressable className="bg-red-100 p-2 rounded-lg">
-          <Ionicons name="trash" size={16} color="#ef4444" />
+        <Pressable className="bg-red-50 p-1.5 rounded">
+          <Ionicons name="eye-outline" size={14} color="#EC1A52" />
         </Pressable>
       </View>
     </View>
   );
 
   return (
-    <View className="flex-1 bg-gray-50">
-      <PageHeader title="Sales Return" />
-
-      {/* Search & Actions */}
-      <View className="bg-white px-5 py-4 border-b border-gray-200">
-        <View className="flex-row items-center justify-between mb-4">
-          <Text className="text-lg font-semibold text-gray-800">Sales Return ({filteredReturns.length})</Text>
-          <Pressable className="bg-red-500 px-4 py-2.5 rounded-lg">
-            <Text className="text-white font-medium">Create Sale Return</Text>
-          </Pressable>
+    <StaffPageLayout sidebarCustomButtons={sidebarButtons}>
+      <View className="flex-1 bg-white">
+        {/* Header */}
+        <View className="px-6 py-4">
+          <Text className="text-2xl font-bold text-gray-900">Sales Return</Text>
+          <Text className="text-gray-500 text-sm mt-1">Search by Customer Name, SKU, UPC</Text>
         </View>
-        <View className="flex-row gap-4">
-          <View className="flex-1">
-            <TextInput
-              className="bg-gray-50 border border-gray-200 rounded-lg px-4 py-2.5"
-              placeholder="Search returns..."
-              placeholderTextColor="#9ca3af"
-              value={searchQuery}
-              onChangeText={setSearchQuery}
+
+        {/* Search Bar */}
+        <View className="px-6 pb-4">
+          <View className="flex-row items-center gap-3">
+            <View className="flex-1 flex-row items-center bg-gray-50 border border-gray-200 rounded-lg px-3 py-2">
+              <Ionicons name="search" size={18} color="#9CA3AF" />
+              <TextInput
+                className="flex-1 ml-2 text-gray-800"
+                placeholder="Search Returns"
+                placeholderTextColor="#9CA3AF"
+                value={searchQuery}
+                onChangeText={setSearchQuery}
+              />
+            </View>
+            <Pressable 
+              className="flex-row items-center gap-2 px-6 py-3 rounded-lg"
+              style={{ backgroundColor: "#EC1A52" }}
+            >
+              <Ionicons name="refresh" size={18} color="white" />
+              <Text className="text-white font-medium">Refresh</Text>
+            </Pressable>
+            <Pressable className="bg-gray-900 p-3 rounded-lg">
+              <Ionicons name="settings-outline" size={20} color="white" />
+            </Pressable>
+          </View>
+        </View>
+
+        {/* Table */}
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} className="flex-1">
+          <View style={{ minWidth: 1000 }}>
+            {/* Table Header */}
+            <View className="flex-row bg-gray-50 py-3 px-4 border-y border-gray-200">
+              <View className="w-32 flex-row items-center">
+                <Text className="text-gray-500 text-xs font-semibold">Return Number</Text>
+                <Ionicons name="chevron-expand" size={12} color="#9CA3AF" />
+              </View>
+              <View className="w-40 flex-row items-center">
+                <Text className="text-gray-500 text-xs font-semibold">Date / Time</Text>
+                <Ionicons name="chevron-expand" size={12} color="#9CA3AF" />
+              </View>
+              <View className="w-40 flex-row items-center">
+                <Text className="text-gray-500 text-xs font-semibold">Customer Name</Text>
+                <Ionicons name="chevron-expand" size={12} color="#9CA3AF" />
+              </View>
+              <Text className="w-24 text-gray-500 text-xs font-semibold">Created By</Text>
+              <Text className="w-24 text-gray-500 text-xs font-semibold">Channel Name</Text>
+              <Text className="w-28 text-gray-500 text-xs font-semibold">Invoice Total</Text>
+              <Text className="w-28 text-gray-500 text-xs font-semibold">Return Total</Text>
+              <Text className="w-24 text-gray-500 text-xs font-semibold">Status</Text>
+              <Text className="w-20 text-gray-500 text-xs font-semibold">Actions</Text>
+            </View>
+
+            <FlatList
+              data={SAMPLE_RETURNS}
+              keyExtractor={(item) => item.id}
+              renderItem={renderReturn}
+              showsVerticalScrollIndicator={false}
             />
           </View>
-          <FilterDropdown
-            label=""
-            value={statusFilter}
-            options={STATUS_OPTIONS}
-            onChange={setStatusFilter}
-            placeholder="Status"
-            width={130}
-          />
-          <FilterDropdown
-            label=""
-            value={channelFilter}
-            options={CHANNEL_OPTIONS}
-            onChange={setChannelFilter}
-            placeholder="Channel"
-            width={130}
-          />
-          <FilterDropdown
-            label=""
-            value={soldByFilter}
-            options={SOLD_BY_OPTIONS}
-            onChange={setSoldByFilter}
-            placeholder="Sold By"
-            width={140}
-          />
-        </View>
-        <Text className="text-gray-400 text-sm mt-2">
-          Search by Customer (Name, Phone, Address), Business Name, Order no
-        </Text>
-      </View>
+        </ScrollView>
 
-      {/* Table */}
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} className="flex-1">
-        <View style={{ minWidth: 1300 }}>
-          {/* Table Header */}
-          <View className="flex-row bg-gray-50 py-3 px-5 border-b border-gray-200">
-            <View className="w-8 mr-4">
-              <View className="w-5 h-5 border border-gray-300 rounded" />
-            </View>
-            <Text className="w-36 text-gray-500 text-xs font-semibold uppercase">Return Number</Text>
-            <Text className="w-40 text-gray-500 text-xs font-semibold uppercase">Date / Time</Text>
-            <Text className="w-64 text-gray-500 text-xs font-semibold uppercase">Business / Customer</Text>
-            <Text className="w-24 text-gray-500 text-xs font-semibold uppercase text-center">Channel</Text>
-            <Text className="w-28 text-gray-500 text-xs font-semibold uppercase text-center">Sold By</Text>
-            <Text className="w-28 text-gray-500 text-xs font-semibold uppercase text-center">Invoice Total</Text>
-            <Text className="w-28 text-gray-500 text-xs font-semibold uppercase text-center">Returned Total</Text>
-            <Text className="w-28 text-gray-500 text-xs font-semibold uppercase text-center">Status</Text>
-            <Text className="w-28 text-gray-500 text-xs font-semibold uppercase text-center">Actions</Text>
+        {/* Pagination */}
+        <View className="flex-row items-center justify-between px-4 py-3 border-t border-gray-200">
+          <View className="flex-row items-center gap-2">
+            <Pressable className="w-8 h-8 items-center justify-center rounded border border-gray-200">
+              <Ionicons name="chevron-back" size={16} color="#9CA3AF" />
+            </Pressable>
+            <Pressable 
+              className="w-8 h-8 items-center justify-center rounded"
+              style={{ backgroundColor: "#EC1A52" }}
+            >
+              <Text className="text-white font-medium">1</Text>
+            </Pressable>
+            <Pressable className="w-8 h-8 items-center justify-center rounded border border-gray-200">
+              <Text className="text-gray-600">2</Text>
+            </Pressable>
+            <Pressable className="w-8 h-8 items-center justify-center rounded border border-gray-200">
+              <Text className="text-gray-600">3</Text>
+            </Pressable>
+            <Pressable className="w-8 h-8 items-center justify-center rounded border border-gray-200">
+              <Ionicons name="chevron-forward" size={16} color="#9CA3AF" />
+            </Pressable>
           </View>
-
-          {/* List */}
-          <FlatList
-            data={filteredReturns}
-            keyExtractor={(item) => item.id}
-            renderItem={renderReturn}
-            showsVerticalScrollIndicator={false}
-            ListEmptyComponent={
-              <View className="py-16 items-center">
-                <Ionicons name="return-down-back-outline" size={48} color="#d1d5db" />
-                <Text className="text-gray-400 mt-2">No returns found</Text>
-              </View>
-            }
-          />
+          <View className="flex-row items-center gap-2">
+            <Pressable className="flex-row items-center gap-2 px-3 py-2 rounded border border-gray-200">
+              <Text className="text-gray-600">10/Page</Text>
+              <Ionicons name="chevron-down" size={14} color="#6B7280" />
+            </Pressable>
+          </View>
         </View>
-      </ScrollView>
-    </View>
+      </View>
+    </StaffPageLayout>
   );
 }

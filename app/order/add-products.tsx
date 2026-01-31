@@ -1,21 +1,67 @@
-import { Ionicons } from "@expo/vector-icons";
-import { useState, useCallback } from "react";
-import { ScrollView, View, Text, Pressable, TextInput } from "react-native";
-import { useOrder, OrderProduct } from "../../contexts/OrderContext";
-import { StepNavigation } from "../../components/StepNavigation";
-import { SearchProductModal, SearchProduct } from "../../components/SearchProductModal";
+import { Ionicons, MaterialCommunityIcons, MaterialIcons } from "@expo/vector-icons";
+import { useRouter } from "expo-router";
+import { useCallback, useState } from "react";
+import { Alert, Pressable, ScrollView, Text, TextInput, TouchableOpacity, View } from "react-native";
+import { AddDiscountModal } from "../../components/AddDiscountModal";
+import { AddQuickCustomerModal } from "../../components/AddQuickCustomerModal";
+import { AddTaxModal } from "../../components/AddTaxModal";
+import { CashEntryModal } from "../../components/CashEntryModal";
+import { CashPaymentModal } from "../../components/CashPaymentModal";
+import { CashResultModal } from "../../components/CashResultModal";
+import { DeclareCashModal } from "../../components/DeclareCashModal";
+import { ParkOrderModal } from "../../components/ParkOrderModal";
+import { ParkedOrdersModal } from "../../components/ParkedOrdersModal";
+import { ProductSettingsModal } from "../../components/ProductSettingsModal";
+import { SearchProduct, SearchProductModal } from "../../components/SearchProductModal";
+import { useAuth } from "../../contexts/AuthContext";
+import { OrderProduct, useOrder } from "../../contexts/OrderContext";
+import { useParkedOrders } from "../../contexts/ParkedOrderContext";
+
+// Action button width
+const SIDEBAR_WIDTH = 300;
 
 /**
- * AddProductsScreen - Step 2: Add products to order
+ * Staff POS Sales Screen - Matches Figma design
  */
 export default function AddProductsScreen() {
-  const { order, updateOrder, addProduct, updateProductQuantity, removeProduct } = useOrder();
-  const [searchQuery, setSearchQuery] = useState("");
+  const router = useRouter();
+  const { order, updateOrder, addProduct, updateProductQuantity, removeProduct, clearOrder, getOrderSummary } = useOrder();
+  const { parkedOrders, parkOrder, resumeOrder, deleteParkedOrder } = useParkedOrders();
+  const { user } = useAuth();
+  
   const [scanQty, setScanQty] = useState("1");
   const [showSearchModal, setShowSearchModal] = useState(false);
+  const [showCashPaymentModal, setShowCashPaymentModal] = useState(false);
+  const [showDiscountModal, setShowDiscountModal] = useState(false);
+  const [showCustomerModal, setShowCustomerModal] = useState(false);
+  
+  // Park Order modals
+  const [showParkOrderModal, setShowParkOrderModal] = useState(false);
+  const [showParkedOrdersModal, setShowParkedOrdersModal] = useState(false);
+  
+  // Cash Management modals
+  const [showDeclareCashModal, setShowDeclareCashModal] = useState(false);
+  const [showCashEntryModal, setShowCashEntryModal] = useState(false);
+  const [showCashResultModal, setShowCashResultModal] = useState(false);
+  const [cashResult, setCashResult] = useState({ isMatched: true, actualCash: 0 });
+  
+  // Tax modal
+  const [showTaxModal, setShowTaxModal] = useState(false);
+  
+  // Product Settings modal
+  const [showProductSettingsModal, setShowProductSettingsModal] = useState(false);
+  const [selectedProduct, setSelectedProduct] = useState<OrderProduct | null>(null);
 
-  // Use order products
   const products = order.products;
+  const summary = getOrderSummary();
+  
+  // Mock cash summary - in real app this would come from backend
+  const cashSummary = {
+    openingBalance: 200.00,
+    totalSales: 1250.50,
+    totalRefunds: 45.00,
+    expectedCash: 200.00 + 1250.50 - 45.00,
+  };
 
   // Handle adding product from search modal
   const handleAddProductFromSearch = useCallback((searchProduct: SearchProduct) => {
@@ -43,185 +89,577 @@ export default function AddProductsScreen() {
     }
   };
 
-  // Calculate totals
-  const subTotal = products.reduce((sum, p) => sum + p.total, 0);
+  const handleParkOrder = () => {
+    if (products.length === 0) {
+      Alert.alert("Error", "Please add products to cart first");
+      return;
+    }
+    setShowParkOrderModal(true);
+  };
+
+  const handleConfirmParkOrder = (note?: string) => {
+    parkOrder(order, user?.name || "Staff", note);
+    setShowParkOrderModal(false);
+    clearOrder();
+    Alert.alert("Success", "Order parked successfully");
+  };
+
+  const handleResumeOrder = (id: string) => {
+    const parkedOrder = resumeOrder(id);
+    if (parkedOrder) {
+      // Restore products to current order
+      parkedOrder.products.forEach((product) => {
+        addProduct(product);
+      });
+      updateOrder({ customerName: parkedOrder.customerName });
+      setShowParkedOrdersModal(false);
+      Alert.alert("Success", "Order resumed successfully");
+    }
+  };
+
+  const handleDeleteParkedOrder = (id: string) => {
+    deleteParkedOrder(id);
+  };
+
+  // Cash Management handlers
+  const handleOpenCashRegister = () => {
+    setShowDeclareCashModal(true);
+  };
+
+  const handleCashEntryConfirm = (actualCash: number) => {
+    const difference = actualCash - cashSummary.expectedCash;
+    const isMatched = Math.abs(difference) < 0.01; // Allow for small rounding differences
+    setCashResult({ isMatched, actualCash });
+    setShowCashEntryModal(false);
+    setShowCashResultModal(true);
+  };
+
+  const handleCashResultConfirm = () => {
+    setShowCashResultModal(false);
+    Alert.alert("Success", "Cash register closed successfully");
+  };
+
+  // Product Settings handler
+  const handleProductSettings = (product: OrderProduct) => {
+    setSelectedProduct(product);
+    setShowProductSettingsModal(true);
+  };
+
+  const handleEmptyCart = () => {
+    Alert.alert("Empty Cart", "Are you sure you want to remove all items?", [
+      { text: "Cancel", style: "cancel" },
+      { text: "Empty", style: "destructive", onPress: () => clearOrder() },
+    ]);
+  };
+
+  const handleGoToMenu = () => {
+    router.back();
+  };
+
+  const handleCashPayment = () => {
+    if (products.length === 0) {
+      Alert.alert("Error", "Please add products to cart first");
+      return;
+    }
+    setShowCashPaymentModal(true);
+  };
+
+  // Action Button Component
+  const ActionButton = ({ 
+    title, 
+    onPress, 
+    variant = "default",
+    icon,
+  }: { 
+    title: string; 
+    onPress: () => void; 
+    variant?: "default" | "primary" | "danger" | "purple";
+    icon?: React.ReactNode;
+  }) => {
+    const bgColors = {
+      default: "#FFFFFF",
+      primary: "#EC1A52",
+      danger: "#EC1A52",
+      purple: "#5F4BB6",
+    };
+    const textColors = {
+      default: "#EC1A52",
+      primary: "#FFFFFF",
+      danger: "#FFFFFF",
+      purple: "#FFFFFF",
+    };
+    const borderColors = {
+      default: "#EC1A52",
+      primary: "transparent",
+      danger: "transparent",
+      purple: "transparent",
+    };
+
+    return (
+      <TouchableOpacity
+        onPress={onPress}
+        className="flex-1 rounded-lg py-3 px-2 items-center justify-center"
+        style={{
+          backgroundColor: bgColors[variant],
+          borderWidth: variant === "default" ? 1 : 0,
+          borderColor: borderColors[variant],
+        }}
+      >
+        {icon}
+        <Text 
+          className="font-medium text-center mt-1" 
+          style={{ fontSize: 12, color: textColors[variant] }}
+          numberOfLines={2}
+        >
+          {title}
+        </Text>
+      </TouchableOpacity>
+    );
+  };
 
   return (
-    <View className="flex-1">
-      <ScrollView className="flex-1" contentContainerClassName="p-5">
-        {/* Top Controls */}
-        <View className="bg-white rounded-lg p-5 mb-4">
-          <View className="flex-row items-center gap-4">
-            {/* Channel Select */}
-            <View>
-              <Text className="text-gray-600 text-sm mb-1.5">Select Chanel</Text>
-              <Pressable className="flex-row items-center bg-gray-50 border border-gray-200 rounded-lg px-3 py-2.5 w-32">
-                <Text className="flex-1 text-gray-800">{order.channel}</Text>
-                <Ionicons name="chevron-down" size={16} color="#9ca3af" />
-              </Pressable>
-            </View>
+    <View className="flex-1 flex-row bg-gray-100">
+      {/* Main Content Area */}
+      <View className="flex-1">
+        {/* Top Bar */}
+        <View className="flex-row items-center gap-3 p-3 bg-white border-b border-gray-200">
+          <Text className="text-gray-600 text-sm">Add product by Name, SKU, UPC</Text>
+          
+          {/* Search Input */}
+          <TouchableOpacity
+            onPress={() => setShowSearchModal(true)}
+            className="flex-1 flex-row items-center bg-gray-50 border border-gray-200 rounded-lg px-3 py-2"
+          >
+            <Ionicons name="search" size={18} color="#9ca3af" />
+            <Text className="flex-1 ml-2 text-gray-400">Search Products</Text>
+          </TouchableOpacity>
 
-            {/* Product Search - Opens Modal */}
-            <View className="flex-1">
-              <Text className="text-gray-600 text-sm mb-1.5">Add product by Name, SKU, UPC</Text>
-              <Pressable
-                onPress={() => setShowSearchModal(true)}
-                className="flex-row items-center bg-gray-50 border border-gray-200 rounded-lg px-3 py-2"
-              >
-                <Ionicons name="search" size={18} color="#9ca3af" />
-                <Text className="flex-1 ml-2 text-gray-400">Search Products</Text>
-              </Pressable>
-            </View>
-
-            {/* Scan Qty */}
-            <View>
-              <Text className="text-gray-600 text-sm mb-1.5">Scan Qty</Text>
-              <TextInput
-                className="w-16 bg-gray-50 border border-gray-200 rounded-lg px-3 py-2.5 text-center text-gray-800"
-                keyboardType="numeric"
-                value={scanQty}
-                onChangeText={setScanQty}
-              />
-            </View>
-
-            {/* Action Buttons */}
-            <View className="flex-row gap-2 mt-5">
-              <Pressable className="bg-red-500 px-4 py-2.5 rounded-lg">
-                <Text className="text-white font-medium">Scan Logs</Text>
-              </Pressable>
-              <Pressable className="bg-red-100 px-4 py-2.5 rounded-lg">
-                <Text className="text-red-500 font-medium">Misc Item</Text>
-              </Pressable>
-            </View>
+          {/* Scan Qty */}
+          <View className="flex-row items-center gap-2">
+            <Text className="text-gray-600 text-sm">Scan Qty</Text>
+            <TextInput
+              className="w-14 bg-gray-50 border border-gray-200 rounded-lg px-2 py-2 text-center text-gray-800"
+              keyboardType="numeric"
+              value={scanQty}
+              onChangeText={setScanQty}
+            />
           </View>
 
-          {/* Second Row */}
-          <View className="flex-row items-center justify-between mt-4">
-            <View className="flex-row gap-2">
-              <Pressable
-                onPress={() => setShowSearchModal(true)}
-                className="bg-red-500 px-4 py-2.5 rounded-lg"
-              >
-                <Text className="text-white font-medium">Add New Products</Text>
-              </Pressable>
-              <Pressable className="border border-gray-300 px-4 py-2.5 rounded-lg">
-                <Text className="text-gray-700 font-medium">Bulk Add & Edit</Text>
-              </Pressable>
-            </View>
-            <View className="flex-row gap-2">
-              <Pressable
-                onPress={() => updateOrder({ products: [] })}
-                className="border border-red-500 px-4 py-2.5 rounded-lg"
-              >
-                <Text className="text-red-500 font-medium">Empty Cart</Text>
-              </Pressable>
-              <Pressable className="bg-red-500 px-4 py-2.5 rounded-lg">
-                <Text className="text-white font-medium">Park Order</Text>
-              </Pressable>
-            </View>
-          </View>
+          {/* Refresh Button */}
+          <TouchableOpacity className="bg-red-500 px-4 py-2 rounded-lg flex-row items-center gap-1">
+            <Ionicons name="refresh" size={16} color="white" />
+            <Text className="text-white font-medium">Refresh</Text>
+          </TouchableOpacity>
+
+          {/* Scan Logs Button */}
+          <TouchableOpacity className="border border-red-500 px-4 py-2 rounded-lg">
+            <Text className="text-red-500 font-medium">Scan Logs</Text>
+          </TouchableOpacity>
+
+          {/* Settings Button - Opens Product Settings Modal */}
+          <TouchableOpacity 
+            className="bg-gray-800 p-2 rounded-lg"
+            onPress={() => {
+              if (products.length === 0) {
+                Alert.alert("No Product", "Please add a product first");
+                return;
+              }
+              
+              // Use selected product or first product
+              const productToEdit = selectedProduct || products[0];
+              setSelectedProduct(productToEdit);
+              setShowProductSettingsModal(true);
+            }}
+          >
+            <Ionicons name="settings-outline" size={20} color="white" />
+          </TouchableOpacity>
         </View>
 
         {/* Products Table */}
-        <View className="bg-white rounded-lg overflow-hidden flex-1">
-          {/* Table Header */}
-          <View className="flex-row bg-gray-50 border-b border-gray-200 px-4 py-3">
-            <Text className="w-32 text-gray-600 text-xs font-semibold">Product ↕</Text>
-            <Text className="flex-1 text-gray-600 text-xs font-semibold">Name</Text>
-            <Text className="w-20 text-gray-600 text-xs font-semibold">Sale Price</Text>
-            <Text className="w-20 text-gray-600 text-xs font-semibold">Unit</Text>
-            <Text className="w-24 text-gray-600 text-xs font-semibold">Quantity ↕</Text>
-            <Text className="w-24 text-gray-600 text-xs font-semibold">TN Vapor Tax</Text>
-            <Text className="w-24 text-gray-600 text-xs font-semibold">NC Vapor Tax</Text>
-            <Text className="w-20 text-gray-600 text-xs font-semibold">Total</Text>
-            <Text className="w-16 text-gray-600 text-xs font-semibold">Actions</Text>
+        <ScrollView className="flex-1" contentContainerStyle={{ padding: 12 }}>
+          <View className="bg-white rounded-lg overflow-hidden">
+            {/* Table Header */}
+            <View className="flex-row bg-gray-50 border-b border-gray-200 px-3 py-2">
+              <Text className="w-28 text-gray-600 text-xs font-semibold">SKU/UPC</Text>
+              <Text className="flex-1 text-gray-600 text-xs font-semibold">Product Name</Text>
+              <Text className="w-20 text-gray-600 text-xs font-semibold">Sale Price</Text>
+              <Text className="w-16 text-gray-600 text-xs font-semibold">Unit</Text>
+              <Text className="w-20 text-gray-600 text-xs font-semibold">Quantity</Text>
+              <Text className="w-20 text-gray-600 text-xs font-semibold">TN Vapor Tax</Text>
+              <Text className="w-20 text-gray-600 text-xs font-semibold">NC Vapor Tax</Text>
+              <Text className="w-20 text-gray-600 text-xs font-semibold">Total</Text>
+            </View>
+
+            {/* Empty State */}
+            {products.length === 0 ? (
+              <View className="py-16 items-center">
+                <View className="w-32 h-32 mb-4">
+                  <MaterialCommunityIcons name="cart-outline" size={80} color="#d1d5db" />
+                </View>
+                <Text className="text-gray-500 text-center mb-2">
+                  There are no products in the list yet, Add Products to get Started
+                </Text>
+                <TouchableOpacity
+                  onPress={() => setShowSearchModal(true)}
+                  className="mt-4 border border-red-500 px-6 py-2 rounded-lg flex-row items-center gap-2"
+                >
+                  <Ionicons name="add" size={18} color="#EC1A52" />
+                  <Text className="text-red-500 font-medium">Add New Product</Text>
+                </TouchableOpacity>
+              </View>
+            ) : (
+              /* Table Body */
+              products.map((product, index) => {
+                const isSelected = selectedProduct?.id === product.id;
+                return (
+                <Pressable
+                  key={product.id}
+                  onPress={() => setSelectedProduct(product)}
+                  className={`flex-row items-center px-3 py-2 ${
+                    isSelected 
+                      ? 'bg-red-50 border-l-4 border-red-500' 
+                      : index % 2 === 0 ? 'bg-white' : 'bg-gray-50'
+                  }`}
+                >
+                  <Text className="w-28 text-gray-800 text-xs">{product.sku}</Text>
+                  <View className="flex-1 pr-2">
+                    <Text className="text-gray-800 text-xs" numberOfLines={2}>
+                      {product.name}
+                    </Text>
+                    {index === 0 && (
+                      <View className="bg-yellow-400 px-2 py-0.5 rounded mt-1 self-start">
+                        <Text className="text-xs font-medium">PROMO</Text>
+                      </View>
+                    )}
+                  </View>
+                  <Text className="w-20 text-gray-800 text-xs">{product.salePrice}</Text>
+                  <View className="w-16">
+                    <View className="flex-row items-center bg-gray-100 rounded px-1 py-1">
+                      <Text className="text-gray-700 text-xs flex-1">{product.unit}</Text>
+                      <Ionicons name="chevron-down" size={10} color="#6b7280" />
+                    </View>
+                  </View>
+                  {/* Quantity Controls */}
+                  <View className="w-20 flex-row items-center justify-center gap-1">
+                    <TouchableOpacity
+                      onPress={() => handleQuantityChange(product.id, -1)}
+                      className="w-5 h-5 bg-red-500 rounded items-center justify-center"
+                    >
+                      <Ionicons name="remove" size={12} color="white" />
+                    </TouchableOpacity>
+                    <Text className="w-5 text-center text-gray-800 text-xs">{product.quantity}</Text>
+                    <TouchableOpacity
+                      onPress={() => handleQuantityChange(product.id, 1)}
+                      className="w-5 h-5 bg-green-500 rounded items-center justify-center"
+                    >
+                      <Ionicons name="add" size={12} color="white" />
+                    </TouchableOpacity>
+                  </View>
+                  <Text className="w-20 text-gray-800 text-xs">${product.tnVaporTax.toFixed(4)}</Text>
+                  <Text className="w-20 text-gray-800 text-xs">${product.ncVaporTax.toFixed(4)}</Text>
+                  <Text className="w-20 text-red-500 text-xs font-medium">${product.total.toFixed(2)}</Text>
+                </Pressable>
+              );})
+            )}
+          </View>
+        </ScrollView>
+
+        {/* Bottom Section */}
+        <View className="flex-row p-3 gap-3 bg-white border-t border-gray-200">
+          {/* Customer Card */}
+          <View className="bg-white border border-gray-200 rounded-lg p-3" style={{ width: 180 }}>
+            <Text className="text-red-500 text-xs mb-1">Current Status:</Text>
+            <Text className="text-gray-800 font-semibold mb-2">Guest Customer</Text>
+            <TouchableOpacity
+              onPress={() => setShowCustomerModal(true)}
+              className="bg-red-500 rounded-lg py-2 px-3 flex-row items-center justify-center gap-1"
+            >
+              <Ionicons name="add" size={16} color="white" />
+              <Text className="text-white font-medium text-sm">Add Quick Customer</Text>
+            </TouchableOpacity>
           </View>
 
-          {/* Empty State */}
-          {products.length === 0 ? (
-            <View className="py-12 items-center">
-              <Ionicons name="cart-outline" size={48} color="#d1d5db" />
-              <Text className="text-gray-400 mt-2">No products added yet</Text>
-              <Pressable
-                onPress={() => setShowSearchModal(true)}
-                className="mt-4 bg-red-500 px-6 py-2 rounded-lg"
-              >
-                <Text className="text-white font-medium">+ Add Products</Text>
-              </Pressable>
-            </View>
-          ) : (
-            /* Table Body */
-            products.map((product) => (
-              <View
-                key={product.id}
-                className="flex-row items-center px-4 py-3 border-b border-gray-100"
-              >
-                <View className="w-32">
-                  <Text className="text-red-500 text-sm">{product.sku}</Text>
-                </View>
-                <View className="flex-1 pr-2">
-                  <Text className="text-gray-800 text-sm" numberOfLines={2}>
-                    {product.name}
-                  </Text>
-                </View>
-                <Text className="w-20 text-gray-800 text-sm">${product.salePrice.toFixed(2)}</Text>
-                <View className="w-20">
-                  <View className="flex-row items-center bg-gray-100 rounded px-2 py-1">
-                    <Text className="text-gray-700 text-xs">{product.unit}</Text>
-                    <Ionicons name="chevron-down" size={12} color="#6b7280" />
-                  </View>
-                </View>
-                {/* Quantity Controls */}
-                <View className="w-24 flex-row items-center gap-1">
-                  <Pressable
-                    onPress={() => handleQuantityChange(product.id, -1)}
-                    className="w-6 h-6 bg-red-500 rounded items-center justify-center"
-                  >
-                    <Ionicons name="remove" size={14} color="white" />
-                  </Pressable>
-                  <Text className="w-6 text-center text-gray-800">{product.quantity}</Text>
-                  <Pressable
-                    onPress={() => handleQuantityChange(product.id, 1)}
-                    className="w-6 h-6 bg-green-500 rounded items-center justify-center"
-                  >
-                    <Ionicons name="add" size={14} color="white" />
-                  </Pressable>
-                </View>
-                <Text className="w-24 text-gray-800 text-sm">${product.tnVaporTax.toFixed(4)}</Text>
-                <Text className="w-24 text-gray-800 text-sm">${product.ncVaporTax.toFixed(4)}</Text>
-                <Text className="w-20 text-gray-800 text-sm font-medium">${product.total.toFixed(2)}</Text>
-                <View className="w-16">
-                  <Pressable
-                    onPress={() => removeProduct(product.id)}
-                    className="w-8 h-8 bg-red-100 rounded items-center justify-center"
-                  >
-                    <Ionicons name="trash-outline" size={16} color="#ef4444" />
-                  </Pressable>
-                </View>
+          {/* Order Summary */}
+          <View className="flex-1 flex-row">
+            <View className="flex-1 px-4">
+              <View className="flex-row justify-between py-1">
+                <Text className="text-gray-600 text-sm">Total Products</Text>
+                <Text className="text-gray-800 font-medium">{String(products.length).padStart(2, '0')}</Text>
               </View>
-            ))
-          )}
+              <View className="flex-row justify-between py-1">
+                <Text className="text-gray-600 text-sm">Total Quantity</Text>
+                <Text className="text-gray-800 font-medium">{String(summary.totalQuantity).padStart(2, '0')}</Text>
+              </View>
+              <View className="flex-row justify-between py-1">
+                <Text className="text-gray-600 text-sm">Sub Total</Text>
+                <Text className="text-gray-800 font-medium">${summary.subTotal.toFixed(2)}</Text>
+              </View>
+            </View>
+            <View className="flex-1 px-4">
+              <View className="flex-row justify-between py-1">
+                <Text className="text-gray-600 text-sm">Additional Discount</Text>
+                <Text className="text-gray-800 font-medium">$0.00</Text>
+              </View>
+              <View className="flex-row justify-between py-1">
+                <Text className="text-gray-600 text-sm">Delivery Charges</Text>
+                <Text className="text-gray-800 font-medium">$0.00</Text>
+              </View>
+              <View className="flex-row justify-between py-1">
+                <Text className="text-gray-600 text-sm">Tax</Text>
+                <Text className="text-gray-800 font-medium">${summary.tax.toFixed(2)}</Text>
+              </View>
+            </View>
+          </View>
+
+          {/* Total */}
+          <View className="items-end justify-center px-4">
+            <Text className="text-red-500 text-sm">Total</Text>
+            <Text className="text-red-500 text-2xl font-bold">${summary.total.toFixed(2)}</Text>
+          </View>
+        </View>
+      </View>
+
+      {/* Right Action Panel */}
+      <View className="bg-gray-50 border-l border-gray-200 p-2" style={{ width: SIDEBAR_WIDTH }}>
+        {/* Branding Section */}
+        <View
+          className="rounded-lg py-2 px-3 items-center justify-center mb-2"
+          style={{
+            backgroundColor: "#D9D9D9",
+            borderWidth: 1,
+            borderColor: "#1A1A1A",
+            borderStyle: "dashed",
+          }}
+        >
+          <Text style={{ fontSize: 12, color: "#1A1A1A", fontWeight: "500" }}>Branding Section</Text>
         </View>
 
-        {/* Totals */}
-        {products.length > 0 && (
-          <View className="bg-white rounded-lg p-4 mt-4">
-            <View className="flex-row justify-end">
-              <Text className="text-gray-600 text-lg mr-4">Sub Total:</Text>
-              <Text className="text-gray-800 text-lg font-bold">${subTotal.toFixed(2)}</Text>
-            </View>
+        <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>
+          {/* Row 1 */}
+          <View className="flex-row gap-2">
+            <ActionButton
+              title="Add New Product"
+              onPress={() => setShowSearchModal(true)}
+              variant="primary"
+              icon={<Ionicons name="add" size={20} color="white" />}
+            />
+            <ActionButton
+              title="Open Cash Register"
+              onPress={handleOpenCashRegister}
+              icon={<MaterialCommunityIcons name="cash-register" size={20} color="#EC1A52" />}
+            />
           </View>
-        )}
-      </ScrollView>
 
-      {/* Bottom Navigation */}
-      <StepNavigation />
+          {/* Row 2 */}
+          <View className="flex-row gap-2">
+            <ActionButton
+              title="Cash Payment"
+              onPress={handleCashPayment}
+              icon={<MaterialCommunityIcons name="cash" size={20} color="#EC1A52" />}
+            />
+            <ActionButton
+              title="Card Payment"
+              onPress={() => Alert.alert("Card Payment", "Feature coming soon")}
+              icon={<MaterialCommunityIcons name="credit-card" size={20} color="#EC1A52" />}
+            />
+          </View>
 
-      {/* Search Product Modal */}
+          {/* Row 3 */}
+          <View className="flex-row gap-2">
+            <ActionButton
+              title="Payment Method 1"
+              onPress={() => Alert.alert("Payment Method 1", "Feature coming soon")}
+              icon={<MaterialIcons name="payment" size={20} color="#EC1A52" />}
+            />
+            <ActionButton
+              title="Payment Method 2"
+              onPress={() => Alert.alert("Payment Method 2", "Feature coming soon")}
+              icon={<MaterialIcons name="payment" size={20} color="#EC1A52" />}
+            />
+          </View>
+
+          {/* Row 4 */}
+          <View className="flex-row gap-2">
+            <ActionButton
+              title="Payment Method 3"
+              onPress={() => Alert.alert("Payment Method 3", "Feature coming soon")}
+              icon={<MaterialIcons name="payment" size={20} color="#EC1A52" />}
+            />
+            <ActionButton
+              title="Payment Method 4"
+              onPress={() => Alert.alert("Payment Method 4", "Feature coming soon")}
+              icon={<MaterialIcons name="payment" size={20} color="#EC1A52" />}
+            />
+          </View>
+
+          {/* Row 5 */}
+          <View className="flex-row gap-2">
+            <ActionButton
+              title="Pay Later"
+              onPress={() => Alert.alert("Pay Later", "Feature coming soon")}
+              icon={<MaterialCommunityIcons name="clock-outline" size={20} color="#EC1A52" />}
+            />
+            <ActionButton
+              title="Add Tax"
+              onPress={() => setShowTaxModal(true)}
+              variant="purple"
+              icon={<Ionicons name="add-circle-outline" size={20} color="white" />}
+            />
+          </View>
+
+          {/* Row 6 */}
+          <View className="flex-row gap-2">
+            <ActionButton
+              title="Delete Product"
+              onPress={() => Alert.alert("Delete Product", "Select a product to delete")}
+              variant="danger"
+              icon={<Ionicons name="trash-outline" size={20} color="white" />}
+            />
+            <ActionButton
+              title="Void Payment"
+              onPress={() => Alert.alert("Void Payment", "Feature coming soon")}
+              variant="danger"
+              icon={<MaterialCommunityIcons name="cancel" size={20} color="white" />}
+            />
+          </View>
+
+          {/* Row 7 */}
+          <View className="flex-row gap-2">
+            <ActionButton
+              title="Go to Menu"
+              onPress={handleGoToMenu}
+              icon={<Ionicons name="menu" size={20} color="#EC1A52" />}
+            />
+            <ActionButton
+              title="Add Discount"
+              onPress={() => setShowDiscountModal(true)}
+              icon={<MaterialIcons name="discount" size={20} color="#EC1A52" />}
+            />
+          </View>
+
+          {/* Row 8 */}
+          <View className="flex-row gap-2">
+            <ActionButton
+              title="Empty Cart"
+              onPress={handleEmptyCart}
+              icon={<Ionicons name="trash-outline" size={20} color="#EC1A52" />}
+            />
+            <ActionButton
+              title="Park Order"
+              onPress={handleParkOrder}
+              icon={<MaterialCommunityIcons name="pause-circle-outline" size={20} color="#EC1A52" />}
+            />
+          </View>
+        </ScrollView>
+      </View>
+
+      {/* Modals */}
       <SearchProductModal
         visible={showSearchModal}
         onClose={() => setShowSearchModal(false)}
         onSelectProduct={handleAddProductFromSearch}
+      />
+
+      <CashPaymentModal
+        visible={showCashPaymentModal}
+        onClose={() => setShowCashPaymentModal(false)}
+        subTotal={summary.total}
+        onConfirm={(amountPaid) => {
+          Alert.alert("Payment Complete", `Change due: $${(amountPaid - summary.total).toFixed(2)}`);
+          setShowCashPaymentModal(false);
+          clearOrder();
+          router.back();
+        }}
+      />
+
+      <AddDiscountModal
+        visible={showDiscountModal}
+        onClose={() => setShowDiscountModal(false)}
+        subTotal={summary.subTotal}
+        onConfirm={(discount, type) => {
+          Alert.alert("Discount Applied", `Discount: ${type === 'percentage' ? `${discount}%` : `$${discount.toFixed(2)}`}`);
+          setShowDiscountModal(false);
+        }}
+      />
+
+      <AddQuickCustomerModal
+        visible={showCustomerModal}
+        onClose={() => setShowCustomerModal(false)}
+        onSave={(customer) => {
+          Alert.alert("Customer Added", `Customer: ${customer.businessName}`);
+          setShowCustomerModal(false);
+        }}
+      />
+
+      {/* Park Order Modals */}
+      <ParkOrderModal
+        visible={showParkOrderModal}
+        onClose={() => setShowParkOrderModal(false)}
+        onConfirm={handleConfirmParkOrder}
+        customerName={order.customerName}
+        totalItems={products.length}
+        totalAmount={summary.total}
+      />
+
+      <ParkedOrdersModal
+        visible={showParkedOrdersModal}
+        onClose={() => setShowParkedOrdersModal(false)}
+        parkedOrders={parkedOrders}
+        onResumeOrder={handleResumeOrder}
+        onDeleteOrder={handleDeleteParkedOrder}
+      />
+
+      {/* Cash Management Modals */}
+      <DeclareCashModal
+        visible={showDeclareCashModal}
+        onClose={() => setShowDeclareCashModal(false)}
+        onContinue={() => {
+          setShowDeclareCashModal(false);
+          setShowCashEntryModal(true);
+        }}
+        cashSummary={cashSummary}
+      />
+
+      <CashEntryModal
+        visible={showCashEntryModal}
+        onClose={() => setShowCashEntryModal(false)}
+        onConfirm={handleCashEntryConfirm}
+        expectedCash={cashSummary.expectedCash}
+      />
+
+      <CashResultModal
+        visible={showCashResultModal}
+        onClose={() => setShowCashResultModal(false)}
+        onConfirm={handleCashResultConfirm}
+        onReview={() => {
+          setShowCashResultModal(false);
+          setShowCashEntryModal(true);
+        }}
+        isMatched={cashResult.isMatched}
+        expectedAmount={cashSummary.expectedCash}
+        actualAmount={cashResult.actualCash}
+      />
+
+      {/* Tax Modal */}
+      <AddTaxModal
+        visible={showTaxModal}
+        onClose={() => setShowTaxModal(false)}
+        onConfirm={(taxAmount, taxType, taxName) => {
+          Alert.alert("Tax Added", `${taxName}: $${taxAmount.toFixed(2)}`);
+          setShowTaxModal(false);
+        }}
+        subTotal={summary.subTotal}
+      />
+
+      {/* Product Settings Modal */}
+      <ProductSettingsModal
+        visible={showProductSettingsModal}
+        onClose={() => setShowProductSettingsModal(false)}
+        onSave={(settings) => {
+          Alert.alert("Settings Saved", "Product settings have been updated");
+          setShowProductSettingsModal(false);
+        }}
+        product={selectedProduct}
       />
     </View>
   );

@@ -3,16 +3,19 @@ import { useState } from "react";
 import { ActivityIndicator, Text, View, useWindowDimensions } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Sidebar } from "../components";
+import { StaffSidebar } from "../components/StaffSidebar";
 import { ClockInModal } from "../components/ClockInModal";
 import { ClockOutModal } from "../components/ClockOutModal";
 import { AuthProvider, useAuth } from "../contexts/AuthContext";
 import { ClockProvider, useClock } from "../contexts/ClockContext";
+import { ViewModeProvider, useViewMode } from "../contexts/ViewModeContext";
+import { ParkedOrderProvider } from "../contexts/ParkedOrderContext";
 import "../global.css";
 import { PowerSyncProvider } from "../utils/powersync/PowerSyncProvider";
 import LoginScreen from "./login";
 
 /**
- * LayoutContent - Inner layout component that uses clock context
+ * LayoutContent - Inner layout component that uses contexts
  */
 function LayoutContent() {
   const { width, height } = useWindowDimensions();
@@ -21,6 +24,7 @@ function LayoutContent() {
   const router = useRouter();
   const { isAuthenticated, isLoading, user, logout } = useAuth();
   const { isClockedIn, selectedPosLine, clockIn, clockOut, selectPosLine } = useClock();
+  const { isStaffMode } = useViewMode();
 
   const [showClockInModal, setShowClockInModal] = useState(false);
   const [showClockOutModal, setShowClockOutModal] = useState(false);
@@ -28,8 +32,20 @@ function LayoutContent() {
   // Determine layout orientation
   const isLandscape = width > height;
 
-  // Check if we're on the POS line screen (hide default sidebar)
+  // Check if we're on screens that should hide the sidebar entirely
   const isPosLineScreen = pathname === "/pos-line";
+  const isOrderScreen = pathname.startsWith("/order");
+  
+  // Pages using StaffPageLayout have their own sidebar (hide default sidebar in both staff and admin modes)
+  const isStaffPageLayoutScreen = 
+    pathname === "/sale/sales-history" ||
+    pathname === "/sale/customers" ||
+    pathname === "/sale/sales-return" ||
+    pathname === "/sale/parked-orders" ||
+    pathname === "/sale/reports" ||
+    pathname.startsWith("/sale/reports-"); // Sub-report pages
+  
+  const hideSidebar = isPosLineScreen || (isStaffMode && isOrderScreen) || isStaffPageLayoutScreen;
 
   // Show loading screen while checking stored authentication
   if (isLoading) {
@@ -66,23 +82,15 @@ function LayoutContent() {
     );
   }
 
- 
-
   // Handle Clock In button press
   const handleClockInPress = () => {
-    if (selectedPosLine) {
-      setShowClockInModal(true);
-    } else {
-      console.log("Please select a POS Line first");
-    }
+    setShowClockInModal(true);
   };
 
   // Handle Clock In submission
   const handleClockIn = (employeeId: string) => {
-    if (selectedPosLine) {
-      clockIn(employeeId, selectedPosLine);
-      setShowClockInModal(false);
-    }
+    clockIn(employeeId, selectedPosLine || 1);
+    setShowClockInModal(false);
   };
 
   // Handle Clock Out confirmation
@@ -103,19 +111,27 @@ function LayoutContent() {
       }}
     >
       {/* Main layout container */}
-      <View className={`flex-1 ${isLandscape && !isPosLineScreen ? "flex-row" : "flex-col"}`}>
+      <View className={`flex-1 ${isLandscape && !hideSidebar ? "flex-row" : "flex-col"}`}>
         {/* Page content area - renders current route */}
         <View className="flex-1">
           <Slot />
         </View>
 
-        {/* Default Sidebar - only show on home screen */}
-        {!isPosLineScreen && (
-          <Sidebar
-            isLandscape={isLandscape}
-            onClockInPress={handleClockInPress}
-            onClockOutPress={() => setShowClockOutModal(true)}
-          />
+        {/* Sidebar - switches between Admin and Staff mode */}
+        {!hideSidebar && (
+          isStaffMode ? (
+            <StaffSidebar
+              isLandscape={isLandscape}
+              onClockInPress={handleClockInPress}
+              onClockOutPress={() => setShowClockOutModal(true)}
+            />
+          ) : (
+            <Sidebar
+              isLandscape={isLandscape}
+              onClockInPress={handleClockInPress}
+              onClockOutPress={() => setShowClockOutModal(true)}
+            />
+          )
         )}
       </View>
 
@@ -138,14 +154,18 @@ function LayoutContent() {
 
 /**
  * RootLayout - Main app layout with sticky sidebar
- * Wraps app with PowerSyncProvider, AuthProvider and ClockProvider for global state
+ * Wraps app with providers for global state
  */
 export default function RootLayout() {
   return (
     <PowerSyncProvider>
       <AuthProvider>
         <ClockProvider>
-          <LayoutContent />
+          <ViewModeProvider>
+            <ParkedOrderProvider>
+              <LayoutContent />
+            </ParkedOrderProvider>
+          </ViewModeProvider>
         </ClockProvider>
       </AuthProvider>
     </PowerSyncProvider>

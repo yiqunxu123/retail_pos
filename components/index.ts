@@ -5,6 +5,7 @@ export { POSLineCard } from "./POSLineCard";
 export { Header } from "./Header";
 export { PageHeader } from "./PageHeader";
 export { Sidebar, SIDEBAR_WIDTH } from "./Sidebar";
+export { StaffSidebar, STAFF_SIDEBAR_WIDTH } from "./StaffSidebar";
 export { POSSidebar, POS_SIDEBAR_WIDTH } from "./POSSidebar";
 export { ProductSearch } from "./ProductSearch";
 export { ProductTable } from "./ProductTable";
