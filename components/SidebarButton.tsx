@@ -1,7 +1,7 @@
 import { Text, Pressable, View } from "react-native";
 import { ReactNode } from "react";
 
-type ButtonVariant = "default" | "primary" | "danger" | "warning";
+type ButtonVariant = "default" | "active" | "primary" | "danger" | "warning";
 
 interface SidebarButtonProps {
   label: string;
@@ -15,16 +15,18 @@ interface SidebarButtonProps {
 // Maps variant to style classes
 const variantStyles: Record<ButtonVariant, string> = {
   default: "bg-white border border-gray-200",
+  active: "bg-blue-50 border-l-4 border-l-blue-500 border-y border-r border-gray-200",
   primary: "bg-purple-600",
   danger: "bg-red-500",
   warning: "bg-yellow-400",
 };
 
 const textStyles: Record<ButtonVariant, string> = {
-  default: "text-gray-700",
-  primary: "text-white",
-  danger: "text-white",
-  warning: "text-gray-800",
+  default: "text-gray-700 font-medium",
+  active: "text-blue-700 font-semibold",
+  primary: "text-white font-medium",
+  danger: "text-white font-medium",
+  warning: "text-gray-800 font-medium",
 };
 
 /**
@@ -55,7 +57,7 @@ export function SidebarButton({
       <View className="flex-row items-center gap-2">
         {icon}
         <Text
-          className={`${textStyles[variant]} text-sm font-medium text-center`}
+          className={`${textStyles[variant]} text-sm text-center`}
           numberOfLines={2}
           adjustsFontSizeToFit
           minimumFontScale={0.8}

@@ -1,0 +1,91 @@
+# Sync Rules - KHUB Database Tables
+# Using stream mode for real-time sync
+
+streams:
+  # Products stream
+  products:
+    auto_subscribe: true
+    query: "SELECT id, brand_id, name, weight, weight_unit, sku, upc, upc_2, upc_3, mlc, bin, description, is_online, status, unit_of_measurement, slug, sold_count, is_featured, main_category_id, images, created_at, updated_at FROM products"
+
+  # Categories stream
+  categories:
+    auto_subscribe: true
+    query: "SELECT id, name, code, slug, is_featured, image, parent_id, created_at, updated_at FROM categories"
+
+  # Brands stream
+  brands:
+    auto_subscribe: true
+    query: "SELECT id, name, slug, image, created_at, updated_at FROM brands"
+
+  # Stocks stream
+  # NOTE: qty_alert, location fields do not exist in database
+  stocks:
+    auto_subscribe: true
+    query: "SELECT id, channel_id, product_id, qty, status, created_at, updated_at FROM stocks"
+
+  # Tags stream
+  tags:
+    auto_subscribe: true
+    query: "SELECT id, name, slug, created_at, updated_at FROM tags"
+
+  # Channels stream
+  channels:
+    auto_subscribe: true
+    query: "SELECT id, name, description, is_primary, type, created_at, updated_at FROM channels"
+
+  # Unit prices stream
+  # NOTE: actual fields are cost, price, base_cost, etc.
+  unit_prices:
+    auto_subscribe: true
+    query: "SELECT id, product_id, channel_id, cost, price, base_cost, ecom_price, upc, unit, created_at, updated_at FROM unit_prices"
+
+  # Customer groups stream
+  # NOTE: description field does not exist in database
+  customer_groups:
+    auto_subscribe: true
+    query: "SELECT id, name, is_active, tier_id, created_at, updated_at FROM customer_groups"
+
+  # Customer groups - customer relation (for counting customers per group)
+  # NOTE: Table has no id column, using composite key as id
+  customer_groups_customer:
+    auto_subscribe: true
+    query: "SELECT (customer_group_id || '-' || customer_id) as id, customer_group_id, customer_id FROM customer_groups_customer"
+
+  # Customers stream
+  customers:
+    auto_subscribe: true
+    query: "SELECT id, no, name, email, balance, balance_limit, phone_no, business_name, business_city, business_state, business_country, business_zip_code, business_phone_no, address, status, allow_ecom, created_at, updated_at FROM customers"
+
+  # Settings stream
+  settings:
+    auto_subscribe: true
+    query: "SELECT id, type, sub_type, value, created_at, updated_at FROM settings"
+
+  # Tenant Users stream (exclude sensitive fields: password, salt, reset_key, login_pin)
+  tenant_users:
+    auto_subscribe: true
+    query: "SELECT id, first_name, last_name, username, email, phone_no, image, master_admin, status, assign_customer, view_all_customers, created_at, updated_at FROM tenant_users"
+
+  # Sale Orders stream (for dashboard stats)
+  sale_orders:
+    auto_subscribe: true
+    query: "SELECT id, customer_id, no, order_type, sale_type, status, total_price, tax, discount, total_discount, delivery_charges, shipping_type, fulfilment_status, order_date, created_at, updated_at FROM sale_orders"
+
+  # Sale Order Details stream
+  sale_order_details:
+    auto_subscribe: true
+    query: "SELECT id, sale_order_id, product_id, channel_id, unit_price_id, qty, price, discount, total_price, created_at, updated_at FROM sale_order_details"
+
+  # Payments stream (for dashboard stats)
+  payments:
+    auto_subscribe: true
+    query: "SELECT id, customer_id, invoice_id, no, status, payment_type, payment_date, amount, category, memo, created_at, updated_at FROM payments"
+
+  # Suppliers stream (for payable amount)
+  suppliers:
+    auto_subscribe: true
+    query: "SELECT id, name, email, phone_no, balance, status, created_at, updated_at FROM suppliers"
+
+# Required for streams
+config:
+  edition: 2
