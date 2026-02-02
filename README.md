@@ -1,50 +1,213 @@
-# Welcome to your Expo app 👋
+# iTitans POS App
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+A React Native (Expo) POS (Point of Sale) application with offline-first architecture using PowerSync for real-time data synchronization with KHUB backend.
 
-## Get started
+## Features
 
-1. Install dependencies
+### POS System
+- **Multi POS Lines**: Support for multiple concurrent POS terminals
+- **Clock In/Out**: Employee time tracking with PIN authentication
+- **Thermal Printing**: Receipt printing via Ethernet/USB/Bluetooth
+- **Print Queue**: Prevents app freezing with sequential print job processing
+- **Role-Based Access**: Admin, Manager, Cashier, Supervisor roles
 
-   ```bash
-   npm install
-   ```
+### Offline-First Architecture
+- **Offline-First**: Works without internet, syncs when connected
+- **Real-time Sync**: Changes sync instantly across devices via PostgreSQL WAL
+- **Two-way Sync**: Local changes automatically sync to backend
+- **Self-Hosted PowerSync**: Docker-based local deployment
 
-2. Start the app
+## Tech Stack
 
-   ```bash
-   npx expo start
-   ```
+- React Native (Expo) with Expo Router
+- TypeScript
+- NativeWind (Tailwind CSS)
+- PowerSync (self-hosted)
+- KHUB Backend (Flask + PostgreSQL)
 
-In the output, you'll find options to open the app in a
+## Prerequisites
 
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
+- Node.js 18+
+- Docker & Docker Compose
+- Android device/emulator or iOS Simulator
 
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
+## Quick Start
 
-## Get a fresh project
-
-When you're ready, run:
+### 1. Install Dependencies
 
 ```bash
-npm run reset-project
+npm install
 ```
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+### 2. Configure Environment
 
-## Learn more
+```bash
+cp env.example .env.local
+```
 
-To learn more about developing your project with Expo, look at the following resources:
+Edit `.env.local`:
+```bash
+EXPO_PUBLIC_KHUB_API_URL=http://YOUR_IP:5002
+EXPO_PUBLIC_POWERSYNC_URL=http://YOUR_IP:8080
+```
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+### 3. Start PowerSync Service
 
-## Join the community
+```bash
+cd powersync
+cp env.example .env
+# Edit .env with your KHUB database credentials
+docker-compose up -d
+```
 
-Join our community of developers creating universal apps.
+### 4. Run the App
 
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+```bash
+# Development build (required for native modules)
+npx expo run:android
+npx expo run:ios
+
+# Or start dev server
+npx expo start --dev-client
+```
+
+## Project Structure
+
+```
+├── app/                          # Expo Router pages
+│   ├── _layout.tsx               # Root layout with providers
+│   ├── index.tsx                 # Dashboard / Home
+│   ├── login.tsx                 # Login screen
+│   ├── pos-line.tsx              # POS sales interface
+│   ├── test-sync.tsx             # PowerSync test page
+│   ├── catalog/                  # Product catalog screens
+│   ├── inventory/                # Stock management screens
+│   ├── sale/                     # Sales related screens
+│   └── order/                    # Order flow screens
+├── components/                   # Reusable UI components
+├── contexts/                     # React Context providers
+│   ├── AuthContext.tsx           # Authentication state
+│   ├── ClockContext.tsx          # Clock in/out state
+│   └── OrderContext.tsx          # Order state management
+├── utils/
+│   ├── api/                      # KHUB API utilities
+│   ├── PrintQueue.ts             # Print queue management
+│   └── powersync/                # PowerSync integration
+│       ├── PowerSyncProvider.tsx
+│       ├── KhubConnector.ts
+│       ├── useSyncStream.ts
+│       └── schema.ts
+└── powersync/                    # Self-hosted PowerSync config
+    ├── docker-compose.yaml
+    ├── config.yaml
+    ├── sync_rules.yaml
+    └── .env
+```
+
+## PowerSync Configuration
+
+### Environment Variables (powersync/.env)
+
+```bash
+# KHUB PostgreSQL Database
+PS_KHUB_DB_HOST=host.docker.internal  # or your host IP
+PS_KHUB_DB_PORT=5434
+PS_KHUB_DB_NAME=your_database_name
+PS_KHUB_DB_USER=your_username
+PS_KHUB_DB_PASSWORD=your_password
+
+# JWT Secret (base64 encoded, must match KHUB's JWT_SECRET_KEY)
+# Generate: echo -n "YOUR_JWT_SECRET" | base64
+PS_JWT_SECRET_BASE64=your_base64_encoded_jwt_secret
+```
+
+### Sync Rules (powersync/sync_rules.yaml)
+
+Defines which tables to sync:
+```yaml
+streams:
+  products:
+    auto_subscribe: true
+    query: "SELECT id, name, sku, ... FROM products"
+  
+  customers:
+    auto_subscribe: true
+    query: "SELECT id, name, email, ... FROM customers"
+  
+  tenant_users:
+    auto_subscribe: true
+    query: "SELECT id, first_name, last_name, ... FROM tenant_users"
+
+config:
+  edition: 2
+```
+
+## Useful Commands
+
+```bash
+# Start PowerSync
+cd powersync && docker-compose up -d
+
+# View PowerSync logs
+cd powersync && docker-compose logs -f powersync
+
+# Run app on Android
+npx expo run:android
+
+# Build APK
+cd android && ./gradlew assembleRelease
+```
+
+## Troubleshooting
+
+### PowerSync JWT errors
+- Ensure KHUB backend has JWT audience configured for PowerSync
+- Re-login in app to get new token after config changes
+
+### PowerSync can't connect to PostgreSQL
+- Check `PS_KHUB_DB_HOST` - use `host.docker.internal` on Mac/Windows
+- Ensure PostgreSQL has logical replication enabled
+- Check firewall allows the database port
+
+### Sync not working
+- Check PowerSync logs: `docker-compose logs -f powersync`
+- Verify tables are in `sync_rules.yaml`
+- Ensure schema matches between PowerSync and app
+
+### Data not persisting after restart
+- Use `docker-compose down` (NOT `docker-compose down -v`)
+- `-v` flag deletes volumes including database data
+
+## Architecture
+
+```
+┌─────────────────────────────────────────────────────┐
+│                 React Native App                     │
+│   ┌─────────────┐    ┌─────────────────────────┐   │
+│   │ PowerSync   │    │ KHUB API Client         │   │
+│   │ (SQLite)    │    │ (REST calls)            │   │
+│   └──────┬──────┘    └───────────┬─────────────┘   │
+└──────────┼───────────────────────┼─────────────────┘
+           │ WebSocket             │ HTTP
+           ▼                       ▼
+┌──────────────────┐    ┌─────────────────────────┐
+│ PowerSync Server │    │ KHUB Backend (Flask)    │
+│ (Docker)         │    │                         │
+└────────┬─────────┘    └───────────┬─────────────┘
+         │ WAL Stream               │
+         ▼                          ▼
+┌─────────────────────────────────────────────────────┐
+│              PostgreSQL Database                     │
+│         (Logical Replication enabled)               │
+└─────────────────────────────────────────────────────┘
+```
+
+## Learn More
+
+- [Expo documentation](https://docs.expo.dev/)
+- [PowerSync documentation](https://docs.powersync.com/)
+- [NativeWind documentation](https://www.nativewind.dev/)
+
+## License
+
+MIT

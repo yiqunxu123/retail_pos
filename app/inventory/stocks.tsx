@@ -1,133 +1,290 @@
+/**
+ * Stocks Screen
+ * 
+ * Displays inventory stock levels with real-time sync from PowerSync.
+ * Data source: stocks + products + unit_prices (joined)
+ */
+
 import { Ionicons } from "@expo/vector-icons";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import {
+  ActivityIndicator,
   FlatList,
   Pressable,
-  ScrollView,
+  RefreshControl,
   Text,
   TextInput,
   View,
 } from "react-native";
+import { FilterDropdown, PageHeader } from "../../components";
+import { StockView, useStocks } from "../../utils/powersync/hooks";
 
-interface Stock {
-  id: string;
-  netCostPrice: number;
-  onHold: number;
-  salePrice: number;
-  sku: string;
-  upc: string;
-  availableQty: number;
-}
+// ============================================================================
+// Constants
+// ============================================================================
 
-const SAMPLE_STOCKS: Stock[] = [
-  { id: "1", netCostPrice: 45.00, onHold: 0, salePrice: 74.99, sku: "QB-3", upc: "097868128762", availableQty: 0 },
-  { id: "2", netCostPrice: 31.80, onHold: 0, salePrice: 39.80, sku: "QB-7", upc: "855765001362", availableQty: 0 },
-  { id: "3", netCostPrice: 40.00, onHold: 0, salePrice: 79.99, sku: "QB-2", upc: "097868125563", availableQty: 40 },
-  { id: "4", netCostPrice: 13.99, onHold: 1, salePrice: 23.00, sku: "QB-5", upc: "00076171939937", availableQty: 0 },
-  { id: "5", netCostPrice: 13.50, onHold: 1, salePrice: 25.00, sku: "QB-4", upc: "097868124467", availableQty: 99 },
-  { id: "6", netCostPrice: 13.99, onHold: 0, salePrice: 23.00, sku: "QB-6", upc: "00076171934635", availableQty: 12 },
+const STOCK_OPTIONS = [
+  { label: "All", value: "all" },
+  { label: "In Stock", value: "in_stock" },
+  { label: "Out of Stock", value: "out_of_stock" },
+  // Low Stock filter unavailable - DB does not have qty_alert field
 ];
 
-export default function StocksScreen() {
-  const [searchQuery, setSearchQuery] = useState("");
-  const [stocks] = useState<Stock[]>(SAMPLE_STOCKS);
+// ============================================================================
+// Reusable Components
+// ============================================================================
 
-  const filteredStocks = stocks.filter(
-    (s) =>
-      s.sku.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      s.upc.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+function TableCheckbox() {
+  return <View className="w-5 h-5 border border-gray-300 rounded" />;
+}
 
-  const renderStock = ({ item }: { item: Stock }) => (
-    <Pressable className="flex-row items-center py-3 px-4 border-b border-gray-100 bg-white">
-      <View className="w-6 mr-3">
-        <View className="w-5 h-5 border border-gray-300 rounded" />
-      </View>
-      <Text className="w-24 text-gray-800 text-center">${item.netCostPrice.toFixed(2)}</Text>
-      <Text className={`w-16 text-center ${item.onHold > 0 ? "text-blue-600" : "text-blue-600"}`}>
-        {item.onHold}
-      </Text>
-      <Text className="w-20 text-gray-800 text-center">${item.salePrice.toFixed(2)}</Text>
-      <View className="w-32">
-        <Text className="text-gray-800">{item.sku} /</Text>
-        <Text className="text-gray-600 text-sm">{item.upc}</Text>
-      </View>
-      <Text className={`flex-1 text-center font-medium ${item.availableQty > 0 ? "text-blue-600" : "text-blue-600"}`}>
-        {item.availableQty}
-      </Text>
+function ActionButton({
+  icon,
+  iconColor,
+  bgColor,
+  onPress,
+}: {
+  icon: keyof typeof Ionicons.glyphMap;
+  iconColor: string;
+  bgColor: string;
+  onPress?: () => void;
+}) {
+  return (
+    <Pressable className={`${bgColor} p-2 rounded-lg`} onPress={onPress}>
+      <Ionicons name={icon} size={14} color={iconColor} />
     </Pressable>
   );
+}
+
+// ============================================================================
+// Helpers
+// ============================================================================
+
+const formatCurrency = (value: number) =>
+  value > 0 ? `$${value.toFixed(2)}` : "-";
+
+// ============================================================================
+// Main Component
+// ============================================================================
+
+export default function StocksScreen() {
+  // Data from PowerSync
+  const { stocks, isLoading, isStreaming, refresh, count } = useStocks();
+  const [refreshing, setRefreshing] = useState(false);
+
+  // Search & Filter State
+  const [searchQuery, setSearchQuery] = useState("");
+  const [stockFilter, setStockFilter] = useState<string | null>(null);
+
+  // Pull to refresh
+  const onRefresh = async () => {
+    setRefreshing(true);
+    await refresh();
+    setRefreshing(false);
+  };
+
+  // Action handlers
+  const handleEdit = (id: string) => console.log("Edit", id);
+  const handleView = (id: string) => console.log("View", id);
+  const handleDelete = (id: string) => console.log("Delete", id);
+
+  // Apply filters
+  const filteredStocks = useMemo(() => {
+    let result = [...stocks];
+
+    // Search filter
+    if (searchQuery) {
+      const query = searchQuery.toLowerCase();
+      result = result.filter(
+        (s) =>
+          s.productName.toLowerCase().includes(query) ||
+          s.sku.toLowerCase().includes(query) ||
+          s.upc.toLowerCase().includes(query)
+      );
+    }
+
+    // Stock level filter
+    if (stockFilter && stockFilter !== "all") {
+      switch (stockFilter) {
+        case "in_stock":
+          result = result.filter((s) => s.availableQty > 0);
+          break;
+        case "out_of_stock":
+          result = result.filter((s) => s.availableQty === 0);
+          break;
+        // low_stock: DB does not have qty_alert field, cannot filter
+      }
+    }
+
+    return result;
+  }, [stocks, searchQuery, stockFilter]);
+
+  // Build active filters display
+  const activeFilters = [
+    stockFilter && stockFilter !== "all" ? `Stock: ${stockFilter.replace("_", " ")}` : null,
+  ].filter(Boolean) as string[];
+
+  const renderStockRow = ({ item }: { item: StockView }) => {
+    const isInStock = item.availableQty > 0;
+
+    return (
+      <View className="flex-row items-center py-3 px-5 border-b border-gray-100 bg-white">
+        <View className="w-8 mr-4">
+          <TableCheckbox />
+        </View>
+        <View className="flex-1 pr-2">
+          <Text className="text-gray-800 font-medium" numberOfLines={2}>
+            {item.productName || "-"}
+          </Text>
+          {item.bin && <Text className="text-gray-500 text-xs">Bin: {item.bin}</Text>}
+        </View>
+        <View className="w-28">
+          <Text className="text-gray-800 text-sm">{item.sku || "-"}</Text>
+          <Text className="text-gray-500 text-xs">{item.upc || "-"}</Text>
+        </View>
+        <View className="w-20 items-center">
+          <Text className="text-gray-700">{formatCurrency(item.costPrice)}</Text>
+        </View>
+        <View className="w-20 items-center">
+          <Text className="text-green-600 font-medium">{formatCurrency(item.salePrice)}</Text>
+        </View>
+        <Text
+          className={`w-16 text-center font-medium ${
+            !isInStock ? "text-red-500" : "text-green-600"
+          }`}
+        >
+          {item.availableQty}
+        </Text>
+        <View className="w-16 items-center">
+          {/* minQty: DB does not have qty_alert field */}
+          <Text className="text-gray-400">-</Text>
+        </View>
+        <View className="w-24 flex-row items-center justify-center gap-1">
+          <ActionButton
+            icon="pencil"
+            iconColor="#3b82f6"
+            bgColor="bg-blue-100"
+            onPress={() => handleEdit(item.id)}
+          />
+          <ActionButton
+            icon="eye"
+            iconColor="#22c55e"
+            bgColor="bg-green-100"
+            onPress={() => handleView(item.id)}
+          />
+          <ActionButton
+            icon="trash"
+            iconColor="#ef4444"
+            bgColor="bg-red-100"
+            onPress={() => handleDelete(item.id)}
+          />
+        </View>
+      </View>
+    );
+  };
+
+  // Loading state
+  if (isLoading && stocks.length === 0) {
+    return (
+      <View className="flex-1 bg-gray-50">
+        <PageHeader title="Stocks" />
+        <View className="flex-1 justify-center items-center">
+          <ActivityIndicator size="large" color="#3B82F6" />
+          <Text className="mt-4 text-gray-600">Loading stocks...</Text>
+        </View>
+      </View>
+    );
+  }
 
   return (
     <View className="flex-1 bg-gray-50">
-      {/* Header */}
-      <View className="bg-white px-4 py-4 border-b border-gray-200">
-        <Text className="text-2xl font-bold text-gray-800">Stocks</Text>
-      </View>
+      <PageHeader title="Stocks" />
 
-      {/* Search & Filters */}
-      <View className="bg-white px-4 py-3 border-b border-gray-200">
-        <View className="flex-row gap-3 mb-3">
-          <View className="flex-1">
-            <Text className="text-gray-500 text-sm mb-1">Search by Product Name, SKU/UPC</Text>
-            <TextInput
-              className="bg-gray-50 border border-gray-200 rounded-lg px-4 py-2"
-              placeholder="Search"
-              placeholderTextColor="#9ca3af"
-              value={searchQuery}
-              onChangeText={setSearchQuery}
-            />
-          </View>
-          <View className="w-32">
-            <Text className="text-gray-500 text-sm mb-1">Search by Product Status</Text>
-            <View className="bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 flex-row items-center justify-between">
-              <Text className="text-gray-800">Active</Text>
-              <Ionicons name="close" size={16} color="#9ca3af" />
-            </View>
-          </View>
-        </View>
-        <View className="flex-row gap-3 items-center">
-          <Pressable className="bg-yellow-500 px-4 py-2 rounded-lg flex-row items-center gap-2">
-            <Ionicons name="filter" size={16} color="white" />
-            <Text className="text-white font-medium">Advance Filters</Text>
-          </Pressable>
-          <Pressable className="bg-red-500 px-4 py-2 rounded-lg">
-            <Text className="text-white font-medium">Bulk Edit Stock</Text>
+      {/* Toolbar */}
+      <View className="bg-white px-5 py-4 border-b border-gray-200">
+        {/* Action Buttons */}
+        <View className="flex-row items-center gap-3 mb-4">
+          <Pressable className="bg-red-500 px-4 py-2 rounded-lg flex-row items-center gap-2">
+            <Text className="text-white font-medium">Bulk Actions</Text>
+            <Ionicons name="chevron-down" size={16} color="white" />
           </Pressable>
           <Pressable className="bg-gray-100 px-4 py-2 rounded-lg flex-row items-center gap-2">
             <Ionicons name="grid" size={16} color="#374151" />
             <Text className="text-gray-700">Columns</Text>
           </Pressable>
+          {isStreaming && (
+            <View className="flex-row items-center gap-1 ml-2">
+              <Text className="text-green-600 text-xs">● Live</Text>
+            </View>
+          )}
         </View>
-        <View className="mt-2">
-          <Text className="text-gray-500 text-sm">Filters Applied: <Text className="text-blue-600">Channel:</Text> Primary</Text>
+
+        {/* Search & Filters */}
+        <Text className="text-gray-500 text-sm mb-2">
+          Search by Product Name, SKU/UPC
+        </Text>
+        <View className="flex-row gap-4">
+          <View className="flex-1">
+            <TextInput
+              className="bg-gray-50 border border-gray-200 rounded-lg px-4 py-2.5"
+              placeholder="Search stocks..."
+              placeholderTextColor="#9ca3af"
+              value={searchQuery}
+              onChangeText={setSearchQuery}
+            />
+          </View>
+          <FilterDropdown
+            label=""
+            value={stockFilter}
+            options={STOCK_OPTIONS}
+            onChange={setStockFilter}
+            placeholder="Stock Level"
+            width={150}
+          />
+        </View>
+
+        {/* Results count & active filters */}
+        <View className="flex-row items-center mt-2">
+          <Text className="text-gray-400 text-sm">
+            {activeFilters.length > 0 ? `Filters: ${activeFilters.join(" | ")}` : "No filters"} 
+            <Text className="text-gray-400"> ({filteredStocks.length} of {count} items)</Text>
+          </Text>
         </View>
       </View>
 
-      {/* Table */}
-      <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-        <View style={{ minWidth: 550 }}>
-          {/* Table Header */}
-          <View className="flex-row bg-gray-50 py-3 px-4 border-b border-gray-200">
-            <View className="w-6 mr-3">
-              <View className="w-5 h-5 border border-gray-300 rounded" />
-            </View>
-            <Text className="w-24 text-gray-500 text-xs font-semibold uppercase text-center">Net Cost Prices</Text>
-            <Text className="w-16 text-gray-500 text-xs font-semibold uppercase text-center">On Hold</Text>
-            <Text className="w-20 text-gray-500 text-xs font-semibold uppercase text-center">Sale Price</Text>
-            <Text className="w-32 text-gray-500 text-xs font-semibold uppercase">SKU/UPC</Text>
-            <Text className="flex-1 text-gray-500 text-xs font-semibold uppercase text-center">Available Qty</Text>
+      {/* Data Table */}
+      <View className="flex-1">
+        {/* Table Header */}
+        <View className="flex-row bg-gray-50 py-3 px-5 border-b border-gray-200">
+          <View className="w-8 mr-4">
+            <TableCheckbox />
           </View>
-
-          {/* List */}
-          <FlatList
-            data={filteredStocks}
-            keyExtractor={(item) => item.id}
-            renderItem={renderStock}
-            showsVerticalScrollIndicator={false}
-          />
+          <Text className="flex-1 text-gray-500 text-xs font-semibold uppercase">Product Name</Text>
+          <Text className="w-28 text-gray-500 text-xs font-semibold uppercase">SKU/UPC</Text>
+          <Text className="w-20 text-gray-500 text-xs font-semibold uppercase text-center">Cost</Text>
+          <Text className="w-20 text-gray-500 text-xs font-semibold uppercase text-center">Price</Text>
+          <Text className="w-16 text-gray-500 text-xs font-semibold uppercase text-center">Qty</Text>
+          <Text className="w-16 text-gray-500 text-xs font-semibold uppercase text-center">Alert</Text>
+          <Text className="w-24 text-gray-500 text-xs font-semibold uppercase text-center">Actions</Text>
         </View>
-      </ScrollView>
+
+        {/* Table Body */}
+        <FlatList
+          data={filteredStocks}
+          keyExtractor={(item) => item.id}
+          renderItem={renderStockRow}
+          showsVerticalScrollIndicator={false}
+          refreshControl={
+            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+          }
+          ListEmptyComponent={
+            <View className="py-16 items-center">
+              <Ionicons name="cube-outline" size={48} color="#d1d5db" />
+              <Text className="text-gray-400 mt-2">No stock items found</Text>
+            </View>
+          }
+        />
+      </View>
     </View>
   );
 }

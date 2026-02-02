@@ -49,11 +49,11 @@ export default function AddCustomerScreen() {
 
   return (
     <View className="flex-1">
-      <ScrollView className="flex-1" contentContainerClassName="p-4">
+      <ScrollView className="flex-1" contentContainerClassName="p-5">
         <View className="bg-white rounded-lg border border-red-200 overflow-hidden">
           <View className="flex-row">
             {/* Left Column - Customer Search & Form */}
-            <View className="flex-1 p-4 border-r border-gray-100">
+            <View className="flex-1 p-5 border-r border-gray-100">
               {/* Search by Name */}
               <View className="flex-row items-center bg-gray-50 border border-gray-200 rounded-lg px-3 py-3 mb-3">
                 <Ionicons name="person-outline" size={20} color="#9ca3af" />
@@ -184,7 +184,7 @@ export default function AddCustomerScreen() {
             </View>
 
             {/* Right Column - Selected Customer */}
-            <View className="w-72 p-4 bg-gray-50">
+            <View className="w-72 p-5 bg-gray-50">
               <Text className="text-gray-500 text-sm text-center mb-1">Current Status:</Text>
               <Text className="text-gray-800 text-xl font-bold text-center mb-4">
                 {order.customerName}

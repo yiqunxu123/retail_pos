@@ -1,29 +1,117 @@
-import { FontAwesome5, Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
+import { FontAwesome5, Ionicons, MaterialCommunityIcons, MaterialIcons } from "@expo/vector-icons";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useRouter } from "expo-router";
-import { useEffect } from "react";
-import { Alert, Platform, ScrollView, Text, TouchableOpacity, useWindowDimensions, View } from "react-native";
+import { useEffect, useState } from "react";
+import { Alert, ScrollView, Text, TouchableOpacity, useWindowDimensions, View } from "react-native";
 import {
   Header,
-  POSLineCard,
   SIDEBAR_WIDTH,
-  StatCard,
+  StatCard
 } from "../components";
+import { CashEntryModal } from "../components/CashEntryModal";
+import { CashResultModal } from "../components/CashResultModal";
+import { DeclareCashModal } from "../components/DeclareCashModal";
+import { ParkedOrdersModal } from "../components/ParkedOrdersModal";
+import { STAFF_SIDEBAR_WIDTH } from "../components/StaffSidebar";
 import { useAuth } from "../contexts/AuthContext";
 import { useClock } from "../contexts/ClockContext";
-import { addPrintJob, isPrinterAvailable, printQueue, setPrinterConfig } from "../utils/PrintQueue";
+import { useParkedOrders } from "../contexts/ParkedOrderContext";
+import { useViewMode } from "../contexts/ViewModeContext";
+import { addPrintJob, isPrinterAvailable, openCashDrawer, printQueue, setPrinterConfig } from "../utils/PrintQueue";
+import { useDashboardStats } from "../utils/powersync/hooks";
 
-// Printer configuration for test
-const PRINTER_IP = "192.168.1.100";
-const PRINTER_PORT = 9100;
+// Default printer configuration
+const DEFAULT_PRINTER_IP = "192.168.1.100";
+const DEFAULT_PRINTER_PORT = 9100;
+
+// Format currency
+const formatCurrency = (value: number): string => {
+  if (value >= 1000000) {
+    return `$${(value / 1000000).toFixed(2)}M`;
+  } else if (value >= 1000) {
+    return `$${(value / 1000).toFixed(2)}K`;
+  }
+  return `$${value.toFixed(2)}`;
+};
 
 export default function Dashboard() {
   const { width, height } = useWindowDimensions();
   const router = useRouter();
   const { user, isAdmin } = useAuth();
-  const { isClockedIn, selectedPosLine, selectPosLine, clockIn } = useClock();
+  const { isClockedIn, selectedPosLine, selectPosLine, clockIn, getClockInTimeString, getElapsedTime } = useClock();
+  const { stats } = useDashboardStats();
+  const { viewMode, setViewMode, isStaffMode } = useViewMode();
+  
+  // Printer config state (loaded from AsyncStorage)
+  const [printerIp, setPrinterIp] = useState(DEFAULT_PRINTER_IP);
+  const [printerPort, setPrinterPort] = useState(DEFAULT_PRINTER_PORT);
+  const [clockDuration, setClockDuration] = useState("00:00:00");
+  
+  // Parked orders
+  const { parkedOrders, resumeOrder, deleteParkedOrder } = useParkedOrders();
+  const [showParkedOrdersModal, setShowParkedOrdersModal] = useState(false);
+  
+  // Cash Management modals
+  const [showDeclareCashModal, setShowDeclareCashModal] = useState(false);
+  const [showCashEntryModal, setShowCashEntryModal] = useState(false);
+  const [showCashResultModal, setShowCashResultModal] = useState(false);
+  const [cashResult, setCashResult] = useState({ isMatched: true, actualCash: 0 });
+  
+  // Mock cash summary
+  const cashSummary = {
+    openingBalance: 200.00,
+    totalSales: 1250.50,
+    totalRefunds: 45.00,
+    expectedCash: 200.00 + 1250.50 - 45.00,
+  };
   
   // Check if user is admin
   const showAdminStats = isAdmin();
+  
+  // Determine layout orientation
+  const isLandscape = width > height;
+  
+  // Calculate available content width
+  const sidebarWidth = isStaffMode ? STAFF_SIDEBAR_WIDTH : SIDEBAR_WIDTH;
+  const contentWidth = isLandscape ? width - sidebarWidth : width;
+
+  // Update clock duration
+  useEffect(() => {
+    if (!isClockedIn) {
+      setClockDuration("00:00:00");
+      return;
+    }
+    const interval = setInterval(() => {
+      setClockDuration(getElapsedTime());
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [isClockedIn, getElapsedTime]);
+  
+  // Load saved printer settings on mount
+  useEffect(() => {
+    const loadSettings = async () => {
+      try {
+        const savedIp = await AsyncStorage.getItem("printer_ip");
+        const savedPort = await AsyncStorage.getItem("printer_port");
+        if (savedIp) setPrinterIp(savedIp);
+        if (savedPort) setPrinterPort(parseInt(savedPort, 10) || DEFAULT_PRINTER_PORT);
+      } catch (e) {
+        console.log("Failed to load printer settings");
+      }
+    };
+    loadSettings();
+  }, []);
+
+  // Initialize printer config
+  useEffect(() => {
+    setPrinterConfig({ ip: printerIp, port: printerPort });
+    const unsubscribe = printQueue.addListener((status, job) => {
+      if (status === 'failed') {
+        Alert.alert("Print Error", "Failed to print receipt.");
+      }
+    });
+    return () => unsubscribe();
+  }, [printerIp, printerPort]);
 
   // Test receipt content
   const buildTestReceipt = (): string => {
@@ -50,28 +138,13 @@ Cookies               x3    $6.00
 `;
   };
 
-  // Initialize printer config and listen to queue (only alert on failure)
-  useEffect(() => {
-    setPrinterConfig({ ip: PRINTER_IP, port: PRINTER_PORT });
-    
-    const unsubscribe = printQueue.addListener((status, job) => {
-      if (status === 'failed') {
-        Alert.alert("Print Error", "Failed to print receipt.");
-      }
-    });
-
-    return () => unsubscribe();
-  }, []);
-
-  // Test print function - directly print via Ethernet
+  // Test print function
   const handleTestPrint = () => {
-    // First, clock in programmatically if not already
     if (!isClockedIn) {
       clockIn("TEST-001", 1);
       Alert.alert("Clock In", "Clocked in as TEST-001 on POS Line 1");
     }
 
-    // Check if Ethernet printer is available
     if (!isPrinterAvailable('ethernet')) {
       Alert.alert(
         "Printer Not Available",
@@ -84,159 +157,456 @@ Cookies               x3    $6.00
     try {
       const receipt = buildTestReceipt();
       addPrintJob('ethernet', receipt);
-      // No alert on success - only alert on error
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
       Alert.alert("Print Error", msg);
     }
   };
 
+  // =========================================================================
+  // Staff Home Content
+  // =========================================================================
+  if (isStaffMode) {
+    return (
+      <View className="flex-1 bg-gray-100">
+        <ScrollView 
+          className="flex-1"
+          contentContainerStyle={{ padding: 16 }}
+          showsVerticalScrollIndicator={false}
+        >
+          {/* Header Bar */}
+          <View 
+            className="rounded-xl p-5 mb-4 flex-row justify-between items-center"
+            style={{
+              backgroundColor: "#EC1A52",
+              shadowColor: "#989898",
+              shadowOffset: { width: 4, height: 4 },
+              shadowOpacity: 0.25,
+              shadowRadius: 4,
+              elevation: 4,
+            }}
+          >
+            <View className="flex-1">
+              <Text 
+                className="text-white font-semibold"
+                style={{ fontSize: 28, letterSpacing: -0.5 }}
+              >
+                Welcome to KHUB POS System
+              </Text>
+              <Text 
+                className="text-white font-medium mt-1"
+                style={{ fontSize: 16 }}
+              >
+                Access sales, reporting, and system actions quickly and securely.
+              </Text>
+            </View>
+            
+            {/* Role Badge */}
+            <View 
+              className="bg-white rounded-xl px-4 py-2 ml-4"
+              style={{ borderWidth: 1, borderColor: "#1A1A1A" }}
+            >
+              <Text 
+                className="font-semibold"
+                style={{ fontSize: 16, color: "#1A1A1A" }}
+              >
+                {user?.role?.toUpperCase() || "CASHIER"}
+              </Text>
+            </View>
+          </View>
 
-  // Determine layout orientation
-  const isLandscape = width > height;
+          {/* Primary Action Buttons */}
+          <View className="flex-row gap-4 mb-4">
+            <TouchableOpacity
+              onPress={() => router.push("/order/add-products")}
+              disabled={!isClockedIn}
+              className="flex-1 rounded-xl justify-center items-center"
+              style={{
+                backgroundColor: isClockedIn ? "#EC1A52" : "#848484",
+                minHeight: 160,
+                shadowColor: "#989898",
+                shadowOffset: { width: 4, height: 4 },
+                shadowOpacity: 0.25,
+                shadowRadius: 4,
+                elevation: 4,
+                opacity: isClockedIn ? 1 : 0.7,
+              }}
+            >
+              <Text 
+                className="text-white font-medium text-center"
+                style={{ fontSize: 26, letterSpacing: -0.5 }}
+              >
+                Start Sale
+              </Text>
+            </TouchableOpacity>
 
-  // Calculate available content width (excluding sidebar in landscape)
-  const contentWidth = isLandscape ? width - SIDEBAR_WIDTH : width;
+            <TouchableOpacity
+              onPress={() => setShowParkedOrdersModal(true)}
+              disabled={!isClockedIn}
+              className="flex-1 rounded-xl justify-center items-center"
+              style={{
+                backgroundColor: isClockedIn ? "#5F4BB6" : "#848484",
+                minHeight: 160,
+                shadowColor: "#989898",
+                shadowOffset: { width: 4, height: 4 },
+                shadowOpacity: 0.25,
+                shadowRadius: 4,
+                elevation: 4,
+                opacity: isClockedIn ? 1 : 0.7,
+              }}
+            >
+              <Text 
+                className="text-white font-medium text-center"
+                style={{ fontSize: 26, letterSpacing: -0.5 }}
+              >
+                Resume Last Order
+              </Text>
+              {parkedOrders.length > 0 && (
+                <View 
+                  className="absolute top-3 right-3 bg-white rounded-full px-2 py-1"
+                  style={{ minWidth: 24 }}
+                >
+                  <Text className="text-purple-600 font-bold text-center">{parkedOrders.length}</Text>
+                </View>
+              )}
+            </TouchableOpacity>
+          </View>
 
-  // Handle POS Line selection
-  const handlePosLinePress = (lineNumber: number) => {
-    if (isClockedIn) {
-      // Already clocked in - navigate to POS line screen
-      if (selectedPosLine === lineNumber) {
-        router.push("/pos-line");
-      } else {
-        Alert.alert(
-          "Different POS Line",
-          "You are assigned to POS Line " + selectedPosLine + ". Clock out first to switch."
-        );
-      }
-      return;
-    }
+          {/* Secondary Action Buttons */}
+          <View className="flex-row gap-4 mb-4">
+            <TouchableOpacity
+              onPress={async () => {
+                // Check if ethernet printer is available
+                if (!isPrinterAvailable('ethernet')) {
+                  Alert.alert(
+                    "Printer Not Available",
+                    "Cash drawer requires a connected ethernet printer.\n\nMake sure you're running a development build with printer support.",
+                    [{ text: "OK" }]
+                  );
+                  return;
+                }
 
-    // Toggle selection
-    if (selectedPosLine === lineNumber) {
-      selectPosLine(null);
-    } else {
-      selectPosLine(lineNumber);
-    }
-  };
+                // Directly open drawer via ethernet
+                try {
+                  await openCashDrawer('ethernet');
+                  Alert.alert("Success", "Cash drawer opened");
+                } catch (error: any) {
+                  Alert.alert("Error", error.message || "Failed to open cash drawer");
+                }
+              }}
+              disabled={!isClockedIn}
+              className="flex-1 rounded-xl justify-center items-center gap-2 py-6"
+              style={{
+                backgroundColor: isClockedIn ? "#FFFFFF" : "#F2F2F2",
+                borderWidth: 2,
+                borderColor: isClockedIn ? "#EC1A52" : "#848484",
+                opacity: isClockedIn ? 1 : 0.6,
+              }}
+            >
+              <MaterialCommunityIcons 
+                name="package-variant-closed" 
+                size={48} 
+                color={isClockedIn ? "#EC1A52" : "#848484"} 
+              />
+              <Text style={{ fontSize: 20, color: isClockedIn ? "#EC1A52" : "#848484", fontWeight: "500" }}>
+                Open Drawer
+              </Text>
+            </TouchableOpacity>
 
+            <TouchableOpacity
+              onPress={() => setShowDeclareCashModal(true)}
+              disabled={!isClockedIn}
+              className="flex-1 rounded-xl justify-center items-center gap-2 py-6"
+              style={{
+                backgroundColor: isClockedIn ? "#FFFFFF" : "#F2F2F2",
+                borderWidth: 2,
+                borderColor: isClockedIn ? "#EC1A52" : "#848484",
+                opacity: isClockedIn ? 1 : 0.6,
+              }}
+            >
+              <MaterialCommunityIcons 
+                name="cash-multiple" 
+                size={48} 
+                color={isClockedIn ? "#EC1A52" : "#848484"} 
+              />
+              <Text style={{ fontSize: 20, color: isClockedIn ? "#EC1A52" : "#848484", fontWeight: "500" }}>
+                Declare Cash
+              </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              onPress={() => router.push("/sale/payments-history")}
+              disabled={!isClockedIn}
+              className="flex-1 rounded-xl justify-center items-center gap-2 py-6"
+              style={{
+                backgroundColor: isClockedIn ? "#FFFFFF" : "#F2F2F2",
+                borderWidth: 2,
+                borderColor: isClockedIn ? "#EC1A52" : "#848484",
+                opacity: isClockedIn ? 1 : 0.6,
+              }}
+            >
+              <MaterialIcons 
+                name="payment" 
+                size={48} 
+                color={isClockedIn ? "#EC1A52" : "#848484"} 
+              />
+              <Text style={{ fontSize: 20, color: isClockedIn ? "#EC1A52" : "#848484", fontWeight: "500" }}>
+                Payments History
+              </Text>
+            </TouchableOpacity>
+          </View>
+
+          {/* Clock Status (when not clocked in) */}
+          {!isClockedIn && (
+            <View className="bg-amber-50 border border-amber-200 rounded-xl p-4">
+              <Text className="text-amber-700 font-medium text-center" style={{ fontSize: 16 }}>
+                Please clock in using the Time Clock button on the right to start your shift.
+              </Text>
+            </View>
+          )}
+        </ScrollView>
+
+        {/* Bottom Stats Bar - Only show when clocked in */}
+        {isClockedIn && (
+          <View 
+            className="flex-row px-4 py-3 gap-4"
+            style={{ backgroundColor: "#1A1A1A" }}
+          >
+            <View className="flex-1 rounded-lg py-3 px-3 border-2 border-white items-center">
+              <Text className="text-white font-semibold" style={{ fontSize: 14 }}>User Sales :</Text>
+              <Text className="text-white font-bold" style={{ fontSize: 22 }}>$0.00</Text>
+            </View>
+            <View className="flex-1 rounded-lg py-3 px-3 border-2 border-white items-center">
+              <Text className="text-white font-semibold" style={{ fontSize: 14 }}>Parked Orders :</Text>
+              <Text className="text-white font-bold" style={{ fontSize: 22 }}>{parkedOrders.length}</Text>
+            </View>
+            <View className="flex-1 rounded-lg py-3 px-3 border-2 border-white items-center">
+              <Text className="text-white font-semibold" style={{ fontSize: 14 }}>Clock In Time :</Text>
+              <Text className="text-white font-bold" style={{ fontSize: 22 }}>{getClockInTimeString()}</Text>
+            </View>
+            <View className="flex-1 rounded-lg py-3 px-3 border-2 border-white items-center">
+              <Text className="text-white font-semibold" style={{ fontSize: 14 }}>Clock In Duration :</Text>
+              <Text className="text-white font-bold" style={{ fontSize: 22 }}>{clockDuration}</Text>
+            </View>
+          </View>
+        )}
+
+        {/* Parked Orders Modal */}
+        <ParkedOrdersModal
+          visible={showParkedOrdersModal}
+          onClose={() => setShowParkedOrdersModal(false)}
+          parkedOrders={parkedOrders}
+          onResumeOrder={(id) => {
+            const parkedOrder = resumeOrder(id);
+            if (parkedOrder) {
+              setShowParkedOrdersModal(false);
+              router.push("/order/add-products");
+            }
+          }}
+          onDeleteOrder={deleteParkedOrder}
+        />
+
+        {/* Cash Management Modals */}
+        <DeclareCashModal
+          visible={showDeclareCashModal}
+          onClose={() => setShowDeclareCashModal(false)}
+          onContinue={() => {
+            setShowDeclareCashModal(false);
+            setShowCashEntryModal(true);
+          }}
+          cashSummary={cashSummary}
+        />
+
+        <CashEntryModal
+          visible={showCashEntryModal}
+          onClose={() => setShowCashEntryModal(false)}
+          onConfirm={(actualCash) => {
+            const difference = actualCash - cashSummary.expectedCash;
+            const isMatched = Math.abs(difference) < 0.01;
+            setCashResult({ isMatched, actualCash });
+            setShowCashEntryModal(false);
+            setShowCashResultModal(true);
+          }}
+          expectedCash={cashSummary.expectedCash}
+        />
+
+        <CashResultModal
+          visible={showCashResultModal}
+          onClose={() => setShowCashResultModal(false)}
+          onConfirm={() => {
+            setShowCashResultModal(false);
+            Alert.alert("Success", "Cash register closed successfully");
+          }}
+          onReview={() => {
+            setShowCashResultModal(false);
+            setShowCashEntryModal(true); // Re-open cash entry to review
+          }}
+          isMatched={cashResult.isMatched}
+          expectedAmount={cashSummary.expectedCash}
+          actualAmount={cashResult.actualCash}
+        />
+      </View>
+    );
+  }
+
+  // =========================================================================
+  // Admin Dashboard Content
+  // =========================================================================
   return (
-    <View className="flex-1">
+    <View className="flex-1 bg-gray-50">
       <ScrollView
         className="flex-1"
         contentContainerClassName="p-4"
         showsVerticalScrollIndicator={false}
       >
-        {/* Header Section */}
-        <Header
-          title={`Welcome, ${user?.name || "User"}`}
-          subtitle="Access sales, reporting, and system actions quickly and securely."
-          badge={user?.role?.toUpperCase() || "USER"}
-        />
-
-        {/* Instructions when not clocked in */}
-        {!isClockedIn && !selectedPosLine && (
-          <View className="bg-blue-50 border border-blue-200 rounded-lg p-3 mt-4">
-            <Text className="text-blue-700 text-sm">
-              👆 Select a POS Line below, then press "Clock In" to start your shift.
+        {/* ===== VIEW MODE TOGGLE ===== */}
+        <View className="flex-row gap-2 mb-4">
+          <TouchableOpacity
+            onPress={() => setViewMode("admin")}
+            className="flex-1 py-3 px-4 rounded-xl flex-row items-center justify-center gap-2"
+            style={{
+              backgroundColor: viewMode === "admin" ? "#EC1A52" : "#FFFFFF",
+              borderWidth: 2,
+              borderColor: "#EC1A52",
+            }}
+          >
+            <Ionicons 
+              name="shield-checkmark-outline" 
+              size={20} 
+              color={viewMode === "admin" ? "#FFFFFF" : "#EC1A52"} 
+            />
+            <Text 
+              className="font-semibold"
+              style={{ 
+                color: viewMode === "admin" ? "#FFFFFF" : "#EC1A52",
+                fontSize: 16,
+              }}
+            >
+              Admin Mode
             </Text>
-          </View>
-        )}
-
-        {/* Selected POS Line indicator */}
-        {!isClockedIn && selectedPosLine && (
-          <View className="bg-green-50 border border-green-200 rounded-lg p-3 mt-4">
-            <Text className="text-green-700 text-sm">
-              ✓ POS Line {selectedPosLine} selected. Press "Clock In" and enter your ID.
+          </TouchableOpacity>
+          
+          <TouchableOpacity
+            onPress={() => setViewMode("staff")}
+            className="flex-1 py-3 px-4 rounded-xl flex-row items-center justify-center gap-2"
+            style={{
+              backgroundColor: viewMode === "staff" ? "#5F4BB6" : "#FFFFFF",
+              borderWidth: 2,
+              borderColor: "#5F4BB6",
+            }}
+          >
+            <Ionicons 
+              name="people-outline" 
+              size={20} 
+              color={viewMode === "staff" ? "#FFFFFF" : "#5F4BB6"} 
+            />
+            <Text 
+              className="font-semibold"
+              style={{ 
+                color: viewMode === "staff" ? "#FFFFFF" : "#5F4BB6",
+                fontSize: 16,
+              }}
+            >
+              Staff Mode
             </Text>
-          </View>
-        )}
+          </TouchableOpacity>
+        </View>
 
-        {/* Clocked in - tap to open */}
-        {isClockedIn && (
-          <View className="bg-purple-50 border border-purple-200 rounded-lg p-3 mt-4">
-            <Text className="text-purple-700 text-sm">
-              ✓ You are clocked in on POS Line {selectedPosLine}. Tap it to open the sales screen.
-            </Text>
-          </View>
-        )}
+        {/* ===== HEADER GROUP ===== */}
+        <View className="bg-white rounded-xl p-4 border border-gray-100">
+          <Header
+            title={`Welcome, ${user?.name || "User"}`}
+            subtitle="Access sales, reporting, and system actions quickly and securely."
+            badge={user?.role?.toUpperCase() || "USER"}
+          />
+        </View>
 
-        {/* POS Lines Section */}
-        <View className="mt-4">
+        {/* ===== NAVIGATION GROUP ===== */}
+        <View className="mt-4 bg-white rounded-xl p-4 border border-gray-100">
           <Text className="text-gray-700 font-semibold text-lg mb-3">
-            POS Lines
+            Quick Actions
           </Text>
-          <View className="flex-row flex-wrap gap-3">
-            {[1, 2, 3, 4].map((num) => (
-              <View
-                key={num}
-                style={{
-                  width: isLandscape
-                    ? (contentWidth - 44) / 4
-                    : (contentWidth - 36) / 2,
-                }}
-              >
-                <POSLineCard
-                  lineNumber={num}
-                  isActive={isClockedIn && selectedPosLine === num}
-                  isSelected={!isClockedIn && selectedPosLine === num}
-                  itemCount={isClockedIn && selectedPosLine === num ? 3 : 0}
-                  total={isClockedIn && selectedPosLine === num ? "$45.50" : "$0.00"}
-                  onPress={() => handlePosLinePress(num)}
-                />
-              </View>
-            ))}
+          <View className="flex-row flex-wrap gap-2">
+            <TouchableOpacity
+              onPress={() => router.push("/catalog/products")}
+              className="flex-1 min-w-[140px] bg-blue-400 rounded-lg p-3 flex-row items-center justify-center gap-2"
+            >
+              <Ionicons name="cube-outline" size={20} color="white" />
+              <Text className="text-white font-medium text-sm">Product Catalog</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              onPress={() => router.push("/inventory/stocks")}
+              className="flex-1 min-w-[140px] bg-emerald-400 rounded-lg p-3 flex-row items-center justify-center gap-2"
+            >
+              <Ionicons name="layers-outline" size={20} color="white" />
+              <Text className="text-white font-medium text-sm">Inventory</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              onPress={() => router.push("/sale/customers")}
+              className="flex-1 min-w-[140px] bg-violet-400 rounded-lg p-3 flex-row items-center justify-center gap-2"
+            >
+              <Ionicons name="cart-outline" size={20} color="white" />
+              <Text className="text-white font-medium text-sm">Sales</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              onPress={() => router.push("/report")}
+              className="flex-1 min-w-[140px] bg-amber-400 rounded-lg p-3 flex-row items-center justify-center gap-2"
+            >
+              <Ionicons name="bar-chart-outline" size={20} color="white" />
+              <Text className="text-white font-medium text-sm">Report</Text>
+            </TouchableOpacity>
           </View>
         </View>
 
-        {/* Dashboard Stats - Only visible for admin */}
+        {/* ===== DASHBOARD OVERVIEW GROUP ===== */}
         {showAdminStats && (
-          <View className="mt-6 gap-4">
-            <Text className="text-gray-700 font-semibold text-lg">
-              Dashboard Overview (All POS Lines)
+          <View className="mt-4 bg-white rounded-xl p-4 border border-gray-100">
+            <Text className="text-gray-700 font-semibold text-lg mb-3">
+              Dashboard Overview
             </Text>
-            {/* First row: 3 stat cards */}
-            <View className="flex-row gap-3 mb-3">
+            <View className="flex-row gap-2 mb-2">
               <StatCard
                 title="Total Sale/Revenue"
-                value="$233.92K"
-                subtitle="$100.92K • 70.5%"
+                value={formatCurrency(stats.totalRevenue)}
+                subtitle={`${stats.orderCount} orders`}
                 icon={<Ionicons name="pricetag" size={20} color="white" />}
                 variant="green"
               />
               <StatCard
                 title="Paid Amount"
-                value="$8.25"
-                subtitle="$4,000.00 • 70.5%"
+                value={formatCurrency(stats.paidAmount)}
                 icon={<FontAwesome5 name="coins" size={18} color="white" />}
                 variant="yellow"
               />
               <StatCard
                 title="Payable Amount"
-                value="$0.00"
+                value={formatCurrency(stats.payableAmount)}
                 icon={<Ionicons name="cart" size={20} color="white" />}
                 variant="purple"
               />
             </View>
 
-            {/* Second row: 3 stat cards */}
-            <View className="flex-row gap-3">
+            <View className="flex-row gap-2">
               <StatCard
                 title="Receivable Amount"
-                value="$203.50K"
+                value={formatCurrency(stats.receivableAmount)}
+                subtitle={`${stats.customerCount} customers`}
                 icon={<MaterialCommunityIcons name="cash-multiple" size={20} color="white" />}
                 variant="red"
               />
               <StatCard
                 title="Total Extended Stock"
-                value="$12,7,831.82"
+                value={formatCurrency(stats.extendedStockValue)}
+                subtitle={`${stats.productCount} products`}
                 icon={<MaterialCommunityIcons name="package-variant" size={20} color="white" />}
                 variant="yellow"
               />
               <StatCard
                 title="Delivery Orders"
-                value="0"
+                value={String(stats.deliveryOrdersCount)}
                 icon={<MaterialCommunityIcons name="clipboard-list-outline" size={20} color="white" />}
                 variant="orange"
               />
@@ -245,33 +615,64 @@ Cookies               x3    $6.00
         )}
       </ScrollView>
 
-      {/* TEST BUTTON - Floating for easy testing */}
-      <TouchableOpacity
-        onPress={handleTestPrint}
+      {/* Floating Test Buttons */}
+      <View
         style={{
           position: "absolute",
           bottom: 30,
           right: 20,
-          backgroundColor: "#ef4444",
-          paddingVertical: 16,
-          paddingHorizontal: 24,
-          borderRadius: 12,
-          flexDirection: "row",
-          alignItems: "center",
-          gap: 8,
-          shadowColor: "#000",
-          shadowOffset: { width: 0, height: 4 },
-          shadowOpacity: 0.3,
-          shadowRadius: 4,
-          elevation: 8,
+          gap: 12,
           zIndex: 999,
         }}
       >
-        <Ionicons name="print" size={24} color="white" />
-        <Text style={{ color: "white", fontWeight: "bold", fontSize: 16 }}>
-          TEST PRINT
-        </Text>
-      </TouchableOpacity>
+        {/* Sync Test Button */}
+        <TouchableOpacity
+          onPress={() => router.push("/test-sync")}
+          style={{
+            backgroundColor: "#3B82F6",
+            paddingVertical: 16,
+            paddingHorizontal: 24,
+            borderRadius: 12,
+            flexDirection: "row",
+            alignItems: "center",
+            gap: 8,
+            shadowColor: "#000",
+            shadowOffset: { width: 0, height: 4 },
+            shadowOpacity: 0.3,
+            shadowRadius: 4,
+            elevation: 8,
+          }}
+        >
+          <Ionicons name="sync" size={24} color="white" />
+          <Text style={{ color: "white", fontWeight: "bold", fontSize: 16 }}>
+            TEST SYNC
+          </Text>
+        </TouchableOpacity>
+
+        {/* Print Test Button */}
+        <TouchableOpacity
+          onPress={handleTestPrint}
+          style={{
+            backgroundColor: "#ef4444",
+            paddingVertical: 16,
+            paddingHorizontal: 24,
+            borderRadius: 12,
+            flexDirection: "row",
+            alignItems: "center",
+            gap: 8,
+            shadowColor: "#000",
+            shadowOffset: { width: 0, height: 4 },
+            shadowOpacity: 0.3,
+            shadowRadius: 4,
+            elevation: 8,
+          }}
+        >
+          <Ionicons name="print" size={24} color="white" />
+          <Text style={{ color: "white", fontWeight: "bold", fontSize: 16 }}>
+            TEST PRINT
+          </Text>
+        </TouchableOpacity>
+      </View>
     </View>
   );
 }

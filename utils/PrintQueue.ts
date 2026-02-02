@@ -304,6 +304,151 @@ class PrintQueueManager {
       throw e;
     }
   }
+
+  /**
+   * Open Cash Drawer
+   * Sends ESC/POS command to open the cash drawer connected to the printer
+   * Common ESC/POS drawer kick command: ESC p m t1 t2
+   * - ESC = 0x1B (27)
+   * - p = 0x70 (112)
+   * - m = drawer pin (0 or 1)
+   * - t1 = pulse on time (25 * 2ms = 50ms)
+   * - t2 = pulse off time (25 * 2ms = 50ms)
+   */
+  async openCashDrawer(type: 'ethernet' | 'usb' | 'bluetooth' = 'ethernet'): Promise<void> {
+    // Check if printer type is available
+    if (!this.isPrinterAvailable(type)) {
+      console.error(`[PrintQueue] ${type} printer not available for cash drawer`);
+      throw new Error(`${type} printer not available. Make sure you're running a development build.`);
+    }
+
+    // ESC/POS command to open cash drawer
+    // ESC p 0 25 25 - Opens drawer connected to pin 0
+    const DRAWER_KICK_COMMAND = '\x1B\x70\x00\x19\x19';
+    
+    console.log(`[PrintQueue] Opening cash drawer via ${type}`);
+
+    try {
+      switch (type) {
+        case 'ethernet':
+          await this.openDrawerEthernet(DRAWER_KICK_COMMAND);
+          break;
+        case 'usb':
+          await this.openDrawerUSB(DRAWER_KICK_COMMAND);
+          break;
+        case 'bluetooth':
+          await this.openDrawerBluetooth(DRAWER_KICK_COMMAND);
+          break;
+      }
+      console.log('[PrintQueue] Cash drawer opened successfully');
+    } catch (error) {
+      console.error('[PrintQueue] Failed to open cash drawer:', error);
+      throw error;
+    }
+  }
+
+  // Open drawer via Ethernet printer
+  private async openDrawerEthernet(command: string): Promise<void> {
+    if (!NetPrinter) throw new Error('NetPrinter not available');
+
+    try {
+      // Close any existing connection
+      try {
+        if (NetPrinter.closeConn) {
+          await NetPrinter.closeConn();
+        }
+      } catch (e) {
+        // Ignore
+      }
+
+      await NetPrinter.init();
+      await NetPrinter.connectPrinter(this.config.ip, this.config.port);
+      await NetPrinter.printBill(command);
+
+      // Small delay for command to be sent
+      await this.delay(100);
+    } finally {
+      try {
+        if (NetPrinter.closeConn) {
+          await NetPrinter.closeConn();
+        }
+      } catch (e) {
+        // Ignore
+      }
+    }
+  }
+
+  // Open drawer via USB printer
+  private async openDrawerUSB(command: string): Promise<void> {
+    if (!USBPrinter) throw new Error('USBPrinter not available');
+
+    try {
+      try {
+        if (USBPrinter.closeConn) {
+          await USBPrinter.closeConn();
+        }
+      } catch (e) {
+        // Ignore
+      }
+
+      await USBPrinter.init();
+      const devices = await USBPrinter.getDeviceList();
+
+      if (!devices || devices.length === 0) {
+        throw new Error('No USB printer found');
+      }
+
+      const printer = this.config.vendorId && this.config.productId
+        ? devices.find((d: any) => d.vendor_id === this.config.vendorId && d.product_id === this.config.productId)
+        : devices[0];
+
+      if (!printer) {
+        throw new Error('Specified USB printer not found');
+      }
+
+      await USBPrinter.connectPrinter(printer.vendor_id, printer.product_id);
+      await USBPrinter.printBill(command);
+
+      await this.delay(100);
+    } finally {
+      try {
+        if (USBPrinter.closeConn) {
+          await USBPrinter.closeConn();
+        }
+      } catch (e) {
+        // Ignore
+      }
+    }
+  }
+
+  // Open drawer via Bluetooth printer
+  private async openDrawerBluetooth(command: string): Promise<void> {
+    if (!BLEPrinter) throw new Error('BLEPrinter not available');
+
+    try {
+      await BLEPrinter.init();
+      const devices = await BLEPrinter.getDeviceList();
+
+      if (!devices || devices.length === 0) {
+        throw new Error('No Bluetooth printer found');
+      }
+
+      const printer = this.config.macAddress
+        ? devices.find((d: any) => d.inner_mac_address === this.config.macAddress)
+        : devices[0];
+
+      if (!printer) {
+        throw new Error('Specified Bluetooth printer not found');
+      }
+
+      await BLEPrinter.connectPrinter(printer.inner_mac_address || printer.device_name);
+      await BLEPrinter.printBill(command);
+
+      await this.delay(100);
+    } catch (e) {
+      throw e;
+    }
+  }
 }
 
 // Singleton instance
@@ -340,6 +485,11 @@ export const isPrinterAvailable = (type: 'ethernet' | 'usb' | 'bluetooth'): bool
 // Helper function to check if any printer is available
 export const isAnyPrinterAvailable = (): boolean => {
   return printQueue.isAnyPrinterAvailable();
+};
+
+// Helper function to open cash drawer
+export const openCashDrawer = async (type: 'ethernet' | 'usb' | 'bluetooth' = 'ethernet'): Promise<void> => {
+  return printQueue.openCashDrawer(type);
 };
 
 export default printQueue;
