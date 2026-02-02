@@ -16,6 +16,7 @@ import { SearchProduct, SearchProductModal } from "../../components/SearchProduc
 import { useAuth } from "../../contexts/AuthContext";
 import { OrderProduct, useOrder } from "../../contexts/OrderContext";
 import { useParkedOrders } from "../../contexts/ParkedOrderContext";
+import { isPrinterAvailable, openCashDrawer } from "../../utils/PrintQueue";
 
 // Action button width
 const SIDEBAR_WIDTH = 300;
@@ -124,6 +125,27 @@ export default function AddProductsScreen() {
   // Cash Management handlers
   const handleOpenCashRegister = () => {
     setShowDeclareCashModal(true);
+  };
+
+  // Open physical cash drawer via ethernet printer
+  const handleOpenCashDrawer = async () => {
+    // Check if ethernet printer is available
+    if (!isPrinterAvailable('ethernet')) {
+      Alert.alert(
+        "Printer Not Available",
+        "Cash drawer requires a connected ethernet printer.\n\nMake sure you're running a development build with printer support.",
+        [{ text: "OK" }]
+      );
+      return;
+    }
+
+    // Directly open drawer via ethernet
+    try {
+      await openCashDrawer('ethernet');
+      Alert.alert("Success", "Cash drawer opened");
+    } catch (error: any) {
+      Alert.alert("Error", error.message || "Failed to open cash drawer");
+    }
   };
 
   const handleCashEntryConfirm = (actualCash: number) => {
@@ -444,8 +466,8 @@ export default function AddProductsScreen() {
               icon={<Ionicons name="add" size={20} color="white" />}
             />
             <ActionButton
-              title="Open Cash Register"
-              onPress={handleOpenCashRegister}
+              title="Open Drawer"
+              onPress={handleOpenCashDrawer}
               icon={<MaterialCommunityIcons name="cash-register" size={20} color="#EC1A52" />}
             />
           </View>

@@ -45,7 +45,8 @@ function LayoutContent() {
     pathname === "/sale/reports" ||
     pathname.startsWith("/sale/reports-"); // Sub-report pages
   
-  const hideSidebar = isPosLineScreen || (isStaffMode && isOrderScreen) || isStaffPageLayoutScreen;
+  // Hide sidebar for: POS line, order pages (have their own action panel), and StaffPageLayout pages
+  const hideSidebar = isPosLineScreen || isOrderScreen || isStaffPageLayoutScreen;
 
   // Show loading screen while checking stored authentication
   if (isLoading) {

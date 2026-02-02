@@ -17,7 +17,7 @@ import { useAuth } from "../contexts/AuthContext";
 import { useClock } from "../contexts/ClockContext";
 import { useParkedOrders } from "../contexts/ParkedOrderContext";
 import { useViewMode } from "../contexts/ViewModeContext";
-import { addPrintJob, isPrinterAvailable, printQueue, setPrinterConfig } from "../utils/PrintQueue";
+import { addPrintJob, isPrinterAvailable, openCashDrawer, printQueue, setPrinterConfig } from "../utils/PrintQueue";
 import { useDashboardStats } from "../utils/powersync/hooks";
 
 // Default printer configuration
@@ -275,7 +275,25 @@ Cookies               x3    $6.00
           {/* Secondary Action Buttons */}
           <View className="flex-row gap-4 mb-4">
             <TouchableOpacity
-              onPress={() => Alert.alert("Open Drawer", "Drawer opened")}
+              onPress={async () => {
+                // Check if ethernet printer is available
+                if (!isPrinterAvailable('ethernet')) {
+                  Alert.alert(
+                    "Printer Not Available",
+                    "Cash drawer requires a connected ethernet printer.\n\nMake sure you're running a development build with printer support.",
+                    [{ text: "OK" }]
+                  );
+                  return;
+                }
+
+                // Directly open drawer via ethernet
+                try {
+                  await openCashDrawer('ethernet');
+                  Alert.alert("Success", "Cash drawer opened");
+                } catch (error: any) {
+                  Alert.alert("Error", error.message || "Failed to open cash drawer");
+                }
+              }}
               disabled={!isClockedIn}
               className="flex-1 rounded-xl justify-center items-center gap-2 py-6"
               style={{
