@@ -1,6 +1,7 @@
 import { Ionicons, MaterialCommunityIcons, MaterialIcons, Feather } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { Alert, Text, View, ScrollView } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAuth } from "../contexts/AuthContext";
 import { useClock } from "../contexts/ClockContext";
 import { useViewMode } from "../contexts/ViewModeContext";
@@ -25,6 +26,7 @@ export function StaffSidebar({
   onClockOutPress,
 }: StaffSidebarProps) {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const { logout } = useAuth();
   const { isClockedIn } = useClock();
   const { setViewMode } = useViewMode();
@@ -51,12 +53,13 @@ export function StaffSidebar({
 
   return (
     <View
-      className={`bg-gray-50 p-2 ${isLandscape ? "border-l border-gray-200" : "border-t border-gray-200"}`}
+      className={`bg-gray-50 p-2 ${isLandscape ? "border-l border-gray-200 h-full" : "border-t border-gray-200 flex-1"}`}
       style={{ width: isLandscape ? STAFF_SIDEBAR_WIDTH : "100%" }}
     >
       <ScrollView 
+        style={{ flex: 1 }}
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ gap: 8 }}
+        contentContainerStyle={{ gap: 8, paddingBottom: Math.max(insets.bottom, 16) + 8 }}
       >
         {/* Branding Section */}
         <View

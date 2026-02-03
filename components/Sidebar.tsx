@@ -2,6 +2,7 @@ import { Feather, Ionicons, MaterialCommunityIcons, MaterialIcons } from "@expo/
 import { useRouter } from "expo-router";
 import { useEffect, useState } from "react";
 import { Alert, ScrollView, Text, View } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAuth } from "../contexts/AuthContext";
 import { useClock } from "../contexts/ClockContext";
 import { useViewMode } from "../contexts/ViewModeContext";
@@ -38,6 +39,7 @@ export function Sidebar({
   onClockOutPress,
 }: SidebarProps) {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const { logout, user } = useAuth();
   const { isClockedIn, getClockInTimeString, getElapsedTime } = useClock();
   const { setViewMode } = useViewMode();
@@ -63,12 +65,13 @@ export function Sidebar({
 
   return (
     <View
-      className={`bg-gray-50 p-2 ${isLandscape ? "border-l border-gray-200" : "border-t border-gray-200"}`}
+      className={`bg-gray-50 p-2 ${isLandscape ? "border-l border-gray-200 h-full" : "border-t border-gray-200 flex-1"}`}
       style={{ width: isLandscape ? SIDEBAR_WIDTH : "100%" }}
     >
       <ScrollView 
+        style={{ flex: 1 }}
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ gap: 8 }}
+        contentContainerStyle={{ gap: 8, paddingBottom: Math.max(insets.bottom, 16) + 8 }}
       >
         {/* Branding */}
         <View
