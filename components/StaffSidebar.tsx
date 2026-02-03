@@ -6,7 +6,7 @@ import { useClock } from "../contexts/ClockContext";
 import { useViewMode } from "../contexts/ViewModeContext";
 
 // Sidebar width - matches Figma (440px scaled down for mobile)
-export const STAFF_SIDEBAR_WIDTH = 280;
+export const STAFF_SIDEBAR_WIDTH = 260;
 
 interface StaffSidebarProps {
   isLandscape: boolean;
