@@ -210,7 +210,7 @@ Cookies               x3    $6.00
                 className="font-semibold"
                 style={{ fontSize: 16, color: "#1A1A1A" }}
               >
-                {user?.role?.toUpperCase() || "CASHIER"}
+                STAFF
               </Text>
             </View>
           </View>
@@ -517,7 +517,7 @@ Cookies               x3    $6.00
           <Header
             title={`Welcome, ${user?.name || "User"}`}
             subtitle="Access sales, reporting, and system actions quickly and securely."
-            badge={user?.role?.toUpperCase() || "USER"}
+            badge={isStaffMode ? "STAFF" : "ADMIN"}
           />
         </View>
 

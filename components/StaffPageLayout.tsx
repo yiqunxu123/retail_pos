@@ -155,7 +155,7 @@ export default function StaffPageLayout({ children, sidebarCustomButtons, title,
           </View>
 
           {/* Page Specific Buttons (Injected) */}
-          <View className="mb-4">
+          <View>
             {sidebarCustomButtons}
           </View>
 

@@ -1,34 +1,21 @@
-import { Ionicons } from "@expo/vector-icons";
-import { usePathname, useRouter } from "expo-router";
+import { Feather, Ionicons, MaterialCommunityIcons, MaterialIcons } from "@expo/vector-icons";
+import { useRouter } from "expo-router";
 import { useEffect, useState } from "react";
-import { Alert, ScrollView, Text, View } from "react-native";
+import { Alert, ScrollView, Text, TouchableOpacity, View } from "react-native";
 import { useAuth } from "../contexts/AuthContext";
 import { useClock } from "../contexts/ClockContext";
-import { SidebarButton } from "./SidebarButton";
+import { useViewMode } from "../contexts/ViewModeContext";
 
 // ============================================================================
 // Constants
 // ============================================================================
 
 /** Sidebar width constant - exported for use in layout calculations */
-export const SIDEBAR_WIDTH = 220;
+export const SIDEBAR_WIDTH = 260;
 
 // ============================================================================
 // Types
 // ============================================================================
-
-type SectionType = "dashboard" | "catalog" | "inventory" | "sale" | "report";
-
-interface MenuItem {
-  label: string;
-  icon: string;
-  route: string;
-}
-
-interface SectionConfig {
-  title: string;
-  items: MenuItem[];
-}
 
 interface SidebarProps {
   isLandscape: boolean;
@@ -38,108 +25,152 @@ interface SidebarProps {
 }
 
 // ============================================================================
-// Section Menu Configurations
-// ============================================================================
-
-const SECTION_MENUS: Record<SectionType, SectionConfig> = {
-  dashboard: {
-    title: "Dashboard",
-    items: [],
-  },
-  catalog: {
-    title: "Product Catalog",
-    items: [
-      { label: "Products", icon: "cube-outline", route: "/catalog/products" },
-    ],
-  },
-  inventory: {
-    title: "Inventory",
-    items: [
-      { label: "Stock", icon: "layers-outline", route: "/inventory/stocks" },
-      { label: "Stock Alerts", icon: "alert-circle-outline", route: "/inventory/stock-alerts" },
-    ],
-  },
-  sale: {
-    title: "Sales",
-    items: [
-      { label: "Customers", icon: "people-outline", route: "/sale/customers" },
-      { label: "Customer Groups", icon: "people-circle-outline", route: "/sale/customer-groups" },
-      { label: "Add Quick Order", icon: "add-circle-outline", route: "/sale/add-quick-order" },
-      { label: "Fulfillment", icon: "checkmark-done-outline", route: "/sale/fulfillments" },
-      { label: "Sales History", icon: "receipt-outline", route: "/sale/sales-history" },
-      { label: "Sales Return", icon: "return-down-back-outline", route: "/sale/sales-return" },
-      { label: "Payment History", icon: "card-outline", route: "/sale/payments-history" },
-    ],
-  },
-  report: {
-    title: "Report",
-    items: [
-      { label: "Business Reporting", icon: "bar-chart-outline", route: "/report" },
-      { label: "Print", icon: "print-outline", route: "/report/print" },
-    ],
-  },
-};
-
-// ============================================================================
-// Helper Functions
-// ============================================================================
-
-/** Determines the current section based on the pathname */
-function getSectionFromPath(pathname: string): SectionType {
-  if (pathname.startsWith("/catalog")) return "catalog";
-  if (pathname.startsWith("/inventory")) return "inventory";
-  if (pathname.startsWith("/sale")) return "sale";
-  if (pathname.startsWith("/report")) return "report";
-  return "dashboard";
-}
-
-// ============================================================================
 // Sub-components
 // ============================================================================
 
-/** Displays clock status when user is clocked in */
-function ClockStatusCard({
-  clockInTime,
-  elapsedTime,
+/**
+ * Small Button - For clock in/out (compact)
+ */
+function SmallButton({
+  title,
+  icon,
+  onPress,
+  isActive = true,
+  variant = "default",
 }: {
-  clockInTime: string;
-  elapsedTime: string;
+  title: string;
+  icon: React.ReactNode;
+  onPress: () => void;
+  isActive?: boolean;
+  variant?: "default" | "primary" | "danger";
 }) {
-  return (
-    <View className="bg-purple-100 rounded-lg p-3 gap-2">
-      <View className="flex-row justify-between">
-        <View className="flex-1">
-          <Text className="text-purple-600 text-xs font-medium">Clock In Time:</Text>
-          <Text className="text-purple-800 text-sm font-bold">{clockInTime}</Text>
-        </View>
-        <View className="flex-1 items-end">
-          <Text className="text-purple-600 text-xs font-medium">Clock In Duration:</Text>
-          <Text className="text-purple-800 text-sm font-bold">{elapsedTime}</Text>
-        </View>
+  const styles = {
+    default: {
+      bg: isActive ? "#FFFFFF" : "#F2F2F2",
+      border: isActive ? "#EC1A52" : "#848484",
+      text: isActive ? "#EC1A52" : "#848484",
+    },
+    primary: {
+      bg: "#EC1A52",
+      border: "#EC1A52",
+      text: "#FFFFFF",
+    },
+    danger: {
+      bg: "#E43A00",
+      border: "#E43A00",
+      text: "#FFFFFF",
+    },
+  };
+
+  const style = styles[variant];
+
+  if (!isActive && variant === "default") {
+    return (
+      <View
+        className="flex-1 rounded-lg py-2 items-center justify-center"
+        style={{
+          backgroundColor: style.bg,
+          borderWidth: 1,
+          borderColor: style.border,
+          opacity: 0.5,
+        }}
+      >
+        {icon}
+        <Text style={{ fontSize: 10, color: style.text, fontWeight: "500", marginTop: 2 }} numberOfLines={1}>
+          {title}
+        </Text>
       </View>
-    </View>
+    );
+  }
+
+  return (
+    <TouchableOpacity
+      onPress={onPress}
+      className="flex-1 rounded-lg py-2 items-center justify-center"
+      style={{
+        backgroundColor: style.bg,
+        borderWidth: variant === "default" ? 1 : 0,
+        borderColor: style.border,
+      }}
+    >
+      {icon}
+      <Text style={{ fontSize: 10, color: style.text, fontWeight: "500", marginTop: 2 }} numberOfLines={1}>
+        {title}
+      </Text>
+    </TouchableOpacity>
   );
 }
 
-/** Branding placeholder section */
-function BrandingSection({ isLandscape }: { isLandscape: boolean }) {
-  return (
-    <View className={`${!isLandscape ? "w-full" : ""}`}>
-      <View className="bg-gray-200 rounded-lg p-4 items-center mb-2">
-        <Text className="text-gray-600 text-sm font-medium">Branding</Text>
-        <Text className="text-gray-600 text-sm font-medium">Section</Text>
-      </View>
-    </View>
-  );
-}
+/**
+ * Nav Button - For navigation (larger)
+ */
+function NavButton({
+  title,
+  icon,
+  onPress,
+  isActive = true,
+  variant = "default",
+}: {
+  title: string;
+  icon: React.ReactNode;
+  onPress: () => void;
+  isActive?: boolean;
+  variant?: "default" | "primary" | "danger";
+}) {
+  const styles = {
+    default: {
+      bg: isActive ? "#FFFFFF" : "#F2F2F2",
+      border: isActive ? "#EC1A52" : "#848484",
+      text: isActive ? "#EC1A52" : "#848484",
+    },
+    primary: {
+      bg: "#EC1A52",
+      border: "#EC1A52",
+      text: "#FFFFFF",
+    },
+    danger: {
+      bg: "#E43A00",
+      border: "#E43A00",
+      text: "#FFFFFF",
+    },
+  };
 
-/** User info display */
-function UserInfoCard({ userName }: { userName: string }) {
+  const style = styles[variant];
+
+  if (!isActive && variant === "default") {
+    return (
+      <View
+        className="flex-1 rounded-lg py-3 items-center justify-center"
+        style={{
+          backgroundColor: style.bg,
+          borderWidth: 1,
+          borderColor: style.border,
+          opacity: 0.5,
+        }}
+      >
+        {icon}
+        <Text style={{ fontSize: 12, color: style.text, fontWeight: "600", marginTop: 3 }} numberOfLines={1}>
+          {title}
+        </Text>
+      </View>
+    );
+  }
+
   return (
-    <View className="bg-gray-100 rounded-lg p-3 mb-2">
-      <Text className="text-gray-600 text-xs">Logged in as</Text>
-      <Text className="text-gray-800 font-medium">{userName}</Text>
-    </View>
+    <TouchableOpacity
+      onPress={onPress}
+      className="flex-1 rounded-lg py-3 items-center justify-center"
+      style={{
+        backgroundColor: style.bg,
+        borderWidth: variant === "default" ? 1 : 0,
+        borderColor: style.border,
+      }}
+    >
+      {icon}
+      <Text style={{ fontSize: 12, color: style.text, fontWeight: "600", marginTop: 3 }} numberOfLines={1}>
+        {title}
+      </Text>
+    </TouchableOpacity>
   );
 }
 
@@ -148,8 +179,7 @@ function UserInfoCard({ userName }: { userName: string }) {
 // ============================================================================
 
 /**
- * Sidebar - Global navigation sidebar
- * Shows context-aware submenus based on current section
+ * Sidebar - Admin navigation sidebar
  */
 export function Sidebar({
   isLandscape,
@@ -157,199 +187,193 @@ export function Sidebar({
   onClockOutPress,
 }: SidebarProps) {
   const router = useRouter();
-  const pathname = usePathname();
   const { logout, user } = useAuth();
   const { isClockedIn, getClockInTimeString, getElapsedTime } = useClock();
+  const { setViewMode } = useViewMode();
   const [elapsedTime, setElapsedTime] = useState("00:00:00");
 
-  // Derive current section state
-  const currentSection = getSectionFromPath(pathname);
-  const isInSubsection = currentSection !== "dashboard";
-  const sectionConfig = SECTION_MENUS[currentSection];
+  const navigateTo = (path: string) => router.push(path as any);
 
-  // Navigation handler
-  const navigateTo = (path: string) => {
-    router.push(path as any);
-  };
-
-  // Logout with confirmation
   const handleLogout = () => {
-    Alert.alert(
-      "Logout",
-      "Are you sure you want to logout?",
-      [
-        { text: "Cancel", style: "cancel" },
-        {
-          text: "Confirm",
-          style: "destructive",
-          onPress: async () => {
-            await logout();
-          },
-        },
-      ]
-    );
+    Alert.alert("Logout", "Are you sure you want to logout?", [
+      { text: "Cancel", style: "cancel" },
+      { text: "Confirm", style: "destructive", onPress: () => logout() },
+    ]);
   };
 
-  // Update elapsed time every second when clocked in
   useEffect(() => {
     if (!isClockedIn) {
       setElapsedTime("00:00:00");
       return;
     }
-
-    const interval = setInterval(() => {
-      setElapsedTime(getElapsedTime());
-    }, 1000);
-
+    const interval = setInterval(() => setElapsedTime(getElapsedTime()), 1000);
     return () => clearInterval(interval);
   }, [isClockedIn, getElapsedTime]);
 
-  // -------------------------------------------------------------------------
-  // Render Functions
-  // -------------------------------------------------------------------------
-
-  /** Renders the subsection navigation menu */
-  const renderSubsectionMenu = () => (
-    <>
-      {/* Section Title */}
-      <View className="p-3 mb-2">
-        <Text className="text-black font-bold text-center">{sectionConfig.title}</Text>
-      </View>
-
-      {/* Section Menu Items */}
-      {sectionConfig.items.map((item, index) => {
-        const isActive = pathname === item.route;
-        const iconColor = isActive ? "#1d4ed8" : "#374151";
-
-        return (
-          <SidebarButton
-            key={index}
-            label={item.label}
-            icon={<Ionicons name={item.icon as any} size={18} color={iconColor} />}
-            onPress={() => navigateTo(item.route)}
-            variant={isActive ? "active" : "default"}
-          />
-        );
-      })}
-    </>
-  );
-
-  /** Renders the main dashboard menu */
-  const renderDashboardMenu = () => (
-    <>
-      {/* Clock In/Out Buttons */}
-      <View className="flex-row gap-2">
-        <SidebarButton
-          label="Clock In"
-          icon={<Ionicons name="log-in-outline" size={18} color={isClockedIn ? "#9ca3af" : "#374151"} />}
-          fullWidth={false}
-          onPress={onClockInPress}
-          disabled={isClockedIn}
-        />
-        <SidebarButton
-          label="Clock Out"
-          icon={<Ionicons name="log-out-outline" size={18} color="white" />}
-          variant="danger"
-          fullWidth={false}
-          onPress={onClockOutPress}
-          disabled={!isClockedIn}
-        />
-      </View>
-
-      {/* Clock Status (visible when clocked in) */}
-      {isClockedIn && (
-        <ClockStatusCard
-          clockInTime={getClockInTimeString()}
-          elapsedTime={elapsedTime}
-        />
-      )}
-
-      {/* Quick Navigation Buttons */}
-      <SidebarButton
-        label="Sales History"
-        icon={<Ionicons name="receipt-outline" size={18} color="#374151" />}
-        onPress={() => navigateTo("/sale/sales-history")}
-      />
-      <SidebarButton
-        label="View Reports"
-        icon={<Ionicons name="bar-chart-outline" size={18} color="#374151" />}
-        onPress={() => navigateTo("/report")}
-      />
-      <SidebarButton
-        label="View Customers"
-        icon={<Ionicons name="people-outline" size={18} color="#374151" />}
-        onPress={() => navigateTo("/sale/customers")}
-      />
-      <SidebarButton
-        label="View Parked Orders"
-        icon={<Ionicons name="pause-circle-outline" size={18} color="#374151" />}
-        onPress={() => {}}
-      />
-      <SidebarButton
-        label="Resume Last Parked"
-        icon={<Ionicons name="play-circle-outline" size={18} color="#374151" />}
-        onPress={() => {}}
-      />
-      <SidebarButton
-        label="Time Clock"
-        icon={<Ionicons name="time-outline" size={18} color="#374151" />}
-        onPress={() => {}}
-      />
-      <SidebarButton
-        label="Settings"
-        icon={<Ionicons name="settings-outline" size={18} color="#374151" />}
-        onPress={() => navigateTo("/settings")}
-      />
-    </>
-  );
-
-  /** Renders dashboard-only footer actions */
-  const renderDashboardFooter = () => (
-    <>
-      {/* User Info */}
-      {user && <UserInfoCard userName={user.name || user.username} />}
-
-      {/* Action Buttons */}
-      <SidebarButton
-        label="Refresh"
-        icon={<Ionicons name="refresh" size={18} color="#374151" />}
-        variant="warning"
-        fullWidth={false}
-      />
-      <SidebarButton
-        label="Logout"
-        icon={<Ionicons name="log-out-outline" size={18} color="white" />}
-        variant="danger"
-        onPress={handleLogout}
-      />
-    </>
-  );
-
-  // -------------------------------------------------------------------------
-  // Main Render
-  // -------------------------------------------------------------------------
-
   return (
     <View
-      className={`
-        bg-gray-50 p-3
-        ${isLandscape ? "border-l border-gray-200" : "border-t border-gray-200"}
-      `}
-      style={{
-        width: isLandscape ? SIDEBAR_WIDTH : "100%",
-      }}
+      className={`bg-gray-50 p-2 ${isLandscape ? "border-l border-gray-200" : "border-t border-gray-200"}`}
+      style={{ width: isLandscape ? SIDEBAR_WIDTH : "100%" }}
     >
-      <ScrollView
+      <ScrollView 
         showsVerticalScrollIndicator={false}
-        contentContainerClassName={`gap-2 ${!isLandscape ? "flex-row flex-wrap" : ""}`}
+        contentContainerStyle={{ gap: 6 }}
       >
-        <BrandingSection isLandscape={isLandscape} />
+        {/* Branding */}
+        <View
+          className="rounded-lg py-2 px-3 items-center"
+          style={{ backgroundColor: "#D9D9D9", borderWidth: 1, borderColor: "#1A1A1A", borderStyle: "dashed" }}
+        >
+          <Text style={{ fontSize: 11, color: "#1A1A1A", fontWeight: "500" }}>Branding</Text>
+        </View>
 
-        {/* Context-aware menu rendering */}
-        {isInSubsection ? renderSubsectionMenu() : renderDashboardMenu()}
+        {/* Switch to Staff */}
+        <TouchableOpacity
+          onPress={() => setViewMode("staff")}
+          className="rounded-lg py-2 px-3 flex-row items-center justify-center gap-2"
+          style={{ backgroundColor: "#1A1A1A" }}
+        >
+          <Ionicons name="swap-horizontal" size={16} color="#FFFFFF" />
+          <Text style={{ fontSize: 12, color: "#FFFFFF", fontWeight: "600" }}>Switch to Staff</Text>
+        </TouchableOpacity>
 
-        {/* Dashboard-only footer */}
-        {!isInSubsection && renderDashboardFooter()}
+        {/* Clock In/Out Row - Small buttons */}
+        <View className="flex-row gap-2">
+          <SmallButton
+            title="Clock In"
+            icon={<Ionicons name="log-in-outline" size={18} color={isClockedIn ? "#848484" : "#FFFFFF"} />}
+            onPress={onClockInPress}
+            variant={isClockedIn ? "default" : "primary"}
+            isActive={!isClockedIn}
+          />
+          <SmallButton
+            title="Clock Out"
+            icon={<Ionicons name="log-out-outline" size={18} color={isClockedIn ? "#FFFFFF" : "#848484"} />}
+            onPress={onClockOutPress}
+            variant={isClockedIn ? "primary" : "default"}
+            isActive={isClockedIn}
+          />
+        </View>
+
+        {/* Clock Status */}
+        {isClockedIn && (
+          <View className="bg-purple-100 rounded-lg p-2">
+            <View className="flex-row justify-between">
+              <View>
+                <Text className="text-purple-600" style={{ fontSize: 10 }}>Clock In:</Text>
+                <Text className="text-purple-800 font-bold" style={{ fontSize: 11 }}>{getClockInTimeString()}</Text>
+              </View>
+              <View className="items-end">
+                <Text className="text-purple-600" style={{ fontSize: 10 }}>Duration:</Text>
+                <Text className="text-purple-800 font-bold" style={{ fontSize: 11 }}>{elapsedTime}</Text>
+              </View>
+            </View>
+          </View>
+        )}
+
+        {/* Divider Line - Separates clock from navigation */}
+        <View className="border-t border-gray-300 my-1" />
+
+        {/* Navigation - 2 columns with larger icons */}
+        <View className="flex-row gap-2">
+          <NavButton
+            title="Sales History"
+            icon={<MaterialCommunityIcons name="history" size={24} color={isClockedIn ? "#EC1A52" : "#848484"} />}
+            onPress={() => navigateTo("/sale/sales-history")}
+            isActive={isClockedIn}
+          />
+          <NavButton
+            title="Sales Return"
+            icon={<MaterialIcons name="assignment-return" size={24} color={isClockedIn ? "#EC1A52" : "#848484"} />}
+            onPress={() => navigateTo("/sale/sales-return")}
+            isActive={isClockedIn}
+          />
+        </View>
+
+        <View className="flex-row gap-2">
+          <NavButton
+            title="Reports"
+            icon={<Ionicons name="bar-chart-outline" size={24} color={isClockedIn ? "#EC1A52" : "#848484"} />}
+            onPress={() => navigateTo("/sale/reports")}
+            isActive={isClockedIn}
+          />
+          <NavButton
+            title="Customers"
+            icon={<Ionicons name="people-outline" size={24} color={isClockedIn ? "#EC1A52" : "#848484"} />}
+            onPress={() => navigateTo("/sale/customers")}
+            isActive={isClockedIn}
+          />
+        </View>
+
+        <View className="flex-row gap-2">
+          <NavButton
+            title="Parked Orders"
+            icon={<MaterialCommunityIcons name="pause-circle-outline" size={24} color={isClockedIn ? "#EC1A52" : "#848484"} />}
+            onPress={() => navigateTo("/sale/parked-orders")}
+            isActive={isClockedIn}
+          />
+          <NavButton
+            title="Payments"
+            icon={<Ionicons name="card-outline" size={24} color={isClockedIn ? "#EC1A52" : "#848484"} />}
+            onPress={() => navigateTo("/sale/payments-history")}
+            isActive={isClockedIn}
+          />
+        </View>
+
+        {/* Admin Section */}
+        <View className="border-t border-gray-300 pt-1 mt-1">
+          <Text className="text-gray-500 text-center mb-1" style={{ fontSize: 10 }}>Admin Functions</Text>
+        </View>
+
+        <View className="flex-row gap-2">
+          <NavButton
+            title="Products"
+            icon={<Ionicons name="cube-outline" size={24} color="#EC1A52" />}
+            onPress={() => navigateTo("/catalog/products")}
+          />
+          <NavButton
+            title="Inventory"
+            icon={<Ionicons name="layers-outline" size={24} color="#EC1A52" />}
+            onPress={() => navigateTo("/inventory/stocks")}
+          />
+        </View>
+
+        <View className="flex-row gap-2">
+          <NavButton
+            title="Fulfillment"
+            icon={<Ionicons name="checkmark-done-outline" size={24} color="#EC1A52" />}
+            onPress={() => navigateTo("/sale/fulfillments")}
+          />
+          <NavButton
+            title="Settings"
+            icon={<Ionicons name="settings-outline" size={24} color="#EC1A52" />}
+            onPress={() => navigateTo("/settings")}
+          />
+        </View>
+
+        {/* Bottom Actions */}
+        <View className="flex-row gap-2 mt-1">
+          <NavButton
+            title="Refresh"
+            icon={<Ionicons name="refresh" size={24} color="#FFFFFF" />}
+            onPress={() => Alert.alert("Refresh", "Data refreshed")}
+            variant="primary"
+          />
+          <NavButton
+            title="Logout"
+            icon={<Feather name="log-out" size={24} color="#FFFFFF" />}
+            onPress={handleLogout}
+            variant="danger"
+          />
+        </View>
+
+        {/* User Info */}
+        {user && (
+          <View className="bg-gray-100 rounded-lg p-2">
+            <Text className="text-gray-600" style={{ fontSize: 10 }}>Logged in as</Text>
+            <Text className="text-gray-800 font-medium" style={{ fontSize: 12 }}>{user.name || user.username}</Text>
+          </View>
+        )}
       </ScrollView>
     </View>
   );
