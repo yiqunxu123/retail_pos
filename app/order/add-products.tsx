@@ -5,6 +5,7 @@ import { Alert, Pressable, ScrollView, Text, TextInput, TouchableOpacity, View }
 import { AddDiscountModal } from "../../components/AddDiscountModal";
 import { AddQuickCustomerModal } from "../../components/AddQuickCustomerModal";
 import { AddTaxModal } from "../../components/AddTaxModal";
+import { BrandingSection } from "../../components/BrandingSection";
 import { CashEntryModal } from "../../components/CashEntryModal";
 import { CashPaymentModal } from "../../components/CashPaymentModal";
 import { CashResultModal } from "../../components/CashResultModal";
@@ -444,16 +445,8 @@ export default function AddProductsScreen() {
       {/* Right Action Panel */}
       <View className="bg-gray-50 border-l border-gray-200 p-2" style={{ width: SIDEBAR_WIDTH }}>
         {/* Branding Section */}
-        <View
-          className="rounded-lg py-2 px-3 items-center justify-center mb-2"
-          style={{
-            backgroundColor: "#D9D9D9",
-            borderWidth: 1,
-            borderColor: "#1A1A1A",
-            borderStyle: "dashed",
-          }}
-        >
-          <Text style={{ fontSize: 12, color: "#1A1A1A", fontWeight: "500" }}>Branding Section</Text>
+        <View className="mb-2">
+          <BrandingSection />
         </View>
 
         <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>

@@ -1,10 +1,11 @@
 import { Ionicons, MaterialCommunityIcons, MaterialIcons, Feather } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-import { Alert, Text, View, ScrollView } from "react-native";
+import { Alert, View, ScrollView } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAuth } from "../contexts/AuthContext";
 import { useClock } from "../contexts/ClockContext";
 import { useViewMode } from "../contexts/ViewModeContext";
+import { BrandingSection } from "./BrandingSection";
 import { SidebarButton } from "./SidebarButton";
 
 // Sidebar width - matches Figma (440px scaled down for mobile)
@@ -62,17 +63,7 @@ export function StaffSidebar({
         contentContainerStyle={{ gap: 8, paddingBottom: Math.max(insets.bottom, 16) + 8 }}
       >
         {/* Branding Section */}
-        <View
-          className="rounded-lg py-2 px-3 items-center justify-center"
-          style={{
-            backgroundColor: "#D9D9D9",
-            borderWidth: 1,
-            borderColor: "#1A1A1A",
-            borderStyle: "dashed",
-          }}
-        >
-          <Text style={{ fontSize: 12, color: "#1A1A1A", fontWeight: "500" }}>Branding</Text>
-        </View>
+        <BrandingSection />
 
         {/* Switch to Admin Mode */}
         <SidebarButton

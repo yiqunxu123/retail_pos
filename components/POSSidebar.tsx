@@ -1,5 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
-import { ScrollView, Text, View } from "react-native";
+import { ScrollView, View } from "react-native";
+import { BrandingSection } from "./BrandingSection";
 import { SidebarButton } from "./SidebarButton";
 
 // POS Sidebar width - slightly wider for action buttons
@@ -60,12 +61,7 @@ export function POSSidebar({
         contentContainerStyle={{ gap: 8 }}
       >
         {/* Branding Section */}
-        <View
-          className="rounded-lg py-2 px-3 items-center justify-center"
-          style={{ backgroundColor: "#D9D9D9", borderWidth: 1, borderColor: "#1A1A1A", borderStyle: "dashed" }}
-        >
-          <Text style={{ fontSize: 12, color: "#1A1A1A", fontWeight: "500" }}>Branding</Text>
-        </View>
+        <BrandingSection />
 
         {/* TEST: Print Receipt Button - Prominent for testing */}
         <SidebarButton

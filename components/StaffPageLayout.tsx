@@ -3,6 +3,7 @@ import { useRouter } from "expo-router";
 import { Alert, ScrollView, Text, TouchableOpacity, View } from "react-native";
 import { useAuth } from "../contexts/AuthContext";
 import { useClock } from "../contexts/ClockContext";
+import { BrandingSection } from "./BrandingSection";
 import { SidebarButton } from "./SidebarButton";
 
 // Re-export SidebarButton for backward compatibility
@@ -83,17 +84,8 @@ export default function StaffPageLayout({ children, sidebarCustomButtons, title,
         style={{ width: SIDEBAR_WIDTH }}
       >
         {/* Branding Section */}
-        <View
-          className="rounded-lg py-2 px-3 items-center justify-center mb-4"
-          style={{
-            backgroundColor: "#D9D9D9",
-            borderWidth: 1,
-            borderColor: "#1A1A1A",
-            borderStyle: "dashed",
-            height: 60
-          }}
-        >
-          <Text style={{ fontSize: 12, color: "#1A1A1A", fontWeight: "500" }}>Branding Section</Text>
+        <View className="mb-4">
+          <BrandingSection />
         </View>
 
         <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 20, gap: 8 }}>
