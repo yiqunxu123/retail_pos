@@ -13,7 +13,6 @@ import {
   FlatList,
   Pressable,
   RefreshControl,
-  ScrollView,
   Text,
   TextInput,
   View,
@@ -97,17 +96,17 @@ export default function CustomersScreen() {
 
   // Status Badges
   const EcomStatusBadge = ({ allowed }: { allowed: boolean }) => (
-    <Text style={{ color: allowed ? "#22C55E" : "#EC1A52", fontWeight: "500", fontSize: 12 }}>
+    <Text style={{ color: allowed ? "#22C55E" : "#EC1A52", fontWeight: "600", fontSize: 14 }}>
       {allowed ? "Allowed" : "Not Allowed"}
     </Text>
   );
 
   const StatusBadge = ({ isActive }: { isActive: boolean }) => (
     <View 
-      className="px-2 py-1 rounded"
+      className="px-4 py-1.5 rounded-md"
       style={{ backgroundColor: isActive ? "#22C55E" : "#F59E0B" }}
     >
-      <Text className="text-white text-xs font-medium">{isActive ? "Active" : "InActive"}</Text>
+      <Text className="text-white text-sm font-semibold">{isActive ? "Active" : "InActive"}</Text>
     </View>
   );
 
@@ -117,32 +116,32 @@ export default function CustomersScreen() {
   };
 
   const renderCustomerRow = ({ item }: { item: CustomerView }) => (
-    <View className="flex-row items-center px-4 py-3 border-b border-gray-100 bg-white">
-      <Text className="w-32 text-blue-600 text-xs font-medium" numberOfLines={1}>
+    <View className="flex-row items-center px-6 py-5 border-b border-gray-100 bg-white hover:bg-gray-50">
+      <Text className="flex-[2] text-blue-600 text-sm font-medium pr-4" numberOfLines={1}>
         {item.businessName || item.name}
       </Text>
-      <View className="w-24">
+      <View className="flex-[1.2] pr-4">
         <EcomStatusBadge allowed={false} />
       </View>
-      <Text className="w-36 text-blue-600 text-xs" numberOfLines={1}>
+      <Text className="flex-[2] text-blue-600 text-sm pr-4" numberOfLines={1}>
         {item.name}
       </Text>
-      <Text className="w-24 text-gray-600 text-xs">{item.id.slice(0, 8)}</Text>
-      <Text className="w-24 text-red-600 text-xs font-bold">
+      <Text className="flex-1 text-gray-600 text-sm pr-4">{item.id.slice(0, 8)}</Text>
+      <Text className="flex-[1.2] text-red-600 text-sm font-bold pr-4">
         {formatCurrency(88888.00)}
       </Text>
-      <View className="w-20">
+      <View className="flex-1 pr-4">
         <StatusBadge isActive={true} />
       </View>
-      <View className="w-20 flex-row gap-2">
-        <Pressable className="bg-red-50 p-1.5 rounded">
-          <Ionicons name="print-outline" size={14} color="#EC1A52" />
+      <View className="flex-1 flex-row gap-3">
+        <Pressable className="bg-red-50 p-2.5 rounded-lg">
+          <Ionicons name="print-outline" size={18} color="#EC1A52" />
         </Pressable>
         <Pressable 
-          className="bg-red-50 p-1.5 rounded"
+          className="bg-red-50 p-2.5 rounded-lg"
           onPress={() => handleViewCustomer(item)}
         >
-          <Ionicons name="eye-outline" size={14} color="#EC1A52" />
+          <Ionicons name="eye-outline" size={18} color="#EC1A52" />
         </Pressable>
       </View>
     </View>
@@ -156,12 +155,12 @@ export default function CustomersScreen() {
     >
       <View className="flex-1 bg-white">
         {/* Search Bar */}
-        <View className="px-6 pb-4">
-          <View className="flex-row items-center gap-3">
-            <View className="flex-1 flex-row items-center bg-gray-50 border border-gray-200 rounded-lg px-3 py-2">
-              <Ionicons name="search" size={18} color="#9CA3AF" />
+        <View className="px-6 pb-6">
+          <View className="flex-row items-center gap-4">
+            <View className="flex-1 flex-row items-center bg-gray-50 border border-gray-200 rounded-xl px-4 py-3">
+              <Ionicons name="search" size={20} color="#9CA3AF" />
               <TextInput
-                className="flex-1 ml-2 text-gray-800"
+                className="flex-1 ml-3 text-gray-800 text-base"
                 placeholder="Search Customers"
                 placeholderTextColor="#9CA3AF"
                 value={searchQuery}
@@ -169,89 +168,87 @@ export default function CustomersScreen() {
               />
             </View>
             <Pressable 
-              className="flex-row items-center gap-2 px-6 py-3 rounded-lg"
+              className="flex-row items-center gap-3 px-8 py-3.5 rounded-xl"
               style={{ backgroundColor: "#EC1A52" }}
               onPress={() => setShowAddCustomerModal(true)}
             >
-              <Ionicons name="person-add" size={18} color="white" />
-              <Text className="text-white font-medium">Add Customer</Text>
+              <Ionicons name="person-add" size={20} color="white" />
+              <Text className="text-white font-semibold text-base">Add Customer</Text>
             </Pressable>
             <Pressable 
-              className="flex-row items-center gap-2 px-4 py-3 rounded-lg border border-gray-300"
+              className="flex-row items-center gap-3 px-6 py-3.5 rounded-xl border border-gray-300"
               onPress={onRefresh}
             >
-              <Ionicons name="refresh" size={18} color="#374151" />
-              <Text className="text-gray-700 font-medium">Refresh</Text>
+              <Ionicons name="refresh" size={20} color="#374151" />
+              <Text className="text-gray-700 font-semibold text-base">Refresh</Text>
             </Pressable>
-            <Pressable className="bg-gray-900 p-3 rounded-lg">
-              <Ionicons name="settings-outline" size={20} color="white" />
+            <Pressable className="bg-gray-900 p-3.5 rounded-xl">
+              <Ionicons name="settings-outline" size={22} color="white" />
             </Pressable>
           </View>
         </View>
 
         {/* Table */}
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} className="flex-1">
-          <View style={{ minWidth: 800 }}>
-            {/* Table Header */}
-            <View className="flex-row bg-gray-50 py-3 px-4 border-y border-gray-200">
-              <Text className="w-32 text-gray-500 text-xs font-semibold">Business Name</Text>
-              <Text className="w-24 text-gray-500 text-xs font-semibold">Ecom Status</Text>
-              <Text className="w-36 text-gray-500 text-xs font-semibold">Customer Name</Text>
-              <Text className="w-24 text-gray-500 text-xs font-semibold">Customer ID</Text>
-              <Text className="w-24 text-gray-500 text-xs font-semibold">Balance</Text>
-              <Text className="w-20 text-gray-500 text-xs font-semibold">Status</Text>
-              <Text className="w-20 text-gray-500 text-xs font-semibold">Actions</Text>
-            </View>
-
-            <FlatList
-              data={filteredCustomers}
-              keyExtractor={(item) => item.id}
-              renderItem={renderCustomerRow}
-              refreshControl={
-                <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-              }
-              ListEmptyComponent={
-                isLoading ? (
-                  <View className="py-20 items-center">
-                    <ActivityIndicator size="large" color="#EC1A52" />
-                  </View>
-                ) : (
-                  <View className="py-20 items-center justify-center">
-                    <Ionicons name="people-outline" size={48} color="#d1d5db" />
-                    <Text className="text-gray-400 mt-2">No customers found</Text>
-                  </View>
-                )
-              }
-            />
+        <View className="flex-1">
+          {/* Table Header */}
+          <View className="flex-row bg-gray-50 py-4 px-6 border-y border-gray-200">
+            <Text className="flex-[2] text-gray-500 text-sm font-semibold uppercase tracking-wide pr-4">Business Name</Text>
+            <Text className="flex-[1.2] text-gray-500 text-sm font-semibold uppercase tracking-wide pr-4">Ecom Status</Text>
+            <Text className="flex-[2] text-gray-500 text-sm font-semibold uppercase tracking-wide pr-4">Customer Name</Text>
+            <Text className="flex-1 text-gray-500 text-sm font-semibold uppercase tracking-wide pr-4">Customer ID</Text>
+            <Text className="flex-[1.2] text-gray-500 text-sm font-semibold uppercase tracking-wide pr-4">Balance</Text>
+            <Text className="flex-1 text-gray-500 text-sm font-semibold uppercase tracking-wide pr-4">Status</Text>
+            <Text className="flex-1 text-gray-500 text-sm font-semibold uppercase tracking-wide">Actions</Text>
           </View>
-        </ScrollView>
+
+          <FlatList
+            data={filteredCustomers}
+            keyExtractor={(item) => item.id}
+            renderItem={renderCustomerRow}
+            refreshControl={
+              <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+            }
+            ListEmptyComponent={
+              isLoading ? (
+                <View className="py-24 items-center">
+                  <ActivityIndicator size="large" color="#EC1A52" />
+                </View>
+              ) : (
+                <View className="py-24 items-center justify-center">
+                  <Ionicons name="people-outline" size={64} color="#d1d5db" />
+                  <Text className="text-gray-400 mt-4 text-base">No customers found</Text>
+                </View>
+              )
+            }
+          />
+        </View>
 
         {/* Pagination */}
-        <View className="flex-row items-center justify-between px-4 py-3 border-t border-gray-200">
-          <View className="flex-row items-center gap-2">
-            <Pressable className="w-8 h-8 items-center justify-center rounded border border-gray-200">
-              <Ionicons name="chevron-back" size={16} color="#9CA3AF" />
+        <View className="flex-row items-center justify-between px-6 py-4 border-t border-gray-200 bg-white">
+          <View className="flex-row items-center gap-3">
+            <Pressable className="w-10 h-10 items-center justify-center rounded-lg border border-gray-200">
+              <Ionicons name="chevron-back" size={18} color="#9CA3AF" />
             </Pressable>
             <Pressable 
-              className="w-8 h-8 items-center justify-center rounded"
+              className="w-10 h-10 items-center justify-center rounded-lg"
               style={{ backgroundColor: "#EC1A52" }}
             >
-              <Text className="text-white font-medium">1</Text>
+              <Text className="text-white font-semibold text-base">1</Text>
             </Pressable>
-            <Pressable className="w-8 h-8 items-center justify-center rounded border border-gray-200">
-              <Text className="text-gray-600">2</Text>
+            <Pressable className="w-10 h-10 items-center justify-center rounded-lg border border-gray-200">
+              <Text className="text-gray-600 text-base">2</Text>
             </Pressable>
-            <Pressable className="w-8 h-8 items-center justify-center rounded border border-gray-200">
-              <Text className="text-gray-600">3</Text>
+            <Pressable className="w-10 h-10 items-center justify-center rounded-lg border border-gray-200">
+              <Text className="text-gray-600 text-base">3</Text>
             </Pressable>
-            <Pressable className="w-8 h-8 items-center justify-center rounded border border-gray-200">
-              <Ionicons name="chevron-forward" size={16} color="#9CA3AF" />
+            <Pressable className="w-10 h-10 items-center justify-center rounded-lg border border-gray-200">
+              <Ionicons name="chevron-forward" size={18} color="#9CA3AF" />
             </Pressable>
           </View>
-          <View className="flex-row items-center gap-2">
-            <Pressable className="flex-row items-center gap-2 px-3 py-2 rounded border border-gray-200">
-              <Text className="text-gray-600">10/Page</Text>
-              <Ionicons name="chevron-down" size={14} color="#6B7280" />
+          <View className="flex-row items-center gap-3">
+            <Pressable className="flex-row items-center gap-2 px-4 py-2.5 rounded-lg border border-gray-200">
+              <Text className="text-gray-600 text-base">10/Page</Text>
+              <Ionicons name="chevron-down" size={16} color="#6B7280" />
             </Pressable>
           </View>
         </View>
