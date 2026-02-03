@@ -65,32 +65,23 @@ export default function SalesHistoryScreen() {
     <>
       <SidebarButton 
         title="Add Order"
-        icon={<Ionicons name="add-circle-outline" size={20} color="#FFFFFF" />}
+        icon={<Ionicons name="add-circle-outline" size={20} color="#EC1A52" />}
         onPress={() => router.push("/order/add-products" as any)}
-        bgColor="#EC1A52"
-        textColor="#FFFFFF"
-        borderColor="#EC1A52"
       />
       <SidebarButton 
         title="Print Invoice"
-        icon={<Ionicons name="print-outline" size={20} color="#1A1A1A" />}
+        icon={<Ionicons name="print-outline" size={20} color="#EC1A52" />}
         onPress={() => Alert.alert("Print", "Printing invoice...")}
-        bgColor="#FCD34D" // Yellow-400
-        borderColor="#FCD34D"
       />
       <SidebarButton 
         title="View Invoice"
         icon={<Ionicons name="document-text-outline" size={20} color="#EC1A52" />}
         onPress={() => Alert.alert("View Invoice", "Select an order to view invoice")}
-        textColor="#EC1A52"
-        borderColor="#EC1A52"
       />
       <SidebarButton 
         title="Edit Order"
         icon={<Ionicons name="create-outline" size={20} color="#EC1A52" />}
         onPress={() => Alert.alert("Edit Order", "Select an order to edit")}
-        textColor="#EC1A52"
-        borderColor="#EC1A52"
       />
     </>
   );

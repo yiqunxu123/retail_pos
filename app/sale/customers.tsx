@@ -61,32 +61,23 @@ export default function CustomersScreen() {
     <>
       <SidebarButton 
         title="Add New Customer"
-        icon={<Ionicons name="add-outline" size={20} color="#FFFFFF" />}
+        icon={<Ionicons name="add-outline" size={20} color="#EC1A52" />}
         onPress={() => setShowAddCustomerModal(true)}
-        bgColor="#EC1A52"
-        textColor="#FFFFFF"
-        borderColor="#EC1A52"
       />
       <SidebarButton 
         title="Print Return Invoice"
-        icon={<Ionicons name="print-outline" size={20} color="#1A1A1A" />}
+        icon={<Ionicons name="print-outline" size={20} color="#EC1A52" />}
         onPress={() => Alert.alert("Print", "Printing return invoice list...")}
-        bgColor="#FCD34D" // Yellow
-        borderColor="#FCD34D"
       />
       <SidebarButton 
         title="View Customer Details"
         icon={<Ionicons name="eye-outline" size={20} color="#EC1A52" />}
         onPress={() => Alert.alert("View Details", "Select a customer to view details")}
-        textColor="#EC1A52"
-        borderColor="#EC1A52"
       />
       <SidebarButton 
         title="Add Customer Payment"
         icon={<Ionicons name="cash-outline" size={20} color="#EC1A52" />}
         onPress={() => Alert.alert("Add Payment", "Select a customer to add payment")}
-        textColor="#EC1A52"
-        borderColor="#EC1A52"
       />
     </>
   );

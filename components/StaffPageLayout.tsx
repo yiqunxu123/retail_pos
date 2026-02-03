@@ -3,6 +3,10 @@ import { useRouter } from "expo-router";
 import { Alert, ScrollView, Text, TouchableOpacity, View } from "react-native";
 import { useAuth } from "../contexts/AuthContext";
 import { useClock } from "../contexts/ClockContext";
+import { SidebarButton } from "./SidebarButton";
+
+// Re-export SidebarButton for backward compatibility
+export { SidebarButton };
 
 const SIDEBAR_WIDTH = 280;
 
@@ -11,49 +15,6 @@ interface StaffPageLayoutProps {
   sidebarCustomButtons?: React.ReactNode;
   title?: string;
   subTitle?: string;
-}
-
-/**
- * Sidebar Button Component
- */
-export function SidebarButton({
-  title,
-  icon,
-  onPress,
-  bgColor = "#FFFFFF",
-  textColor = "#1A1A1A",
-  borderColor = "#E5E7EB",
-  isFullWidth = true,
-}: {
-  title: string;
-  icon?: React.ReactNode;
-  onPress: () => void;
-  bgColor?: string;
-  textColor?: string;
-  borderColor?: string;
-  isFullWidth?: boolean;
-}) {
-  return (
-    <TouchableOpacity
-      onPress={onPress}
-      className={`${isFullWidth ? "w-full" : "flex-1"} rounded-lg justify-center items-center py-3 px-2 mb-2`}
-      style={{
-        backgroundColor: bgColor,
-        borderWidth: 1,
-        borderColor: borderColor,
-        shadowColor: "#000",
-        shadowOffset: { width: 0, height: 1 },
-        shadowOpacity: 0.1,
-        shadowRadius: 2,
-        elevation: 2,
-      }}
-    >
-      {icon && <View className="mb-1">{icon}</View>}
-      <Text className="text-center font-medium" style={{ color: textColor, fontSize: 13 }}>
-        {title}
-      </Text>
-    </TouchableOpacity>
-  );
 }
 
 export default function StaffPageLayout({ children, sidebarCustomButtons, title, subTitle }: StaffPageLayoutProps) {
@@ -135,56 +96,49 @@ export default function StaffPageLayout({ children, sidebarCustomButtons, title,
           <Text style={{ fontSize: 12, color: "#1A1A1A", fontWeight: "500" }}>Branding Section</Text>
         </View>
 
-        <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 20 }}>
+        <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 20, gap: 8 }}>
           {/* Top Fixed Buttons: Time Clock | Change User */}
-          <View className="flex-row gap-2 mb-2">
+          <View className="flex-row gap-2">
             <SidebarButton 
               title="Time Clock" 
-              icon={<Ionicons name="time-outline" size={20} color="#1A1A1A" />}
+              icon={<Ionicons name="time-outline" size={20} color="#EC1A52" />}
               onPress={handleTimeClock}
-              isFullWidth={false}
+              fullWidth={false}
             />
             <SidebarButton 
               title="Change User" 
-              icon={<MaterialCommunityIcons name="account-switch-outline" size={20} color="#EC1A52" />}
+              icon={<MaterialCommunityIcons name="account-switch-outline" size={20} color="#848484" />}
               onPress={() => Alert.alert("Change User", "Functionality implementation pending")}
-              isFullWidth={false}
-              textColor="#EC1A52"
-              borderColor="#EC1A52"
+              fullWidth={false}
+              isActive={false}
             />
           </View>
 
           {/* Page Specific Buttons (Injected) */}
-          <View>
-            {sidebarCustomButtons}
-          </View>
+          {sidebarCustomButtons && (
+            <View style={{ gap: 8 }}>
+              {sidebarCustomButtons}
+            </View>
+          )}
 
           {/* Common Bottom Buttons */}
           <SidebarButton 
             title="Go to Menu"
             icon={<Ionicons name="menu-outline" size={20} color="#EC1A52" />}
             onPress={handleGoToMenu}
-            textColor="#EC1A52"
-            borderColor="#EC1A52"
           />
 
           <SidebarButton 
             title="Clock out"
             icon={<Ionicons name="log-out-outline" size={20} color="#EC1A52" />}
             onPress={handleClockOut}
-            textColor="#EC1A52"
-            borderColor="#EC1A52"
           />
 
           <SidebarButton 
             title="Exit Program"
             icon={<Ionicons name="close-circle-outline" size={20} color="#EC1A52" />}
             onPress={handleExit}
-            textColor="#EC1A52"
-            borderColor="#EC1A52"
-            borderColor="#E43A00"
           />
-          
         </ScrollView>
       </View>
     </View>

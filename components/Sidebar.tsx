@@ -1,10 +1,11 @@
 import { Feather, Ionicons, MaterialCommunityIcons, MaterialIcons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { useEffect, useState } from "react";
-import { Alert, ScrollView, Text, TouchableOpacity, View } from "react-native";
+import { Alert, ScrollView, Text, View } from "react-native";
 import { useAuth } from "../contexts/AuthContext";
 import { useClock } from "../contexts/ClockContext";
 import { useViewMode } from "../contexts/ViewModeContext";
+import { SidebarButton } from "./SidebarButton";
 
 // ============================================================================
 // Constants
@@ -22,156 +23,6 @@ interface SidebarProps {
   onClockInPress: () => void;
   onClockOutPress: () => void;
   onExitProgram?: () => void;
-}
-
-// ============================================================================
-// Sub-components
-// ============================================================================
-
-/**
- * Small Button - For clock in/out (compact)
- */
-function SmallButton({
-  title,
-  icon,
-  onPress,
-  isActive = true,
-  variant = "default",
-}: {
-  title: string;
-  icon: React.ReactNode;
-  onPress: () => void;
-  isActive?: boolean;
-  variant?: "default" | "primary" | "danger";
-}) {
-  const styles = {
-    default: {
-      bg: isActive ? "#FFFFFF" : "#F2F2F2",
-      border: isActive ? "#EC1A52" : "#848484",
-      text: isActive ? "#EC1A52" : "#848484",
-    },
-    primary: {
-      bg: "#EC1A52",
-      border: "#EC1A52",
-      text: "#FFFFFF",
-    },
-    danger: {
-      bg: "#E43A00",
-      border: "#E43A00",
-      text: "#FFFFFF",
-    },
-  };
-
-  const style = styles[variant];
-
-  if (!isActive && variant === "default") {
-    return (
-      <View
-        className="flex-1 rounded-lg py-2 items-center justify-center"
-        style={{
-          backgroundColor: style.bg,
-          borderWidth: 1,
-          borderColor: style.border,
-          opacity: 0.5,
-        }}
-      >
-        {icon}
-        <Text style={{ fontSize: 10, color: style.text, fontWeight: "500", marginTop: 2 }} numberOfLines={1}>
-          {title}
-        </Text>
-      </View>
-    );
-  }
-
-  return (
-    <TouchableOpacity
-      onPress={onPress}
-      className="flex-1 rounded-lg py-2 items-center justify-center"
-      style={{
-        backgroundColor: style.bg,
-        borderWidth: variant === "default" ? 1 : 0,
-        borderColor: style.border,
-      }}
-    >
-      {icon}
-      <Text style={{ fontSize: 10, color: style.text, fontWeight: "500", marginTop: 2 }} numberOfLines={1}>
-        {title}
-      </Text>
-    </TouchableOpacity>
-  );
-}
-
-/**
- * Nav Button - For navigation (larger)
- */
-function NavButton({
-  title,
-  icon,
-  onPress,
-  isActive = true,
-  variant = "default",
-}: {
-  title: string;
-  icon: React.ReactNode;
-  onPress: () => void;
-  isActive?: boolean;
-  variant?: "default" | "primary" | "danger";
-}) {
-  const styles = {
-    default: {
-      bg: isActive ? "#FFFFFF" : "#F2F2F2",
-      border: isActive ? "#EC1A52" : "#848484",
-      text: isActive ? "#EC1A52" : "#848484",
-    },
-    primary: {
-      bg: "#EC1A52",
-      border: "#EC1A52",
-      text: "#FFFFFF",
-    },
-    danger: {
-      bg: "#E43A00",
-      border: "#E43A00",
-      text: "#FFFFFF",
-    },
-  };
-
-  const style = styles[variant];
-
-  if (!isActive && variant === "default") {
-    return (
-      <View
-        className="flex-1 rounded-lg py-3 items-center justify-center"
-        style={{
-          backgroundColor: style.bg,
-          borderWidth: 1,
-          borderColor: style.border,
-          opacity: 0.5,
-        }}
-      >
-        {icon}
-        <Text style={{ fontSize: 12, color: style.text, fontWeight: "600", marginTop: 3 }} numberOfLines={1}>
-          {title}
-        </Text>
-      </View>
-    );
-  }
-
-  return (
-    <TouchableOpacity
-      onPress={onPress}
-      className="flex-1 rounded-lg py-3 items-center justify-center"
-      style={{
-        backgroundColor: style.bg,
-        borderWidth: variant === "default" ? 1 : 0,
-        borderColor: style.border,
-      }}
-    >
-      {icon}
-      <Text style={{ fontSize: 12, color: style.text, fontWeight: "600", marginTop: 3 }} numberOfLines={1}>
-        {title}
-      </Text>
-    </TouchableOpacity>
-  );
 }
 
 // ============================================================================
@@ -217,39 +68,38 @@ export function Sidebar({
     >
       <ScrollView 
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ gap: 6 }}
+        contentContainerStyle={{ gap: 8 }}
       >
         {/* Branding */}
         <View
-          className="rounded-lg py-2 px-3 items-center"
+          className="rounded-lg py-2 px-3 items-center justify-center"
           style={{ backgroundColor: "#D9D9D9", borderWidth: 1, borderColor: "#1A1A1A", borderStyle: "dashed" }}
         >
-          <Text style={{ fontSize: 11, color: "#1A1A1A", fontWeight: "500" }}>Branding</Text>
+          <Text style={{ fontSize: 12, color: "#1A1A1A", fontWeight: "500" }}>Branding</Text>
         </View>
 
         {/* Switch to Staff */}
-        <TouchableOpacity
+        <SidebarButton
+          title="Switch to Staff"
+          icon={<Ionicons name="swap-horizontal" size={20} color="#EC1A52" />}
           onPress={() => setViewMode("staff")}
-          className="rounded-lg py-2 px-3 flex-row items-center justify-center gap-2"
-          style={{ backgroundColor: "#FFFFFF", borderWidth: 1, borderColor: "#EC1A52" }}
-        >
-          <Ionicons name="swap-horizontal" size={16} color="#EC1A52" />
-          <Text style={{ fontSize: 12, color: "#EC1A52", fontWeight: "600" }}>Switch to Staff</Text>
-        </TouchableOpacity>
+        />
 
-        {/* Clock In/Out Row - Small buttons */}
+        {/* Clock In/Out Row */}
         <View className="flex-row gap-2">
-          <SmallButton
+          <SidebarButton
             title="Clock In"
-            icon={<Ionicons name="log-in-outline" size={18} color={isClockedIn ? "#848484" : "#EC1A52"} />}
+            icon={<Ionicons name="log-in-outline" size={24} color={isClockedIn ? "#848484" : "#EC1A52"} />}
             onPress={onClockInPress}
             isActive={!isClockedIn}
+            fullWidth={false}
           />
-          <SmallButton
+          <SidebarButton
             title="Clock Out"
-            icon={<Ionicons name="log-out-outline" size={18} color={isClockedIn ? "#EC1A52" : "#848484"} />}
+            icon={<Ionicons name="log-out-outline" size={24} color={isClockedIn ? "#EC1A52" : "#848484"} />}
             onPress={onClockOutPress}
             isActive={isClockedIn}
+            fullWidth={false}
           />
         </View>
 
@@ -272,49 +122,55 @@ export function Sidebar({
         {/* Divider Line - Separates clock from navigation */}
         <View className="border-t border-gray-300 my-1" />
 
-        {/* Navigation - 2 columns with larger icons */}
+        {/* Navigation - 2 columns */}
         <View className="flex-row gap-2">
-          <NavButton
+          <SidebarButton
             title="Sales History"
             icon={<MaterialCommunityIcons name="history" size={24} color={isClockedIn ? "#EC1A52" : "#848484"} />}
             onPress={() => navigateTo("/sale/sales-history")}
             isActive={isClockedIn}
+            fullWidth={false}
           />
-          <NavButton
+          <SidebarButton
             title="Sales Return"
             icon={<MaterialIcons name="assignment-return" size={24} color={isClockedIn ? "#EC1A52" : "#848484"} />}
             onPress={() => navigateTo("/sale/sales-return")}
             isActive={isClockedIn}
+            fullWidth={false}
           />
         </View>
 
         <View className="flex-row gap-2">
-          <NavButton
+          <SidebarButton
             title="Reports"
             icon={<Ionicons name="bar-chart-outline" size={24} color={isClockedIn ? "#EC1A52" : "#848484"} />}
             onPress={() => navigateTo("/sale/reports")}
             isActive={isClockedIn}
+            fullWidth={false}
           />
-          <NavButton
+          <SidebarButton
             title="Customers"
             icon={<Ionicons name="people-outline" size={24} color={isClockedIn ? "#EC1A52" : "#848484"} />}
             onPress={() => navigateTo("/sale/customers")}
             isActive={isClockedIn}
+            fullWidth={false}
           />
         </View>
 
         <View className="flex-row gap-2">
-          <NavButton
+          <SidebarButton
             title="Parked Orders"
             icon={<MaterialCommunityIcons name="pause-circle-outline" size={24} color={isClockedIn ? "#EC1A52" : "#848484"} />}
             onPress={() => navigateTo("/sale/parked-orders")}
             isActive={isClockedIn}
+            fullWidth={false}
           />
-          <NavButton
+          <SidebarButton
             title="Payments"
             icon={<Ionicons name="card-outline" size={24} color={isClockedIn ? "#EC1A52" : "#848484"} />}
             onPress={() => navigateTo("/sale/payments-history")}
             isActive={isClockedIn}
+            fullWidth={false}
           />
         </View>
 
@@ -324,42 +180,48 @@ export function Sidebar({
         </View>
 
         <View className="flex-row gap-2">
-          <NavButton
+          <SidebarButton
             title="Products"
             icon={<Ionicons name="cube-outline" size={24} color="#EC1A52" />}
             onPress={() => navigateTo("/catalog/products")}
+            fullWidth={false}
           />
-          <NavButton
+          <SidebarButton
             title="Inventory"
             icon={<Ionicons name="layers-outline" size={24} color="#EC1A52" />}
             onPress={() => navigateTo("/inventory/stocks")}
+            fullWidth={false}
           />
         </View>
 
         <View className="flex-row gap-2">
-          <NavButton
+          <SidebarButton
             title="Fulfillment"
             icon={<Ionicons name="checkmark-done-outline" size={24} color="#EC1A52" />}
             onPress={() => navigateTo("/sale/fulfillments")}
+            fullWidth={false}
           />
-          <NavButton
+          <SidebarButton
             title="Settings"
             icon={<Ionicons name="settings-outline" size={24} color="#EC1A52" />}
             onPress={() => navigateTo("/settings")}
+            fullWidth={false}
           />
         </View>
 
         {/* Bottom Actions */}
         <View className="flex-row gap-2 mt-1">
-          <NavButton
+          <SidebarButton
             title="Refresh"
             icon={<Ionicons name="refresh" size={24} color="#EC1A52" />}
             onPress={() => Alert.alert("Refresh", "Data refreshed")}
+            fullWidth={false}
           />
-          <NavButton
+          <SidebarButton
             title="Logout"
             icon={<Feather name="log-out" size={24} color="#EC1A52" />}
             onPress={handleLogout}
+            fullWidth={false}
           />
         </View>
 
