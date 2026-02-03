@@ -62,8 +62,7 @@ export function POSSidebar({
         {/* TEST: Print Receipt Button - Prominent for testing */}
         <SidebarButton
           label="🖨 PRINT RECEIPT (TEST)"
-          icon={<Ionicons name="print-outline" size={20} color="white" />}
-          variant="primary"
+          icon={<Ionicons name="print-outline" size={20} color="#374151" />}
           onPress={onPrintReceipt}
         />
 
@@ -77,7 +76,6 @@ export function POSSidebar({
         <View className="flex-row gap-2">
           <SidebarButton
             label="Add New Product"
-            variant="danger"
             fullWidth={false}
             onPress={onAddProduct}
           />
@@ -132,7 +130,6 @@ export function POSSidebar({
           />
           <SidebarButton
             label="⊕ Add Tax"
-            variant="primary"
             fullWidth={false}
           />
         </View>
@@ -141,13 +138,11 @@ export function POSSidebar({
         <View className="flex-row gap-2">
           <SidebarButton
             label="Delete Product"
-            variant="danger"
             fullWidth={false}
             onPress={onDeleteProduct}
           />
           <SidebarButton
             label="Void Payment"
-            variant="danger"
             fullWidth={false}
             onPress={onVoidPayment}
           />
@@ -186,8 +181,7 @@ export function POSSidebar({
           <>
             <SidebarButton
               label="Checkout"
-              icon={<Ionicons name="cart-outline" size={18} color="white" />}
-              variant="danger"
+              icon={<Ionicons name="cart-outline" size={18} color="#374151" />}
               onPress={onCheckout}
             />
             <SidebarButton

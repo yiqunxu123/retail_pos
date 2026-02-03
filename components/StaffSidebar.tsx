@@ -158,21 +158,22 @@ export function StaffSidebar({
           onPress={() => setViewMode("admin")}
           className="rounded-lg py-2 px-3 flex-row items-center justify-center gap-2"
           style={{
-            backgroundColor: "#1A1A1A",
+            backgroundColor: "#FFFFFF",
+            borderWidth: 1,
+            borderColor: "#EC1A52",
           }}
         >
-          <Ionicons name="swap-horizontal" size={18} color="#FFFFFF" />
-          <Text style={{ fontSize: 12, color: "#FFFFFF", fontWeight: "600" }}>Switch to Admin</Text>
+          <Ionicons name="swap-horizontal" size={18} color="#EC1A52" />
+          <Text style={{ fontSize: 12, color: "#EC1A52", fontWeight: "600" }}>Switch to Admin</Text>
         </TouchableOpacity>
 
         {/* Row 1: Time Clock | Change User */}
         <View className="flex-row gap-2">
           <StaffButton
             title="Time Clock"
-            icon={<Ionicons name="time-outline" size={24} color={isClockedIn ? "#848484" : "#FFFFFF"} />}
+            icon={<Ionicons name="time-outline" size={24} color={isClockedIn ? "#848484" : "#EC1A52"} />}
             onPress={onClockInPress}
-            isPrimary={!isClockedIn}
-            isActive={isClockedIn ? false : true}
+            isActive={!isClockedIn}
           />
           <StaffButton
             title="Change User"
@@ -228,9 +229,9 @@ export function StaffSidebar({
           <View className="flex-row gap-2">
             <StaffButton
               title="Clock Out"
-              icon={<Ionicons name="time-outline" size={24} color="#FFFFFF" />}
+              icon={<Ionicons name="time-outline" size={24} color="#EC1A52" />}
               onPress={onClockOutPress}
-              isPrimary={true}
+              isActive={true}
             />
             <StaffButton
               title="Settings"
@@ -254,19 +255,19 @@ export function StaffSidebar({
           <TouchableOpacity
             onPress={() => Alert.alert("Refresh", "Data refreshed")}
             className="flex-1 rounded-lg py-3 justify-center items-center flex-row gap-1"
-            style={{ backgroundColor: "#EC1A52" }}
+            style={{ backgroundColor: "#FFFFFF", borderWidth: 1, borderColor: "#EC1A52" }}
           >
-            <Ionicons name="refresh" size={18} color="#FFFFFF" />
-            <Text className="text-white font-semibold" style={{ fontSize: 14 }}>Refresh</Text>
+            <Ionicons name="refresh" size={18} color="#EC1A52" />
+            <Text style={{ fontSize: 14, color: "#EC1A52", fontWeight: "500" }}>Refresh</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
             onPress={() => Alert.alert("Exit", "This would exit the POS application")}
             className="flex-1 rounded-lg py-3 justify-center items-center flex-row gap-1"
-            style={{ backgroundColor: "#E43A00" }}
+            style={{ backgroundColor: "#FFFFFF", borderWidth: 1, borderColor: "#EC1A52" }}
           >
-            <Ionicons name="close-circle-outline" size={18} color="#FFFFFF" />
-            <Text className="text-white font-semibold" style={{ fontSize: 14 }}>Exit</Text>
+            <Ionicons name="close-circle-outline" size={18} color="#EC1A52" />
+            <Text style={{ fontSize: 14, color: "#EC1A52", fontWeight: "500" }}>Exit</Text>
           </TouchableOpacity>
         </View>
       </ScrollView>

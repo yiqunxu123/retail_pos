@@ -231,26 +231,24 @@ export function Sidebar({
         <TouchableOpacity
           onPress={() => setViewMode("staff")}
           className="rounded-lg py-2 px-3 flex-row items-center justify-center gap-2"
-          style={{ backgroundColor: "#1A1A1A" }}
+          style={{ backgroundColor: "#FFFFFF", borderWidth: 1, borderColor: "#EC1A52" }}
         >
-          <Ionicons name="swap-horizontal" size={16} color="#FFFFFF" />
-          <Text style={{ fontSize: 12, color: "#FFFFFF", fontWeight: "600" }}>Switch to Staff</Text>
+          <Ionicons name="swap-horizontal" size={16} color="#EC1A52" />
+          <Text style={{ fontSize: 12, color: "#EC1A52", fontWeight: "600" }}>Switch to Staff</Text>
         </TouchableOpacity>
 
         {/* Clock In/Out Row - Small buttons */}
         <View className="flex-row gap-2">
           <SmallButton
             title="Clock In"
-            icon={<Ionicons name="log-in-outline" size={18} color={isClockedIn ? "#848484" : "#FFFFFF"} />}
+            icon={<Ionicons name="log-in-outline" size={18} color={isClockedIn ? "#848484" : "#EC1A52"} />}
             onPress={onClockInPress}
-            variant={isClockedIn ? "default" : "primary"}
             isActive={!isClockedIn}
           />
           <SmallButton
             title="Clock Out"
-            icon={<Ionicons name="log-out-outline" size={18} color={isClockedIn ? "#FFFFFF" : "#848484"} />}
+            icon={<Ionicons name="log-out-outline" size={18} color={isClockedIn ? "#EC1A52" : "#848484"} />}
             onPress={onClockOutPress}
-            variant={isClockedIn ? "primary" : "default"}
             isActive={isClockedIn}
           />
         </View>
@@ -355,15 +353,13 @@ export function Sidebar({
         <View className="flex-row gap-2 mt-1">
           <NavButton
             title="Refresh"
-            icon={<Ionicons name="refresh" size={24} color="#FFFFFF" />}
+            icon={<Ionicons name="refresh" size={24} color="#EC1A52" />}
             onPress={() => Alert.alert("Refresh", "Data refreshed")}
-            variant="primary"
           />
           <NavButton
             title="Logout"
-            icon={<Feather name="log-out" size={24} color="#FFFFFF" />}
+            icon={<Feather name="log-out" size={24} color="#EC1A52" />}
             onPress={handleLogout}
-            variant="danger"
           />
         </View>
 

@@ -178,10 +178,10 @@ export default function StaffPageLayout({ children, sidebarCustomButtons, title,
 
           <SidebarButton 
             title="Exit Program"
-            icon={<Ionicons name="close-circle-outline" size={20} color="#FFFFFF" />}
+            icon={<Ionicons name="close-circle-outline" size={20} color="#EC1A52" />}
             onPress={handleExit}
-            bgColor="#E43A00"
-            textColor="#FFFFFF"
+            textColor="#EC1A52"
+            borderColor="#EC1A52"
             borderColor="#E43A00"
           />
           
