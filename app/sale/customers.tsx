@@ -149,14 +149,12 @@ export default function CustomersScreen() {
   );
 
   return (
-    <StaffPageLayout sidebarCustomButtons={sidebarButtons}>
+    <StaffPageLayout 
+      sidebarCustomButtons={sidebarButtons}
+      title="Customers"
+      subTitle="Search by Customer Name, ID"
+    >
       <View className="flex-1 bg-white">
-        {/* Header */}
-        <View className="px-6 py-4">
-          <Text className="text-2xl font-bold text-gray-900">Customers</Text>
-          <Text className="text-gray-500 text-sm mt-1">Search by Customer Name, ID</Text>
-        </View>
-
         {/* Search Bar */}
         <View className="px-6 pb-4">
           <View className="flex-row items-center gap-3">
