@@ -19,6 +19,8 @@ import { useParkedOrders } from "../contexts/ParkedOrderContext";
 import { useViewMode } from "../contexts/ViewModeContext";
 import { 
   print, 
+  printToAll,
+  printToOne,
   openCashDrawer, 
   addPrinterListener, 
   getPoolStatus,
@@ -55,6 +57,7 @@ export default function Dashboard() {
   const [printerIp, setPrinterIp] = useState(DEFAULT_PRINTER_IP);
   const [printerPort, setPrinterPort] = useState(DEFAULT_PRINTER_PORT);
   const [clockDuration, setClockDuration] = useState("00:00:00");
+  const [printerList, setPrinterList] = useState<{ id: string; name: string }[]>([]);
   
   // Parked orders
   const { parkedOrders, resumeOrder, deleteParkedOrder } = useParkedOrders();
@@ -119,6 +122,9 @@ export default function Dashboard() {
       // 如果池中已有打印机，说明已初始化过，跳过
       if (getPrinters().length > 0) {
         console.log("🖨️ [Dashboard] Pool already has printers, skipping init");
+        // 更新打印机列表状态
+        const currentPrinters = getPrinters().filter(p => p.enabled);
+        setPrinterList(currentPrinters.map(p => ({ id: p.id, name: p.name })));
         return;
       }
       
@@ -144,12 +150,16 @@ export default function Dashboard() {
           console.log("🖨️ [Dashboard] No saved printer config");
         }
         
-        // Log final pool status
+        // Log final pool status and update state
         const status = getPoolStatus();
         console.log("🖨️ [Dashboard] Pool initialized:", status.printers.length, "printers");
         status.printers.forEach(p => {
           console.log("   -", p.id, `(${p.name})`, p.enabled ? "enabled" : "disabled", p.status);
         });
+        
+        // 更新打印机列表状态
+        const enabledPrinters = status.printers.filter(p => p.enabled);
+        setPrinterList(enabledPrinters.map(p => ({ id: p.id, name: p.name })));
       } catch (e) {
         console.log("🖨️ [Dashboard] Failed to init printer pool:", e);
       }
@@ -161,6 +171,11 @@ export default function Dashboard() {
       console.log("🖨️ [Dashboard] Print event:", event.type, event.jobId || "", event.printerId || "");
       if (event.type === 'job_failed') {
         Alert.alert("Print Error", `Failed to print: ${event.data?.error || 'Unknown error'}`);
+      }
+      // 更新打印机列表（状态可能变化）
+      if (event.type === 'printer_added' || event.type === 'printer_removed') {
+        const currentPrinters = getPrinters().filter(p => p.enabled);
+        setPrinterList(currentPrinters.map(p => ({ id: p.id, name: p.name })));
       }
     });
     
@@ -195,51 +210,61 @@ Cookies               x3    $6.00
 `;
   };
 
-  // Test print function
-  const handleTestPrint = () => {
+  // Test print function - 支持指定打印机或全部打印
+  const handleTestPrint = async (printerIndex?: number | 'all') => {
     try {
-      console.log("🖨️ [Dashboard] ========== Test print triggered ==========");
-      
       if (!isClockedIn) {
         clockIn("TEST-001", 1);
       }
 
-      const poolStatus = getPoolStatus();
-      const hasEnabledPrinters = poolStatus.printers.some(p => p.enabled);
-      const moduleAvailable = isAnyPrinterModuleAvailable();
-
-      // 构建状态信息
-      const idlePrinters = poolStatus.printers.filter(p => p.enabled && p.status === 'idle').length;
-      const busyPrinters = poolStatus.printers.filter(p => p.status === 'busy').length;
-      const statusMsg = `打印机: ${poolStatus.printers.length}台 (空闲${idlePrinters}/忙${busyPrinters}) | 队列: ${poolStatus.queueLength}`;
-
-      console.log("🖨️ [Dashboard] Pool status:", {
-        printerCount: poolStatus.printers.length,
-        hasEnabledPrinters,
-        moduleAvailable,
-        queueLength: poolStatus.queueLength,
-        printers: poolStatus.printers.map(p => `${p.id}(${p.status})`).join(", ")
-      });
-
-      if (!moduleAvailable || !hasEnabledPrinters) {
-        console.log("🖨️ [Dashboard] No available printer, showing toast");
-        ToastAndroid.show(`❌ 无可用打印机 | ${statusMsg}`, ToastAndroid.LONG);
+      if (printerList.length === 0) {
+        ToastAndroid.show(`❌ 无可用打印机`, ToastAndroid.LONG);
         return;
       }
 
       const receipt = buildTestReceipt();
-      console.log("🖨️ [Dashboard] Calling print()...");
-      const jobId = print(receipt);
-      console.log("🖨️ [Dashboard] Print job queued:", jobId);
-      
-      // 显示打印机状态
-      const newStatus = getPoolStatus();
-      const busyCount = newStatus.printers.filter(p => p.status === 'busy').length;
-      const idleCount = newStatus.printers.filter(p => p.status === 'idle' && p.enabled).length;
-      ToastAndroid.show(
-        `✅ 打印任务已发送 | 打印中: ${busyCount} | 空闲: ${idleCount} | 等待: ${newStatus.queueLength}`,
-        ToastAndroid.LONG
-      );
+
+      if (printerIndex === 'all') {
+        // 并行打印到所有打印机 (Promise.all)
+        console.log("🖨️ [Dashboard] ========== PARALLEL Print to ALL ==========");
+        ToastAndroid.show(`⏳ 并行打印中...`, ToastAndroid.SHORT);
+        
+        const result = await printToAll(receipt);
+        
+        if (result.success) {
+          const successPrinters = result.results.filter(r => r.success).map(r => r.printer);
+          const failedPrinters = result.results.filter(r => !r.success).map(r => r.printer);
+          
+          if (failedPrinters.length === 0) {
+            ToastAndroid.show(`✅ 全部成功: ${successPrinters.join(', ')}`, ToastAndroid.LONG);
+          } else {
+            ToastAndroid.show(`⚠️ 成功: ${successPrinters.join(', ')} | 失败: ${failedPrinters.join(', ')}`, ToastAndroid.LONG);
+          }
+        } else {
+          ToastAndroid.show(`❌ 全部打印失败`, ToastAndroid.LONG);
+        }
+      } else if (typeof printerIndex === 'number') {
+        // TCP 直连打印到指定打印机（500ms 超时，不阻塞）
+        const targetPrinter = printerList[printerIndex];
+        if (!targetPrinter) {
+          ToastAndroid.show(`❌ 打印机 ${printerIndex + 1} 不存在`, ToastAndroid.LONG);
+          return;
+        }
+        console.log(`🖨️ [Dashboard] ========== Direct print to: ${targetPrinter.name} ==========`);
+        ToastAndroid.show(`⏳ 打印中...`, ToastAndroid.SHORT);
+        
+        const result = await printToOne(targetPrinter.id, receipt);
+        if (result.success) {
+          ToastAndroid.show(`✅ ${targetPrinter.name} 打印成功`, ToastAndroid.LONG);
+        } else {
+          ToastAndroid.show(`❌ ${targetPrinter.name} 失败: ${result.error}`, ToastAndroid.LONG);
+        }
+      } else {
+        // 默认负载均衡
+        console.log("🖨️ [Dashboard] ========== Print (load balanced) ==========");
+        print(receipt);
+        ToastAndroid.show(`✅ 打印任务已发送`, ToastAndroid.LONG);
+      }
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
       console.log("🖨️ [Dashboard] ERROR:", msg, err);
@@ -683,29 +708,64 @@ Cookies               x3    $6.00
           </Text>
         </TouchableOpacity>
 
-        {/* Print Test Button */}
-        <TouchableOpacity
-          onPress={handleTestPrint}
-          style={{
-            backgroundColor: "#ef4444",
-            paddingVertical: 16,
-            paddingHorizontal: 24,
-            borderRadius: 12,
-            flexDirection: "row",
-            alignItems: "center",
-            gap: 8,
-            shadowColor: "#000",
-            shadowOffset: { width: 0, height: 4 },
-            shadowOpacity: 0.3,
-            shadowRadius: 4,
-            elevation: 8,
-          }}
-        >
-          <Ionicons name="print" size={24} color="white" />
-          <Text style={{ color: "white", fontWeight: "bold", fontSize: 16 }}>
-            TEST PRINT
-          </Text>
-        </TouchableOpacity>
+        {/* Print Test Buttons - 动态生成，支持任意数量打印机 */}
+        {printerList.map((printer, index) => {
+          // 为每台打印机分配不同颜色
+          const colors = ['#ef4444', '#f97316', '#eab308', '#22c55e', '#06b6d4', '#3b82f6', '#8b5cf6', '#ec4899'];
+          const bgColor = colors[index % colors.length];
+          
+          return (
+            <TouchableOpacity
+              key={printer.id}
+              onPress={() => handleTestPrint(index)}
+              style={{
+                backgroundColor: bgColor,
+                paddingVertical: 12,
+                paddingHorizontal: 16,
+                borderRadius: 12,
+                flexDirection: "row",
+                alignItems: "center",
+                gap: 6,
+                shadowColor: "#000",
+                shadowOffset: { width: 0, height: 4 },
+                shadowOpacity: 0.3,
+                shadowRadius: 4,
+                elevation: 8,
+              }}
+            >
+              <Ionicons name="print" size={20} color="white" />
+              <Text style={{ color: "white", fontWeight: "bold", fontSize: 14 }}>
+                {printer.name}
+              </Text>
+            </TouchableOpacity>
+          );
+        })}
+
+        {/* 全部打印按钮 - 只有多于1台打印机时显示 */}
+        {printerList.length >= 2 && (
+          <TouchableOpacity
+            onPress={() => handleTestPrint('all')}
+            style={{
+              backgroundColor: "#7c3aed",
+              paddingVertical: 12,
+              paddingHorizontal: 16,
+              borderRadius: 12,
+              flexDirection: "row",
+              alignItems: "center",
+              gap: 6,
+              shadowColor: "#000",
+              shadowOffset: { width: 0, height: 4 },
+              shadowOpacity: 0.3,
+              shadowRadius: 4,
+              elevation: 8,
+            }}
+          >
+            <Ionicons name="print-outline" size={20} color="white" />
+            <Text style={{ color: "white", fontWeight: "bold", fontSize: 14 }}>
+              全部({printerList.length})
+            </Text>
+          </TouchableOpacity>
+        )}
       </View>
     </View>
   );
