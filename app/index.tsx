@@ -244,18 +244,18 @@ Cookies               x3    $6.00
           ToastAndroid.show(`❌ 全部打印失败`, ToastAndroid.LONG);
         }
       } else if (typeof printerIndex === 'number') {
-        // TCP 直连打印到指定打印机（500ms 超时，不阻塞）
+        // 打印到指定打印机（使用 TCP，不阻塞）
         const targetPrinter = printerList[printerIndex];
         if (!targetPrinter) {
           ToastAndroid.show(`❌ 打印机 ${printerIndex + 1} 不存在`, ToastAndroid.LONG);
           return;
         }
-        console.log(`🖨️ [Dashboard] ========== Direct print to: ${targetPrinter.name} ==========`);
+        console.log(`🖨️ [Dashboard] ========== Print to: ${targetPrinter.name} ==========`);
         ToastAndroid.show(`⏳ 打印中...`, ToastAndroid.SHORT);
         
         const result = await printToOne(targetPrinter.id, receipt);
         if (result.success) {
-          ToastAndroid.show(`✅ ${targetPrinter.name} 打印成功`, ToastAndroid.LONG);
+          ToastAndroid.show(`✅ ${targetPrinter.name} 成功`, ToastAndroid.LONG);
         } else {
           ToastAndroid.show(`❌ ${targetPrinter.name} 失败: ${result.error}`, ToastAndroid.LONG);
         }

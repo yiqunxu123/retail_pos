@@ -803,89 +803,113 @@ const convertToEscPos = (text: string): string => {
   return result;
 };
 
-// TCP 打印配置（极短超时，快速失败）
-const TCP_CONFIG = {
-  TIMEOUT: 500,            // 总超时 500ms（连接+发送）
-  PROCESS_DELAY: 100,      // 等待打印机处理 100ms
-  MAX_RETRIES: 0,          // 不重试，失败就跳过
-};
+// TCP 打印配置
+const TCP_TIMEOUT = 500;  // 固定 500ms 超时
 
 /**
- * 单次 TCP 打印（内部实现）
+ * 简单 TCP 打印（固定 500ms 超时，超时强制断开）
+ * 不等待任何响应，发完就断
  */
-const tcpPrintInternal = (ip: string, port: number, escPosData: string, printerName: string): Promise<void> => {
+const printViaTcpOnce = (ip: string, port: number, escPosData: string, printerName: string): Promise<void> => {
   return new Promise((resolve, reject) => {
-    const startTime = Date.now();
-    let isDone = false;
     let client: ReturnType<typeof TcpSocket.createConnection> | null = null;
+    let done = false;
     
-    const finish = (success: boolean, error?: Error) => {
-      if (isDone) return;
-      isDone = true;
+    const finish = (success: boolean, error?: string) => {
+      if (done) return;
+      done = true;
+      
+      // 强制清理 socket
       if (client) {
-        try { client.destroy(); } catch {}
+        try { 
+          client.removeAllListeners();
+          client.destroy(); 
+        } catch {}
         client = null;
       }
+      
       if (success) {
+        log.success(`✅ [${printerName}] OK`);
         resolve();
       } else {
-        reject(error || new Error('Unknown error'));
+        log.error(`❌ [${printerName}] ${error || 'Failed'}`);
+        reject(new Error(error || 'Failed'));
       }
     };
     
+    // 500ms 硬超时 - 不管什么状态都强制结束
+    const timer = setTimeout(() => finish(false, 'Timeout'), TCP_TIMEOUT);
+    
     try {
       client = TcpSocket.createConnection({ host: ip, port: port }, () => {
-        if (isDone) return;
-        const connectTime = Date.now() - startTime;
-        log.info(`✅ [${printerName}] Connected ${connectTime}ms`);
+        if (done) return;
         
-        client!.write(escPosData, 'binary', (err) => {
-          if (isDone) return;
-          if (err) {
-            log.error(`❌ [${printerName}] Write error`);
-            finish(false, err);
-            return;
-          }
-          
-          log.info(`📤 [${printerName}] Sent, waiting...`);
-          setTimeout(() => {
-            if (isDone) return;
-            const total = Date.now() - startTime;
-            log.success(`✅ [${printerName}] Done ${total}ms`);
+        // 连接成功，立即发送数据
+        try {
+          client!.write(escPosData, 'binary', () => {
+            // 发送完成，不等待响应，直接成功
+            clearTimeout(timer);
             finish(true);
-          }, TCP_CONFIG.PROCESS_DELAY);
-        });
+          });
+        } catch (e) {
+          clearTimeout(timer);
+          finish(false, 'Write failed');
+        }
       });
       
-      client.on('error', (err) => {
-        if (isDone) return;
-        log.error(`❌ [${printerName}] ${err.message}`);
-        finish(false, err);
+      // 错误处理
+      client.on('error', () => {
+        clearTimeout(timer);
+        finish(false, 'Connect failed');
+      });
+      
+      // 设置 socket 超时（双保险）
+      client.setTimeout(TCP_TIMEOUT);
+      client.on('timeout', () => {
+        clearTimeout(timer);
+        finish(false, 'Socket timeout');
       });
       
     } catch (err) {
-      finish(false, err instanceof Error ? err : new Error(String(err)));
+      clearTimeout(timer);
+      finish(false, 'Create failed');
     }
   });
 };
 
-/**
- * 单次 TCP 打印（500ms 硬超时，超时立即放弃）
- */
-const printViaTcpOnce = async (ip: string, port: number, escPosData: string, printerName: string): Promise<void> => {
-  log.info(`🔌 [${printerName}] → ${ip}`);
-  
-  // 硬超时 Promise
-  const timeoutPromise = new Promise<never>((_, reject) => {
-    setTimeout(() => reject(new Error('Timeout')), TCP_CONFIG.TIMEOUT);
-  });
-  
-  await Promise.race([
-    tcpPrintInternal(ip, port, escPosData, printerName),
-    timeoutPromise
-  ]);
-};
 
+/**
+ * 打印到单台打印机（使用 TCP，不阻塞）
+ */
+export const printToOne = async (printerId: string, data: string): Promise<{ success: boolean; error?: string }> => {
+  const printer = printerPool.getPrinter(printerId);
+  
+  if (!printer) {
+    return { success: false, error: 'Printer not found' };
+  }
+  
+  if (!printer.enabled) {
+    return { success: false, error: 'Printer disabled' };
+  }
+  
+  if (!printer.ip) {
+    return { success: false, error: 'No IP configured' };
+  }
+  
+  log.info(`🖨️ Print to ${printer.name} (${printer.ip})`);
+  
+  const escPosData = convertToEscPos(data);
+  
+  try {
+    await printViaTcpOnce(printer.ip, printer.port || 9100, escPosData, printer.name);
+    printer.jobsCompleted++;
+    printer.lastActiveAt = Date.now();
+    return { success: true };
+  } catch (err) {
+    const errorMsg = err instanceof Error ? err.message : String(err);
+    return { success: false, error: errorMsg };
+  }
+};
 
 /** 
  * 真正并行打印到所有启用的打印机
@@ -953,40 +977,6 @@ export const printToAll = async (data: string): Promise<{
     success: successCount > 0, 
     results 
   };
-};
-
-/**
- * TCP 直连打印到单台打印机（不经过队列，500ms 超时）
- */
-export const printToOne = async (printerId: string, data: string): Promise<{ 
-  success: boolean; 
-  error?: string 
-}> => {
-  const printer = printerPool.getPrinter(printerId);
-  
-  if (!printer) {
-    return { success: false, error: 'Printer not found' };
-  }
-  if (!printer.enabled) {
-    return { success: false, error: 'Printer disabled' };
-  }
-  if (!printer.ip) {
-    return { success: false, error: 'No IP configured' };
-  }
-  
-  log.info(`🖨️ Direct print to ${printer.name} (${printer.ip})`);
-  
-  const escPosData = convertToEscPos(data);
-  
-  try {
-    await printViaTcpOnce(printer.ip, printer.port || 9100, escPosData, printer.name);
-    printer.jobsCompleted++;
-    printer.lastActiveAt = Date.now();
-    return { success: true };
-  } catch (err) {
-    const errorMsg = err instanceof Error ? err.message : String(err);
-    return { success: false, error: errorMsg };
-  }
 };
 
 /** 清空队列 */
