@@ -1,8 +1,8 @@
 import { FontAwesome5, Ionicons, MaterialCommunityIcons, MaterialIcons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useRouter } from "expo-router";
-import { useEffect, useState } from "react";
-import { Alert, ScrollView, Text, TouchableOpacity, useWindowDimensions, View } from "react-native";
+import { useEffect, useRef, useState } from "react";
+import { Alert, ScrollView, Text, ToastAndroid, TouchableOpacity, useWindowDimensions, View } from "react-native";
 import {
   Header,
   SIDEBAR_WIDTH,
@@ -17,7 +17,18 @@ import { useAuth } from "../contexts/AuthContext";
 import { useClock } from "../contexts/ClockContext";
 import { useParkedOrders } from "../contexts/ParkedOrderContext";
 import { useViewMode } from "../contexts/ViewModeContext";
-import { addPrintJob, isPrinterAvailable, openCashDrawer, printQueue, setPrinterConfig } from "../utils/PrintQueue";
+import { 
+  print, 
+  printToAll,
+  printToOne,
+  openCashDrawer, 
+  addPrinterListener, 
+  getPoolStatus,
+  getPrinters,
+  addPrinter,
+  isAnyPrinterModuleAvailable,
+  logPoolStatus,
+} from "../utils/PrinterPoolManager";
 import { useDashboardStats } from "../utils/powersync/hooks";
 
 // Default printer configuration
@@ -46,6 +57,7 @@ export default function Dashboard() {
   const [printerIp, setPrinterIp] = useState(DEFAULT_PRINTER_IP);
   const [printerPort, setPrinterPort] = useState(DEFAULT_PRINTER_PORT);
   const [clockDuration, setClockDuration] = useState("00:00:00");
+  const [printerList, setPrinterList] = useState<{ id: string; name: string }[]>([]);
   
   // Parked orders
   const { parkedOrders, resumeOrder, deleteParkedOrder } = useParkedOrders();
@@ -102,16 +114,76 @@ export default function Dashboard() {
     loadSettings();
   }, []);
 
-  // Initialize printer config
+  // Initialize printer pool from saved settings - 只运行一次
   useEffect(() => {
-    setPrinterConfig({ ip: printerIp, port: printerPort });
-    const unsubscribe = printQueue.addListener((status, job) => {
-      if (status === 'failed') {
-        Alert.alert("Print Error", "Failed to print receipt.");
+    let isMounted = true;
+    
+    const initPrinterPool = async () => {
+      // 如果池中已有打印机，说明已初始化过，跳过
+      if (getPrinters().length > 0) {
+        console.log("🖨️ [Dashboard] Pool already has printers, skipping init");
+        // 更新打印机列表状态
+        const currentPrinters = getPrinters().filter(p => p.enabled);
+        setPrinterList(currentPrinters.map(p => ({ id: p.id, name: p.name })));
+        return;
+      }
+      
+      console.log("🖨️ [Dashboard] Initializing printer pool...");
+      try {
+        // Load printer pool config from AsyncStorage
+        const savedConfig = await AsyncStorage.getItem("printer_pool_config");
+        console.log("🖨️ [Dashboard] Saved config:", savedConfig ? "found" : "not found");
+        console.log("🖨️ [Dashboard] Raw config:", savedConfig);
+        
+        if (!isMounted) return;
+        
+        if (savedConfig) {
+          const printers = JSON.parse(savedConfig);
+          console.log("🖨️ [Dashboard] Loading", printers.length, "printers from config");
+          printers.forEach((p: any) => {
+            if (!getPrinters().find(existing => existing.id === p.id)) {
+              console.log("🖨️ [Dashboard] Adding printer:", p.id, p.name);
+              addPrinter(p);
+            }
+          });
+        } else {
+          console.log("🖨️ [Dashboard] No saved printer config");
+        }
+        
+        // Log final pool status and update state
+        const status = getPoolStatus();
+        console.log("🖨️ [Dashboard] Pool initialized:", status.printers.length, "printers");
+        status.printers.forEach(p => {
+          console.log("   -", p.id, `(${p.name})`, p.enabled ? "enabled" : "disabled", p.status);
+        });
+        
+        // 更新打印机列表状态
+        const enabledPrinters = status.printers.filter(p => p.enabled);
+        setPrinterList(enabledPrinters.map(p => ({ id: p.id, name: p.name })));
+      } catch (e) {
+        console.log("🖨️ [Dashboard] Failed to init printer pool:", e);
+      }
+    };
+    initPrinterPool();
+
+    // Listen to print events
+    const unsubscribe = addPrinterListener((event) => {
+      console.log("🖨️ [Dashboard] Print event:", event.type, event.jobId || "", event.printerId || "");
+      if (event.type === 'job_failed') {
+        Alert.alert("Print Error", `Failed to print: ${event.data?.error || 'Unknown error'}`);
+      }
+      // 更新打印机列表（状态可能变化）
+      if (event.type === 'printer_added' || event.type === 'printer_removed') {
+        const currentPrinters = getPrinters().filter(p => p.enabled);
+        setPrinterList(currentPrinters.map(p => ({ id: p.id, name: p.name })));
       }
     });
-    return () => unsubscribe();
-  }, [printerIp, printerPort]);
+    
+    return () => {
+      isMounted = false;
+      unsubscribe();
+    };
+  }, []); // 移除依赖，只运行一次
 
   // Test receipt content
   const buildTestReceipt = (): string => {
@@ -138,28 +210,65 @@ Cookies               x3    $6.00
 `;
   };
 
-  // Test print function
-  const handleTestPrint = () => {
-    if (!isClockedIn) {
-      clockIn("TEST-001", 1);
-      Alert.alert("Clock In", "Clocked in as TEST-001 on POS Line 1");
-    }
-
-    if (!isPrinterAvailable('ethernet')) {
-      Alert.alert(
-        "Printer Not Available",
-        "Thermal printer requires a development build.\n\nReceipt Preview:\n" + buildTestReceipt().substring(0, 200) + "...",
-        [{ text: "OK" }]
-      );
-      return;
-    }
-
+  // Test print function - 支持指定打印机或全部打印
+  const handleTestPrint = async (printerIndex?: number | 'all') => {
     try {
+      if (!isClockedIn) {
+        clockIn("TEST-001", 1);
+      }
+
+      if (printerList.length === 0) {
+        ToastAndroid.show(`❌ 无可用打印机`, ToastAndroid.LONG);
+        return;
+      }
+
       const receipt = buildTestReceipt();
-      addPrintJob('ethernet', receipt);
+
+      if (printerIndex === 'all') {
+        // 并行打印到所有打印机 (Promise.all)
+        console.log("🖨️ [Dashboard] ========== PARALLEL Print to ALL ==========");
+        ToastAndroid.show(`⏳ 并行打印中...`, ToastAndroid.SHORT);
+        
+        const result = await printToAll(receipt);
+        
+        if (result.success) {
+          const successPrinters = result.results.filter(r => r.success).map(r => r.printer);
+          const failedPrinters = result.results.filter(r => !r.success).map(r => r.printer);
+          
+          if (failedPrinters.length === 0) {
+            ToastAndroid.show(`✅ 全部成功: ${successPrinters.join(', ')}`, ToastAndroid.LONG);
+          } else {
+            ToastAndroid.show(`⚠️ 成功: ${successPrinters.join(', ')} | 失败: ${failedPrinters.join(', ')}`, ToastAndroid.LONG);
+          }
+        } else {
+          ToastAndroid.show(`❌ 全部打印失败`, ToastAndroid.LONG);
+        }
+      } else if (typeof printerIndex === 'number') {
+        // TCP 直连打印到指定打印机（500ms 超时，不阻塞）
+        const targetPrinter = printerList[printerIndex];
+        if (!targetPrinter) {
+          ToastAndroid.show(`❌ 打印机 ${printerIndex + 1} 不存在`, ToastAndroid.LONG);
+          return;
+        }
+        console.log(`🖨️ [Dashboard] ========== Direct print to: ${targetPrinter.name} ==========`);
+        ToastAndroid.show(`⏳ 打印中...`, ToastAndroid.SHORT);
+        
+        const result = await printToOne(targetPrinter.id, receipt);
+        if (result.success) {
+          ToastAndroid.show(`✅ ${targetPrinter.name} 打印成功`, ToastAndroid.LONG);
+        } else {
+          ToastAndroid.show(`❌ ${targetPrinter.name} 失败: ${result.error}`, ToastAndroid.LONG);
+        }
+      } else {
+        // 默认负载均衡
+        console.log("🖨️ [Dashboard] ========== Print (load balanced) ==========");
+        print(receipt);
+        ToastAndroid.show(`✅ 打印任务已发送`, ToastAndroid.LONG);
+      }
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
-      Alert.alert("Print Error", msg);
+      console.log("🖨️ [Dashboard] ERROR:", msg, err);
+      ToastAndroid.show(`❌ 错误: ${msg}`, ToastAndroid.LONG);
     }
   };
 
@@ -210,7 +319,7 @@ Cookies               x3    $6.00
                 className="font-semibold"
                 style={{ fontSize: 16, color: "#1A1A1A" }}
               >
-                {user?.role?.toUpperCase() || "CASHIER"}
+                STAFF
               </Text>
             </View>
           </View>
@@ -276,19 +385,22 @@ Cookies               x3    $6.00
           <View className="flex-row gap-4 mb-4">
             <TouchableOpacity
               onPress={async () => {
-                // Check if ethernet printer is available
-                if (!isPrinterAvailable('ethernet')) {
+                // Check if any printer is available in pool
+                const poolStatus = getPoolStatus();
+                const hasIdlePrinter = poolStatus.printers.some(p => p.enabled && p.status === 'idle');
+
+                if (!isAnyPrinterModuleAvailable() || !hasIdlePrinter) {
                   Alert.alert(
                     "Printer Not Available",
-                    "Cash drawer requires a connected ethernet printer.\n\nMake sure you're running a development build with printer support.",
+                    "Cash drawer requires a connected printer.\n\nPlease configure a printer in Settings.",
                     [{ text: "OK" }]
                   );
                   return;
                 }
 
-                // Directly open drawer via ethernet
+                // Open drawer via pool (auto-select available printer)
                 try {
-                  await openCashDrawer('ethernet');
+                  await openCashDrawer();
                   Alert.alert("Success", "Cash drawer opened");
                 } catch (error: any) {
                   Alert.alert("Error", error.message || "Failed to open cash drawer");
@@ -459,65 +571,12 @@ Cookies               x3    $6.00
         contentContainerClassName="p-4"
         showsVerticalScrollIndicator={false}
       >
-        {/* ===== VIEW MODE TOGGLE ===== */}
-        <View className="flex-row gap-2 mb-4">
-          <TouchableOpacity
-            onPress={() => setViewMode("admin")}
-            className="flex-1 py-3 px-4 rounded-xl flex-row items-center justify-center gap-2"
-            style={{
-              backgroundColor: viewMode === "admin" ? "#EC1A52" : "#FFFFFF",
-              borderWidth: 2,
-              borderColor: "#EC1A52",
-            }}
-          >
-            <Ionicons 
-              name="shield-checkmark-outline" 
-              size={20} 
-              color={viewMode === "admin" ? "#FFFFFF" : "#EC1A52"} 
-            />
-            <Text 
-              className="font-semibold"
-              style={{ 
-                color: viewMode === "admin" ? "#FFFFFF" : "#EC1A52",
-                fontSize: 16,
-              }}
-            >
-              Admin Mode
-            </Text>
-          </TouchableOpacity>
-          
-          <TouchableOpacity
-            onPress={() => setViewMode("staff")}
-            className="flex-1 py-3 px-4 rounded-xl flex-row items-center justify-center gap-2"
-            style={{
-              backgroundColor: viewMode === "staff" ? "#5F4BB6" : "#FFFFFF",
-              borderWidth: 2,
-              borderColor: "#5F4BB6",
-            }}
-          >
-            <Ionicons 
-              name="people-outline" 
-              size={20} 
-              color={viewMode === "staff" ? "#FFFFFF" : "#5F4BB6"} 
-            />
-            <Text 
-              className="font-semibold"
-              style={{ 
-                color: viewMode === "staff" ? "#FFFFFF" : "#5F4BB6",
-                fontSize: 16,
-              }}
-            >
-              Staff Mode
-            </Text>
-          </TouchableOpacity>
-        </View>
-
         {/* ===== HEADER GROUP ===== */}
         <View className="bg-white rounded-xl p-4 border border-gray-100">
           <Header
             title={`Welcome, ${user?.name || "User"}`}
             subtitle="Access sales, reporting, and system actions quickly and securely."
-            badge={user?.role?.toUpperCase() || "USER"}
+            badge={isStaffMode ? "STAFF" : "ADMIN"}
           />
         </View>
 
@@ -649,29 +708,64 @@ Cookies               x3    $6.00
           </Text>
         </TouchableOpacity>
 
-        {/* Print Test Button */}
-        <TouchableOpacity
-          onPress={handleTestPrint}
-          style={{
-            backgroundColor: "#ef4444",
-            paddingVertical: 16,
-            paddingHorizontal: 24,
-            borderRadius: 12,
-            flexDirection: "row",
-            alignItems: "center",
-            gap: 8,
-            shadowColor: "#000",
-            shadowOffset: { width: 0, height: 4 },
-            shadowOpacity: 0.3,
-            shadowRadius: 4,
-            elevation: 8,
-          }}
-        >
-          <Ionicons name="print" size={24} color="white" />
-          <Text style={{ color: "white", fontWeight: "bold", fontSize: 16 }}>
-            TEST PRINT
-          </Text>
-        </TouchableOpacity>
+        {/* Print Test Buttons - 动态生成，支持任意数量打印机 */}
+        {printerList.map((printer, index) => {
+          // 为每台打印机分配不同颜色
+          const colors = ['#ef4444', '#f97316', '#eab308', '#22c55e', '#06b6d4', '#3b82f6', '#8b5cf6', '#ec4899'];
+          const bgColor = colors[index % colors.length];
+          
+          return (
+            <TouchableOpacity
+              key={printer.id}
+              onPress={() => handleTestPrint(index)}
+              style={{
+                backgroundColor: bgColor,
+                paddingVertical: 12,
+                paddingHorizontal: 16,
+                borderRadius: 12,
+                flexDirection: "row",
+                alignItems: "center",
+                gap: 6,
+                shadowColor: "#000",
+                shadowOffset: { width: 0, height: 4 },
+                shadowOpacity: 0.3,
+                shadowRadius: 4,
+                elevation: 8,
+              }}
+            >
+              <Ionicons name="print" size={20} color="white" />
+              <Text style={{ color: "white", fontWeight: "bold", fontSize: 14 }}>
+                {printer.name}
+              </Text>
+            </TouchableOpacity>
+          );
+        })}
+
+        {/* 全部打印按钮 - 只有多于1台打印机时显示 */}
+        {printerList.length >= 2 && (
+          <TouchableOpacity
+            onPress={() => handleTestPrint('all')}
+            style={{
+              backgroundColor: "#7c3aed",
+              paddingVertical: 12,
+              paddingHorizontal: 16,
+              borderRadius: 12,
+              flexDirection: "row",
+              alignItems: "center",
+              gap: 6,
+              shadowColor: "#000",
+              shadowOffset: { width: 0, height: 4 },
+              shadowOpacity: 0.3,
+              shadowRadius: 4,
+              elevation: 8,
+            }}
+          >
+            <Ionicons name="print-outline" size={20} color="white" />
+            <Text style={{ color: "white", fontWeight: "bold", fontSize: 14 }}>
+              全部({printerList.length})
+            </Text>
+          </TouchableOpacity>
+        )}
       </View>
     </View>
   );
