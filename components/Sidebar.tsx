@@ -1,5 +1,5 @@
 import { Feather, Ionicons, MaterialCommunityIcons, MaterialIcons } from "@expo/vector-icons";
-import { useRouter } from "expo-router";
+import { usePathname, useRouter } from "expo-router";
 import { useEffect, useState } from "react";
 import { Alert, ScrollView, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -40,10 +40,14 @@ export function Sidebar({
   onClockOutPress,
 }: SidebarProps) {
   const router = useRouter();
+  const pathname = usePathname();
   const insets = useSafeAreaInsets();
-  const { logout, user } = useAuth();
+  const { logout } = useAuth();
   const { isClockedIn, getClockInTimeString, getElapsedTime } = useClock();
   const { setViewMode } = useViewMode();
+  
+  // Check if we're on the dashboard/home page
+  const isDashboard = pathname === "/" || pathname === "/index";
   const [elapsedTime, setElapsedTime] = useState("00:00:00");
 
   const navigateTo = (path: string) => router.push(path as any);
@@ -77,12 +81,22 @@ export function Sidebar({
         {/* Branding */}
         <BrandingSection />
 
-        {/* Switch to Staff */}
-        <SidebarButton
-          title="Switch to Staff"
-          icon={<Ionicons name="swap-horizontal" size={20} color="#EC1A52" />}
-          onPress={() => setViewMode("staff")}
-        />
+        {/* Switch to Cashier (on dashboard) or Go to Menu (on other pages) */}
+        <View className="mb-3">
+          {isDashboard ? (
+            <SidebarButton
+              title="Switch to Cashier"
+              icon={<Ionicons name="swap-horizontal" size={20} color="#EC1A52" />}
+              onPress={() => setViewMode("staff")}
+            />
+          ) : (
+            <SidebarButton
+              title="Go to Menu"
+              icon={<Ionicons name="menu-outline" size={20} color="#EC1A52" />}
+              onPress={() => router.push("/")}
+            />
+          )}
+        </View>
 
         {/* Clock In/Out Row */}
         <View className="flex-row gap-2">
@@ -173,41 +187,6 @@ export function Sidebar({
           />
         </View>
 
-        {/* Admin Section */}
-        <View className="border-t border-gray-300 pt-1 mt-1">
-          <Text className="text-gray-500 text-center mb-1" style={{ fontSize: 10 }}>Admin Functions</Text>
-        </View>
-
-        <View className="flex-row gap-2">
-          <SidebarButton
-            title="Products"
-            icon={<Ionicons name="cube-outline" size={24} color="#EC1A52" />}
-            onPress={() => navigateTo("/catalog/products")}
-            fullWidth={false}
-          />
-          <SidebarButton
-            title="Inventory"
-            icon={<Ionicons name="layers-outline" size={24} color="#EC1A52" />}
-            onPress={() => navigateTo("/inventory/stocks")}
-            fullWidth={false}
-          />
-        </View>
-
-        <View className="flex-row gap-2">
-          <SidebarButton
-            title="Fulfillment"
-            icon={<Ionicons name="checkmark-done-outline" size={24} color="#EC1A52" />}
-            onPress={() => navigateTo("/sale/fulfillments")}
-            fullWidth={false}
-          />
-          <SidebarButton
-            title="Settings"
-            icon={<Ionicons name="settings-outline" size={24} color="#EC1A52" />}
-            onPress={() => navigateTo("/settings")}
-            fullWidth={false}
-          />
-        </View>
-
         {/* Bottom Actions */}
         <View className="flex-row gap-2 mt-1">
           <SidebarButton
@@ -223,14 +202,6 @@ export function Sidebar({
             fullWidth={false}
           />
         </View>
-
-        {/* User Info */}
-        {user && (
-          <View className="bg-gray-100 rounded-lg p-2">
-            <Text className="text-gray-600" style={{ fontSize: 10 }}>Logged in as</Text>
-            <Text className="text-gray-800 font-medium" style={{ fontSize: 12 }}>{user.name || user.username}</Text>
-          </View>
-        )}
       </ScrollView>
     </View>
   );

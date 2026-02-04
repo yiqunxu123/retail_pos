@@ -459,59 +459,6 @@ Cookies               x3    $6.00
         contentContainerClassName="p-4"
         showsVerticalScrollIndicator={false}
       >
-        {/* ===== VIEW MODE TOGGLE ===== */}
-        <View className="flex-row gap-2 mb-4">
-          <TouchableOpacity
-            onPress={() => setViewMode("admin")}
-            className="flex-1 py-3 px-4 rounded-xl flex-row items-center justify-center gap-2"
-            style={{
-              backgroundColor: viewMode === "admin" ? "#EC1A52" : "#FFFFFF",
-              borderWidth: 2,
-              borderColor: "#EC1A52",
-            }}
-          >
-            <Ionicons 
-              name="shield-checkmark-outline" 
-              size={20} 
-              color={viewMode === "admin" ? "#FFFFFF" : "#EC1A52"} 
-            />
-            <Text 
-              className="font-semibold"
-              style={{ 
-                color: viewMode === "admin" ? "#FFFFFF" : "#EC1A52",
-                fontSize: 16,
-              }}
-            >
-              Admin Mode
-            </Text>
-          </TouchableOpacity>
-          
-          <TouchableOpacity
-            onPress={() => setViewMode("staff")}
-            className="flex-1 py-3 px-4 rounded-xl flex-row items-center justify-center gap-2"
-            style={{
-              backgroundColor: viewMode === "staff" ? "#5F4BB6" : "#FFFFFF",
-              borderWidth: 2,
-              borderColor: "#5F4BB6",
-            }}
-          >
-            <Ionicons 
-              name="people-outline" 
-              size={20} 
-              color={viewMode === "staff" ? "#FFFFFF" : "#5F4BB6"} 
-            />
-            <Text 
-              className="font-semibold"
-              style={{ 
-                color: viewMode === "staff" ? "#FFFFFF" : "#5F4BB6",
-                fontSize: 16,
-              }}
-            >
-              Staff Mode
-            </Text>
-          </TouchableOpacity>
-        </View>
-
         {/* ===== HEADER GROUP ===== */}
         <View className="bg-white rounded-xl p-4 border border-gray-100">
           <Header

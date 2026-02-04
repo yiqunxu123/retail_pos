@@ -1,6 +1,6 @@
-import { Ionicons, MaterialCommunityIcons, MaterialIcons, Feather } from "@expo/vector-icons";
+import { Feather, Ionicons, MaterialCommunityIcons, MaterialIcons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-import { Alert, View, ScrollView } from "react-native";
+import { Alert, ScrollView, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAuth } from "../contexts/AuthContext";
 import { useClock } from "../contexts/ClockContext";

@@ -3,8 +3,8 @@ import { ScrollView, View } from "react-native";
 import { BrandingSection } from "./BrandingSection";
 import { SidebarButton } from "./SidebarButton";
 
-// POS Sidebar width - slightly wider for action buttons
-export const POS_SIDEBAR_WIDTH = 240;
+// POS Sidebar width - matches unified sidebar width
+export const POS_SIDEBAR_WIDTH = 260;
 
 interface POSSidebarProps {
   isLandscape: boolean;
@@ -63,6 +63,15 @@ export function POSSidebar({
         {/* Branding Section */}
         <BrandingSection />
 
+        {
+          !hideNavButtons && (
+            <SidebarButton
+              title="Go to Menu"
+              icon={<Ionicons name="grid-outline" size={18} color="#EC1A52" />}
+              onPress={onGoToMenu}
+            />
+          )
+        }
         {/* TEST: Print Receipt Button - Prominent for testing */}
         <SidebarButton
           title="🖨 PRINT RECEIPT (TEST)"
@@ -182,11 +191,7 @@ export function POSSidebar({
               icon={<Ionicons name="cart-outline" size={18} color="#EC1A52" />}
               onPress={onCheckout}
             />
-            <SidebarButton
-              title="Go to Menu"
-              icon={<Ionicons name="grid-outline" size={18} color="#EC1A52" />}
-              onPress={onGoToMenu}
-            />
+
           </>
         )}
       </ScrollView>

@@ -79,18 +79,22 @@ export function PowerSyncProvider({ children }: { children: ReactNode }) {
       // 3. Continue syncing in both directions
       await powerSyncDb.connect(connectorRef.current)
       
-      setIsConnected(true)
-      reconnectAttempts.current = 0 // Reset on successful connection
-      setLastSyncTime(new Date())
-      console.log('[PowerSync] Connected - auto-sync enabled')
+      // Note: Don't set isConnected here - wait for statusChanged callback
+      // The connect() call initiates connection, but actual connection state
+      // is reported via the statusChanged listener
+      reconnectAttempts.current = 0 // Reset on successful connection start
+      console.log('[PowerSync] Connection initiated - waiting for sync status...')
       
       return true
     } catch (connectError: any) {
-      // Don't log auth errors repeatedly - user just needs to re-login
-      if (connectError.message?.includes('authentication') || connectError.message?.includes('token')) {
-        console.log('[PowerSync] Auth required - waiting for login')
+      const errorMsg = connectError.message || String(connectError)
+      
+      // Check for auth-related errors
+      if (errorMsg.includes('authentication') || errorMsg.includes('token') || errorMsg.includes('expired') || errorMsg.includes('log in')) {
+        console.log('[PowerSync] Auth error - token may be expired, user needs to re-login')
+        console.log('[PowerSync] Error details:', errorMsg)
       } else {
-        console.log('[PowerSync] Connection failed:', connectError.message)
+        console.log('[PowerSync] Connection failed:', errorMsg)
       }
       setIsConnected(false)
       return false
@@ -162,17 +166,30 @@ export function PowerSyncProvider({ children }: { children: ReactNode }) {
             const wasConnected = isConnected
             const nowConnected = status.connected
             
+            // Log detailed status for debugging
             console.log('[Sync] Status:', {
               connected: nowConnected,
               downloading: status.dataFlowStatus?.downloading,
               uploading: status.dataFlowStatus?.uploading,
+              lastSyncedAt: status.lastSyncedAt,
+              hasSynced: status.hasSynced,
             })
+            
+            // Log any sync errors (using type assertion for extended status)
+            const extendedStatus = status as SyncStatus & { downloadError?: Error; uploadError?: Error }
+            if (extendedStatus.downloadError) {
+              console.error('[Sync] Download error:', extendedStatus.downloadError)
+            }
+            if (extendedStatus.uploadError) {
+              console.error('[Sync] Upload error:', extendedStatus.uploadError)
+            }
             
             setIsConnected(nowConnected)
             setIsSyncing(!!status.dataFlowStatus?.downloading || !!status.dataFlowStatus?.uploading)
             
             if (nowConnected) {
               setLastSyncTime(new Date())
+              console.log('[PowerSync] Successfully connected and syncing')
             }
             
             // If we just disconnected, try to reconnect

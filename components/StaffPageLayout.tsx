@@ -9,7 +9,7 @@ import { SidebarButton } from "./SidebarButton";
 // Re-export SidebarButton for backward compatibility
 export { SidebarButton };
 
-const SIDEBAR_WIDTH = 280;
+const SIDEBAR_WIDTH = 260;
 
 interface StaffPageLayoutProps {
   children: React.ReactNode;
@@ -84,8 +84,17 @@ export default function StaffPageLayout({ children, sidebarCustomButtons, title,
         style={{ width: SIDEBAR_WIDTH }}
       >
         {/* Branding Section */}
-        <View className="mb-4">
+        <View className="mb-2">
           <BrandingSection />
+        </View>
+
+        {/* Go to Menu - Top position below branding */}
+        <View className="mb-3">
+          <SidebarButton 
+            title="Go to Menu"
+            icon={<Ionicons name="menu-outline" size={20} color="#EC1A52" />}
+            onPress={handleGoToMenu}
+          />
         </View>
 
         <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 20, gap: 8 }}>
@@ -114,12 +123,6 @@ export default function StaffPageLayout({ children, sidebarCustomButtons, title,
           )}
 
           {/* Common Bottom Buttons */}
-          <SidebarButton 
-            title="Go to Menu"
-            icon={<Ionicons name="menu-outline" size={20} color="#EC1A52" />}
-            onPress={handleGoToMenu}
-          />
-
           <SidebarButton 
             title="Clock out"
             icon={<Ionicons name="log-out-outline" size={20} color="#EC1A52" />}

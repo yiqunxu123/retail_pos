@@ -17,6 +17,33 @@ const RETRY_DELAY_MS = 1000
 // Helper to delay execution
 const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms))
 
+// Helper to check if JWT token is expired or about to expire
+function isTokenExpired(token: string, bufferSeconds = 60): boolean {
+  try {
+    // Decode JWT payload (middle part)
+    const parts = token.split('.')
+    if (parts.length !== 3) return true
+    
+    const payload = JSON.parse(atob(parts[1]))
+    const exp = payload.exp
+    
+    if (!exp) return true
+    
+    // Check if token expires within buffer time
+    const now = Math.floor(Date.now() / 1000)
+    const isExpired = exp <= now + bufferSeconds
+    
+    if (isExpired) {
+      console.log(`[PowerSync] Token expired or expiring soon (exp: ${new Date(exp * 1000).toISOString()}, now: ${new Date(now * 1000).toISOString()})`)
+    }
+    
+    return isExpired
+  } catch (e) {
+    console.warn('[PowerSync] Failed to decode token, treating as expired:', e)
+    return true
+  }
+}
+
 // PowerSync connector for KHUB backend
 export class KhubConnector implements PowerSyncBackendConnector {
   private tokenRefreshPromise: Promise<string | null> | null = null
@@ -25,7 +52,9 @@ export class KhubConnector implements PowerSyncBackendConnector {
     // Get the current access token from storage
     let token = await getAccessToken()
 
-    if (!token) {
+    // Check if token is missing or expired
+    if (!token || isTokenExpired(token)) {
+      console.log('[PowerSync] Token missing or expired, attempting refresh...')
       // Try to refresh the token
       try {
         token = await this.refreshToken()
@@ -40,7 +69,13 @@ export class KhubConnector implements PowerSyncBackendConnector {
       throw new Error('No authentication token available. Please log in.')
     }
 
-    console.log('[PowerSync] Got KHUB token for sync')
+    // Double-check the refreshed token is valid
+    if (isTokenExpired(token)) {
+      console.log('[PowerSync] Refreshed token is still expired, user needs to re-login')
+      throw new Error('Authentication token expired. Please log in again.')
+    }
+
+    console.log('[PowerSync] Got valid KHUB token for sync')
     return {
       endpoint: POWERSYNC_URL,
       token: token,
