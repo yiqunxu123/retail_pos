@@ -165,6 +165,42 @@ export default function AddProductScreen() {
   const [categoryIsMsa, setCategoryIsMsa] = useState(false);
   const [categoryIsFeature, setCategoryIsFeature] = useState(false);
   const [categoryParent, setCategoryParent] = useState("");
+  
+  // Pricing & Stock Tab state
+  const [measuredBy, setMeasuredBy] = useState("Count");
+  const [soldBy, setSoldBy] = useState("Piece");
+  const [boughtBy, setBoughtBy] = useState("Piece");
+  
+  // Unit of Measurement data
+  const [unitData, setUnitData] = useState([
+    { unit: "Piece", qty: "1", upc: "" },
+    { unit: "Pack", qty: "", qtyLabel: "pieces", upc: "" },
+    { unit: "Case", qty: "", qtyLabel: "packs", upc: "" },
+    { unit: "Pallet", qty: "", qtyLabel: "cases", upc: "" },
+  ]);
+  
+  // Pricing data
+  const [pricingData, setPricingData] = useState([
+    { unit: "Piece", qty: "1", baseCost: "", netCost: "", salePrice: "", margin: "", msrp: "", lowestPrice: "", ecomPrice: "", tier1: "", tier2: "", tier3: "", tier4: "", tier5: "" },
+    { unit: "Pack", qty: "", qtyLabel: "Pieces", baseCost: "", netCost: "", salePrice: "", margin: "", msrp: "", lowestPrice: "", ecomPrice: "", tier1: "", tier2: "", tier3: "", tier4: "", tier5: "" },
+    { unit: "Case", qty: "", qtyLabel: "Packs", baseCost: "", netCost: "", salePrice: "", margin: "", msrp: "", lowestPrice: "", ecomPrice: "", tier1: "", tier2: "", tier3: "", tier4: "", tier5: "" },
+    { unit: "Pallet", qty: "", qtyLabel: "Cases", baseCost: "", netCost: "", salePrice: "", margin: "", msrp: "", lowestPrice: "", ecomPrice: "", tier1: "", tier2: "", tier3: "", tier4: "", tier5: "" },
+  ]);
+  
+  // Stock data
+  const [stockData, setStockData] = useState([
+    { srNo: "1", warehouse: "Primary", availableQty: "0", onHoldQty: "0", damagedQty: "0", backOrderQty: "", comingSoonQty: "" },
+  ]);
+  
+  // Collapsible sections
+  const [measurementExpanded, setMeasurementExpanded] = useState(true);
+  const [pricingExpanded, setPricingExpanded] = useState(true);
+  const [stockExpanded, setStockExpanded] = useState(true);
+  
+  // SEO Tab state
+  const [seoSlug, setSeoSlug] = useState("");
+  const [metaTitle, setMetaTitle] = useState("");
+  const [metaDescription, setMetaDescription] = useState("");
   const [isNewArrival, setIsNewArrival] = useState(false);
   const [enableBoOnline, setEnableBoOnline] = useState(false);
   
@@ -468,6 +504,342 @@ export default function AddProductScreen() {
     </View>
   );
 
+  // Render Pricing & Stock Tab Content
+  const renderPricingTab = () => (
+    <ScrollView className="flex-1 bg-gray-50" showsVerticalScrollIndicator={false}>
+      {/* Define Unit of Measurement Section */}
+      <View className="bg-white m-4 rounded-lg border border-gray-200">
+        <Pressable 
+          className="flex-row items-center justify-between p-4 border-b border-gray-100"
+          onPress={() => setMeasurementExpanded(!measurementExpanded)}
+        >
+          <Text className="text-lg font-semibold text-gray-800">Define Unit of Measurement</Text>
+          <Ionicons name={measurementExpanded ? "chevron-up" : "chevron-down"} size={20} color="#9CA3AF" />
+        </Pressable>
+        
+        {measurementExpanded && (
+          <View className="p-4">
+            {/* Measured By */}
+            <View className="mb-4">
+              <Text className="text-gray-700 text-sm mb-2">
+                This product is measured by<Text className="text-red-500">*</Text>
+              </Text>
+              <Pressable className="bg-white border border-gray-200 rounded-lg px-4 py-3 flex-row justify-between items-center w-48">
+                <Text className="text-gray-800">{measuredBy}</Text>
+                <Ionicons name="chevron-down" size={16} color="#9CA3AF" />
+              </Pressable>
+            </View>
+
+            {/* Units Table */}
+            <View>
+              {/* Header */}
+              <View className="flex-row py-2 border-b border-gray-200">
+                <Text className="w-20 text-gray-600 text-sm font-medium">Unit</Text>
+                <Text className="w-40 text-gray-600 text-sm font-medium">Packaging Quantity</Text>
+                <Text className="flex-1 text-gray-600 text-sm font-medium">UPC*</Text>
+              </View>
+              
+              {/* Rows */}
+              {unitData.map((item, index) => (
+                <View key={item.unit} className="flex-row items-center py-3 border-b border-gray-100">
+                  <Text className="w-20 text-gray-700">{item.unit}</Text>
+                  <View className="w-40 flex-row items-center">
+                    <TextInput
+                      className="bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 w-20"
+                      placeholder={index === 0 ? "1" : "Enter Q..."}
+                      placeholderTextColor="#9ca3af"
+                      value={item.qty}
+                      onChangeText={(text) => {
+                        const newData = [...unitData];
+                        newData[index].qty = text;
+                        setUnitData(newData);
+                      }}
+                      editable={index !== 0}
+                      keyboardType="numeric"
+                    />
+                    {item.qtyLabel && (
+                      <Text className="text-gray-500 text-sm ml-2">= {item.qtyLabel}</Text>
+                    )}
+                  </View>
+                  <TextInput
+                    className="flex-1 bg-white border border-gray-200 rounded-lg px-3 py-2 ml-4"
+                    placeholder="UPC"
+                    placeholderTextColor="#9ca3af"
+                    value={item.upc}
+                    onChangeText={(text) => {
+                      const newData = [...unitData];
+                      newData[index].upc = text;
+                      setUnitData(newData);
+                    }}
+                  />
+                </View>
+              ))}
+            </View>
+          </View>
+        )}
+      </View>
+
+      {/* Define Pricing Section */}
+      <View className="bg-white mx-4 mb-4 rounded-lg border border-gray-200">
+        <Pressable 
+          className="flex-row items-center justify-between p-4 border-b border-gray-100"
+          onPress={() => setPricingExpanded(!pricingExpanded)}
+        >
+          <Text className="text-lg font-semibold text-gray-800">Define Pricing</Text>
+          <Ionicons name={pricingExpanded ? "chevron-up" : "chevron-down"} size={20} color="#9CA3AF" />
+        </Pressable>
+        
+        {pricingExpanded && (
+          <View className="p-4">
+            {/* Primary Tab */}
+            <View className="mb-4">
+              <Text className="text-red-500 font-medium pb-2 border-b-2 border-red-500 w-16">Primary</Text>
+            </View>
+
+            {/* Sold By & Bought By */}
+            <View className="flex-row gap-4 mb-4">
+              <View className="flex-1">
+                <Text className="text-gray-700 text-sm mb-2">
+                  This product is sold by<Text className="text-red-500">*</Text>
+                </Text>
+                <Pressable className="bg-white border border-gray-200 rounded-lg px-4 py-3 flex-row justify-between items-center">
+                  <Text className="text-gray-800">{soldBy}</Text>
+                  <Ionicons name="chevron-down" size={16} color="#9CA3AF" />
+                </Pressable>
+              </View>
+              <View className="flex-1">
+                <Text className="text-gray-700 text-sm mb-2">
+                  This product is bought by<Text className="text-red-500">*</Text>
+                </Text>
+                <Pressable className="bg-white border border-gray-200 rounded-lg px-4 py-3 flex-row justify-between items-center">
+                  <Text className="text-gray-800">{boughtBy}</Text>
+                  <Ionicons name="chevron-down" size={16} color="#9CA3AF" />
+                </Pressable>
+              </View>
+              <View className="flex-1 justify-end">
+                <Pressable 
+                  className="flex-row items-center justify-center px-4 py-3 rounded-lg"
+                  style={{ backgroundColor: "#8B5CF6" }}
+                >
+                  <Ionicons name="calculator-outline" size={18} color="white" />
+                  <Text className="text-white font-medium ml-2">Calculate Prices</Text>
+                </Pressable>
+              </View>
+            </View>
+
+            {/* Pricing Table */}
+            <ScrollView horizontal showsHorizontalScrollIndicator={true}>
+              <View>
+                {/* Header */}
+                <View className="flex-row py-3 border-b border-gray-200 bg-gray-50">
+                  <Text className="w-16 text-gray-600 text-xs font-medium">Unit</Text>
+                  <Text className="w-28 text-gray-600 text-xs font-medium">Packaging Quantity</Text>
+                  <Text className="w-24 text-gray-600 text-xs font-medium">Base Cost Price* ($)</Text>
+                  <Text className="w-24 text-gray-600 text-xs font-medium">Net Cost Price* ($)</Text>
+                  <Text className="w-20 text-gray-600 text-xs font-medium">Sale Price* ($)</Text>
+                  <Text className="w-20 text-gray-600 text-xs font-medium">Margin* ($)</Text>
+                  <Text className="w-16 text-gray-600 text-xs font-medium">MSRP</Text>
+                  <Text className="w-20 text-gray-600 text-xs font-medium">Lowest Selling Price</Text>
+                  <Text className="w-20 text-gray-600 text-xs font-medium">Ecom Price</Text>
+                  <Text className="w-20 text-gray-600 text-xs font-medium">Tier 1 SP ($)</Text>
+                  <Text className="w-20 text-gray-600 text-xs font-medium">Tier 2 SP ($)</Text>
+                  <Text className="w-20 text-gray-600 text-xs font-medium">Tier 3 SP ($)</Text>
+                  <Text className="w-20 text-gray-600 text-xs font-medium">Tier 4 SP ($)</Text>
+                  <Text className="w-20 text-gray-600 text-xs font-medium">Tier 5 SP ($)</Text>
+                </View>
+                
+                {/* Rows */}
+                {pricingData.map((item, index) => (
+                  <View key={item.unit} className="flex-row items-center py-2 border-b border-gray-100">
+                    <Text className="w-16 text-gray-700 text-sm">{item.unit}</Text>
+                    <View className="w-28 flex-row items-center">
+                      <TextInput
+                        className="bg-gray-100 border border-gray-200 rounded px-2 py-1.5 w-12 text-sm"
+                        placeholder={index === 0 ? "1" : "Qty"}
+                        placeholderTextColor="#9ca3af"
+                        value={item.qty}
+                        editable={index !== 0}
+                        keyboardType="numeric"
+                      />
+                      {item.qtyLabel && (
+                        <Text className="text-gray-400 text-xs ml-1">= {item.qtyLabel}</Text>
+                      )}
+                    </View>
+                    <TextInput className="w-24 bg-white border border-gray-200 rounded px-2 py-1.5 text-sm" placeholder="Base ..." placeholderTextColor="#d1d5db" />
+                    <TextInput className="w-24 bg-white border border-gray-200 rounded px-2 py-1.5 text-sm ml-1" placeholder="Net c..." placeholderTextColor="#d1d5db" />
+                    <TextInput className="w-20 bg-white border border-gray-200 rounded px-2 py-1.5 text-sm ml-1" placeholder="Price" placeholderTextColor="#d1d5db" />
+                    <View className="w-20 flex-row items-center ml-1">
+                      <TextInput className="flex-1 bg-white border border-gray-200 rounded-l px-2 py-1.5 text-sm" placeholder="Margin" placeholderTextColor="#d1d5db" />
+                      <Pressable className="bg-gray-100 border border-l-0 border-gray-200 rounded-r px-1 py-1.5">
+                        <Text className="text-gray-500 text-xs">$</Text>
+                      </Pressable>
+                    </View>
+                    <TextInput className="w-16 bg-white border border-gray-200 rounded px-2 py-1.5 text-sm ml-1" placeholder="MSRP" placeholderTextColor="#d1d5db" />
+                    <TextInput className="w-20 bg-white border border-gray-200 rounded px-2 py-1.5 text-sm ml-1" placeholder="Lowest..." placeholderTextColor="#d1d5db" />
+                    <TextInput className="w-20 bg-white border border-gray-200 rounded px-2 py-1.5 text-sm ml-1" placeholder="Ecom ..." placeholderTextColor="#d1d5db" />
+                    <TextInput className="w-20 bg-gray-50 border border-gray-200 rounded px-2 py-1.5 text-sm ml-1" placeholder="Tier 1" placeholderTextColor="#d1d5db" />
+                    <TextInput className="w-20 bg-gray-50 border border-gray-200 rounded px-2 py-1.5 text-sm ml-1" placeholder="Tier 2" placeholderTextColor="#d1d5db" />
+                    <TextInput className="w-20 bg-gray-50 border border-gray-200 rounded px-2 py-1.5 text-sm ml-1" placeholder="Tier 3" placeholderTextColor="#d1d5db" />
+                    <TextInput className="w-20 bg-gray-50 border border-gray-200 rounded px-2 py-1.5 text-sm ml-1" placeholder="Tier 4" placeholderTextColor="#d1d5db" />
+                    <TextInput className="w-20 bg-gray-50 border border-gray-200 rounded px-2 py-1.5 text-sm ml-1" placeholder="Tier 5" placeholderTextColor="#d1d5db" />
+                  </View>
+                ))}
+              </View>
+            </ScrollView>
+          </View>
+        )}
+      </View>
+
+      {/* Stock Information Section */}
+      <View className="bg-white mx-4 mb-4 rounded-lg border border-gray-200">
+        <Pressable 
+          className="flex-row items-center justify-between p-4 border-b border-gray-100"
+          onPress={() => setStockExpanded(!stockExpanded)}
+        >
+          <View className="flex-row items-center">
+            <Text className="text-lg font-semibold text-gray-800">Stock Information</Text>
+            <Ionicons name="information-circle-outline" size={18} color="#9CA3AF" style={{ marginLeft: 8 }} />
+          </View>
+          <Ionicons name={stockExpanded ? "chevron-up" : "chevron-down"} size={20} color="#9CA3AF" />
+        </Pressable>
+        
+        {stockExpanded && (
+          <View className="p-4">
+            <ScrollView horizontal showsHorizontalScrollIndicator={true}>
+              <View>
+                {/* Header */}
+                <View className="flex-row py-3 border-b border-gray-200 bg-gray-50">
+                  <Text className="w-16 text-gray-600 text-xs font-medium">Sr no.</Text>
+                  <Text className="w-40 text-gray-600 text-xs font-medium">Warehouses/Storefront</Text>
+                  <Text className="w-24 text-gray-600 text-xs font-medium">Available Qty</Text>
+                  <Text className="w-24 text-gray-600 text-xs font-medium">On hold Qty</Text>
+                  <Text className="w-24 text-gray-600 text-xs font-medium">Damaged Qty</Text>
+                  <Text className="w-24 text-gray-600 text-xs font-medium">Back Order Qty</Text>
+                  <Text className="w-28 text-gray-600 text-xs font-medium">Coming Soon Qty</Text>
+                </View>
+                
+                {/* Rows */}
+                {stockData.map((item, index) => (
+                  <View key={index} className="flex-row items-center py-3 border-b border-gray-100">
+                    <Text className="w-16 text-gray-700 text-sm">{item.srNo}</Text>
+                    <View className="w-40">
+                      <TextInput
+                        className="bg-gray-100 border border-gray-200 rounded px-3 py-2 text-sm"
+                        value={item.warehouse}
+                        editable={false}
+                      />
+                    </View>
+                    <TextInput
+                      className="w-24 bg-white border border-gray-200 rounded px-3 py-2 text-sm ml-1"
+                      placeholder="0"
+                      placeholderTextColor="#9ca3af"
+                      value={item.availableQty}
+                      keyboardType="numeric"
+                      onChangeText={(text) => {
+                        const newData = [...stockData];
+                        newData[index].availableQty = text;
+                        setStockData(newData);
+                      }}
+                    />
+                    <TextInput
+                      className="w-24 bg-gray-100 border border-gray-200 rounded px-3 py-2 text-sm ml-1"
+                      placeholder="0"
+                      placeholderTextColor="#9ca3af"
+                      value={item.onHoldQty}
+                      editable={false}
+                    />
+                    <TextInput
+                      className="w-24 bg-white border border-gray-200 rounded px-3 py-2 text-sm ml-1"
+                      placeholder="0"
+                      placeholderTextColor="#9ca3af"
+                      value={item.damagedQty}
+                      keyboardType="numeric"
+                      onChangeText={(text) => {
+                        const newData = [...stockData];
+                        newData[index].damagedQty = text;
+                        setStockData(newData);
+                      }}
+                    />
+                    <TextInput
+                      className="w-24 bg-gray-100 border border-gray-200 rounded px-3 py-2 text-sm ml-1"
+                      placeholder="Back Order"
+                      placeholderTextColor="#d1d5db"
+                      editable={false}
+                    />
+                    <TextInput
+                      className="w-28 bg-gray-100 border border-gray-200 rounded px-3 py-2 text-sm ml-1"
+                      placeholder="Coming Soon"
+                      placeholderTextColor="#d1d5db"
+                      editable={false}
+                    />
+                  </View>
+                ))}
+              </View>
+            </ScrollView>
+          </View>
+        )}
+      </View>
+
+      {/* Bottom spacing */}
+      <View className="h-10" />
+    </ScrollView>
+  );
+
+  // Render SEO Tab Content
+  const renderSeoTab = () => (
+    <ScrollView className="flex-1 bg-gray-50 p-6" showsVerticalScrollIndicator={false}>
+      <View className="bg-white rounded-lg border border-gray-200 p-6">
+        {/* Slug */}
+        <View className="mb-6">
+          <View className="flex-row items-center mb-2">
+            <Text className="text-gray-700 text-sm font-medium">Slug</Text>
+            <Ionicons name="information-circle-outline" size={16} color="#9CA3AF" style={{ marginLeft: 4 }} />
+          </View>
+          <TextInput
+            className="bg-white border border-gray-200 rounded-lg px-4 py-3"
+            placeholder="Enter Product Slug"
+            placeholderTextColor="#d1d5db"
+            value={seoSlug}
+            onChangeText={setSeoSlug}
+          />
+          <Text className="text-gray-400 text-xs mt-1 text-right">{seoSlug.length} character(s)</Text>
+        </View>
+
+        {/* Meta Title */}
+        <View className="mb-6">
+          <Text className="text-gray-700 text-sm font-medium mb-2">Meta Title</Text>
+          <TextInput
+            className="bg-white border border-gray-200 rounded-lg px-4 py-3"
+            placeholder="Enter Meta Title for Product"
+            placeholderTextColor="#d1d5db"
+            value={metaTitle}
+            onChangeText={setMetaTitle}
+            multiline
+            numberOfLines={3}
+            style={{ minHeight: 80, textAlignVertical: 'top' }}
+          />
+          <Text className="text-gray-400 text-xs mt-1 text-right">{metaTitle.length} character(s)</Text>
+        </View>
+
+        {/* Meta Description */}
+        <View className="mb-2">
+          <Text className="text-gray-700 text-sm font-medium mb-2">Meta Description</Text>
+          <TextInput
+            className="bg-white border border-gray-200 rounded-lg px-4 py-3"
+            placeholder="Enter Meta Description for Product"
+            placeholderTextColor="#d1d5db"
+            value={metaDescription}
+            onChangeText={setMetaDescription}
+            multiline
+            numberOfLines={3}
+            style={{ minHeight: 80, textAlignVertical: 'top' }}
+          />
+          <Text className="text-gray-400 text-xs mt-1 text-right">{metaDescription.length} character(s)</Text>
+        </View>
+      </View>
+    </ScrollView>
+  );
+
   // Render placeholder for other tabs
   const renderPlaceholderTab = (tabName: string) => (
     <View className="flex-1 items-center justify-center">
@@ -514,8 +886,8 @@ export default function AddProductScreen() {
       {/* Tab Content */}
       <View className="flex-1">
         {activeTab === "basic" && renderBasicTab()}
-        {activeTab === "pricing" && renderPlaceholderTab("Pricing & Stock")}
-        {activeTab === "seo" && renderPlaceholderTab("SEO")}
+        {activeTab === "pricing" && renderPricingTab()}
+        {activeTab === "seo" && renderSeoTab()}
         {activeTab === "variants" && renderPlaceholderTab("Variants")}
         {activeTab === "tax" && renderPlaceholderTab("Tax Section")}
         {activeTab === "promotions" && renderPlaceholderTab("Promotions")}
