@@ -201,6 +201,12 @@ export default function AddProductScreen() {
   const [seoSlug, setSeoSlug] = useState("");
   const [metaTitle, setMetaTitle] = useState("");
   const [metaDescription, setMetaDescription] = useState("");
+  
+  // Promotions Tab state
+  const [promotionSearch, setPromotionSearch] = useState("");
+  const [showAdvanceFilters, setShowAdvanceFilters] = useState(false);
+  const [promotionStatus, setPromotionStatus] = useState("");
+  const [promotions, setPromotions] = useState<any[]>([]);
   const [isNewArrival, setIsNewArrival] = useState(false);
   const [enableBoOnline, setEnableBoOnline] = useState(false);
   
@@ -840,6 +846,117 @@ export default function AddProductScreen() {
     </ScrollView>
   );
 
+  // Render Promotions Tab Content
+  const renderPromotionsTab = () => (
+    <View className="flex-1 bg-gray-50">
+      <View className="p-6">
+        {/* Search Section */}
+        <View className="bg-white rounded-lg border border-gray-200 p-4 mb-4">
+          <Text className="text-gray-800 font-medium mb-3">Search Promotions</Text>
+          <View className="flex-row gap-3">
+            <TextInput
+              className="flex-1 bg-white border border-gray-200 rounded-lg px-4 py-2.5"
+              placeholder="Search"
+              placeholderTextColor="#9ca3af"
+              value={promotionSearch}
+              onChangeText={setPromotionSearch}
+            />
+            <Pressable 
+              className="flex-row items-center gap-2 px-4 py-2.5 rounded-lg border border-gray-300"
+              onPress={() => setShowAdvanceFilters(!showAdvanceFilters)}
+            >
+              <Ionicons name="filter" size={16} color="#374151" />
+              <Text className="text-gray-700 font-medium">Advance Filters</Text>
+            </Pressable>
+          </View>
+
+          {/* Advance Filters Popup */}
+          {showAdvanceFilters && (
+            <View className="mt-4 bg-white border border-gray-200 rounded-lg p-4 shadow-lg">
+              <Text className="text-lg font-semibold text-gray-800 mb-4">Advance Filters</Text>
+              
+              <View className="mb-4">
+                <Text className="text-gray-700 text-sm font-medium mb-2">Status</Text>
+                <Pressable className="bg-white border border-gray-200 rounded-lg px-4 py-3 flex-row justify-between items-center">
+                  <Text className="text-gray-400">Select Status</Text>
+                  <Ionicons name="chevron-down" size={16} color="#9CA3AF" />
+                </Pressable>
+              </View>
+
+              <View className="flex-row gap-3">
+                <Pressable 
+                  className="flex-1 py-3 rounded-lg border border-gray-300 items-center"
+                  onPress={() => {
+                    setPromotionStatus("");
+                    setShowAdvanceFilters(false);
+                  }}
+                >
+                  <Text className="text-gray-700 font-medium">Clear Filter</Text>
+                </Pressable>
+                <Pressable 
+                  className="flex-1 py-3 rounded-lg items-center"
+                  style={{ backgroundColor: "#EC1A52" }}
+                  onPress={() => setShowAdvanceFilters(false)}
+                >
+                  <Text className="text-white font-medium">Apply</Text>
+                </Pressable>
+              </View>
+            </View>
+          )}
+        </View>
+
+        {/* Promotions Table */}
+        <View className="bg-white rounded-lg border border-gray-200">
+          <ScrollView horizontal showsHorizontalScrollIndicator={true}>
+            <View>
+              {/* Table Header */}
+              <View className="flex-row bg-gray-50 py-3 px-4 border-b border-gray-200">
+                <View className="w-8 mr-3">
+                  <View className="w-5 h-5 border border-gray-300 rounded" />
+                </View>
+                <Text className="w-48 text-gray-500 text-xs font-semibold uppercase">Promotion Name</Text>
+                <Text className="w-32 text-gray-500 text-xs font-semibold uppercase">Promo Price</Text>
+                <Text className="w-32 text-gray-500 text-xs font-semibold uppercase">Applied To</Text>
+                <Text className="w-24 text-gray-500 text-xs font-semibold uppercase">Unit</Text>
+                <Text className="w-32 text-gray-500 text-xs font-semibold uppercase">Start Date</Text>
+                <Text className="w-32 text-gray-500 text-xs font-semibold uppercase">End Date</Text>
+                <Text className="w-32 text-gray-500 text-xs font-semibold uppercase">Total Qty Sold</Text>
+                <Text className="w-24 text-gray-500 text-xs font-semibold uppercase">Pos Qty</Text>
+                <Text className="w-32 text-gray-500 text-xs font-semibold uppercase">Ecom Web Qty</Text>
+              </View>
+
+              {/* Empty State */}
+              {promotions.length === 0 && (
+                <View className="py-20 items-center justify-center">
+                  <Ionicons name="document-outline" size={48} color="#D1D5DB" />
+                  <Text className="text-gray-400 mt-4 text-base">No Data</Text>
+                </View>
+              )}
+
+              {/* Table Rows would go here */}
+              {promotions.map((promo, index) => (
+                <View key={index} className="flex-row items-center py-3 px-4 border-b border-gray-100">
+                  <View className="w-8 mr-3">
+                    <View className="w-5 h-5 border border-gray-300 rounded" />
+                  </View>
+                  <Text className="w-48 text-gray-700">{promo.name}</Text>
+                  <Text className="w-32 text-gray-700">{promo.price}</Text>
+                  <Text className="w-32 text-gray-700">{promo.appliedTo}</Text>
+                  <Text className="w-24 text-gray-700">{promo.unit}</Text>
+                  <Text className="w-32 text-gray-700">{promo.startDate}</Text>
+                  <Text className="w-32 text-gray-700">{promo.endDate}</Text>
+                  <Text className="w-32 text-gray-700">{promo.totalQty}</Text>
+                  <Text className="w-24 text-gray-700">{promo.posQty}</Text>
+                  <Text className="w-32 text-gray-700">{promo.ecomQty}</Text>
+                </View>
+              ))}
+            </View>
+          </ScrollView>
+        </View>
+      </View>
+    </View>
+  );
+
   // Render placeholder for other tabs
   const renderPlaceholderTab = (tabName: string) => (
     <View className="flex-1 items-center justify-center">
@@ -890,7 +1007,7 @@ export default function AddProductScreen() {
         {activeTab === "seo" && renderSeoTab()}
         {activeTab === "variants" && renderPlaceholderTab("Variants")}
         {activeTab === "tax" && renderPlaceholderTab("Tax Section")}
-        {activeTab === "promotions" && renderPlaceholderTab("Promotions")}
+        {activeTab === "promotions" && renderPromotionsTab()}
       </View>
 
       {/* Add Category Modal */}
