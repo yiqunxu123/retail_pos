@@ -1,27 +1,24 @@
 import { usePathname, useRouter } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
-import { Alert, Platform, View, useWindowDimensions } from "react-native";
+import { Alert, View, useWindowDimensions } from "react-native";
 import {
-    AddDiscountModal,
-    CashPaymentModal,
-    CustomerCard,
-    OrderSummary,
-    POSSidebar,
-    ProductSearch,
-    ProductTable,
-    SearchProductModal
+  AddDiscountModal,
+  CashPaymentModal,
+  CustomerCard,
+  OrderSummary,
+  POSSidebar,
+  ProductSearch,
+  ProductTable,
+  SearchProductModal
 } from "../components";
 import { ProductItem } from "../components/ProductTable";
 import { SearchProduct } from "../components/SearchProductModal";
 import { useClock } from "../contexts/ClockContext";
-import { 
-  print, 
-  addPrinterListener, 
+import {
+  addPrinterListener,
   getPoolStatus,
-  getPrinters,
-  addPrinter,
   isAnyPrinterModuleAvailable,
-  isPrinterModuleAvailable,
+  print
 } from "../utils/PrinterPoolManager";
 
 // Printer configuration

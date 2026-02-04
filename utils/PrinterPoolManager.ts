@@ -45,8 +45,6 @@ export interface PrintJob {
   timestamp: number;
   assignedTo?: string;
   priority: number;
-  retryCount: number;
-  maxRetries: number;
 }
 
 export type PrintEventType = 
@@ -54,7 +52,6 @@ export type PrintEventType =
   | 'job_processing' 
   | 'job_completed' 
   | 'job_failed'
-  | 'job_retry'
   | 'printer_added'
   | 'printer_removed'
   | 'printer_status_changed'
@@ -247,7 +244,7 @@ class PrinterPoolManager {
 
   // ============ Job Management ============
 
-  addJob(data: string, options?: { priority?: number; maxRetries?: number }): string {
+  addJob(data: string, options?: { priority?: number }): string {
     const availablePrinters = Array.from(this.printers.values()).filter(p => p.enabled);
 
     if (availablePrinters.length === 0) {
@@ -260,8 +257,6 @@ class PrinterPoolManager {
       data,
       timestamp: Date.now(),
       priority: options?.priority ?? 0,
-      retryCount: 0,
-      maxRetries: options?.maxRetries ?? 2,
     };
 
     // 根据优先级插入队列
@@ -375,27 +370,13 @@ class PrinterPoolManager {
       printer.status = 'idle';
       printer.lastError = errorMessage;
 
-      // 重试逻辑
-      if (job.retryCount < job.maxRetries) {
-        job.retryCount++;
-        job.assignedTo = undefined;
-        this.queue.unshift(job);
-
-        log.warn(`🔄 Job ${job.id} will RETRY (${job.retryCount}/${job.maxRetries})`);
-        this.emit({ 
-          type: 'job_retry', 
-          jobId: job.id,
-          data: { retryCount: job.retryCount, maxRetries: job.maxRetries, error: errorMessage }
-        });
-      } else {
-        log.error(`💀 Job ${job.id} FAILED permanently after ${job.maxRetries} retries`);
-        this.emit({ 
-          type: 'job_failed', 
-          printerId: printer.id, 
-          jobId: job.id,
-          data: { error: errorMessage }
-        });
-      }
+      // 出错直接失败，不重试
+      this.emit({ 
+        type: 'job_failed', 
+        printerId: printer.id, 
+        jobId: job.id,
+        data: { error: errorMessage }
+      });
     }
 
     // 处理下一个任务
@@ -414,60 +395,47 @@ class PrinterPoolManager {
   }
 
   private async performPrint(printer: PrinterState, data: string): Promise<void> {
-    // 动态超时：打印时间 + 3 秒缓冲（与原 PrintQueue 一致）
-    const printTime = this.calculatePrintTime(data);
-    const timeout = printTime + 3000;
-
-    log.debug(`   Print time estimate: ${printTime}ms, timeout: ${timeout}ms`);
-
-    return new Promise(async (resolve, reject) => {
-      const timeoutId = setTimeout(() => {
-        log.error(`Print timeout on ${printer.id} (after ${timeout}ms)`);
-        reject(new Error('Print timeout'));
-      }, timeout);
-
-      try {
-        log.debug(`   Connecting to ${printer.type} printer: ${printer.id}`);
-        
-        switch (printer.type) {
-          case 'ethernet':
-            log.debug(`   → Ethernet: ${printer.ip}:${printer.port}`);
-            await this.printEthernet(printer, data);
-            break;
-          case 'usb':
-            log.debug(`   → USB: VID=${printer.vendorId} PID=${printer.productId}`);
-            await this.printUSB(printer, data);
-            break;
-          case 'bluetooth':
-            log.debug(`   → Bluetooth: ${printer.macAddress}`);
-            await this.printBluetooth(printer, data);
-            break;
-        }
-        
-        clearTimeout(timeoutId);
-        log.debug(`   Print command sent successfully`);
-        resolve();
-      } catch (error) {
-        clearTimeout(timeoutId);
-        reject(error);
-      }
-    });
+    log.debug(`   Connecting to ${printer.type} printer: ${printer.id}`);
+    
+    switch (printer.type) {
+      case 'ethernet':
+        log.debug(`   → Ethernet: ${printer.ip}:${printer.port}`);
+        await this.printEthernet(printer, data);
+        break;
+      case 'usb':
+        log.debug(`   → USB: VID=${printer.vendorId} PID=${printer.productId}`);
+        await this.printUSB(printer, data);
+        break;
+      case 'bluetooth':
+        log.debug(`   → Bluetooth: ${printer.macAddress}`);
+        await this.printBluetooth(printer, data);
+        break;
+    }
+    
+    log.debug(`   Print command sent successfully`);
   }
 
   private async printEthernet(printer: PrinterState, data: string): Promise<void> {
     if (!printerModuleAvailable) throw new Error('Printer module not available');
 
-    try {
-      // Close any existing connection
+    // 连接超时 10 秒
+    const connectWithTimeout = async () => {
+      const timeout = new Promise<never>((_, reject) => 
+        setTimeout(() => reject(new Error('Connection timeout (10s)')), 10000)
+      );
+      
       try { await NetPrinter.closeConn(); } catch {}
       
-      // Connect and print
-      await NetPrinter.connectPrinter(printer.ip, printer.port || 9100);
+      await Promise.race([
+        NetPrinter.connectPrinter(printer.ip, printer.port || 9100),
+        timeout
+      ]);
+      
       await NetPrinter.printBill(data);
-      log.success(`Ethernet print sent to ${printer.ip}:${printer.port || 9100}`);
-    } finally {
-      // Don't close connection immediately - let next print reuse it
-    }
+    };
+
+    await connectWithTimeout();
+    log.success(`Ethernet print sent to ${printer.ip}:${printer.port || 9100}`);
   }
 
   private async printUSB(printer: PrinterState, data: string): Promise<void> {
@@ -618,7 +586,7 @@ export const getPrinters = () => printerPool.getPrinters();
 export const getPrinter = (printerId: string) => printerPool.getPrinter(printerId);
 
 /** 添加打印任务 */
-export const print = (data: string, options?: { priority?: number; maxRetries?: number }) => 
+export const print = (data: string, options?: { priority?: number }) => 
   printerPool.addJob(data, options);
 
 /** 清空队列 */

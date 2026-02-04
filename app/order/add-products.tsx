@@ -17,10 +17,10 @@ import { SearchProduct, SearchProductModal } from "../../components/SearchProduc
 import { useAuth } from "../../contexts/AuthContext";
 import { OrderProduct, useOrder } from "../../contexts/OrderContext";
 import { useParkedOrders } from "../../contexts/ParkedOrderContext";
-import { 
-  openCashDrawer, 
-  getPoolStatus, 
-  isAnyPrinterModuleAvailable 
+import {
+    getPoolStatus,
+    isAnyPrinterModuleAvailable,
+    openCashDrawer
 } from "../../utils/PrinterPoolManager";
 
 // Action button width

@@ -47,31 +47,17 @@ export default function SettingsScreen() {
   // Load printers from storage and register to pool
   const loadPrinters = async () => {
     try {
-      const saved = await AsyncStorage.getItem(PRINTERS_STORAGE_KEY);
-      if (saved) {
-        const configs: PrinterConfig[] = JSON.parse(saved);
-        const existingIds = new Set(getPrinters().map(p => p.id));
-        const newIds = new Set(configs.map(c => c.id));
-        
-        // 先添加/更新配置中的打印机
-        configs.forEach(config => {
-          if (!existingIds.has(config.id)) {
-            addPrinter(config);
-          } else {
-            updatePrinter(config.id, config);
-          }
-        });
-        
-        // 再删除配置中不存在的打印机
-        getPrinters().forEach(p => {
-          if (!newIds.has(p.id)) {
-            removePrinter(p.id);
-          }
-        });
-      }
-      setPrinters(getPrinters());
+      console.log("🖨️ [Settings] Loading printers...");
+      
+      // 直接从池中获取当前打印机列表显示
+      // 池在 Dashboard 启动时已经从存储加载了
+      const poolPrinters = getPrinters();
+      console.log("🖨️ [Settings] Pool has:", poolPrinters.length, "printers");
+      poolPrinters.forEach(p => console.log("   -", p.id, p.name, p.ip, p.status));
+      
+      setPrinters(poolPrinters);
     } catch (e) {
-      console.log("Failed to load printers:", e);
+      console.log("🖨️ [Settings] Failed to load printers:", e);
     }
   };
 
@@ -89,9 +75,15 @@ export default function SettingsScreen() {
         macAddress: p.macAddress,
         enabled: p.enabled,
       }));
-      await AsyncStorage.setItem(PRINTERS_STORAGE_KEY, JSON.stringify(configs));
+      const jsonData = JSON.stringify(configs);
+      console.log("🖨️ [Settings] Saving printers:", jsonData);
+      await AsyncStorage.setItem(PRINTERS_STORAGE_KEY, jsonData);
+      
+      // 验证保存是否成功
+      const verify = await AsyncStorage.getItem(PRINTERS_STORAGE_KEY);
+      console.log("🖨️ [Settings] Verify saved:", verify === jsonData ? "✅ OK" : "❌ MISMATCH");
     } catch (e) {
-      console.log("Failed to save printers:", e);
+      console.log("🖨️ [Settings] Failed to save printers:", e);
     }
   };
 
@@ -174,13 +166,19 @@ export default function SettingsScreen() {
       config.macAddress = formMacAddress.trim();
     }
 
+    console.log("🖨️ [Settings] Saving printer:", editingPrinter ? "UPDATE" : "ADD", config.id, config.name);
+    
     if (editingPrinter) {
       updatePrinter(editingPrinter.id, config);
     } else {
-      addPrinter(config);
+      const success = addPrinter(config);
+      console.log("🖨️ [Settings] addPrinter result:", success);
     }
 
     const updatedPrinters = getPrinters();
+    console.log("🖨️ [Settings] Pool after save:", updatedPrinters.length, "printers");
+    updatedPrinters.forEach(p => console.log("   -", p.id, p.name));
+    
     setPrinters(updatedPrinters);
     savePrinters(updatedPrinters);
     setIsModalVisible(false);

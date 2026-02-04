@@ -1,8 +1,8 @@
 import { FontAwesome5, Ionicons, MaterialCommunityIcons, MaterialIcons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useRouter } from "expo-router";
-import { useEffect, useState } from "react";
-import { Alert, ScrollView, Text, TouchableOpacity, useWindowDimensions, View } from "react-native";
+import { useEffect, useRef, useState } from "react";
+import { Alert, ScrollView, Text, ToastAndroid, TouchableOpacity, useWindowDimensions, View } from "react-native";
 import {
   Header,
   SIDEBAR_WIDTH,
@@ -111,14 +111,25 @@ export default function Dashboard() {
     loadSettings();
   }, []);
 
-  // Initialize printer pool from saved settings
+  // Initialize printer pool from saved settings - 只运行一次
   useEffect(() => {
+    let isMounted = true;
+    
     const initPrinterPool = async () => {
+      // 如果池中已有打印机，说明已初始化过，跳过
+      if (getPrinters().length > 0) {
+        console.log("🖨️ [Dashboard] Pool already has printers, skipping init");
+        return;
+      }
+      
       console.log("🖨️ [Dashboard] Initializing printer pool...");
       try {
         // Load printer pool config from AsyncStorage
         const savedConfig = await AsyncStorage.getItem("printer_pool_config");
         console.log("🖨️ [Dashboard] Saved config:", savedConfig ? "found" : "not found");
+        console.log("🖨️ [Dashboard] Raw config:", savedConfig);
+        
+        if (!isMounted) return;
         
         if (savedConfig) {
           const printers = JSON.parse(savedConfig);
@@ -129,20 +140,8 @@ export default function Dashboard() {
               addPrinter(p);
             }
           });
-        } else if (printerIp) {
-          // Fallback: create default printer from legacy settings
-          console.log("🖨️ [Dashboard] No pool config, using legacy settings:", printerIp, printerPort);
-          if (!getPrinters().find(p => p.id === 'default-ethernet')) {
-            addPrinter({
-              id: 'default-ethernet',
-              name: '默认网络打印机',
-              type: 'ethernet',
-              ip: printerIp,
-              port: printerPort,
-            });
-          }
         } else {
-          console.log("🖨️ [Dashboard] No printer config found");
+          console.log("🖨️ [Dashboard] No saved printer config");
         }
         
         // Log final pool status
@@ -164,8 +163,12 @@ export default function Dashboard() {
         Alert.alert("Print Error", `Failed to print: ${event.data?.error || 'Unknown error'}`);
       }
     });
-    return () => unsubscribe();
-  }, [printerIp, printerPort]);
+    
+    return () => {
+      isMounted = false;
+      unsubscribe();
+    };
+  }, []); // 移除依赖，只运行一次
 
   // Test receipt content
   const buildTestReceipt = (): string => {
@@ -194,44 +197,53 @@ Cookies               x3    $6.00
 
   // Test print function
   const handleTestPrint = () => {
-    console.log("🖨️ [Dashboard] Test print triggered");
-    
-    if (!isClockedIn) {
-      clockIn("TEST-001", 1);
-      Alert.alert("Clock In", "Clocked in as TEST-001 on POS Line 1");
-    }
-
-    const poolStatus = getPoolStatus();
-    const hasEnabledPrinters = poolStatus.printers.some(p => p.enabled);
-    const moduleAvailable = isAnyPrinterModuleAvailable();
-
-    console.log("🖨️ [Dashboard] Pool status:", {
-      printerCount: poolStatus.printers.length,
-      hasEnabledPrinters,
-      moduleAvailable,
-      queueLength: poolStatus.queueLength,
-      printers: poolStatus.printers.map(p => `${p.id}(${p.status})`).join(", ")
-    });
-
-    if (!moduleAvailable || !hasEnabledPrinters) {
-      console.log("🖨️ [Dashboard] Cannot print - module:", moduleAvailable, "enabled:", hasEnabledPrinters);
-      Alert.alert(
-        "Printer Not Available",
-        `Module available: ${moduleAvailable}\nEnabled printers: ${hasEnabledPrinters}\nPrinters in pool: ${poolStatus.printers.length}\n\nReceipt Preview:\n${buildTestReceipt().substring(0, 150)}...`,
-        [{ text: "OK" }]
-      );
-      return;
-    }
-
     try {
+      console.log("🖨️ [Dashboard] ========== Test print triggered ==========");
+      
+      if (!isClockedIn) {
+        clockIn("TEST-001", 1);
+      }
+
+      const poolStatus = getPoolStatus();
+      const hasEnabledPrinters = poolStatus.printers.some(p => p.enabled);
+      const moduleAvailable = isAnyPrinterModuleAvailable();
+
+      // 构建状态信息
+      const idlePrinters = poolStatus.printers.filter(p => p.enabled && p.status === 'idle').length;
+      const busyPrinters = poolStatus.printers.filter(p => p.status === 'busy').length;
+      const statusMsg = `打印机: ${poolStatus.printers.length}台 (空闲${idlePrinters}/忙${busyPrinters}) | 队列: ${poolStatus.queueLength}`;
+
+      console.log("🖨️ [Dashboard] Pool status:", {
+        printerCount: poolStatus.printers.length,
+        hasEnabledPrinters,
+        moduleAvailable,
+        queueLength: poolStatus.queueLength,
+        printers: poolStatus.printers.map(p => `${p.id}(${p.status})`).join(", ")
+      });
+
+      if (!moduleAvailable || !hasEnabledPrinters) {
+        console.log("🖨️ [Dashboard] No available printer, showing toast");
+        ToastAndroid.show(`❌ 无可用打印机 | ${statusMsg}`, ToastAndroid.LONG);
+        return;
+      }
+
       const receipt = buildTestReceipt();
-      console.log("🖨️ [Dashboard] Sending print job...");
+      console.log("🖨️ [Dashboard] Calling print()...");
       const jobId = print(receipt);
-      console.log("🖨️ [Dashboard] Print job created:", jobId);
+      console.log("🖨️ [Dashboard] Print job queued:", jobId);
+      
+      // 显示打印机状态
+      const newStatus = getPoolStatus();
+      const busyCount = newStatus.printers.filter(p => p.status === 'busy').length;
+      const idleCount = newStatus.printers.filter(p => p.status === 'idle' && p.enabled).length;
+      ToastAndroid.show(
+        `✅ 打印任务已发送 | 打印中: ${busyCount} | 空闲: ${idleCount} | 等待: ${newStatus.queueLength}`,
+        ToastAndroid.LONG
+      );
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
-      console.log("🖨️ [Dashboard] Print error:", msg);
-      Alert.alert("Print Error", msg);
+      console.log("🖨️ [Dashboard] ERROR:", msg, err);
+      ToastAndroid.show(`❌ 错误: ${msg}`, ToastAndroid.LONG);
     }
   };
 
