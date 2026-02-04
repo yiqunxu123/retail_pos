@@ -178,11 +178,9 @@ export function NewCustomerModal({
           activeOpacity={1}
           onPress={onClose}
         >
-          <TouchableOpacity
+          <View
             className="bg-white rounded-xl overflow-hidden"
-            style={{ width: 650, maxHeight: "90%" }}
-            activeOpacity={1}
-            onPress={(e) => e.stopPropagation()}
+            style={{ width: 650, height: 680, maxHeight: "90%" }}
           >
           {/* Header */}
           <View className="flex-row justify-between items-center px-6 py-4 border-b border-gray-200">
@@ -421,7 +419,7 @@ export function NewCustomerModal({
               </Text>
             </TouchableOpacity>
             </View>
-          </TouchableOpacity>
+          </View>
         </TouchableOpacity>
       </KeyboardAvoidingView>
     </Modal>

@@ -260,8 +260,8 @@ export default function ProductsScreen() {
       </View>
 
       {/* Data Table */}
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} className="flex-1">
-        <View style={{ minWidth: 900 }}>
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} className="flex-1" contentContainerStyle={{ flexGrow: 1 }}>
+        <View style={{ flex: 1, minWidth: 900 }}>
           {/* Table Header */}
           <View className="flex-row bg-gray-50 py-3 px-5 border-b border-gray-200">
             <View className="w-8 mr-4">

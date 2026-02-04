@@ -65,32 +65,23 @@ export default function SalesReturnScreen() {
     <>
       <SidebarButton 
         title="Create Sale Return"
-        icon={<Ionicons name="add-circle-outline" size={20} color="#FFFFFF" />}
+        icon={<Ionicons name="add-circle-outline" size={20} color="#EC1A52" />}
         onPress={() => Alert.alert("Create Return", "Create new return function")}
-        bgColor="#EC1A52"
-        textColor="#FFFFFF"
-        borderColor="#EC1A52"
       />
       <SidebarButton 
         title="Print Return Invoice"
-        icon={<Ionicons name="print-outline" size={20} color="#1A1A1A" />}
+        icon={<Ionicons name="print-outline" size={20} color="#EC1A52" />}
         onPress={() => Alert.alert("Print", "Printing return invoice list...")}
-        bgColor="#FCD34D" // Yellow
-        borderColor="#FCD34D"
       />
       <SidebarButton 
         title="View Return Invoice"
         icon={<Ionicons name="document-text-outline" size={20} color="#EC1A52" />}
         onPress={() => Alert.alert("View Invoice", "Select a return to view invoice")}
-        textColor="#EC1A52"
-        borderColor="#EC1A52"
       />
       <SidebarButton 
         title="Edit Return"
         icon={<Ionicons name="create-outline" size={20} color="#EC1A52" />}
         onPress={() => Alert.alert("Edit Return", "Select a return to edit")}
-        textColor="#EC1A52"
-        borderColor="#EC1A52"
       />
     </>
   );
