@@ -15,7 +15,7 @@ export function PageHeader({ title, showBack = true }: PageHeaderProps) {
   const router = useRouter();
 
   const handleBack = () => {
-    router.push("/");
+    router.back();
   };
 
   return (
