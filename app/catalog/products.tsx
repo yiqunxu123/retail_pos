@@ -6,16 +6,17 @@
  */
 
 import { Ionicons } from "@expo/vector-icons";
+import { useRouter } from "expo-router";
 import { useMemo, useState } from "react";
 import {
-  ActivityIndicator,
-  FlatList,
-  Pressable,
-  RefreshControl,
-  ScrollView,
-  Text,
-  TextInput,
-  View,
+    ActivityIndicator,
+    FlatList,
+    Pressable,
+    RefreshControl,
+    ScrollView,
+    Text,
+    TextInput,
+    View,
 } from "react-native";
 import { FilterDropdown, PageHeader } from "../../components";
 import { ProductView, useProducts } from "../../utils/powersync/hooks";
@@ -70,6 +71,8 @@ const formatCurrency = (value: number) =>
 // ============================================================================
 
 export default function ProductsScreen() {
+  const router = useRouter();
+  
   // Data from PowerSync
   const { products, isLoading, isStreaming, refresh, count } = useProducts();
   const [refreshing, setRefreshing] = useState(false);
@@ -211,6 +214,14 @@ export default function ProductsScreen() {
               <Text className="text-green-600 text-xs">● Live</Text>
             </View>
           )}
+          <View className="flex-1" />
+          <Pressable 
+            className="px-4 py-2 rounded-lg flex-row items-center gap-2"
+            style={{ backgroundColor: "#3B82F6" }}
+            onPress={() => router.push("/catalog/add-product")}
+          >
+            <Text className="text-white font-medium">Add Product</Text>
+          </Pressable>
         </View>
 
         {/* Search & Filters */}
