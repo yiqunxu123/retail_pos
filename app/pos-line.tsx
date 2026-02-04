@@ -14,7 +14,15 @@ import {
 import { ProductItem } from "../components/ProductTable";
 import { SearchProduct } from "../components/SearchProductModal";
 import { useClock } from "../contexts/ClockContext";
-import { addPrintJob, isAnyPrinterAvailable, isPrinterAvailable, printQueue, setPrinterConfig } from "../utils/PrintQueue";
+import { 
+  print, 
+  addPrinterListener, 
+  getPoolStatus,
+  getPrinters,
+  addPrinter,
+  isAnyPrinterModuleAvailable,
+  isPrinterModuleAvailable,
+} from "../utils/PrinterPoolManager";
 
 // Printer configuration
 const PRINTER_IP = "192.168.1.100";
@@ -257,59 +265,19 @@ Subtotal:              $${subTotal.toFixed(2)}
     return receipt;
   }, [products, subTotal, discount, total, selectedPosLine]);
 
-  // Initialize printer config (only alert on failure)
+  // Initialize printer pool and listen to events
   useEffect(() => {
-    setPrinterConfig({ ip: PRINTER_IP, port: PRINTER_PORT });
-    
-    // Listen to print queue status - only alert on failure
-    const unsubscribe = printQueue.addListener((status, job) => {
-      if (status === 'failed') {
-        Alert.alert("Print Error", "Failed to print receipt.");
+    // Listen to print events - only alert on failure
+    const unsubscribe = addPrinterListener((event) => {
+      if (event.type === 'job_failed') {
+        Alert.alert("Print Error", `Failed to print: ${event.data?.error || 'Unknown error'}`);
       }
     });
 
     return () => unsubscribe();
   }, []);
 
-  // Print via Ethernet using queue
-  const printViaEthernet = useCallback(() => {
-    try {
-      const receipt = buildReceipt();
-      addPrintJob('ethernet', receipt);
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : String(err);
-      Alert.alert("Print Error", msg);
-    }
-  }, [buildReceipt]);
-
-  // Print via USB using queue
-  const printViaUSB = useCallback(() => {
-    if (Platform.OS !== "android") {
-      Alert.alert("Not Supported", "USB printing is Android only");
-      return;
-    }
-
-    try {
-      const receipt = buildReceipt();
-      addPrintJob('usb', receipt);
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : String(err);
-      Alert.alert("Print Error", msg);
-    }
-  }, [buildReceipt]);
-
-  // Print via Bluetooth using queue
-  const printViaBluetooth = useCallback(() => {
-    try {
-      const receipt = buildReceipt();
-      addPrintJob('bluetooth', receipt);
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : String(err);
-      Alert.alert("Print Error", msg);
-    }
-  }, [buildReceipt]);
-
-  // Handle print receipt - show options for connection type
+  // Handle print receipt - uses pool system (auto-selects available printer)
   const handlePrintReceipt = useCallback(() => {
     if (products.length === 0) {
       Alert.alert("Empty Cart", "Please add products before printing receipt.");
@@ -317,35 +285,44 @@ Subtotal:              $${subTotal.toFixed(2)}
     }
 
     // Check if any printer is available
-    if (!isAnyPrinterAvailable()) {
+    const poolStatus = getPoolStatus();
+    const hasEnabledPrinters = poolStatus.printers.some(p => p.enabled);
+
+    if (!isAnyPrinterModuleAvailable() || !hasEnabledPrinters) {
       Alert.alert(
         "Printer Not Available",
-        "Thermal printer requires a development build.\n\nReceipt Preview:\n" + buildReceipt().substring(0, 300) + "...",
+        "No printers configured.\n\nPlease add a printer in Settings.\n\nReceipt Preview:\n" + buildReceipt().substring(0, 300) + "...",
         [{ text: "OK" }]
       );
       return;
     }
 
-    const status = getPrintQueueStatus();
-    const options: any[] = [{ text: "Cancel", style: "cancel" }];
+    // Show available printers status
+    const idlePrinters = poolStatus.printers.filter(p => p.enabled && p.status === 'idle');
+    const busyPrinters = poolStatus.printers.filter(p => p.enabled && p.status === 'busy');
 
-    // Only add available printer options
-    if (isPrinterAvailable('bluetooth')) {
-      options.push({ text: "Bluetooth", onPress: printViaBluetooth });
-    }
-    if (isPrinterAvailable('ethernet')) {
-      options.push({ text: "Ethernet", onPress: printViaEthernet });
-    }
-    if (Platform.OS === "android" && isPrinterAvailable('usb')) {
-      options.push({ text: "USB", onPress: printViaUSB });
-    }
+    const statusMsg = `Printers: ${idlePrinters.length} idle, ${busyPrinters.length} busy\nQueue: ${poolStatus.queueLength} jobs`;
 
     Alert.alert(
       "Print Receipt",
-      `Select printer connection type:\n(Queue: ${status.queueLength} jobs)`,
-      options
+      statusMsg,
+      [
+        { text: "Cancel", style: "cancel" },
+        { 
+          text: "Print", 
+          onPress: () => {
+            try {
+              const receipt = buildReceipt();
+              print(receipt);  // 池系统自动选择空闲打印机
+            } catch (err) {
+              const msg = err instanceof Error ? err.message : String(err);
+              Alert.alert("Print Error", msg);
+            }
+          }
+        },
+      ]
     );
-  }, [products.length, printViaEthernet, printViaUSB, printViaBluetooth, buildReceipt]);
+  }, [products.length, buildReceipt]);
 
   return (
     <View className={`flex-1 ${isLandscape ? "flex-row" : "flex-col"}`}>

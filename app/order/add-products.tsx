@@ -17,7 +17,11 @@ import { SearchProduct, SearchProductModal } from "../../components/SearchProduc
 import { useAuth } from "../../contexts/AuthContext";
 import { OrderProduct, useOrder } from "../../contexts/OrderContext";
 import { useParkedOrders } from "../../contexts/ParkedOrderContext";
-import { isPrinterAvailable, openCashDrawer } from "../../utils/PrintQueue";
+import { 
+  openCashDrawer, 
+  getPoolStatus, 
+  isAnyPrinterModuleAvailable 
+} from "../../utils/PrinterPoolManager";
 
 // Action button width
 const SIDEBAR_WIDTH = 300;
@@ -128,21 +132,24 @@ export default function AddProductsScreen() {
     setShowDeclareCashModal(true);
   };
 
-  // Open physical cash drawer via ethernet printer
+  // Open physical cash drawer via printer pool
   const handleOpenCashDrawer = async () => {
-    // Check if ethernet printer is available
-    if (!isPrinterAvailable('ethernet')) {
+    // Check if any printer is available in pool
+    const poolStatus = getPoolStatus();
+    const hasIdlePrinter = poolStatus.printers.some(p => p.enabled && p.status === 'idle');
+
+    if (!isAnyPrinterModuleAvailable() || !hasIdlePrinter) {
       Alert.alert(
         "Printer Not Available",
-        "Cash drawer requires a connected ethernet printer.\n\nMake sure you're running a development build with printer support.",
+        "Cash drawer requires a connected printer.\n\nPlease configure a printer in Settings.",
         [{ text: "OK" }]
       );
       return;
     }
 
-    // Directly open drawer via ethernet
+    // Open drawer via pool (auto-select available printer)
     try {
-      await openCashDrawer('ethernet');
+      await openCashDrawer();
       Alert.alert("Success", "Cash drawer opened");
     } catch (error: any) {
       Alert.alert("Error", error.message || "Failed to open cash drawer");

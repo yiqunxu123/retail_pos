@@ -17,7 +17,16 @@ import { useAuth } from "../contexts/AuthContext";
 import { useClock } from "../contexts/ClockContext";
 import { useParkedOrders } from "../contexts/ParkedOrderContext";
 import { useViewMode } from "../contexts/ViewModeContext";
-import { addPrintJob, isPrinterAvailable, openCashDrawer, printQueue, setPrinterConfig } from "../utils/PrintQueue";
+import { 
+  print, 
+  openCashDrawer, 
+  addPrinterListener, 
+  getPoolStatus,
+  getPrinters,
+  addPrinter,
+  isAnyPrinterModuleAvailable,
+  logPoolStatus,
+} from "../utils/PrinterPoolManager";
 import { useDashboardStats } from "../utils/powersync/hooks";
 
 // Default printer configuration
@@ -102,12 +111,57 @@ export default function Dashboard() {
     loadSettings();
   }, []);
 
-  // Initialize printer config
+  // Initialize printer pool from saved settings
   useEffect(() => {
-    setPrinterConfig({ ip: printerIp, port: printerPort });
-    const unsubscribe = printQueue.addListener((status, job) => {
-      if (status === 'failed') {
-        Alert.alert("Print Error", "Failed to print receipt.");
+    const initPrinterPool = async () => {
+      console.log("🖨️ [Dashboard] Initializing printer pool...");
+      try {
+        // Load printer pool config from AsyncStorage
+        const savedConfig = await AsyncStorage.getItem("printer_pool_config");
+        console.log("🖨️ [Dashboard] Saved config:", savedConfig ? "found" : "not found");
+        
+        if (savedConfig) {
+          const printers = JSON.parse(savedConfig);
+          console.log("🖨️ [Dashboard] Loading", printers.length, "printers from config");
+          printers.forEach((p: any) => {
+            if (!getPrinters().find(existing => existing.id === p.id)) {
+              console.log("🖨️ [Dashboard] Adding printer:", p.id, p.name);
+              addPrinter(p);
+            }
+          });
+        } else if (printerIp) {
+          // Fallback: create default printer from legacy settings
+          console.log("🖨️ [Dashboard] No pool config, using legacy settings:", printerIp, printerPort);
+          if (!getPrinters().find(p => p.id === 'default-ethernet')) {
+            addPrinter({
+              id: 'default-ethernet',
+              name: '默认网络打印机',
+              type: 'ethernet',
+              ip: printerIp,
+              port: printerPort,
+            });
+          }
+        } else {
+          console.log("🖨️ [Dashboard] No printer config found");
+        }
+        
+        // Log final pool status
+        const status = getPoolStatus();
+        console.log("🖨️ [Dashboard] Pool initialized:", status.printers.length, "printers");
+        status.printers.forEach(p => {
+          console.log("   -", p.id, `(${p.name})`, p.enabled ? "enabled" : "disabled", p.status);
+        });
+      } catch (e) {
+        console.log("🖨️ [Dashboard] Failed to init printer pool:", e);
+      }
+    };
+    initPrinterPool();
+
+    // Listen to print events
+    const unsubscribe = addPrinterListener((event) => {
+      console.log("🖨️ [Dashboard] Print event:", event.type, event.jobId || "", event.printerId || "");
+      if (event.type === 'job_failed') {
+        Alert.alert("Print Error", `Failed to print: ${event.data?.error || 'Unknown error'}`);
       }
     });
     return () => unsubscribe();
@@ -140,15 +194,30 @@ Cookies               x3    $6.00
 
   // Test print function
   const handleTestPrint = () => {
+    console.log("🖨️ [Dashboard] Test print triggered");
+    
     if (!isClockedIn) {
       clockIn("TEST-001", 1);
       Alert.alert("Clock In", "Clocked in as TEST-001 on POS Line 1");
     }
 
-    if (!isPrinterAvailable('ethernet')) {
+    const poolStatus = getPoolStatus();
+    const hasEnabledPrinters = poolStatus.printers.some(p => p.enabled);
+    const moduleAvailable = isAnyPrinterModuleAvailable();
+
+    console.log("🖨️ [Dashboard] Pool status:", {
+      printerCount: poolStatus.printers.length,
+      hasEnabledPrinters,
+      moduleAvailable,
+      queueLength: poolStatus.queueLength,
+      printers: poolStatus.printers.map(p => `${p.id}(${p.status})`).join(", ")
+    });
+
+    if (!moduleAvailable || !hasEnabledPrinters) {
+      console.log("🖨️ [Dashboard] Cannot print - module:", moduleAvailable, "enabled:", hasEnabledPrinters);
       Alert.alert(
         "Printer Not Available",
-        "Thermal printer requires a development build.\n\nReceipt Preview:\n" + buildTestReceipt().substring(0, 200) + "...",
+        `Module available: ${moduleAvailable}\nEnabled printers: ${hasEnabledPrinters}\nPrinters in pool: ${poolStatus.printers.length}\n\nReceipt Preview:\n${buildTestReceipt().substring(0, 150)}...`,
         [{ text: "OK" }]
       );
       return;
@@ -156,9 +225,12 @@ Cookies               x3    $6.00
 
     try {
       const receipt = buildTestReceipt();
-      addPrintJob('ethernet', receipt);
+      console.log("🖨️ [Dashboard] Sending print job...");
+      const jobId = print(receipt);
+      console.log("🖨️ [Dashboard] Print job created:", jobId);
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
+      console.log("🖨️ [Dashboard] Print error:", msg);
       Alert.alert("Print Error", msg);
     }
   };
@@ -276,19 +348,22 @@ Cookies               x3    $6.00
           <View className="flex-row gap-4 mb-4">
             <TouchableOpacity
               onPress={async () => {
-                // Check if ethernet printer is available
-                if (!isPrinterAvailable('ethernet')) {
+                // Check if any printer is available in pool
+                const poolStatus = getPoolStatus();
+                const hasIdlePrinter = poolStatus.printers.some(p => p.enabled && p.status === 'idle');
+
+                if (!isAnyPrinterModuleAvailable() || !hasIdlePrinter) {
                   Alert.alert(
                     "Printer Not Available",
-                    "Cash drawer requires a connected ethernet printer.\n\nMake sure you're running a development build with printer support.",
+                    "Cash drawer requires a connected printer.\n\nPlease configure a printer in Settings.",
                     [{ text: "OK" }]
                   );
                   return;
                 }
 
-                // Directly open drawer via ethernet
+                // Open drawer via pool (auto-select available printer)
                 try {
-                  await openCashDrawer('ethernet');
+                  await openCashDrawer();
                   Alert.alert("Success", "Cash drawer opened");
                 } catch (error: any) {
                   Alert.alert("Error", error.message || "Failed to open cash drawer");
