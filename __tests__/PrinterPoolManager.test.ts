@@ -1,6 +1,6 @@
 /**
  * PrinterPoolManager Unit Tests
- * 测试打印机池管理的核心逻辑
+ * Tests the core logic of printer pool management
  */
 
 // Mock the printer module before importing
@@ -32,9 +32,8 @@ jest.mock('react-native-thermal-receipt-printer', () => ({
 
 // Import after mocking
 import {
-  PrinterConfig,
-  PrinterState,
-  PrintEvent,
+    PrinterConfig,
+    PrintEvent
 } from '../utils/PrinterPoolManager';
 
 // We need to create a fresh instance for each test to avoid state pollution

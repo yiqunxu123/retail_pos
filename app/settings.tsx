@@ -1,18 +1,17 @@
 import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useEffect, useState } from "react";
-import { Alert, Modal, Pressable, ScrollView, Switch, Text, TextInput, TouchableOpacity, View } from "react-native";
+import { Alert, Modal, ScrollView, Switch, Text, TextInput, TouchableOpacity, View } from "react-native";
 import { PageHeader } from "../components";
-import { 
-  printerPool, 
-  addPrinter, 
-  removePrinter, 
-  updatePrinter,
-  setPrinterEnabled, 
-  getPrinters,
-  PrinterConfig,
-  PrinterState,
-  PrinterType,
+import {
+    addPrinter,
+    getPrinters,
+    PrinterConfig,
+    PrinterState,
+    PrinterType,
+    removePrinter,
+    setPrinterEnabled,
+    updatePrinter
 } from "../utils/PrinterPoolManager";
 
 // Storage key for printers
@@ -20,9 +19,9 @@ const PRINTERS_STORAGE_KEY = "printer_pool_config";
 
 // Printer type options
 const PRINTER_TYPES: { value: PrinterType; label: string; icon: string }[] = [
-  { value: "ethernet", label: "网络打印机", icon: "wifi" },
-  { value: "usb", label: "USB 打印机", icon: "hardware-chip" },
-  { value: "bluetooth", label: "蓝牙打印机", icon: "bluetooth" },
+  { value: "ethernet", label: "Network Printer", icon: "wifi" },
+  { value: "usb", label: "USB Printer", icon: "hardware-chip" },
+  { value: "bluetooth", label: "Bluetooth Printer", icon: "bluetooth" },
 ];
 
 export default function SettingsScreen() {
@@ -49,8 +48,8 @@ export default function SettingsScreen() {
     try {
       console.log("🖨️ [Settings] Loading printers...");
       
-      // 直接从池中获取当前打印机列表显示
-      // 池在 Dashboard 启动时已经从存储加载了
+      // Get current printer list directly from pool for display
+      // Pool was already loaded from storage when Dashboard started
       const poolPrinters = getPrinters();
       console.log("🖨️ [Settings] Pool has:", poolPrinters.length, "printers");
       poolPrinters.forEach(p => console.log("   -", p.id, p.name, p.ip, p.status));
@@ -79,7 +78,7 @@ export default function SettingsScreen() {
       console.log("🖨️ [Settings] Saving printers:", jsonData);
       await AsyncStorage.setItem(PRINTERS_STORAGE_KEY, jsonData);
       
-      // 验证保存是否成功
+      // Verify save was successful
       const verify = await AsyncStorage.getItem(PRINTERS_STORAGE_KEY);
       console.log("🖨️ [Settings] Verify saved:", verify === jsonData ? "✅ OK" : "❌ MISMATCH");
     } catch (e) {
@@ -120,22 +119,22 @@ export default function SettingsScreen() {
 
   // Validate form
   const validateForm = (): string | null => {
-    if (!formName.trim()) return "请输入打印机名称";
+    if (!formName.trim()) return "Please enter printer name";
     
     if (formType === "ethernet") {
-      if (!formIp.trim()) return "请输入 IP 地址";
+      if (!formIp.trim()) return "Please enter IP address";
       const ipRegex = /^(\d{1,3}\.){3}\d{1,3}$/;
-      if (!ipRegex.test(formIp)) return "IP 地址格式不正确";
+      if (!ipRegex.test(formIp)) return "Invalid IP address format";
     }
     
     if (formType === "usb") {
       if (!formVendorId.trim() || !formProductId.trim()) {
-        return "请输入 Vendor ID 和 Product ID";
+        return "Please enter Vendor ID and Product ID";
       }
     }
     
     if (formType === "bluetooth") {
-      if (!formMacAddress.trim()) return "请输入蓝牙 MAC 地址";
+      if (!formMacAddress.trim()) return "Please enter Bluetooth MAC address";
     }
     
     return null;
@@ -145,7 +144,7 @@ export default function SettingsScreen() {
   const handleSavePrinter = () => {
     const error = validateForm();
     if (error) {
-      Alert.alert("验证错误", error);
+      Alert.alert("Validation Error", error);
       return;
     }
 
@@ -188,12 +187,12 @@ export default function SettingsScreen() {
   // Delete printer
   const handleDeletePrinter = (printer: PrinterState) => {
     Alert.alert(
-      "删除打印机",
-      `确定要删除 "${printer.name}" 吗？`,
+      "Delete Printer",
+      `Are you sure you want to delete "${printer.name}"?`,
       [
-        { text: "取消", style: "cancel" },
+        { text: "Cancel", style: "cancel" },
         {
-          text: "删除",
+          text: "Delete",
           style: "destructive",
           onPress: () => {
             removePrinter(printer.id);
@@ -228,10 +227,10 @@ export default function SettingsScreen() {
   // Get status text
   const getStatusText = (status: string) => {
     switch (status) {
-      case "idle": return "空闲";
-      case "busy": return "打印中";
-      case "offline": return "离线";
-      case "error": return "错误";
+      case "idle": return "Idle";
+      case "busy": return "Printing";
+      case "offline": return "Offline";
+      case "error": return "Error";
       default: return status;
     }
   };
@@ -274,7 +273,7 @@ export default function SettingsScreen() {
                 style={{ backgroundColor: getStatusColor(printer.status) }}
               />
               <Text className="text-gray-400 text-xs">
-                {getStatusText(printer.status)} · 已完成 {printer.jobsCompleted} 个任务
+                {getStatusText(printer.status)} · Completed {printer.jobsCompleted} jobs
               </Text>
             </View>
           </View>
@@ -329,7 +328,7 @@ export default function SettingsScreen() {
                 <Ionicons name={editingPrinter ? "pencil" : "add"} size={24} color="#3b82f6" />
               </View>
               <Text className="text-xl font-semibold text-gray-800">
-                {editingPrinter ? "编辑打印机" : "添加打印机"}
+                {editingPrinter ? "Edit Printer" : "Add Printer"}
               </Text>
             </View>
             <TouchableOpacity onPress={() => setIsModalVisible(false)}>
@@ -340,10 +339,10 @@ export default function SettingsScreen() {
           <ScrollView className="p-6">
             {/* Printer Name */}
             <View className="mb-5">
-              <Text className="text-gray-700 font-medium mb-2">打印机名称 *</Text>
+              <Text className="text-gray-700 font-medium mb-2">Printer Name *</Text>
               <TextInput
                 className="bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-base"
-                placeholder="例如：收银台打印机"
+                placeholder="e.g., Cashier Printer"
                 placeholderTextColor="#9ca3af"
                 value={formName}
                 onChangeText={setFormName}
@@ -352,7 +351,7 @@ export default function SettingsScreen() {
 
             {/* Printer Type */}
             <View className="mb-5">
-              <Text className="text-gray-700 font-medium mb-2">打印机类型 *</Text>
+              <Text className="text-gray-700 font-medium mb-2">Printer Type *</Text>
               <View className="flex-row gap-3">
                 {PRINTER_TYPES.map(type => (
                   <TouchableOpacity
@@ -383,10 +382,10 @@ export default function SettingsScreen() {
             {formType === "ethernet" && (
               <>
                 <View className="mb-5">
-                  <Text className="text-gray-700 font-medium mb-2">IP 地址 *</Text>
+                  <Text className="text-gray-700 font-medium mb-2">IP Address *</Text>
                   <TextInput
                     className="bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-base"
-                    placeholder="例如：192.168.1.100"
+                    placeholder="e.g., 192.168.1.100"
                     placeholderTextColor="#9ca3af"
                     value={formIp}
                     onChangeText={setFormIp}
@@ -394,10 +393,10 @@ export default function SettingsScreen() {
                   />
                 </View>
                 <View className="mb-5">
-                  <Text className="text-gray-700 font-medium mb-2">端口</Text>
+                  <Text className="text-gray-700 font-medium mb-2">Port</Text>
                   <TextInput
                     className="bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-base"
-                    placeholder="默认 9100"
+                    placeholder="Default 9100"
                     placeholderTextColor="#9ca3af"
                     value={formPort}
                     onChangeText={setFormPort}
@@ -414,7 +413,7 @@ export default function SettingsScreen() {
                   <Text className="text-gray-700 font-medium mb-2">Vendor ID *</Text>
                   <TextInput
                     className="bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-base"
-                    placeholder="例如：0x0483 或 1155"
+                    placeholder="e.g., 0x0483 or 1155"
                     placeholderTextColor="#9ca3af"
                     value={formVendorId}
                     onChangeText={setFormVendorId}
@@ -424,7 +423,7 @@ export default function SettingsScreen() {
                   <Text className="text-gray-700 font-medium mb-2">Product ID *</Text>
                   <TextInput
                     className="bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-base"
-                    placeholder="例如：0x5740 或 22336"
+                    placeholder="e.g., 0x5740 or 22336"
                     placeholderTextColor="#9ca3af"
                     value={formProductId}
                     onChangeText={setFormProductId}
@@ -433,7 +432,7 @@ export default function SettingsScreen() {
                 <View className="bg-amber-50 rounded-xl p-4 mb-5 flex-row items-start gap-3">
                   <Ionicons name="information-circle" size={20} color="#f59e0b" />
                   <Text className="text-amber-700 text-sm flex-1">
-                    USB 打印机仅支持 Android 设备。可以通过连接打印机后查看设备列表获取 ID。
+                    USB printers are only supported on Android devices. You can get the IDs by viewing the device list after connecting the printer.
                   </Text>
                 </View>
               </>
@@ -443,10 +442,10 @@ export default function SettingsScreen() {
             {formType === "bluetooth" && (
               <>
                 <View className="mb-5">
-                  <Text className="text-gray-700 font-medium mb-2">MAC 地址 *</Text>
+                  <Text className="text-gray-700 font-medium mb-2">MAC Address *</Text>
                   <TextInput
                     className="bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-base"
-                    placeholder="例如：00:11:22:33:44:55"
+                    placeholder="e.g., 00:11:22:33:44:55"
                     placeholderTextColor="#9ca3af"
                     value={formMacAddress}
                     onChangeText={setFormMacAddress}
@@ -456,7 +455,7 @@ export default function SettingsScreen() {
                 <View className="bg-blue-50 rounded-xl p-4 mb-5 flex-row items-start gap-3">
                   <Ionicons name="information-circle" size={20} color="#3b82f6" />
                   <Text className="text-blue-700 text-sm flex-1">
-                    请先在系统设置中配对蓝牙打印机，然后输入打印机的 MAC 地址。
+                    Please pair the Bluetooth printer in system settings first, then enter the printer's MAC address.
                   </Text>
                 </View>
               </>
@@ -469,14 +468,14 @@ export default function SettingsScreen() {
               onPress={() => setIsModalVisible(false)}
               className="flex-1 border border-gray-300 rounded-xl py-3 items-center"
             >
-              <Text className="text-gray-700 font-medium">取消</Text>
+              <Text className="text-gray-700 font-medium">Cancel</Text>
             </TouchableOpacity>
             <TouchableOpacity
               onPress={handleSavePrinter}
               className="flex-1 bg-blue-500 rounded-xl py-3 items-center"
             >
               <Text className="text-white font-medium">
-                {editingPrinter ? "保存修改" : "添加打印机"}
+                {editingPrinter ? "Save Changes" : "Add Printer"}
               </Text>
             </TouchableOpacity>
           </View>
@@ -499,9 +498,9 @@ export default function SettingsScreen() {
                 <Ionicons name="print" size={24} color="#3b82f6" />
               </View>
               <View>
-                <Text className="text-lg font-semibold text-gray-800">打印机管理</Text>
+                <Text className="text-lg font-semibold text-gray-800">Printer Management</Text>
                 <Text className="text-gray-500 text-sm">
-                  已配置 {printers.length} 台打印机，{printers.filter(p => p.enabled).length} 台启用
+                  {printers.length} printers configured, {printers.filter(p => p.enabled).length} enabled
                 </Text>
               </View>
             </View>
@@ -510,7 +509,7 @@ export default function SettingsScreen() {
               className="bg-blue-500 px-4 py-2 rounded-lg flex-row items-center gap-2"
             >
               <Ionicons name="add" size={20} color="white" />
-              <Text className="text-white font-medium">添加打印机</Text>
+              <Text className="text-white font-medium">Add Printer</Text>
             </TouchableOpacity>
           </View>
 
@@ -519,8 +518,8 @@ export default function SettingsScreen() {
             {printers.length === 0 ? (
               <View className="items-center py-10">
                 <Ionicons name="print-outline" size={48} color="#d1d5db" />
-                <Text className="text-gray-400 mt-3 text-base">暂无打印机</Text>
-                <Text className="text-gray-400 text-sm">点击上方按钮添加打印机</Text>
+                <Text className="text-gray-400 mt-3 text-base">No printers yet</Text>
+                <Text className="text-gray-400 text-sm">Click the button above to add a printer</Text>
               </View>
             ) : (
               printers.map(renderPrinterCard)
@@ -531,24 +530,24 @@ export default function SettingsScreen() {
           {printers.length > 0 && (
             <View className="px-4 pb-4">
               <View className="bg-gray-50 rounded-xl p-4">
-                <Text className="text-gray-600 font-medium mb-2">打印机池状态</Text>
+                <Text className="text-gray-600 font-medium mb-2">Printer Pool Status</Text>
                 <View className="flex-row flex-wrap gap-4">
                   <View className="flex-row items-center gap-2">
                     <View className="w-3 h-3 rounded-full bg-green-500" />
                     <Text className="text-gray-600 text-sm">
-                      空闲: {printers.filter(p => p.enabled && p.status === 'idle').length}
+                      Idle: {printers.filter(p => p.enabled && p.status === 'idle').length}
                     </Text>
                   </View>
                   <View className="flex-row items-center gap-2">
                     <View className="w-3 h-3 rounded-full bg-amber-500" />
                     <Text className="text-gray-600 text-sm">
-                      打印中: {printers.filter(p => p.status === 'busy').length}
+                      Printing: {printers.filter(p => p.status === 'busy').length}
                     </Text>
                   </View>
                   <View className="flex-row items-center gap-2">
                     <View className="w-3 h-3 rounded-full bg-gray-400" />
                     <Text className="text-gray-600 text-sm">
-                      禁用: {printers.filter(p => !p.enabled).length}
+                      Disabled: {printers.filter(p => !p.enabled).length}
                     </Text>
                   </View>
                 </View>
