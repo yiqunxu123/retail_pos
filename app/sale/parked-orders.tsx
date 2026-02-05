@@ -1,17 +1,17 @@
-import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
+import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import { useState } from "react";
 import {
-  Alert,
-  FlatList,
-  Pressable,
-  ScrollView,
-  Text,
-  TextInput,
-  View,
+    Alert,
+    FlatList,
+    Pressable,
+    ScrollView,
+    Text,
+    TextInput,
+    View,
 } from "react-native";
-import { useParkedOrders } from "../../contexts/ParkedOrderContext";
 import StaffPageLayout, { SidebarButton } from "../../components/StaffPageLayout";
+import { useParkedOrders } from "../../contexts/ParkedOrderContext";
 
 // Mock data for demonstration
 const MOCK_PARKED_ORDERS = [
@@ -132,14 +132,12 @@ export default function ParkedOrdersScreen() {
   );
 
   return (
-    <StaffPageLayout sidebarCustomButtons={sidebarButtons}>
+    <StaffPageLayout 
+      title="Parked Orders"
+      subTitle="Search by Customer Name, SKU, UPC"
+      sidebarCustomButtons={sidebarButtons}
+    >
       <View className="flex-1 bg-white">
-        {/* Header */}
-        <View className="px-6 py-4">
-          <Text className="text-2xl font-bold text-gray-900">Parked Orders</Text>
-          <Text className="text-gray-500 text-sm mt-1">Search by Customer Name, SKU, UPC</Text>
-        </View>
-
         {/* Search Bar */}
         <View className="px-6 pb-4">
           <View className="flex-row items-center gap-3">

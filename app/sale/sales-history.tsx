@@ -230,13 +230,14 @@ export default function SalesHistoryScreen() {
   );
 
   return (
-    <StaffPageLayout sidebarCustomButtons={sidebarButtons}>
+    <StaffPageLayout 
+      title="Sales History"
+      subTitle="Search by Customer Name, SKU, UPC"
+      sidebarCustomButtons={sidebarButtons}
+    >
       <View className="flex-1 bg-white">
-        {/* Title and Search Section */}
+        {/* Search Section */}
         <View className="px-4 py-4">
-          <Text className="text-xl font-bold text-gray-900 mb-1">Sales History</Text>
-          <Text className="text-gray-500 text-sm mb-4">Search by Customer Name, SKU, UPC</Text>
-
           {/* Search Bar */}
           <View className="flex-row items-center gap-3">
             <View className="flex-1 flex-row items-center bg-gray-50 border border-gray-200 rounded-lg px-3 py-2">

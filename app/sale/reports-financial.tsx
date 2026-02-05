@@ -1,6 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import { Pressable, ScrollView, Text, View } from "react-native";
+import { PageHeader } from "../../components";
 
 const FINANCIAL_REPORTS = [
   { id: "customer-account-receivable", title: "Customer Account Receivable Report", route: "/sale/reports/customer-account-receivable" },
@@ -50,12 +51,7 @@ export default function FinancialReportsScreen() {
 
   return (
     <View className="flex-1 bg-white">
-      <View className="px-6 py-4 flex-row items-center">
-        <Pressable onPress={() => router.back()} className="mr-4">
-          <Ionicons name="arrow-back" size={24} color="#1A1A1A" />
-        </Pressable>
-        <Text className="text-2xl font-bold text-gray-900">Financial Reports</Text>
-      </View>
+      <PageHeader title="Financial Reports" />
 
       <ScrollView className="flex-1 px-6">
         <View className="flex-row gap-4">
