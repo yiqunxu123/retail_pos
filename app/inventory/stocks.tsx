@@ -8,14 +8,14 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useMemo, useState } from "react";
 import {
-  ActivityIndicator,
-  FlatList,
-  Modal,
-  Pressable,
-  RefreshControl,
-  Text,
-  TextInput,
-  View,
+    ActivityIndicator,
+    FlatList,
+    Modal,
+    Pressable,
+    RefreshControl,
+    Text,
+    TextInput,
+    View,
 } from "react-native";
 import { FilterDropdown, PageHeader } from "../../components";
 import { StockView, useStocks } from "../../utils/powersync/hooks";
