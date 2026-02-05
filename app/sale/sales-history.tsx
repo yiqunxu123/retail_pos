@@ -2,16 +2,17 @@ import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import { useMemo, useState } from "react";
 import {
-  ActivityIndicator,
-  Alert,
-  FlatList,
-  Pressable,
-  Text,
-  TextInput,
-  View,
+    ActivityIndicator,
+    Alert,
+    FlatList,
+    Pressable,
+    Text,
+    TextInput,
+    View,
 } from "react-native";
 import { OrderDetailsModal } from "../../components/OrderDetailsModal";
 import StaffPageLayout, { SidebarButton } from "../../components/StaffPageLayout";
+import { StatCardHorizontal } from "../../components/StatCardHorizontal";
 import { SaleOrderView, useSaleOrders } from "../../utils/powersync/hooks";
 
 // ============================================================================
@@ -25,30 +26,6 @@ const STATUS_COLORS: Record<number, { bg: string; text: string }> = {
   4: { bg: "#BBF7D0", text: "#166534" }, // Completed - Green
   5: { bg: "#FECACA", text: "#991B1B" }, // Cancelled - Red
 };
-
-// ============================================================================
-// Stat Card Component
-// ============================================================================
-
-interface StatCardProps {
-  title: string;
-  count: number;
-  color: string;
-}
-
-function StatCard({ title, count, color }: StatCardProps) {
-  return (
-    <View 
-      className="flex-1 rounded-lg px-3 py-3"
-      style={{ backgroundColor: color }}
-    >
-      <View className="flex-row justify-between items-center">
-        <Text className="text-white font-medium text-xs flex-1 mr-2" numberOfLines={1}>{title}</Text>
-        <Text className="text-white font-bold text-lg">{count}</Text>
-      </View>
-    </View>
-  );
-}
 
 // ============================================================================
 // Main Component
@@ -291,15 +268,15 @@ export default function SalesHistoryScreen() {
           <View className="px-4 mb-4">
             {/* Row 1 */}
             <View className="flex-row gap-3 mb-3">
-              <StatCard title="Completed" count={450} color="#3B82F6" />
-              <StatCard title="Delivery" count={321} color="#14B8A6" />
-              <StatCard title="Parked" count={23} color="#8B5CF6" />
+              <StatCardHorizontal title="Completed" count={450} color="#3B82F6" />
+              <StatCardHorizontal title="Delivery" count={321} color="#14B8A6" />
+              <StatCardHorizontal title="Parked" count={23} color="#8B5CF6" />
             </View>
             {/* Row 2 */}
             <View className="flex-row gap-3">
-              <StatCard title="Unpaid" count={450} color="#EC1A52" />
-              <StatCard title="Returned" count={321} color="#22C55E" />
-              <StatCard title="In Progress" count={23} color="#F59E0B" />
+              <StatCardHorizontal title="Unpaid" count={450} color="#EC1A52" />
+              <StatCardHorizontal title="Returned" count={321} color="#22C55E" />
+              <StatCardHorizontal title="In Progress" count={23} color="#F59E0B" />
             </View>
           </View>
         )}

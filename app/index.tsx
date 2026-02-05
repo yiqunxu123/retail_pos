@@ -4,6 +4,7 @@ import { useRouter } from "expo-router";
 import { useEffect, useState } from "react";
 import { Alert, ScrollView, Text, ToastAndroid, TouchableOpacity, useWindowDimensions, View } from "react-native";
 import {
+    ActionCard,
     SIDEBAR_WIDTH,
     StatCard
 } from "../components";
@@ -324,59 +325,20 @@ Cookies               x3    $6.00
 
           {/* Primary Action Buttons */}
           <View className="flex-row gap-4 mb-4">
-            <TouchableOpacity
+            <ActionCard
+              title="Start Sale"
+              backgroundColor="#EC1A52"
               onPress={() => router.push("/order/add-products")}
               disabled={!isClockedIn}
-              className="flex-1 rounded-xl justify-center items-center"
-              style={{
-                backgroundColor: isClockedIn ? "#EC1A52" : "#848484",
-                minHeight: 160,
-                shadowColor: "#989898",
-                shadowOffset: { width: 4, height: 4 },
-                shadowOpacity: 0.25,
-                shadowRadius: 4,
-                elevation: 4,
-                opacity: isClockedIn ? 1 : 0.7,
-              }}
-            >
-              <Text 
-                className="text-white font-medium text-center"
-                style={{ fontSize: 26, letterSpacing: -0.5 }}
-              >
-                Start Sale
-              </Text>
-            </TouchableOpacity>
+            />
 
-            <TouchableOpacity
+            <ActionCard
+              title="Resume Last Order"
+              backgroundColor="#5F4BB6"
               onPress={() => setShowParkedOrdersModal(true)}
               disabled={!isClockedIn}
-              className="flex-1 rounded-xl justify-center items-center"
-              style={{
-                backgroundColor: isClockedIn ? "#5F4BB6" : "#848484",
-                minHeight: 160,
-                shadowColor: "#989898",
-                shadowOffset: { width: 4, height: 4 },
-                shadowOpacity: 0.25,
-                shadowRadius: 4,
-                elevation: 4,
-                opacity: isClockedIn ? 1 : 0.7,
-              }}
-            >
-              <Text 
-                className="text-white font-medium text-center"
-                style={{ fontSize: 26, letterSpacing: -0.5 }}
-              >
-                Resume Last Order
-              </Text>
-              {parkedOrders.length > 0 && (
-                <View 
-                  className="absolute top-3 right-3 bg-white rounded-full px-2 py-1"
-                  style={{ minWidth: 24 }}
-                >
-                  <Text className="text-purple-600 font-bold text-center">{parkedOrders.length}</Text>
-                </View>
-              )}
-            </TouchableOpacity>
+              badge={parkedOrders.length > 0 ? parkedOrders.length : undefined}
+            />
           </View>
 
           {/* Secondary Action Buttons */}

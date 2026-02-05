@@ -1,4 +1,5 @@
 // Export all reusable components
+export { ActionCard } from "./ActionCard";
 export { AddDiscountModal } from "./AddDiscountModal";
 export { AddQuickCustomerModal } from "./AddQuickCustomerModal";
 export { CashPaymentModal } from "./CashPaymentModal";
@@ -20,5 +21,6 @@ export { SIDEBAR_WIDTH, Sidebar } from "./Sidebar";
 export { SidebarButton } from "./SidebarButton";
 export { STAFF_SIDEBAR_WIDTH, StaffSidebar } from "./StaffSidebar";
 export { StatCard } from "./StatCard";
+export { StatCardHorizontal } from "./StatCardHorizontal";
 export { StepNavigation } from "./StepNavigation";
 
