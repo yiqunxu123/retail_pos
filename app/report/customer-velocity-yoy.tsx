@@ -2,16 +2,16 @@ import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { useMemo, useState } from "react";
 import {
-  ActivityIndicator,
-  FlatList,
-  ScrollView,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
+    ActivityIndicator,
+    FlatList,
+    ScrollView,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View,
 } from "react-native";
 import { FilterDropdown } from "../../components";
-import { useCustomerVelocityReport, CustomerVelocityView } from "../../utils/powersync/hooks";
+import { CustomerVelocityView, useCustomerVelocityReport } from "../../utils/powersync/hooks";
 
 // ============================================================================
 // Constants
@@ -174,12 +174,12 @@ export default function CustomerVelocityScreen() {
   if (isLoading && reports.length === 0) {
     return (
       <View className="flex-1 bg-gray-50">
-        <View className="bg-white px-5 py-4 border-b border-gray-200 flex-row items-center">
-          <TouchableOpacity onPress={() => router.push("/")} className="mr-4 p-1">
-            <Ionicons name="arrow-back" size={24} color="#374151" />
-          </TouchableOpacity>
-          <Text className="text-2xl font-bold text-gray-800">Customer Velocity Report</Text>
-        </View>
+      <View className="bg-white px-5 py-4 border-b border-gray-200 flex-row items-center">
+        <TouchableOpacity onPress={() => router.back()} className="mr-4 p-1">
+          <Ionicons name="arrow-back" size={24} color="#374151" />
+        </TouchableOpacity>
+        <Text className="text-2xl font-bold text-gray-800">Customer Velocity Report</Text>
+      </View>
         <View className="flex-1 justify-center items-center">
           <ActivityIndicator size="large" color="#3B82F6" />
           <Text className="mt-4 text-gray-600">Loading report...</Text>
@@ -224,7 +224,7 @@ export default function CustomerVelocityScreen() {
       <View className="bg-white px-5 py-4 border-b border-gray-200 flex-row items-center justify-between">
         <View className="flex-row items-center">
           <TouchableOpacity
-            onPress={() => router.push("/")}
+            onPress={() => router.back()}
             className="mr-4 p-1"
             hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
           >
