@@ -1,6 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import { Pressable, ScrollView, Text, View } from "react-native";
+import { PageHeader } from "../../components";
 
 // Sales report items
 const SALES_REPORTS = [
@@ -54,23 +55,13 @@ export default function SalesReportsScreen() {
     router.push(route as any);
   };
 
-  const handleBack = () => {
-    router.back();
-  };
-
   // Split reports into two columns
   const leftColumn = SALES_REPORTS.filter((_, i) => i % 2 === 0);
   const rightColumn = SALES_REPORTS.filter((_, i) => i % 2 === 1);
 
   return (
     <View className="flex-1 bg-white">
-      {/* Header with Back Button */}
-      <View className="px-6 py-4 flex-row items-center">
-        <Pressable onPress={handleBack} className="mr-4">
-          <Ionicons name="arrow-back" size={24} color="#1A1A1A" />
-        </Pressable>
-        <Text className="text-2xl font-bold text-gray-900">Sales Reports</Text>
-      </View>
+      <PageHeader title="Sales Reports" />
 
       {/* Reports Grid - Two Columns */}
       <ScrollView className="flex-1 px-6">

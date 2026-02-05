@@ -85,13 +85,11 @@ export default function ReportsScreen() {
   const sidebarButtons = null;
 
   return (
-    <StaffPageLayout sidebarCustomButtons={sidebarButtons}>
+    <StaffPageLayout 
+      title="View Reports"
+      sidebarCustomButtons={sidebarButtons}
+    >
       <View className="flex-1 bg-white">
-        {/* Header */}
-        <View className="px-6 py-4">
-          <Text className="text-2xl font-bold text-gray-900">View Reports</Text>
-        </View>
-
         {/* Report Categories Grid */}
         <ScrollView className="flex-1 px-6">
           {/* Row 1 */}

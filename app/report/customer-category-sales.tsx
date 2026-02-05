@@ -7,10 +7,9 @@ import {
     ScrollView,
     Text,
     TextInput,
-    TouchableOpacity,
-    View,
+    View
 } from "react-native";
-import { FilterDropdown } from "../../components";
+import { FilterDropdown, PageHeader } from "../../components";
 import { CustomerSalesReportView, useCustomerSalesReport } from "../../utils/powersync/hooks";
 
 // ============================================================================
@@ -109,12 +108,7 @@ export default function CustomerCategorySalesReportScreen() {
   if (isLoading && reports.length === 0) {
     return (
       <View className="flex-1 bg-gray-50">
-      <View className="bg-white px-5 py-4 border-b border-gray-200 flex-row items-center">
-        <TouchableOpacity onPress={() => router.back()} className="mr-3 p-1">
-          <Ionicons name="arrow-back" size={24} color="#374151" />
-        </TouchableOpacity>
-        <Text className="text-2xl font-bold text-gray-800">Customer Sales Report</Text>
-      </View>
+        <PageHeader title="Customer Sales Report" />
         <View className="flex-1 justify-center items-center">
           <ActivityIndicator size="large" color="#3B82F6" />
           <Text className="mt-4 text-gray-600">Loading report...</Text>
@@ -148,20 +142,12 @@ export default function CustomerCategorySalesReportScreen() {
   return (
     <View className="flex-1 bg-gray-50">
       {/* Header */}
-      <View className="bg-white px-5 py-4 border-b border-gray-200 flex-row items-center justify-between">
-        <View className="flex-row items-center">
-          <TouchableOpacity
-            onPress={() => router.back()}
-            className="mr-3 p-1"
-            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-          >
-            <Ionicons name="arrow-back" size={24} color="#374151" />
-          </TouchableOpacity>
-          <Text className="text-2xl font-bold text-gray-800">Customer Sales Report</Text>
+      <View className="bg-white border-b border-gray-200">
+        <PageHeader title="Customer Sales Report">
           {isStreaming && (
             <Text className="text-green-600 text-xs ml-3">● Live</Text>
           )}
-        </View>
+        </PageHeader>
       </View>
 
       {/* Search & Filters */}

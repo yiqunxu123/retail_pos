@@ -1,13 +1,13 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useState } from "react";
 import {
-  Alert,
-  FlatList,
-  Pressable,
-  ScrollView,
-  Text,
-  TextInput,
-  View,
+    Alert,
+    FlatList,
+    Pressable,
+    ScrollView,
+    Text,
+    TextInput,
+    View,
 } from "react-native";
 import StaffPageLayout, { SidebarButton } from "../../components/StaffPageLayout";
 
@@ -135,14 +135,12 @@ export default function SalesReturnScreen() {
   );
 
   return (
-    <StaffPageLayout sidebarCustomButtons={sidebarButtons}>
+    <StaffPageLayout 
+      title="Sales Return"
+      subTitle="Search by Customer Name, SKU, UPC"
+      sidebarCustomButtons={sidebarButtons}
+    >
       <View className="flex-1 bg-white">
-        {/* Header */}
-        <View className="px-6 py-4">
-          <Text className="text-2xl font-bold text-gray-900">Sales Return</Text>
-          <Text className="text-gray-500 text-sm mt-1">Search by Customer Name, SKU, UPC</Text>
-        </View>
-
         {/* Search Bar */}
         <View className="px-6 pb-4">
           <View className="flex-row items-center gap-3">
