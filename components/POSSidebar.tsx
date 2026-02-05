@@ -49,7 +49,7 @@ export function POSSidebar({
   return (
     <View
       className={`
-        bg-gray-50 p-3
+        bg-gray-50 p-2
         ${isLandscape ? "border-l border-gray-200" : "border-t border-gray-200"}
       `}
       style={{
@@ -80,15 +80,11 @@ export function POSSidebar({
         />
 
         {/* Add Product Row */}
-        <View className="flex-row gap-2">
-          <SidebarButton
-            title="Add New Product"
-            fullWidth={false}
-            onPress={onAddProduct}
-          />
+        <View>
+         
           <SidebarButton
             title="Add Misc Item"
-            fullWidth={false}
+            fullWidth={true}
             onPress={onMiscItem}
           />
         </View>
@@ -185,14 +181,13 @@ export function POSSidebar({
 
         {/* Checkout & Go to Menu - Hidden when in order flow */}
         {!hideNavButtons && (
-          <>
+
             <SidebarButton
               title="Checkout"
               icon={<Ionicons name="cart-outline" size={18} color="#EC1A52" />}
               onPress={onCheckout}
             />
 
-          </>
         )}
       </ScrollView>
     </View>

@@ -1,5 +1,5 @@
-import { Text, TouchableOpacity, View } from "react-native";
 import { ReactNode } from "react";
+import { Text, TouchableOpacity, View } from "react-native";
 
 interface SidebarButtonProps {
   title: string;
@@ -65,7 +65,7 @@ export function SidebarButton({
       }}
     >
       {icon}
-      <Text style={{ ...TEXT_STYLE, color: textColor, textAlign: "center", marginTop: 4 }}>
+      <Text style={{ ...TEXT_STYLE, color: textColor, textAlign: "center", marginTop: 4, marginHorizontal: 4 }} >
         {title}
       </Text>
     </TouchableOpacity>

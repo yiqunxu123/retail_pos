@@ -1,10 +1,9 @@
 import { FontAwesome5, Ionicons, MaterialCommunityIcons, MaterialIcons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useRouter } from "expo-router";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { Alert, ScrollView, Text, ToastAndroid, TouchableOpacity, useWindowDimensions, View } from "react-native";
 import {
-  Header,
   SIDEBAR_WIDTH,
   StatCard
 } from "../components";
@@ -17,17 +16,16 @@ import { useAuth } from "../contexts/AuthContext";
 import { useClock } from "../contexts/ClockContext";
 import { useParkedOrders } from "../contexts/ParkedOrderContext";
 import { useViewMode } from "../contexts/ViewModeContext";
-import { 
-  print, 
-  printToAll,
-  printToOne,
-  openCashDrawer, 
-  addPrinterListener, 
+import {
+  addPrinter,
+  addPrinterListener,
   getPoolStatus,
   getPrinters,
-  addPrinter,
   isAnyPrinterModuleAvailable,
-  logPoolStatus,
+  openCashDrawer,
+  print,
+  printToAll,
+  printToOne
 } from "../utils/PrinterPoolManager";
 import { useDashboardStats } from "../utils/powersync/hooks";
 
@@ -565,112 +563,178 @@ Cookies               x3    $6.00
   // Admin Dashboard Content
   // =========================================================================
   return (
-    <View className="flex-1 bg-gray-50">
+    <View className="flex-1 bg-gray-100">
       <ScrollView
         className="flex-1"
-        contentContainerClassName="p-4"
+        contentContainerStyle={{ padding: 16 }}
         showsVerticalScrollIndicator={false}
       >
         {/* ===== HEADER GROUP ===== */}
-        <View className="bg-white rounded-xl p-4 border border-gray-100">
-          <Header
-            title={`Welcome, ${user?.name || "User"}`}
-            subtitle="Access sales, reporting, and system actions quickly and securely."
-            badge={isStaffMode ? "STAFF" : "ADMIN"}
-          />
+        <View 
+          className="rounded-xl p-5 mb-4 flex-row justify-between items-center"
+          style={{
+            backgroundColor: "#EC1A52",
+            shadowColor: "#989898",
+            shadowOffset: { width: 4, height: 4 },
+            shadowOpacity: 0.25,
+            shadowRadius: 4,
+            elevation: 4,
+          }}
+        >
+          <View className="flex-1">
+            <Text 
+              className="text-white font-semibold"
+              style={{ fontSize: 28, letterSpacing: -0.5 }}
+            >
+              Welcome, {user?.name || "User"}
+            </Text>
+            <Text 
+              className="text-white font-medium mt-1"
+              style={{ fontSize: 16 }}
+            >
+              Access sales, reporting, and system actions quickly and securely.
+            </Text>
+          </View>
+          
+          {/* Role Badge */}
+          <View 
+            className="bg-white rounded-xl px-4 py-2 ml-4"
+            style={{ borderWidth: 1, borderColor: "#1A1A1A" }}
+          >
+            <Text 
+              className="font-semibold"
+              style={{ fontSize: 16, color: "#1A1A1A" }}
+            >
+              ADMIN
+            </Text>
+          </View>
         </View>
 
         {/* ===== NAVIGATION GROUP ===== */}
-        <View className="mt-4 bg-white rounded-xl p-4 border border-gray-100">
-          <Text className="text-gray-700 font-semibold text-lg mb-3">
-            Quick Actions
-          </Text>
-          <View className="flex-row flex-wrap gap-2">
-            <TouchableOpacity
-              onPress={() => router.push("/catalog/products")}
-              className="flex-1 min-w-[140px] bg-blue-400 rounded-lg p-3 flex-row items-center justify-center gap-2"
-            >
-              <Ionicons name="cube-outline" size={20} color="white" />
-              <Text className="text-white font-medium text-sm">Product Catalog</Text>
-            </TouchableOpacity>
+        <Text className="text-gray-700 font-semibold mb-3" style={{ fontSize: 18 }}>
+          Quick Actions
+        </Text>
+        <View className="flex-row gap-4 mb-4">
+          <TouchableOpacity
+            onPress={() => router.push("/catalog/products")}
+            className="flex-1 rounded-xl justify-center items-center gap-2"
+            style={{
+              backgroundColor: "#3B82F6",
+              minHeight: 160,
+              shadowColor: "#989898",
+              shadowOffset: { width: 4, height: 4 },
+              shadowOpacity: 0.25,
+              shadowRadius: 4,
+              elevation: 4,
+            }}
+          >
+            <Ionicons name="cube-outline" size={32} color="white" />
+            <Text className="text-white font-medium" style={{ fontSize: 16 }}>Product Catalog</Text>
+          </TouchableOpacity>
 
-            <TouchableOpacity
-              onPress={() => router.push("/inventory/stocks")}
-              className="flex-1 min-w-[140px] bg-emerald-400 rounded-lg p-3 flex-row items-center justify-center gap-2"
-            >
-              <Ionicons name="layers-outline" size={20} color="white" />
-              <Text className="text-white font-medium text-sm">Inventory</Text>
-            </TouchableOpacity>
+          <TouchableOpacity
+            onPress={() => router.push("/inventory/stocks")}
+            className="flex-1 rounded-xl justify-center items-center gap-2"
+            style={{
+              backgroundColor: "#10B981",
+              minHeight: 160,
+              shadowColor: "#989898",
+              shadowOffset: { width: 4, height: 4 },
+              shadowOpacity: 0.25,
+              shadowRadius: 4,
+              elevation: 4,
+            }}
+          >
+            <Ionicons name="layers-outline" size={32} color="white" />
+            <Text className="text-white font-medium" style={{ fontSize: 16 }}>Inventory</Text>
+          </TouchableOpacity>
 
-            <TouchableOpacity
-              onPress={() => router.push("/sale/customers")}
-              className="flex-1 min-w-[140px] bg-violet-400 rounded-lg p-3 flex-row items-center justify-center gap-2"
-            >
-              <Ionicons name="cart-outline" size={20} color="white" />
-              <Text className="text-white font-medium text-sm">Sales</Text>
-            </TouchableOpacity>
+          <TouchableOpacity
+            onPress={() => router.push("/sale/customers")}
+            className="flex-1 rounded-xl justify-center items-center gap-2"
+            style={{
+              backgroundColor: "#8B5CF6",
+              minHeight: 160,
+              shadowColor: "#989898",
+              shadowOffset: { width: 4, height: 4 },
+              shadowOpacity: 0.25,
+              shadowRadius: 4,
+              elevation: 4,
+            }}
+          >
+            <Ionicons name="cart-outline" size={32} color="white" />
+            <Text className="text-white font-medium" style={{ fontSize: 16 }}>Sales</Text>
+          </TouchableOpacity>
 
-            <TouchableOpacity
-              onPress={() => router.push("/report")}
-              className="flex-1 min-w-[140px] bg-amber-400 rounded-lg p-3 flex-row items-center justify-center gap-2"
-            >
-              <Ionicons name="bar-chart-outline" size={20} color="white" />
-              <Text className="text-white font-medium text-sm">Report</Text>
-            </TouchableOpacity>
-          </View>
+          <TouchableOpacity
+            onPress={() => router.push("/report")}
+            className="flex-1 rounded-xl justify-center items-center gap-2"
+            style={{
+              backgroundColor: "#F59E0B",
+              minHeight: 160,
+              shadowColor: "#989898",
+              shadowOffset: { width: 4, height: 4 },
+              shadowOpacity: 0.25,
+              shadowRadius: 4,
+              elevation: 4,
+            }}
+          >
+            <Ionicons name="bar-chart-outline" size={32} color="white" />
+            <Text className="text-white font-medium" style={{ fontSize: 16 }}>Report</Text>
+          </TouchableOpacity>
         </View>
 
         {/* ===== DASHBOARD OVERVIEW GROUP ===== */}
         {showAdminStats && (
-          <View className="mt-4 bg-white rounded-xl p-4 border border-gray-100">
-            <Text className="text-gray-700 font-semibold text-lg mb-3">
+          <>
+            <Text className="text-gray-700 font-semibold mb-3" style={{ fontSize: 18 }}>
               Dashboard Overview
             </Text>
-            <View className="flex-row gap-2 mb-2">
+            <View className="flex-row gap-4 mb-4">
               <StatCard
                 title="Total Sale/Revenue"
                 value={formatCurrency(stats.totalRevenue)}
                 subtitle={`${stats.orderCount} orders`}
-                icon={<Ionicons name="pricetag" size={20} color="white" />}
+                icon={<Ionicons name="pricetag" size={24} color="white" />}
                 variant="green"
               />
               <StatCard
                 title="Paid Amount"
                 value={formatCurrency(stats.paidAmount)}
-                icon={<FontAwesome5 name="coins" size={18} color="white" />}
+                icon={<FontAwesome5 name="coins" size={22} color="white" />}
                 variant="yellow"
               />
               <StatCard
                 title="Payable Amount"
                 value={formatCurrency(stats.payableAmount)}
-                icon={<Ionicons name="cart" size={20} color="white" />}
+                icon={<Ionicons name="cart" size={24} color="white" />}
                 variant="purple"
               />
             </View>
 
-            <View className="flex-row gap-2">
+            <View className="flex-row gap-4">
               <StatCard
                 title="Receivable Amount"
                 value={formatCurrency(stats.receivableAmount)}
                 subtitle={`${stats.customerCount} customers`}
-                icon={<MaterialCommunityIcons name="cash-multiple" size={20} color="white" />}
+                icon={<MaterialCommunityIcons name="cash-multiple" size={24} color="white" />}
                 variant="red"
               />
               <StatCard
                 title="Total Extended Stock"
                 value={formatCurrency(stats.extendedStockValue)}
                 subtitle={`${stats.productCount} products`}
-                icon={<MaterialCommunityIcons name="package-variant" size={20} color="white" />}
+                icon={<MaterialCommunityIcons name="package-variant" size={24} color="white" />}
                 variant="yellow"
               />
               <StatCard
                 title="Delivery Orders"
                 value={String(stats.deliveryOrdersCount)}
-                icon={<MaterialCommunityIcons name="clipboard-list-outline" size={20} color="white" />}
+                icon={<MaterialCommunityIcons name="clipboard-list-outline" size={24} color="white" />}
                 variant="orange"
               />
             </View>
-          </View>
+          </>
         )}
       </ScrollView>
 
