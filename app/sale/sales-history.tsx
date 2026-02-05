@@ -6,7 +6,6 @@ import {
   Alert,
   FlatList,
   Pressable,
-  ScrollView,
   Text,
   TextInput,
   View,
@@ -220,26 +219,26 @@ export default function SalesHistoryScreen() {
     <View 
       className={`flex-row items-center px-4 py-3 border-b border-gray-100 ${index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}`}
     >
-      <Text className="w-32 text-blue-600 text-xs font-medium" numberOfLines={1}>
+      <Text className="flex-1 text-blue-600 text-xs font-medium" numberOfLines={1}>
         {item.orderNo || item.id.slice(0, 8)}
       </Text>
-      <Text className="w-40 text-gray-600 text-xs">
+      <Text className="flex-1 text-gray-600 text-xs">
         {item.orderDate ? new Date(item.orderDate).toLocaleString() : '-'}
       </Text>
-      <Text className="w-40 text-blue-600 text-xs" numberOfLines={1}>
+      <Text className="flex-1 text-blue-600 text-xs" numberOfLines={1}>
         {item.businessName || item.customerName || "Guest"}
       </Text>
-      <Text className="w-24 text-gray-600 text-xs">User 1</Text>
-      <Text className="w-28 text-red-600 text-xs font-bold">
+      <Text className="flex-1 text-gray-600 text-xs">User 1</Text>
+      <Text className="flex-1 text-red-600 text-xs font-bold">
         ${(item.totalPrice || 0).toFixed(2)}
       </Text>
-      <View className="w-20">
+      <View className="flex-1">
         <InvoiceStatusBadge status={item.fulfilmentStatus} />
       </View>
-      <View className="w-24">
+      <View className="flex-1">
         <OrderStatusBadge status={item.status} />
       </View>
-      <View className="w-20 flex-row gap-2">
+      <View className="w-20 flex-row gap-2 justify-end">
         <Pressable className="bg-red-50 p-1.5 rounded">
           <Ionicons name="print-outline" size={14} color="#EC1A52" />
         </Pressable>
@@ -306,47 +305,45 @@ export default function SalesHistoryScreen() {
         )}
 
         {/* Table Section */}
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} className="flex-1">
-          <View style={{ minWidth: 900 }}>
-            {/* Table Header */}
-            <View className="flex-row bg-gray-50 py-3 px-4 border-y border-gray-200">
-              <View className="w-32 flex-row items-center">
-                <Text className="text-gray-500 text-xs font-semibold">Order Number</Text>
-                <Ionicons name="chevron-expand" size={12} color="#9CA3AF" />
-              </View>
-              <View className="w-40 flex-row items-center">
-                <Text className="text-gray-500 text-xs font-semibold">Date / Time</Text>
-                <Ionicons name="chevron-expand" size={12} color="#9CA3AF" />
-              </View>
-              <View className="w-40 flex-row items-center">
-                <Text className="text-gray-500 text-xs font-semibold">Customer Name</Text>
-                <Ionicons name="chevron-expand" size={12} color="#9CA3AF" />
-              </View>
-              <Text className="w-24 text-gray-500 text-xs font-semibold">Created By</Text>
-              <View className="w-28 flex-row items-center">
-                <Text className="text-gray-500 text-xs font-semibold">Total</Text>
-                <Ionicons name="chevron-expand" size={12} color="#9CA3AF" />
-              </View>
-              <Text className="w-20 text-gray-500 text-xs font-semibold">Invoice Status</Text>
-              <Text className="w-24 text-gray-500 text-xs font-semibold">Status</Text>
-              <Text className="w-20 text-gray-500 text-xs font-semibold">Actions</Text>
+        <View className="flex-1">
+          {/* Table Header */}
+          <View className="flex-row bg-gray-50 py-3 px-4 border-y border-gray-200">
+            <View className="flex-1 flex-row items-center">
+              <Text className="text-gray-500 text-xs font-semibold">Order Number</Text>
+              <Ionicons name="chevron-expand" size={12} color="#9CA3AF" />
             </View>
-
-            {/* Table Body */}
-            <FlatList
-              data={filteredOrders}
-              keyExtractor={(item) => item.id}
-              renderItem={renderOrderRow}
-              showsVerticalScrollIndicator={false}
-              ListEmptyComponent={
-                <View className="py-20 items-center justify-center">
-                  <ActivityIndicator size="large" color="#EC1A52" />
-                  <Text className="text-gray-400 mt-4">Loading orders...</Text>
-                </View>
-              }
-            />
+            <View className="flex-1 flex-row items-center">
+              <Text className="text-gray-500 text-xs font-semibold">Date / Time</Text>
+              <Ionicons name="chevron-expand" size={12} color="#9CA3AF" />
+            </View>
+            <View className="flex-1 flex-row items-center">
+              <Text className="text-gray-500 text-xs font-semibold">Customer Name</Text>
+              <Ionicons name="chevron-expand" size={12} color="#9CA3AF" />
+            </View>
+            <Text className="flex-1 text-gray-500 text-xs font-semibold">Created By</Text>
+            <View className="flex-1 flex-row items-center">
+              <Text className="text-gray-500 text-xs font-semibold">Total</Text>
+              <Ionicons name="chevron-expand" size={12} color="#9CA3AF" />
+            </View>
+            <Text className="flex-1 text-gray-500 text-xs font-semibold">Invoice Status</Text>
+            <Text className="flex-1 text-gray-500 text-xs font-semibold">Status</Text>
+            <Text className="w-20 text-gray-500 text-xs font-semibold text-right">Actions</Text>
           </View>
-        </ScrollView>
+
+          {/* Table Body */}
+          <FlatList
+            data={filteredOrders}
+            keyExtractor={(item) => item.id}
+            renderItem={renderOrderRow}
+            showsVerticalScrollIndicator={false}
+            ListEmptyComponent={
+              <View className="py-20 items-center justify-center">
+                <ActivityIndicator size="large" color="#EC1A52" />
+                <Text className="text-gray-400 mt-4">Loading orders...</Text>
+              </View>
+            }
+          />
+        </View>
         
         {/* Order Details Modal */}
         <OrderDetailsModal
