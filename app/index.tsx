@@ -611,9 +611,6 @@ Cookies               x3    $6.00
         </View>
 
         {/* ===== NAVIGATION GROUP ===== */}
-        <Text className="text-gray-700 font-semibold mb-3" style={{ fontSize: 18 }}>
-          Quick Actions
-        </Text>
         <View className="flex-row gap-4 mb-4">
           <TouchableOpacity
             onPress={() => router.push("/catalog/products")}
@@ -687,9 +684,6 @@ Cookies               x3    $6.00
         {/* ===== DASHBOARD OVERVIEW GROUP ===== */}
         {showAdminStats && (
           <>
-            <Text className="text-gray-700 font-semibold mb-3" style={{ fontSize: 18 }}>
-              Dashboard Overview
-            </Text>
             <View className="flex-row gap-4 mb-4">
               <StatCard
                 title="Total Sale/Revenue"
