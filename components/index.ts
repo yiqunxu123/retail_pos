@@ -4,6 +4,8 @@ export { AddDiscountModal } from "./AddDiscountModal";
 export { AddQuickCustomerModal } from "./AddQuickCustomerModal";
 export { CashPaymentModal } from "./CashPaymentModal";
 export { CustomerCard } from "./CustomerCard";
+export { DataTable } from "./DataTable";
+export type { ColumnDefinition, DataTableProps, FilterDefinition, FilterOption } from "./DataTable";
 export { Dropdown } from "./Dropdown";
 export { FilterDropdown } from "./FilterDropdown";
 export { FormInput } from "./FormInput";

@@ -1,17 +1,16 @@
+/**
+ * Sales History Screen
+ * 
+ * Displays order history with real-time sync from PowerSync.
+ * Uses the unified DataTable component.
+ */
+
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
-import { useMemo, useState } from "react";
-import {
-    ActivityIndicator,
-    Alert,
-    FlatList,
-    Pressable,
-    Text,
-    TextInput,
-    View,
-} from "react-native";
+import { useState } from "react";
+import { Alert, Pressable, Text, View } from "react-native";
+import { ColumnDefinition, DataTable, FilterDefinition, PageHeader } from "../../components";
 import { OrderDetailsModal } from "../../components/OrderDetailsModal";
-import StaffPageLayout, { SidebarButton } from "../../components/StaffPageLayout";
 import { StatCardHorizontal } from "../../components/StatCardHorizontal";
 import { SaleOrderView, useSaleOrders } from "../../utils/powersync/hooks";
 
@@ -20,66 +19,89 @@ import { SaleOrderView, useSaleOrders } from "../../utils/powersync/hooks";
 // ============================================================================
 
 const STATUS_COLORS: Record<number, { bg: string; text: string }> = {
-  1: { bg: "#FEF08A", text: "#92400E" }, // Pending - Yellow
-  2: { bg: "#DBEAFE", text: "#1E40AF" }, // Confirmed - Blue
-  3: { bg: "#FED7AA", text: "#9A3412" }, // Processing - Orange
-  4: { bg: "#BBF7D0", text: "#166534" }, // Completed - Green
-  5: { bg: "#FECACA", text: "#991B1B" }, // Cancelled - Red
+  1: { bg: "#FEF08A", text: "#92400E" },  // Pending - Yellow
+  2: { bg: "#DBEAFE", text: "#1E40AF" },  // Confirmed - Blue
+  3: { bg: "#FED7AA", text: "#9A3412" },  // Processing - Orange
+  4: { bg: "#BBF7D0", text: "#166534" },  // Completed - Green
+  5: { bg: "#FECACA", text: "#991B1B" },  // Cancelled - Red
+  50: { bg: "#BBF7D0", text: "#166534" }, // Completed (legacy)
 };
+
+// ============================================================================
+// Helper Components
+// ============================================================================
+
+function OrderStatusBadge({ status }: { status: number }) {
+  const config = STATUS_COLORS[status] || STATUS_COLORS[1];
+  
+  const statusText = (() => {
+    if (status === 50) return "Completed";
+    switch (status) {
+      case 1: return "Pending";
+      case 2: return "Confirmed";
+      case 3: return "Processing";
+      case 4: return "Completed";
+      case 5: return "Cancelled";
+      default: return "Pending";
+    }
+  })();
+
+  return (
+    <View className="px-2 py-1 rounded" style={{ backgroundColor: config.bg }}>
+      <Text style={{ color: config.text, fontSize: 12, fontWeight: "500" }}>
+        {statusText}
+      </Text>
+    </View>
+  );
+}
+
+function InvoiceStatusBadge({ status }: { status: number }) {
+  let color = "#EC1A52";
+  let text = "Unpaid";
+
+  if (status === 2) {
+    color = "#22C55E";
+    text = "Paid";
+  } else if (status === 1) {
+    color = "#F59E0B";
+    text = "Partial";
+  }
+
+  return (
+    <View className="px-2 py-1 rounded" style={{ backgroundColor: color }}>
+      <Text className="text-white text-xs font-medium">{text}</Text>
+    </View>
+  );
+}
+
+function ActionButton({
+  icon,
+  onPress,
+}: {
+  icon: keyof typeof Ionicons.glyphMap;
+  onPress?: () => void;
+}) {
+  return (
+    <Pressable className="bg-red-50 p-1.5 rounded" onPress={onPress}>
+      <Ionicons name={icon} size={14} color="#EC1A52" />
+    </Pressable>
+  );
+}
 
 // ============================================================================
 // Main Component
 // ============================================================================
 
 export default function SalesHistoryScreen() {
-  const { orders, isLoading, refresh } = useSaleOrders();
-  const [searchQuery, setSearchQuery] = useState("");
-  const [showStats, setShowStats] = useState(true);
-
-  // Custom Sidebar Buttons for Sales History
-  const sidebarButtons = (
-    <>
-      <SidebarButton 
-        title="Add Order"
-        icon={<Ionicons name="add-circle-outline" size={20} color="#EC1A52" />}
-        onPress={() => router.push("/order/add-products" as any)}
-      />
-      <SidebarButton 
-        title="Print Invoice"
-        icon={<Ionicons name="print-outline" size={20} color="#EC1A52" />}
-        onPress={() => Alert.alert("Print", "Printing invoice...")}
-      />
-      <SidebarButton 
-        title="View Invoice"
-        icon={<Ionicons name="document-text-outline" size={20} color="#EC1A52" />}
-        onPress={() => Alert.alert("View Invoice", "Select an order to view invoice")}
-      />
-      <SidebarButton 
-        title="Edit Order"
-        icon={<Ionicons name="create-outline" size={20} color="#EC1A52" />}
-        onPress={() => Alert.alert("Edit Order", "Select an order to edit")}
-      />
-    </>
-  );
-
-  // Filter orders based on search query
-  const filteredOrders = useMemo(() => {
-    if (!searchQuery) return orders;
-    
-    const query = searchQuery.toLowerCase();
-    return orders.filter((order: SaleOrderView) => 
-      (order.customerName && order.customerName.toLowerCase().includes(query)) ||
-      (order.orderNo && order.orderNo.toLowerCase().includes(query)) ||
-      (order.id && order.id.toLowerCase().includes(query))
-    );
-  }, [orders, searchQuery]);
-
-  // Modal handlers
+  const { orders, isLoading, refresh, count } = useSaleOrders();
+  
+  // Modal States
   const [showOrderDetails, setShowOrderDetails] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState<any>(null);
+  const [showStats, setShowStats] = useState(true);
 
+  // 转换订单详情
   const convertToOrderDetails = (order: SaleOrderView) => {
-    // Helper function to map numeric statuses to text
     const getDisplayStatus = (status: number) => {
       if (status === 50) return "Completed";
       switch (status) {
@@ -127,8 +149,8 @@ export default function SalesHistoryScreen() {
         name: order.businessName || order.customerName || "Guest Customer",
       },
       cashier: "Cashier 1",
-      items: [], // Would need to fetch from order_items table
-      payments: [], // Would need to fetch from payments table
+      items: [],
+      payments: [],
       subTotal: order.totalPrice || 0,
       discount: order.discount || 0,
       tax: order.tax || 0,
@@ -144,192 +166,231 @@ export default function SalesHistoryScreen() {
     setShowOrderDetails(true);
   };
 
-  // Status Badge Component
-  const OrderStatusBadge = ({ status }: { status: number }) => {
-    const config = STATUS_COLORS[status] || STATUS_COLORS[1];
-    
-    // Map status number to text
-    let statusText = "Pending";
-    if (status === 50) statusText = "Completed"; // Handle mapped legacy status
-    else if (status === 1) statusText = "Pending";
-    else if (status === 2) statusText = "Confirmed";
-    else if (status === 3) statusText = "Processing";
-    else if (status === 4) statusText = "Completed";
-    else if (status === 5) statusText = "Cancelled";
+  const handlePrintOrder = (order: SaleOrderView) => {
+    Alert.alert("Print", `Printing invoice for order ${order.orderNo || order.id.slice(0, 8)}...`);
+  };
 
-    return (
-      <View 
-        className="px-2 py-1 rounded"
-        style={{ backgroundColor: config.bg }}
-      >
-        <Text style={{ color: config.text, fontSize: 12, fontWeight: "500" }}>
-          {statusText}
+  // 列配置
+  const columns: ColumnDefinition<SaleOrderView>[] = [
+    {
+      key: "orderNo",
+      title: "Order Number",
+      width: "flex",
+      visible: true,
+      hideable: false,
+      render: (item) => (
+        <Text className="text-blue-600 text-xs font-medium" numberOfLines={1}>
+          {item.orderNo || item.id.slice(0, 8)}
         </Text>
-      </View>
-    );
-  };
-
-  const InvoiceStatusBadge = ({ status }: { status: number }) => {
-    // status: 0=Unfulfilled, 1=Partially Fulfilled, 2=Fulfilled
-    let color = "#EC1A52"; // Unpaid/Unfulfilled
-    let text = "Unpaid";
-
-    if (status === 2) {
-      color = "#22C55E"; // Paid/Fulfilled
-      text = "Paid";
-    } else if (status === 1) {
-      color = "#F59E0B"; // Partial
-      text = "Partial";
-    }
-
-    return (
-      <View 
-        className="px-2 py-1 rounded"
-        style={{ backgroundColor: color }}
-      >
-        <Text className="text-white text-xs font-medium">{text}</Text>
-      </View>
-    );
-  };
-
-  const renderOrderRow = ({ item, index }: { item: SaleOrderView, index: number }) => (
-    <View 
-      className={`flex-row items-center px-4 py-3 border-b border-gray-100 ${index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}`}
-    >
-      <Text className="flex-1 text-blue-600 text-xs font-medium" numberOfLines={1}>
-        {item.orderNo || item.id.slice(0, 8)}
-      </Text>
-      <Text className="flex-1 text-gray-600 text-xs">
-        {item.orderDate ? new Date(item.orderDate).toLocaleString() : '-'}
-      </Text>
-      <Text className="flex-1 text-blue-600 text-xs" numberOfLines={1}>
-        {item.businessName || item.customerName || "Guest"}
-      </Text>
-      <Text className="flex-1 text-gray-600 text-xs">User 1</Text>
-      <Text className="flex-1 text-red-600 text-xs font-bold">
-        ${(item.totalPrice || 0).toFixed(2)}
-      </Text>
-      <View className="flex-1">
-        <InvoiceStatusBadge status={item.fulfilmentStatus} />
-      </View>
-      <View className="flex-1">
-        <OrderStatusBadge status={item.status} />
-      </View>
-      <View className="w-20 flex-row gap-2 justify-end">
-        <Pressable className="bg-red-50 p-1.5 rounded">
-          <Ionicons name="print-outline" size={14} color="#EC1A52" />
-        </Pressable>
-        <Pressable 
-          className="bg-red-50 p-1.5 rounded"
-          onPress={() => handleViewOrder(item)}
-        >
-          <Ionicons name="eye-outline" size={14} color="#EC1A52" />
-        </Pressable>
-      </View>
-    </View>
-  );
-
-  return (
-    <StaffPageLayout 
-      title="Sales History"
-      subTitle="Search by Customer Name, SKU, UPC"
-      sidebarCustomButtons={sidebarButtons}
-    >
-      <View className="flex-1 bg-white">
-        {/* Search Section */}
-        <View className="px-4 py-4">
-          {/* Search Bar */}
-          <View className="flex-row items-center gap-3">
-            <View className="flex-1 flex-row items-center bg-gray-50 border border-gray-200 rounded-lg px-3 py-2">
-              <Ionicons name="search" size={18} color="#9CA3AF" />
-              <TextInput
-                className="flex-1 ml-2 text-gray-800"
-                placeholder="Search Products"
-                placeholderTextColor="#9CA3AF"
-                value={searchQuery}
-                onChangeText={setSearchQuery}
-              />
-            </View>
-            <Pressable 
-              className="flex-row items-center gap-2 px-6 py-3 rounded-lg"
-              style={{ backgroundColor: "#EC1A52" }}
-              onPress={refresh}
-            >
-              <Ionicons name="refresh" size={18} color="white" />
-              <Text className="text-white font-medium">Refresh</Text>
-            </Pressable>
-            <Pressable className="bg-gray-900 p-3 rounded-lg">
-              <Ionicons name="settings-outline" size={20} color="white" />
-            </Pressable>
-          </View>
-        </View>
-
-        {/* Stats Section */}
-        {showStats && (
-          <View className="px-4 mb-4">
-            {/* Row 1 */}
-            <View className="flex-row gap-3 mb-3">
-              <StatCardHorizontal title="Completed" count={450} color="#3B82F6" />
-              <StatCardHorizontal title="Delivery" count={321} color="#14B8A6" />
-              <StatCardHorizontal title="Parked" count={23} color="#8B5CF6" />
-            </View>
-            {/* Row 2 */}
-            <View className="flex-row gap-3">
-              <StatCardHorizontal title="Unpaid" count={450} color="#EC1A52" />
-              <StatCardHorizontal title="Returned" count={321} color="#22C55E" />
-              <StatCardHorizontal title="In Progress" count={23} color="#F59E0B" />
-            </View>
-          </View>
-        )}
-
-        {/* Table Section */}
-        <View className="flex-1">
-          {/* Table Header */}
-          <View className="flex-row bg-gray-50 py-3 px-4 border-y border-gray-200">
-            <View className="flex-1 flex-row items-center">
-              <Text className="text-gray-500 text-xs font-semibold">Order Number</Text>
-              <Ionicons name="chevron-expand" size={12} color="#9CA3AF" />
-            </View>
-            <View className="flex-1 flex-row items-center">
-              <Text className="text-gray-500 text-xs font-semibold">Date / Time</Text>
-              <Ionicons name="chevron-expand" size={12} color="#9CA3AF" />
-            </View>
-            <View className="flex-1 flex-row items-center">
-              <Text className="text-gray-500 text-xs font-semibold">Customer Name</Text>
-              <Ionicons name="chevron-expand" size={12} color="#9CA3AF" />
-            </View>
-            <Text className="flex-1 text-gray-500 text-xs font-semibold">Created By</Text>
-            <View className="flex-1 flex-row items-center">
-              <Text className="text-gray-500 text-xs font-semibold">Total</Text>
-              <Ionicons name="chevron-expand" size={12} color="#9CA3AF" />
-            </View>
-            <Text className="flex-1 text-gray-500 text-xs font-semibold">Invoice Status</Text>
-            <Text className="flex-1 text-gray-500 text-xs font-semibold">Status</Text>
-            <Text className="w-20 text-gray-500 text-xs font-semibold text-right">Actions</Text>
-          </View>
-
-          {/* Table Body */}
-          <FlatList
-            data={filteredOrders}
-            keyExtractor={(item) => item.id}
-            renderItem={renderOrderRow}
-            showsVerticalScrollIndicator={false}
-            ListEmptyComponent={
-              <View className="py-20 items-center justify-center">
-                <ActivityIndicator size="large" color="#EC1A52" />
-                <Text className="text-gray-400 mt-4">Loading orders...</Text>
-              </View>
-            }
+      ),
+    },
+    {
+      key: "orderDate",
+      title: "Date / Time",
+      width: "flex",
+      visible: true,
+      render: (item) => (
+        <Text className="text-gray-600 text-xs">
+          {item.orderDate ? new Date(item.orderDate).toLocaleString() : "-"}
+        </Text>
+      ),
+    },
+    {
+      key: "customerName",
+      title: "Customer Name",
+      width: "flex",
+      visible: true,
+      render: (item) => (
+        <Text className="text-blue-600 text-xs" numberOfLines={1}>
+          {item.businessName || item.customerName || "Guest"}
+        </Text>
+      ),
+    },
+    {
+      key: "createdBy",
+      title: "Created By",
+      width: 100,
+      visible: true,
+      render: () => <Text className="text-gray-600 text-xs">User 1</Text>,
+    },
+    {
+      key: "total",
+      title: "Total",
+      width: 100,
+      visible: true,
+      render: (item) => (
+        <Text className="text-red-600 text-xs font-bold">
+          ${(item.totalPrice || 0).toFixed(2)}
+        </Text>
+      ),
+    },
+    {
+      key: "invoiceStatus",
+      title: "Invoice Status",
+      width: 100,
+      visible: true,
+      render: (item) => <InvoiceStatusBadge status={item.fulfilmentStatus} />,
+    },
+    {
+      key: "status",
+      title: "Status",
+      width: 100,
+      visible: true,
+      render: (item) => <OrderStatusBadge status={item.status} />,
+    },
+    {
+      key: "actions",
+      title: "Actions",
+      width: 80,
+      align: "center",
+      visible: true,
+      render: (item) => (
+        <View className="flex-row items-center gap-2">
+          <ActionButton
+            icon="print-outline"
+            onPress={() => handlePrintOrder(item)}
+          />
+          <ActionButton
+            icon="eye-outline"
+            onPress={() => handleViewOrder(item)}
           />
         </View>
-        
-        {/* Order Details Modal */}
-        <OrderDetailsModal
-          visible={showOrderDetails}
-          onClose={() => setShowOrderDetails(false)}
-          order={selectedOrder}
-        />
-      </View>
-    </StaffPageLayout>
+      ),
+    },
+  ];
+
+  // 过滤器
+  const filters: FilterDefinition[] = [
+    {
+      key: "status",
+      placeholder: "Order Status",
+      width: 140,
+      options: [
+        { label: "All", value: "all" },
+        { label: "Pending", value: "1" },
+        { label: "Confirmed", value: "2" },
+        { label: "Processing", value: "3" },
+        { label: "Completed", value: "4" },
+        { label: "Cancelled", value: "5" },
+      ],
+    },
+    {
+      key: "invoiceStatus",
+      placeholder: "Invoice Status",
+      width: 140,
+      options: [
+        { label: "All", value: "all" },
+        { label: "Paid", value: "2" },
+        { label: "Partial", value: "1" },
+        { label: "Unpaid", value: "0" },
+      ],
+    },
+  ];
+
+  // 排序选项
+  const sortOptions = [
+    { label: "Date (Newest)", value: "date_desc" },
+    { label: "Date (Oldest)", value: "date_asc" },
+    { label: "Total (High-Low)", value: "total_desc" },
+    { label: "Total (Low-High)", value: "total_asc" },
+  ];
+
+  // 搜索逻辑
+  const handleSearch = (item: SaleOrderView, query: string) => {
+    const q = query.toLowerCase();
+    return (
+      (item.customerName?.toLowerCase().includes(q) || false) ||
+      (item.businessName?.toLowerCase().includes(q) || false) ||
+      (item.orderNo?.toLowerCase().includes(q) || false) ||
+      item.id.toLowerCase().includes(q)
+    );
+  };
+
+  // 过滤逻辑
+  const handleFilter = (
+    item: SaleOrderView,
+    filters: Record<string, string | null>
+  ) => {
+    if (filters.status && filters.status !== "all") {
+      if (String(item.status) !== filters.status) return false;
+    }
+    if (filters.invoiceStatus && filters.invoiceStatus !== "all") {
+      if (String(item.fulfilmentStatus) !== filters.invoiceStatus) return false;
+    }
+    return true;
+  };
+
+  // 排序逻辑
+  const handleSort = (data: SaleOrderView[], sortBy: string | null) => {
+    if (!sortBy) return data;
+    const sorted = [...data];
+    switch (sortBy) {
+      case "date_desc":
+        return sorted.sort((a, b) => 
+          new Date(b.orderDate || 0).getTime() - new Date(a.orderDate || 0).getTime()
+        );
+      case "date_asc":
+        return sorted.sort((a, b) => 
+          new Date(a.orderDate || 0).getTime() - new Date(b.orderDate || 0).getTime()
+        );
+      case "total_desc":
+        return sorted.sort((a, b) => (b.totalPrice || 0) - (a.totalPrice || 0));
+      case "total_asc":
+        return sorted.sort((a, b) => (a.totalPrice || 0) - (b.totalPrice || 0));
+      default:
+        return sorted;
+    }
+  };
+
+  return (
+    <View className="flex-1 bg-gray-50">
+      <PageHeader title="Sales History" />
+
+      {/* Stats Section */}
+      {showStats && (
+        <View className="px-4 py-3 bg-white border-b border-gray-200">
+          <View className="flex-row gap-3 mb-3">
+            <StatCardHorizontal title="Completed" count={450} color="#3B82F6" />
+            <StatCardHorizontal title="Delivery" count={321} color="#14B8A6" />
+            <StatCardHorizontal title="Parked" count={23} color="#8B5CF6" />
+          </View>
+          <View className="flex-row gap-3">
+            <StatCardHorizontal title="Unpaid" count={450} color="#EC1A52" />
+            <StatCardHorizontal title="Returned" count={321} color="#22C55E" />
+            <StatCardHorizontal title="In Progress" count={23} color="#F59E0B" />
+          </View>
+        </View>
+      )}
+
+      <DataTable<SaleOrderView>
+        data={orders}
+        columns={columns}
+        keyExtractor={(item) => item.id}
+        searchable
+        searchPlaceholder="Search orders..."
+        searchHint="Search by Order Number, Customer Name"
+        onSearch={handleSearch}
+        filters={filters}
+        onFilter={handleFilter}
+        sortOptions={sortOptions}
+        onSort={handleSort}
+        columnSelector
+        addButton
+        addButtonText="Add Order"
+        onAddPress={() => router.push("/order/add-products" as any)}
+        isLoading={isLoading}
+        onRefresh={refresh}
+        emptyIcon="receipt-outline"
+        emptyText="No orders found"
+        totalCount={count}
+      />
+
+      {/* Order Details Modal */}
+      <OrderDetailsModal
+        visible={showOrderDetails}
+        onClose={() => setShowOrderDetails(false)}
+        order={selectedOrder}
+      />
+    </View>
   );
 }
