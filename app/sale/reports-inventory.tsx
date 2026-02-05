@@ -1,19 +1,25 @@
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
-import { Alert, Pressable, ScrollView, Text, View } from "react-native";
+import { Pressable, ScrollView, Text, View } from "react-native";
 
 const INVENTORY_REPORTS = [
-  { id: "stock-level", title: "Stock Level Report" },
-  { id: "low-stock", title: "Low Stock Alert Report" },
-  { id: "inventory-valuation", title: "Inventory Valuation" },
-  { id: "stock-movement", title: "Stock Movement Report" },
-  { id: "dead-stock", title: "Dead Stock Report" },
-  { id: "reorder-report", title: "Reorder Report" },
+  { id: "back-order", title: "Back Order Report", route: "/sale/reports/back-order" },
+  { id: "inventory-valuation", title: "Inventory Valuation Report", route: "/sale/reports/inventory-valuation" },
+  { id: "inventory-spot-check", title: "Inventory Spot Check Report", route: "/sale/reports/inventory-spot-check" },
+  { id: "inventory-adjustment", title: "Inventory Adjustment Report", route: "/sale/reports/inventory-adjustment" },
+  { id: "on-hold", title: "On Hold Report", route: "/sale/reports/on-hold" },
+  { id: "partially-fulfilled", title: "Partially Fulfilled Report", route: "/sale/reports/partially-fulfilled" },
 ];
 
 interface ReportItemProps {
   title: string;
   onPress: () => void;
+}
+
+interface ReportConfig {
+  id: string;
+  title: string;
+  route: string;
 }
 
 function ReportItem({ title, onPress }: ReportItemProps) {
@@ -30,8 +36,8 @@ function ReportItem({ title, onPress }: ReportItemProps) {
 }
 
 export default function InventoryReportsScreen() {
-  const handleReportPress = (reportId: string, title: string) => {
-    Alert.alert("View Report", `Opening ${title}...`);
+  const handleReportPress = (route: string) => {
+    router.push(route as any);
   };
 
   const leftColumn = INVENTORY_REPORTS.filter((_, i) => i % 2 === 0);
@@ -49,20 +55,20 @@ export default function InventoryReportsScreen() {
       <ScrollView className="flex-1 px-6">
         <View className="flex-row gap-4">
           <View className="flex-1">
-            {leftColumn.map((report) => (
+            {leftColumn.map((report: ReportConfig) => (
               <ReportItem
                 key={report.id}
                 title={report.title}
-                onPress={() => handleReportPress(report.id, report.title)}
+                onPress={() => handleReportPress(report.route)}
               />
             ))}
           </View>
           <View className="flex-1">
-            {rightColumn.map((report) => (
+            {rightColumn.map((report: ReportConfig) => (
               <ReportItem
                 key={report.id}
                 title={report.title}
-                onPress={() => handleReportPress(report.id, report.title)}
+                onPress={() => handleReportPress(report.route)}
               />
             ))}
           </View>

@@ -1,30 +1,39 @@
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
-import { Alert, Pressable, ScrollView, Text, View } from "react-native";
+import { Pressable, ScrollView, Text, View } from "react-native";
 
 // Sales report items
 const SALES_REPORTS = [
-  { id: "brand-velocity", title: "Brand Velocity Report" },
-  { id: "item-velocity", title: "Item Velocity Report" },
-  { id: "customer-velocity", title: "Customer Velocity Report" },
-  { id: "detail-sales", title: "Detail Sales Report" },
-  { id: "brand-velocity-2", title: "Brand Velocity Report" },
-  { id: "detail-sales-2", title: "Detail Sales Report" },
-  { id: "brand-velocity-3", title: "Brand Velocity Report" },
-  { id: "detail-sales-3", title: "Detail Sales Report" },
-  { id: "brand-velocity-4", title: "Brand Velocity Report" },
-  { id: "detail-sales-4", title: "Detail Sales Report" },
-  { id: "brand-velocity-5", title: "Brand Velocity Report" },
-  { id: "detail-sales-5", title: "Detail Sales Report" },
-  { id: "brand-velocity-6", title: "Brand Velocity Report" },
-  { id: "detail-sales-6", title: "Detail Sales Report" },
-  { id: "brand-velocity-7", title: "Brand Velocity Report" },
-  { id: "detail-sales-7", title: "Detail Sales Report" },
+  { id: "brand-velocity", title: "Brand Velocity Report", route: "/sale/reports/brand-velocity" },
+  { id: "customer-velocity-yoy", title: "Customer Velocity Report (Year on Year)", route: "/sale/reports/customer-velocity-yoy" },
+  { id: "category-velocity", title: "Category Velocity Report", route: "/sale/reports/category-velocity" },
+  { id: "customer-category-velocity", title: "Customer Category Velocity Report", route: "/sale/reports/customer-category-velocity" },
+  { id: "customer-category-sales", title: "Customer Category Sales Report", route: "/sale/reports/customer-category-sales" },
+  { id: "customer-brand-velocity", title: "Customer Brand Velocity Report", route: "/sale/reports/customer-brand-velocity" },
+  { id: "customer-product-velocity", title: "Customer Product Velocity Report", route: "/sale/reports/customer-product-velocity" },
+  { id: "county-velocity", title: "County Velocity Report", route: "/sale/reports/county-velocity" },
+  { id: "customer-velocity", title: "Customer Velocity Report", route: "/sale/reports/customer-velocity" },
+  { id: "customer-performance", title: "Customer Performance Report", route: "/sale/reports/customer-performance" },
+  { id: "detail-sale", title: "Detail Sale Report", route: "/sale/reports/detail-sale" },
+  { id: "item-velocity", title: "Item Velocity Report", route: "/sale/reports/item-velocity" },
+  { id: "item-velocity-wow", title: "Item Velocity Report (Week on Week)", route: "/sale/reports/item-velocity-wow" },
+  { id: "item-velocity-mom", title: "Item Velocity Report (Month on Month)", route: "/sale/reports/item-velocity-mom" },
+  { id: "lost-sale", title: "Lost Sale Report", route: "/sale/reports/lost-sale" },
+  { id: "sales-summary", title: "Sales Summary Report", route: "/sale/reports/sales-summary" },
+  { id: "sales-rep-category", title: "Sales Rep Category Report", route: "/sale/reports/sales-rep-category" },
+  { id: "sales-rep-product", title: "Sales Rep Product Report", route: "/sale/reports/sales-rep-product" },
+  { id: "sales-rep-brand", title: "Sales Rep Brand Report", route: "/sale/reports/sales-rep-brand" },
 ];
 
 interface ReportItemProps {
   title: string;
   onPress: () => void;
+}
+
+interface ReportConfig {
+  id: string;
+  title: string;
+  route: string;
 }
 
 function ReportItem({ title, onPress }: ReportItemProps) {
@@ -41,8 +50,8 @@ function ReportItem({ title, onPress }: ReportItemProps) {
 }
 
 export default function SalesReportsScreen() {
-  const handleReportPress = (reportId: string, title: string) => {
-    Alert.alert("View Report", `Opening ${title}...`);
+  const handleReportPress = (route: string) => {
+    router.push(route as any);
   };
 
   const handleBack = () => {
@@ -68,22 +77,22 @@ export default function SalesReportsScreen() {
         <View className="flex-row gap-4">
           {/* Left Column */}
           <View className="flex-1">
-            {leftColumn.map((report) => (
+            {leftColumn.map((report: ReportConfig) => (
               <ReportItem
                 key={report.id}
                 title={report.title}
-                onPress={() => handleReportPress(report.id, report.title)}
+                onPress={() => handleReportPress(report.route)}
               />
             ))}
           </View>
 
           {/* Right Column */}
           <View className="flex-1">
-            {rightColumn.map((report) => (
+            {rightColumn.map((report: ReportConfig) => (
               <ReportItem
                 key={report.id}
                 title={report.title}
-                onPress={() => handleReportPress(report.id, report.title)}
+                onPress={() => handleReportPress(report.route)}
               />
             ))}
           </View>
