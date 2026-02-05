@@ -14,17 +14,18 @@ import { ParkOrderModal } from "../../components/ParkOrderModal";
 import { ParkedOrdersModal } from "../../components/ParkedOrdersModal";
 import { ProductSettingsModal } from "../../components/ProductSettingsModal";
 import { SearchProduct, SearchProductModal } from "../../components/SearchProductModal";
+import { SidebarButton } from "../../components/SidebarButton";
 import { useAuth } from "../../contexts/AuthContext";
 import { OrderProduct, useOrder } from "../../contexts/OrderContext";
 import { useParkedOrders } from "../../contexts/ParkedOrderContext";
 import {
-    getPoolStatus,
-    isAnyPrinterModuleAvailable,
-    openCashDrawer
+  getPoolStatus,
+  isAnyPrinterModuleAvailable,
+  openCashDrawer
 } from "../../utils/PrinterPoolManager";
 
 // Action button width
-const SIDEBAR_WIDTH = 300;
+const SIDEBAR_WIDTH = 260;
 
 /**
  * Staff POS Sales Screen - Matches Figma design
@@ -194,58 +195,6 @@ export default function AddProductsScreen() {
     setShowCashPaymentModal(true);
   };
 
-  // Action Button Component
-  const ActionButton = ({ 
-    title, 
-    onPress, 
-    variant = "default",
-    icon,
-  }: { 
-    title: string; 
-    onPress: () => void; 
-    variant?: "default" | "primary" | "danger" | "purple";
-    icon?: React.ReactNode;
-  }) => {
-    const bgColors = {
-      default: "#FFFFFF",
-      primary: "#EC1A52",
-      danger: "#EC1A52",
-      purple: "#5F4BB6",
-    };
-    const textColors = {
-      default: "#EC1A52",
-      primary: "#FFFFFF",
-      danger: "#FFFFFF",
-      purple: "#FFFFFF",
-    };
-    const borderColors = {
-      default: "#EC1A52",
-      primary: "transparent",
-      danger: "transparent",
-      purple: "transparent",
-    };
-
-    return (
-      <TouchableOpacity
-        onPress={onPress}
-        className="flex-1 rounded-lg py-3 px-2 items-center justify-center"
-        style={{
-          backgroundColor: bgColors[variant],
-          borderWidth: variant === "default" ? 1 : 0,
-          borderColor: borderColors[variant],
-        }}
-      >
-        {icon}
-        <Text 
-          className="font-medium text-center mt-1" 
-          style={{ fontSize: 12, color: textColors[variant] }}
-          numberOfLines={2}
-        >
-          {title}
-        </Text>
-      </TouchableOpacity>
-    );
-  };
 
   return (
     <View className="flex-1 flex-row bg-gray-100">
@@ -456,122 +405,129 @@ export default function AddProductsScreen() {
           <BrandingSection />
         </View>
 
+        {/* Go to Menu - Top position below branding */}
+        <View className="mb-3">
+          <SidebarButton
+            title="Go to Menu"
+            icon={<Ionicons name="menu-outline" size={20} color="#EC1A52" />}
+            onPress={handleGoToMenu}
+          />
+        </View>
+
         <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>
           {/* Row 1 */}
-          <View className="flex-row gap-2">
-            <ActionButton
-              title="Add New Product"
-              onPress={() => setShowSearchModal(true)}
-              variant="primary"
-              icon={<Ionicons name="add" size={20} color="white" />}
-            />
-            <ActionButton
+          <View>
+        
+            <SidebarButton
               title="Open Drawer"
               onPress={handleOpenCashDrawer}
               icon={<MaterialCommunityIcons name="cash-register" size={20} color="#EC1A52" />}
+              fullWidth={false}
             />
           </View>
 
           {/* Row 2 */}
           <View className="flex-row gap-2">
-            <ActionButton
+            <SidebarButton
               title="Cash Payment"
               onPress={handleCashPayment}
               icon={<MaterialCommunityIcons name="cash" size={20} color="#EC1A52" />}
+              fullWidth={false}
             />
-            <ActionButton
+            <SidebarButton
               title="Card Payment"
               onPress={() => Alert.alert("Card Payment", "Feature coming soon")}
               icon={<MaterialCommunityIcons name="credit-card" size={20} color="#EC1A52" />}
+              fullWidth={false}
             />
           </View>
 
           {/* Row 3 */}
           <View className="flex-row gap-2">
-            <ActionButton
-              title="Payment Method 1"
+            <SidebarButton
+              title="Payment Method"
               onPress={() => Alert.alert("Payment Method 1", "Feature coming soon")}
               icon={<MaterialIcons name="payment" size={20} color="#EC1A52" />}
+              fullWidth={false}
             />
-            <ActionButton
-              title="Payment Method 2"
+            <SidebarButton
+              title="Payment Method"
               onPress={() => Alert.alert("Payment Method 2", "Feature coming soon")}
               icon={<MaterialIcons name="payment" size={20} color="#EC1A52" />}
+              fullWidth={false}
             />
           </View>
 
           {/* Row 4 */}
           <View className="flex-row gap-2">
-            <ActionButton
-              title="Payment Method 3"
+            <SidebarButton
+              title="Payment Method"
               onPress={() => Alert.alert("Payment Method 3", "Feature coming soon")}
               icon={<MaterialIcons name="payment" size={20} color="#EC1A52" />}
+              fullWidth={false}
             />
-            <ActionButton
-              title="Payment Method 4"
+            <SidebarButton
+              title="Payment Method"
               onPress={() => Alert.alert("Payment Method 4", "Feature coming soon")}
               icon={<MaterialIcons name="payment" size={20} color="#EC1A52" />}
+              fullWidth={false}
             />
           </View>
 
           {/* Row 5 */}
           <View className="flex-row gap-2">
-            <ActionButton
+            <SidebarButton
               title="Pay Later"
               onPress={() => Alert.alert("Pay Later", "Feature coming soon")}
               icon={<MaterialCommunityIcons name="clock-outline" size={20} color="#EC1A52" />}
+              fullWidth={false}
             />
-            <ActionButton
+            <SidebarButton
               title="Add Tax"
               onPress={() => setShowTaxModal(true)}
-              variant="purple"
-              icon={<Ionicons name="add-circle-outline" size={20} color="white" />}
+              icon={<Ionicons name="add-circle-outline" size={20} color="#EC1A52" />}
+              fullWidth={false}
             />
           </View>
 
           {/* Row 6 */}
           <View className="flex-row gap-2">
-            <ActionButton
+            <SidebarButton
               title="Delete Product"
               onPress={() => Alert.alert("Delete Product", "Select a product to delete")}
-              variant="danger"
-              icon={<Ionicons name="trash-outline" size={20} color="white" />}
+              icon={<Ionicons name="trash-outline" size={20} color="#EC1A52" />}
+              fullWidth={false}
             />
-            <ActionButton
+            <SidebarButton
               title="Void Payment"
               onPress={() => Alert.alert("Void Payment", "Feature coming soon")}
-              variant="danger"
-              icon={<MaterialCommunityIcons name="cancel" size={20} color="white" />}
+              icon={<MaterialCommunityIcons name="cancel" size={20} color="#EC1A52" />}
+              fullWidth={false}
             />
           </View>
 
           {/* Row 7 */}
           <View className="flex-row gap-2">
-            <ActionButton
-              title="Go to Menu"
-              onPress={handleGoToMenu}
-              icon={<Ionicons name="menu" size={20} color="#EC1A52" />}
-            />
-            <ActionButton
+            <SidebarButton
               title="Add Discount"
               onPress={() => setShowDiscountModal(true)}
               icon={<MaterialIcons name="discount" size={20} color="#EC1A52" />}
+              fullWidth={false}
+            />
+            <SidebarButton
+              title="Park Order"
+              onPress={handleParkOrder}
+              icon={<MaterialCommunityIcons name="pause-circle-outline" size={20} color="#EC1A52" />}
+              fullWidth={false}
             />
           </View>
 
           {/* Row 8 */}
-          <View className="flex-row gap-2">
-            <ActionButton
-              title="Empty Cart"
-              onPress={handleEmptyCart}
-              icon={<Ionicons name="trash-outline" size={20} color="#EC1A52" />}
-            />
-            <ActionButton
-              title="Park Order"
-              onPress={handleParkOrder}
-              icon={<MaterialCommunityIcons name="pause-circle-outline" size={20} color="#EC1A52" />}
-            />
-          </View>
+          <SidebarButton
+            title="Empty Cart"
+            onPress={handleEmptyCart}
+            icon={<Ionicons name="trash-outline" size={20} color="#EC1A52" />}
+          />
         </ScrollView>
       </View>
 
