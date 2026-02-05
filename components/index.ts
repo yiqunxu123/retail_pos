@@ -1,22 +1,24 @@
 // Export all reusable components
-export { StatCard } from "./StatCard";
-export { SidebarButton } from "./SidebarButton";
-export { POSLineCard } from "./POSLineCard";
+export { AddDiscountModal } from "./AddDiscountModal";
+export { AddQuickCustomerModal } from "./AddQuickCustomerModal";
+export { CashPaymentModal } from "./CashPaymentModal";
+export { CustomerCard } from "./CustomerCard";
+export { Dropdown } from "./Dropdown";
+export { FilterDropdown } from "./FilterDropdown";
+export { FormInput } from "./FormInput";
 export { Header } from "./Header";
+export { OrderSummary } from "./OrderSummary";
 export { PageHeader } from "./PageHeader";
-export { Sidebar, SIDEBAR_WIDTH } from "./Sidebar";
-export { StaffSidebar, STAFF_SIDEBAR_WIDTH } from "./StaffSidebar";
+export { POSLineCard } from "./POSLineCard";
 export { POSSidebar, POS_SIDEBAR_WIDTH } from "./POSSidebar";
 export { ProductSearch } from "./ProductSearch";
 export { ProductTable } from "./ProductTable";
-export { OrderSummary } from "./OrderSummary";
-export { CustomerCard } from "./CustomerCard";
-export { StepNavigation } from "./StepNavigation";
-export { FormInput } from "./FormInput";
 export { RadioGroup } from "./RadioGroup";
-export { Dropdown } from "./Dropdown";
-export { FilterDropdown } from "./FilterDropdown";
-export { AddQuickCustomerModal } from "./AddQuickCustomerModal";
+export { default as ReportPlaceholder } from "./ReportPlaceholder";
 export { SearchProductModal } from "./SearchProductModal";
-export { CashPaymentModal } from "./CashPaymentModal";
-export { AddDiscountModal } from "./AddDiscountModal";
+export { SIDEBAR_WIDTH, Sidebar } from "./Sidebar";
+export { SidebarButton } from "./SidebarButton";
+export { STAFF_SIDEBAR_WIDTH, StaffSidebar } from "./StaffSidebar";
+export { StatCard } from "./StatCard";
+export { StepNavigation } from "./StepNavigation";
+

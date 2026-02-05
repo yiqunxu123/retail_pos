@@ -1,19 +1,25 @@
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
-import { Alert, Pressable, ScrollView, Text, View } from "react-native";
+import { Pressable, ScrollView, Text, View } from "react-native";
 
 const LEGAL_REPORTS = [
-  { id: "compliance", title: "Compliance Report" },
-  { id: "audit-trail", title: "Audit Trail Report" },
-  { id: "tax-compliance", title: "Tax Compliance Report" },
-  { id: "regulatory", title: "Regulatory Report" },
-  { id: "license", title: "License Report" },
-  { id: "legal-summary", title: "Legal Summary Report" },
+  { id: "california-cigarette-receiving", title: "California Cigarette Receiving Report", route: "/sale/reports/california-cigarette-receiving" },
+  { id: "kentucky-cigarette-tax", title: "Kentucky Cigarette Tax Report", route: "/sale/reports/kentucky-cigarette-tax" },
+  { id: "kentucky-tobacco-tax", title: "Kentucky Tobacco Tax Report", route: "/sale/reports/kentucky-tobacco-tax" },
+  { id: "ldr", title: "LDR Report", route: "/sale/reports/ldr" },
+  { id: "rap", title: "RAP Report", route: "/sale/reports/rap" },
+  { id: "rcr", title: "RCR Report", route: "/sale/reports/rcr" },
 ];
 
 interface ReportItemProps {
   title: string;
   onPress: () => void;
+}
+
+interface ReportConfig {
+  id: string;
+  title: string;
+  route: string;
 }
 
 function ReportItem({ title, onPress }: ReportItemProps) {
@@ -30,8 +36,8 @@ function ReportItem({ title, onPress }: ReportItemProps) {
 }
 
 export default function LegalReportsScreen() {
-  const handleReportPress = (reportId: string, title: string) => {
-    Alert.alert("View Report", `Opening ${title}...`);
+  const handleReportPress = (route: string) => {
+    router.push(route as any);
   };
 
   const leftColumn = LEGAL_REPORTS.filter((_, i) => i % 2 === 0);
@@ -49,20 +55,20 @@ export default function LegalReportsScreen() {
       <ScrollView className="flex-1 px-6">
         <View className="flex-row gap-4">
           <View className="flex-1">
-            {leftColumn.map((report) => (
+            {leftColumn.map((report: ReportConfig) => (
               <ReportItem
                 key={report.id}
                 title={report.title}
-                onPress={() => handleReportPress(report.id, report.title)}
+                onPress={() => handleReportPress(report.route)}
               />
             ))}
           </View>
           <View className="flex-1">
-            {rightColumn.map((report) => (
+            {rightColumn.map((report: ReportConfig) => (
               <ReportItem
                 key={report.id}
                 title={report.title}
-                onPress={() => handleReportPress(report.id, report.title)}
+                onPress={() => handleReportPress(report.route)}
               />
             ))}
           </View>

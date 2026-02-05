@@ -1,19 +1,30 @@
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
-import { Alert, Pressable, ScrollView, Text, View } from "react-native";
+import { Pressable, ScrollView, Text, View } from "react-native";
 
 const FINANCIAL_REPORTS = [
-  { id: "profit-loss", title: "Profit & Loss Report" },
-  { id: "revenue-summary", title: "Revenue Summary" },
-  { id: "expense-report", title: "Expense Report" },
-  { id: "cash-flow", title: "Cash Flow Statement" },
-  { id: "tax-report", title: "Tax Report" },
-  { id: "commission-report", title: "Commission Report" },
+  { id: "customer-account-receivable", title: "Customer Account Receivable Report", route: "/sale/reports/customer-account-receivable" },
+  { id: "customer-payment-logs", title: "Customer Payment Logs Report", route: "/sale/reports/customer-payment-logs" },
+  { id: "customer-invoice-aging", title: "Customer Invoice Aging Report", route: "/sale/reports/customer-invoice-aging" },
+  { id: "daily-summary", title: "Daily Summary Report", route: "/sale/reports/daily-summary" },
+  { id: "invoice-history-by-customer", title: "Invoice History By Customer", route: "/sale/reports/invoice-history-by-customer" },
+  { id: "payment-received", title: "Payment Received Report", route: "/sale/reports/payment-received" },
+  { id: "profit-margin-accrual", title: "Profit Margin Report (Accrual Basis)", route: "/sale/reports/profit-margin-accrual" },
+  { id: "profit-margin-cash", title: "Profit Margin Report (Cash Basis)", route: "/sale/reports/profit-margin-cash" },
+  { id: "supplier-account-payable", title: "Supplier Account Payable Report", route: "/sale/reports/supplier-account-payable" },
+  { id: "sale-agent-commission", title: "Sale Agent Commission Report", route: "/sale/reports/sale-agent-commission" },
+  { id: "supplier-payment-logs", title: "Supplier Payment Logs Report", route: "/sale/reports/supplier-payment-logs" },
 ];
 
 interface ReportItemProps {
   title: string;
   onPress: () => void;
+}
+
+interface ReportConfig {
+  id: string;
+  title: string;
+  route: string;
 }
 
 function ReportItem({ title, onPress }: ReportItemProps) {
@@ -30,8 +41,8 @@ function ReportItem({ title, onPress }: ReportItemProps) {
 }
 
 export default function FinancialReportsScreen() {
-  const handleReportPress = (reportId: string, title: string) => {
-    Alert.alert("View Report", `Opening ${title}...`);
+  const handleReportPress = (route: string) => {
+    router.push(route as any);
   };
 
   const leftColumn = FINANCIAL_REPORTS.filter((_, i) => i % 2 === 0);
@@ -49,20 +60,20 @@ export default function FinancialReportsScreen() {
       <ScrollView className="flex-1 px-6">
         <View className="flex-row gap-4">
           <View className="flex-1">
-            {leftColumn.map((report) => (
+            {leftColumn.map((report: ReportConfig) => (
               <ReportItem
                 key={report.id}
                 title={report.title}
-                onPress={() => handleReportPress(report.id, report.title)}
+                onPress={() => handleReportPress(report.route)}
               />
             ))}
           </View>
           <View className="flex-1">
-            {rightColumn.map((report) => (
+            {rightColumn.map((report: ReportConfig) => (
               <ReportItem
                 key={report.id}
                 title={report.title}
-                onPress={() => handleReportPress(report.id, report.title)}
+                onPress={() => handleReportPress(report.route)}
               />
             ))}
           </View>
