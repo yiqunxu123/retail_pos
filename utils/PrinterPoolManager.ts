@@ -1,17 +1,17 @@
 /**
  * Printer Pool Manager
- * 单打印机池管理系统 - 多打印机负载均衡
+ * Single printer pool management system - Multi-printer load balancing
  */
 
-import {
-  NetPrinter,
-  USBPrinter,
-  BLEPrinter,
-} from "react-native-thermal-receipt-printer";
 import TcpSocket from "react-native-tcp-socket";
+import {
+    BLEPrinter,
+    NetPrinter,
+    USBPrinter,
+} from "react-native-thermal-receipt-printer";
 
 // ============ Mutex for Printer Access ============
-// NetPrinter 是单例，需要互斥锁防止并发访问
+// NetPrinter is singleton, needs mutex to prevent concurrent access
 class PrinterMutex {
   private locked = false;
   private waiting: Array<() => void> = [];
@@ -75,7 +75,7 @@ export interface PrintJob {
   timestamp: number;
   assignedTo?: string;
   priority: number;
-  targetPrinterId?: string;  // 指定目标打印机
+  targetPrinterId?: string;  // Specify target printer
 }
 
 export type PrintEventType = 
@@ -128,7 +128,7 @@ let printerModuleAvailable = false;
 
 // ============ Configuration ============
 
-/** 任务之间的间隔时间（毫秒） */
+/** Interval time between tasks (milliseconds) */
 const JOB_INTERVAL = 300;
 
 log.info(`Configuration: Dynamic print time (50ms/line, min 500ms, max 5000ms), timeout +3s, JOB_INTERVAL=${JOB_INTERVAL}ms`);
@@ -283,7 +283,7 @@ class PrinterPoolManager {
       throw new Error('No enabled printers available');
     }
 
-    // 如果指定了目标打印机，检查是否存在且启用
+    // If target printer is specified, check if it exists and is enabled
     if (options?.targetPrinterId) {
       const targetPrinter = this.printers.get(options.targetPrinterId);
       if (!targetPrinter) {
@@ -302,7 +302,7 @@ class PrinterPoolManager {
       targetPrinterId: options?.targetPrinterId,
     };
 
-    // 根据优先级插入队列
+    // Insert into queue based on priority
     if (job.priority > 0) {
       const insertIndex = this.queue.findIndex(j => j.priority < job.priority);
       if (insertIndex === -1) {
@@ -332,8 +332,8 @@ class PrinterPoolManager {
   }
 
   /**
-   * 直接打印到指定打印机（不走队列）
-   * 用于并行打印场景
+   * Print directly to specified printer (bypasses queue)
+   * Used for parallel printing scenarios
    */
   async printDirect(printerId: string, data: string): Promise<void> {
     const printer = this.printers.get(printerId);
@@ -346,10 +346,10 @@ class PrinterPoolManager {
 
     log.info(`🎯 Direct print to ${printer.name} (${printer.ip})`);
     
-    // 直接执行打印（互斥锁在 printEthernet 中处理）
+    // Execute print directly (mutex handled in printEthernet)
     await this.performPrint(printer, data);
     
-    // 更新统计
+    // Update statistics
     printer.jobsCompleted++;
     printer.lastActiveAt = Date.now();
     
@@ -364,7 +364,7 @@ class PrinterPoolManager {
       return;
     }
 
-    // 获取所有打印机状态用于日志
+    // Get all printer statuses for logging
     const allPrinters = Array.from(this.printers.values());
     const enabledPrinters = allPrinters.filter(p => p.enabled);
     const idlePrinters = enabledPrinters.filter(p => p.status === 'idle');
@@ -372,23 +372,23 @@ class PrinterPoolManager {
 
     log.debug(`📊 Pool status: Total=${allPrinters.length}, Enabled=${enabledPrinters.length}, Idle=${idlePrinters.length}, Busy=${busyPrinters.length}, Queue=${this.queue.length}`);
 
-    // 查找可以处理的任务
+    // Find tasks that can be processed
     for (let i = 0; i < this.queue.length; i++) {
       const job = this.queue[i];
       let selectedPrinter: PrinterState | undefined;
 
       if (job.targetPrinterId) {
-        // 指定了目标打印机，只能用这台
+        // Target printer specified, can only use this one
         const targetPrinter = this.printers.get(job.targetPrinterId);
         if (targetPrinter && targetPrinter.enabled && targetPrinter.status === 'idle') {
           selectedPrinter = targetPrinter;
           log.info(`🎯 Target printer: ${selectedPrinter.id} (${selectedPrinter.name})`);
         } else {
-          // 目标打印机忙或不可用，跳过这个任务，继续找下一个
+          // Target printer is busy or unavailable, skip this task and continue to next
           continue;
         }
       } else {
-        // 没有指定打印机，用负载均衡
+        // No printer specified, use load balancing
         if (idlePrinters.length === 0) {
           log.info(`⏳ All printers busy, job waiting in queue (queue: ${this.queue.length})`);
           return;
@@ -398,15 +398,15 @@ class PrinterPoolManager {
       }
 
       if (selectedPrinter) {
-        // 从队列中移除这个任务
+        // Remove this task from queue
         this.queue.splice(i, 1);
         job.assignedTo = selectedPrinter.id;
         this.executeJob(selectedPrinter, job);
-        return; // 一次只处理一个任务
+        return; // Process one task at a time
       }
     }
 
-    // 所有任务都在等待特定打印机
+    // All tasks are waiting for specific printers
     if (this.queue.length > 0) {
       log.info(`⏳ ${this.queue.length} jobs waiting for specific printers`);
     }
@@ -416,7 +416,7 @@ class PrinterPoolManager {
     printer.status = 'busy';
     const startTime = Date.now();
     
-    // 动态计算打印时间（与原 PrintQueue 一致）
+    // Dynamically calculate print time (consistent with original PrintQueue)
     const printTime = this.calculatePrintTime(job.data);
     
     log.info(`🚀 START: Job ${job.id} → ${printer.id} (${printer.name})`);
@@ -428,7 +428,7 @@ class PrinterPoolManager {
       await this.performPrint(printer, job.data);
       log.debug(`   Data sent successfully`);
       
-      // 等待剩余的打印时间（与原 PrintQueue 一致）
+      // Wait for remaining print time (consistent with original PrintQueue)
       const elapsed = Date.now() - startTime;
       const remainingPrintTime = Math.max(0, printTime - elapsed);
       if (remainingPrintTime > 0) {
@@ -446,7 +446,7 @@ class PrinterPoolManager {
       this.emit({ type: 'job_completed', printerId: printer.id, jobId: job.id });
       
     } catch (error: any) {
-      // 处理各种错误格式（原生模块可能返回非标准 Error）
+      // Handle various error formats (native module may return non-standard Error)
       const errorMessage = error?.message || error?.toString?.() || String(error) || 'Unknown error';
       log.error(`Job ${job.id} FAILED on ${printer.id}: ${errorMessage}`);
       log.debug(`   Error details:`, error);
@@ -454,7 +454,7 @@ class PrinterPoolManager {
       printer.status = 'idle';
       printer.lastError = errorMessage;
 
-      // 出错直接失败，不重试
+      // Fail immediately on error, no retry
       this.emit({ 
         type: 'job_failed', 
         printerId: printer.id, 
@@ -463,7 +463,7 @@ class PrinterPoolManager {
       });
     }
 
-    // 处理下一个任务
+    // Process next task
     await this.delay(JOB_INTERVAL);
     log.debug(`Checking queue for next job...`);
     this.tryProcessQueue();
@@ -471,10 +471,10 @@ class PrinterPoolManager {
 
   // ============ Printing Implementation ============
 
-  // 根据内容行数计算打印时间（与原 PrintQueue 一致）
+  // Calculate print time based on content lines (consistent with original PrintQueue)
   private calculatePrintTime(data: string): number {
     const lines = data.split('\n').length;
-    // 每行约 50ms，最小 500ms，最大 5000ms
+    // Approx 50ms per line, min 500ms, max 5000ms
     return Math.min(Math.max(lines * 50, 500), 5000);
   }
 
@@ -506,22 +506,22 @@ class PrinterPoolManager {
     const ip = printer.ip;
     const port = printer.port || 9100;
 
-    // 使用互斥锁保证原子操作
+    // Use mutex to ensure atomic operation
     await printerMutex.acquire();
     log.info(`🔒 [${printer.name}] Acquired mutex, starting print...`);
     
     try {
-      // 1. 先关闭任何现有连接
+      // 1. Close any existing connection first
       log.debug(`   [${printer.name}] Closing any existing connection...`);
       try { 
         await NetPrinter.closeConn(); 
-        // 等待连接完全关闭
+        // Wait for connection to fully close
         await this.delay(100);
       } catch (e) {
         log.debug(`   [${printer.name}] No existing connection to close`);
       }
       
-      // 2. 连接到打印机（超时 10 秒）
+      // 2. Connect to printer (10 second timeout)
       log.info(`   [${printer.name}] Connecting to ${ip}:${port}...`);
       const timeout = new Promise<never>((_, reject) => 
         setTimeout(() => reject(new Error(`Connection timeout to ${ip}`)), 10000)
@@ -533,16 +533,16 @@ class PrinterPoolManager {
       ]);
       log.info(`   [${printer.name}] ✅ Connected`);
       
-      // 3. 发送打印数据
+      // 3. Send print data
       log.info(`   [${printer.name}] Sending print data...`);
       await NetPrinter.printBill(data);
       log.success(`   [${printer.name}] ✅ Print sent to ${ip}:${port}`);
       
-      // 4. 等待打印机处理数据（重要！不能太快关闭连接）
+      // 4. Wait for printer to process data (important! cannot close connection too quickly)
       log.info(`   [${printer.name}] Waiting for printer to process...`);
       await this.delay(500);
       
-      // 5. 打印完成后关闭连接
+      // 5. Close connection after printing is complete
       log.info(`   [${printer.name}] Closing connection...`);
       try {
         await NetPrinter.closeConn();
@@ -553,7 +553,7 @@ class PrinterPoolManager {
       }
       
     } finally {
-      // 确保释放锁
+      // Ensure mutex is released
       log.info(`🔓 [${printer.name}] Releasing mutex`);
       printerMutex.release();
     }
@@ -657,7 +657,7 @@ class PrinterPoolManager {
     };
   }
 
-  /** 打印当前池状态到日志 */
+  /** Print current pool status to logs */
   logPoolStatus(): void {
     const printers = Array.from(this.printers.values());
     log.info(`═══════════════════════════════════════════════════`);
@@ -686,72 +686,72 @@ export const printerPool = new PrinterPoolManager();
 
 // ============ Helper Functions ============
 
-/** 添加打印机 */
+/** Add printer */
 export const addPrinter = (config: PrinterConfig) => printerPool.addPrinter(config);
 
-/** 移除打印机 */
+/** Remove printer */
 export const removePrinter = (printerId: string) => printerPool.removePrinter(printerId);
 
-/** 更新打印机配置 */
+/** Update printer configuration */
 export const updatePrinter = (printerId: string, updates: Partial<PrinterConfig>) => 
   printerPool.updatePrinter(printerId, updates);
 
-/** 启用/禁用打印机 */
+/** Enable/disable printer */
 export const setPrinterEnabled = (printerId: string, enabled: boolean) => 
   printerPool.setPrinterEnabled(printerId, enabled);
 
-/** 获取所有打印机 */
+/** Get all printers */
 export const getPrinters = () => printerPool.getPrinters();
 
-/** 获取单个打印机 */
+/** Get single printer */
 export const getPrinter = (printerId: string) => printerPool.getPrinter(printerId);
 
-/** 添加打印任务 */
+/** Add print job */
 export const print = (data: string, options?: { priority?: number; targetPrinterId?: string }) => 
   printerPool.addJob(data, options);
 
-// ============ ESC/POS 命令 ============
+// ============ ESC/POS Commands ============
 const ESC = '\x1b';
 const GS = '\x1d';
 
 const ESCPOS = {
-  // 初始化打印机
+  // Initialize printer
   INIT: `${ESC}@`,
   
-  // 对齐方式
+  // Alignment
   ALIGN_LEFT: `${ESC}a\x00`,
   ALIGN_CENTER: `${ESC}a\x01`,
   ALIGN_RIGHT: `${ESC}a\x02`,
   
-  // 字体样式
+  // Font styles
   BOLD_ON: `${ESC}E\x01`,
   BOLD_OFF: `${ESC}E\x00`,
   
-  // 字体大小 (ESC ! n)
+  // Font size (ESC ! n)
   NORMAL: `${ESC}!\x00`,
   DOUBLE_HEIGHT: `${ESC}!\x10`,
   DOUBLE_WIDTH: `${ESC}!\x20`,
-  DOUBLE_SIZE: `${ESC}!\x30`,  // 双倍宽高
+  DOUBLE_SIZE: `${ESC}!\x30`,  // Double width and height
   
-  // 切纸
-  CUT: `${GS}V\x00`,      // 全切
-  CUT_PARTIAL: `${GS}VA\x03`,  // 部分切（留一点）
+  // Cut paper
+  CUT: `${GS}V\x00`,      // Full cut
+  CUT_PARTIAL: `${GS}VA\x03`,  // Partial cut (leave a bit)
   
-  // 换行
+  // Line feed
   LF: '\n',
   
-  // 走纸
-  FEED: `${ESC}d\x04`,  // 走 4 行
+  // Paper feed
+  FEED: `${ESC}d\x04`,  // Feed 4 lines
 };
 
 /**
- * 将标记格式转换为 ESC/POS 命令
- * 支持: <C>, <L>, <R>, <B>, </B>, <CB>, </CB>, <CD>, </CD>
+ * Convert markup format to ESC/POS commands
+ * Supports: <C>, <L>, <R>, <B>, </B>, <CB>, </CB>, <CD>, </CD>
  */
 const convertToEscPos = (text: string): string => {
-  let result = ESCPOS.INIT;  // 初始化打印机
+  let result = ESCPOS.INIT;  // Initialize printer
   
-  // 按行处理
+  // Process line by line
   const lines = text.split('\n');
   
   for (const line of lines) {
@@ -759,37 +759,37 @@ const convertToEscPos = (text: string): string => {
     let prefix = '';
     let suffix = '';
     
-    // 居中加粗大字 <CB>...</CB>
+    // Center bold large text <CB>...</CB>
     if (processedLine.includes('<CB>')) {
       prefix += ESCPOS.ALIGN_CENTER + ESCPOS.BOLD_ON + ESCPOS.DOUBLE_SIZE;
       suffix = ESCPOS.NORMAL + ESCPOS.BOLD_OFF + suffix;
       processedLine = processedLine.replace(/<CB>/g, '').replace(/<\/CB>/g, '');
     }
-    // 居中双倍 <CD>...</CD>
+    // Center double <CD>...</CD>
     else if (processedLine.includes('<CD>')) {
       prefix += ESCPOS.ALIGN_CENTER + ESCPOS.DOUBLE_SIZE;
       suffix = ESCPOS.NORMAL + suffix;
       processedLine = processedLine.replace(/<CD>/g, '').replace(/<\/CD>/g, '');
     }
-    // 居中 <C>...</C>
+    // Center <C>...</C>
     else if (processedLine.includes('<C>')) {
       prefix += ESCPOS.ALIGN_CENTER;
       suffix = ESCPOS.ALIGN_LEFT + suffix;
       processedLine = processedLine.replace(/<C>/g, '').replace(/<\/C>/g, '');
     }
-    // 右对齐 <R>...</R>
+    // Right align <R>...</R>
     else if (processedLine.includes('<R>')) {
       prefix += ESCPOS.ALIGN_RIGHT;
       suffix = ESCPOS.ALIGN_LEFT + suffix;
       processedLine = processedLine.replace(/<R>/g, '').replace(/<\/R>/g, '');
     }
-    // 左对齐 <L>...</L>
+    // Left align <L>...</L>
     else if (processedLine.includes('<L>')) {
       prefix += ESCPOS.ALIGN_LEFT;
       processedLine = processedLine.replace(/<L>/g, '').replace(/<\/L>/g, '');
     }
     
-    // 加粗 <B>...</B>
+    // Bold <B>...</B>
     if (processedLine.includes('<B>')) {
       processedLine = processedLine.replace(/<B>/g, ESCPOS.BOLD_ON).replace(/<\/B>/g, ESCPOS.BOLD_OFF);
     }
@@ -797,18 +797,18 @@ const convertToEscPos = (text: string): string => {
     result += prefix + processedLine + suffix + ESCPOS.LF;
   }
   
-  // 最后：走纸 + 切纸
+  // Finally: paper feed + cut
   result += ESCPOS.FEED + ESCPOS.CUT;
   
   return result;
 };
 
-// TCP 打印配置
-const TCP_TIMEOUT = 500;  // 固定 500ms 超时
+// TCP print configuration
+const TCP_TIMEOUT = 500;  // Fixed 500ms timeout
 
 /**
- * 简单 TCP 打印（固定 500ms 超时，超时强制断开）
- * 不等待任何响应，发完就断
+ * Simple TCP printing (fixed 500ms timeout, force disconnect on timeout)
+ * Does not wait for any response, disconnect after sending
  */
 const printViaTcpOnce = (ip: string, port: number, escPosData: string, printerName: string): Promise<void> => {
   return new Promise((resolve, reject) => {
@@ -819,7 +819,7 @@ const printViaTcpOnce = (ip: string, port: number, escPosData: string, printerNa
       if (done) return;
       done = true;
       
-      // 强制清理 socket
+      // Force cleanup socket
       if (client) {
         try { 
           client.removeAllListeners();
@@ -837,17 +837,17 @@ const printViaTcpOnce = (ip: string, port: number, escPosData: string, printerNa
       }
     };
     
-    // 500ms 硬超时 - 不管什么状态都强制结束
+    // 500ms hard timeout - force end regardless of state
     const timer = setTimeout(() => finish(false, 'Timeout'), TCP_TIMEOUT);
     
     try {
       client = TcpSocket.createConnection({ host: ip, port: port }, () => {
         if (done) return;
         
-        // 连接成功，立即发送数据
+        // Connection successful, send data immediately
         try {
           client!.write(escPosData, 'binary', () => {
-            // 发送完成，不等待响应，直接成功
+            // Sending complete, no wait for response, success immediately
             clearTimeout(timer);
             finish(true);
           });
@@ -857,13 +857,13 @@ const printViaTcpOnce = (ip: string, port: number, escPosData: string, printerNa
         }
       });
       
-      // 错误处理
+      // Error handling
       client.on('error', () => {
         clearTimeout(timer);
         finish(false, 'Connect failed');
       });
       
-      // 设置 socket 超时（双保险）
+      // Set socket timeout (double insurance)
       client.setTimeout(TCP_TIMEOUT);
       client.on('timeout', () => {
         clearTimeout(timer);
@@ -879,7 +879,7 @@ const printViaTcpOnce = (ip: string, port: number, escPosData: string, printerNa
 
 
 /**
- * 打印到单台打印机（使用 TCP，不阻塞）
+ * Print to single printer (using TCP, non-blocking)
  */
 export const printToOne = async (printerId: string, data: string): Promise<{ success: boolean; error?: string }> => {
   const printer = printerPool.getPrinter(printerId);
@@ -912,9 +912,9 @@ export const printToOne = async (printerId: string, data: string): Promise<{ suc
 };
 
 /** 
- * 真正并行打印到所有启用的打印机
- * 使用独立 TCP Socket，每台打印机有自己的连接，真正同时打印
- * 一台失败不会阻塞其他打印机
+ * True parallel printing to all enabled printers
+ * Uses independent TCP Socket, each printer has its own connection, truly simultaneous printing
+ * One failure does not block other printers
  */
 export const printToAll = async (data: string): Promise<{ 
   success: boolean; 
@@ -929,10 +929,10 @@ export const printToAll = async (data: string): Promise<{
   
   log.info(`========== 🚀 PARALLEL PRINT: ${enabledPrinters.length} printers ==========`);
   
-  // 转换 ESC/POS 数据（只转换一次，所有打印机共用）
+  // Convert ESC/POS data (convert once, shared by all printers)
   const escPosData = convertToEscPos(data);
   
-  // 为每台打印机创建独立的打印任务（不互相阻塞）
+  // Create independent print task for each printer (non-blocking)
   const createPrintTask = (printer: typeof enabledPrinters[0]) => {
     const startTime = Date.now();
     
@@ -948,7 +948,7 @@ export const printToAll = async (data: string): Promise<{
       });
   };
   
-  // 同时启动所有打印任务（使用 Promise.allSettled 确保不互相阻塞）
+  // Start all print tasks simultaneously (using Promise.allSettled to ensure no mutual blocking)
   log.info(`⏳ Starting ${enabledPrinters.length} parallel connections...`);
   const startTime = Date.now();
   
@@ -956,7 +956,7 @@ export const printToAll = async (data: string): Promise<{
     enabledPrinters.map(printer => createPrintTask(printer))
   );
   
-  // 转换结果
+  // Convert results
   const results = settledResults.map((result, index) => {
     if (result.status === 'fulfilled') {
       return result.value;
@@ -979,25 +979,25 @@ export const printToAll = async (data: string): Promise<{
   };
 };
 
-/** 清空队列 */
+/** Clear queue */
 export const clearQueue = () => printerPool.clearQueue();
 
-/** 打开钱箱 */
+/** Open cash drawer */
 export const openCashDrawer = () => printerPool.openCashDrawer();
 
-/** 获取状态 */
+/** Get status */
 export const getPoolStatus = () => printerPool.getStatus();
 
-/** 打印池状态到日志 */
+/** Print pool status to logs */
 export const logPoolStatus = () => printerPool.logPoolStatus();
 
-/** 添加事件监听 */
+/** Add event listener */
 export const addPrinterListener = (callback: EventListener) => printerPool.addListener(callback);
 
-/** 检查打印机模块可用性 */
+/** Check printer module availability */
 export const isPrinterModuleAvailable = (type: PrinterType) => printerPool.isPrinterModuleAvailable(type);
 
-/** 检查是否有任何打印机模块可用 */
+/** Check if any printer module is available */
 export const isAnyPrinterModuleAvailable = () => printerPool.isAnyPrinterModuleAvailable();
 
 export default printerPool;

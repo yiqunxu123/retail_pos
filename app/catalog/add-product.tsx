@@ -20,7 +20,7 @@ import {
 } from "react-native";
 import { PageHeader } from "../../components";
 
-// Tab 配置
+// Tab configuration
 const TABS = [
   { key: "basic", label: "Basic" },
   { key: "pricing", label: "Pricing & Stock" },
@@ -30,7 +30,7 @@ const TABS = [
   { key: "promotions", label: "Promotions" },
 ];
 
-// 表单输入组件
+// Form input component
 function FormInput({ 
   label, 
   placeholder, 
@@ -72,7 +72,7 @@ function FormInput({
   );
 }
 
-// 下拉选择组件（简化版）
+// Dropdown select component (simplified)
 function FormSelect({ 
   label, 
   placeholder,
@@ -102,7 +102,7 @@ function FormSelect({
   );
 }
 
-// 开关组件
+// Switch component
 function FormSwitch({ 
   label, 
   value, 

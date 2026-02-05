@@ -2,23 +2,23 @@ import { usePathname, useRouter } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
 import { Alert, View, useWindowDimensions } from "react-native";
 import {
-  AddDiscountModal,
-  CashPaymentModal,
-  CustomerCard,
-  OrderSummary,
-  POSSidebar,
-  ProductSearch,
-  ProductTable,
-  SearchProductModal
+    AddDiscountModal,
+    CashPaymentModal,
+    CustomerCard,
+    OrderSummary,
+    POSSidebar,
+    ProductSearch,
+    ProductTable,
+    SearchProductModal
 } from "../components";
 import { ProductItem } from "../components/ProductTable";
 import { SearchProduct } from "../components/SearchProductModal";
 import { useClock } from "../contexts/ClockContext";
 import {
-  addPrinterListener,
-  getPoolStatus,
-  isAnyPrinterModuleAvailable,
-  print
+    addPrinterListener,
+    getPoolStatus,
+    isAnyPrinterModuleAvailable,
+    print
 } from "../utils/PrinterPoolManager";
 
 // Printer configuration
@@ -310,7 +310,7 @@ Subtotal:              $${subTotal.toFixed(2)}
           onPress: () => {
             try {
               const receipt = buildReceipt();
-              print(receipt);  // 池系统自动选择空闲打印机
+              print(receipt);  // Pool system automatically selects idle printer
             } catch (err) {
               const msg = err instanceof Error ? err.message : String(err);
               Alert.alert("Print Error", msg);
