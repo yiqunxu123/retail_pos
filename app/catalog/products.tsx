@@ -11,6 +11,7 @@ import { useMemo, useState } from "react";
 import {
     ActivityIndicator,
     FlatList,
+    Modal,
     Pressable,
     RefreshControl,
     ScrollView,
@@ -82,6 +83,26 @@ export default function ProductsScreen() {
   const [statusFilter, setStatusFilter] = useState<string | null>("active");
   const [sortBy, setSortBy] = useState<string | null>(null);
   const [productTypeFilter, setProductTypeFilter] = useState<string | null>(null);
+  
+  // Columns visibility state
+  const [showColumnsModal, setShowColumnsModal] = useState(false);
+  const [visibleColumns, setVisibleColumns] = useState({
+    image: true,
+    name: true,
+    sku: true,
+    upc: true,
+    category: false,
+    brand: false,
+    baseCost: true,
+    unitPrice: false,
+    salePrice: true,
+    online: true,
+    active: true,
+  });
+  
+  const toggleColumn = (column: keyof typeof visibleColumns) => {
+    setVisibleColumns(prev => ({ ...prev, [column]: !prev[column] }));
+  };
 
   // Pull to refresh
   const onRefresh = async () => {
@@ -150,33 +171,54 @@ export default function ProductsScreen() {
       <View className="w-8 mr-4">
         <TableCheckbox />
       </View>
-      <View className="w-12 h-12 bg-gray-100 rounded-lg items-center justify-center mr-3">
-        <Ionicons name="cube-outline" size={24} color="#9ca3af" />
-      </View>
-      <View className="flex-1">
-        <Text className="text-gray-800 font-medium" numberOfLines={1}>
-          {item.name || "-"}
-        </Text>
-        <Text className="text-gray-500 text-sm">SKU: {item.sku || "-"}</Text>
-      </View>
-      <View className="w-28">
-        <Text className="text-gray-600 text-sm">{item.upc || "-"}</Text>
-      </View>
-      <View className="w-16 items-center">
-        <BooleanIcon value={item.onlineSale} />
-      </View>
-      <View className="w-20 items-center">
-        <Text className="text-gray-700">{formatCurrency(item.costPrice)}</Text>
-      </View>
-      <View className="w-20 items-center">
-        <Text className="text-gray-700">{formatCurrency(item.unitPrice)}</Text>
-      </View>
-      <View className="w-20 items-center">
-        <Text className="text-green-600 font-medium">{formatCurrency(item.salePrice)}</Text>
-      </View>
-      <View className="w-14 items-center">
-        <BooleanIcon value={item.isActive} size={18} />
-      </View>
+      {visibleColumns.image && (
+        <View className="w-12 h-12 bg-gray-100 rounded-lg items-center justify-center mr-3">
+          <Ionicons name="cube-outline" size={24} color="#9ca3af" />
+        </View>
+      )}
+      {visibleColumns.name && (
+        <View className="flex-1">
+          <Text className="text-gray-800 font-medium" numberOfLines={1}>
+            {item.name || "-"}
+          </Text>
+          {visibleColumns.sku && <Text className="text-gray-500 text-sm">SKU: {item.sku || "-"}</Text>}
+        </View>
+      )}
+      {visibleColumns.sku && !visibleColumns.name && (
+        <View className="w-24">
+          <Text className="text-gray-600 text-sm">{item.sku || "-"}</Text>
+        </View>
+      )}
+      {visibleColumns.upc && (
+        <View className="w-28">
+          <Text className="text-gray-600 text-sm">{item.upc || "-"}</Text>
+        </View>
+      )}
+      {visibleColumns.category && (
+        <View className="w-28">
+          <Text className="text-gray-600 text-sm">-</Text>
+        </View>
+      )}
+      {visibleColumns.online && (
+        <View className="w-16 items-center">
+          <BooleanIcon value={item.onlineSale} />
+        </View>
+      )}
+      {visibleColumns.baseCost && (
+        <View className="w-20 items-center">
+          <Text className="text-gray-700">{formatCurrency(item.costPrice)}</Text>
+        </View>
+      )}
+      {visibleColumns.salePrice && (
+        <View className="w-20 items-center">
+          <Text className="text-green-600 font-medium">{formatCurrency(item.salePrice)}</Text>
+        </View>
+      )}
+      {visibleColumns.active && (
+        <View className="w-14 items-center">
+          <BooleanIcon value={item.isActive} size={18} />
+        </View>
+      )}
     </Pressable>
   );
 
@@ -205,7 +247,10 @@ export default function ProductsScreen() {
             <Text className="text-white font-medium">Bulk Actions</Text>
             <Ionicons name="chevron-down" size={16} color="white" />
           </Pressable>
-          <Pressable className="bg-gray-100 px-4 py-2 rounded-lg flex-row items-center gap-2">
+          <Pressable 
+            className="bg-gray-100 px-4 py-2 rounded-lg flex-row items-center gap-2"
+            onPress={() => setShowColumnsModal(true)}
+          >
             <Ionicons name="grid" size={16} color="#374151" />
             <Text className="text-gray-700">Columns</Text>
           </Pressable>
@@ -278,14 +323,15 @@ export default function ProductsScreen() {
             <View className="w-8 mr-4">
               <TableCheckbox />
             </View>
-            <View className="w-12 mr-3" />
-            <Text className="flex-1 text-gray-500 text-xs font-semibold uppercase">Product Name</Text>
-            <Text className="w-28 text-gray-500 text-xs font-semibold uppercase">UPC</Text>
-            <Text className="w-16 text-gray-500 text-xs font-semibold uppercase text-center">Online</Text>
-            <Text className="w-20 text-gray-500 text-xs font-semibold uppercase text-center">Cost</Text>
-            <Text className="w-20 text-gray-500 text-xs font-semibold uppercase text-center">Unit</Text>
-            <Text className="w-20 text-gray-500 text-xs font-semibold uppercase text-center">Sale</Text>
-            <Text className="w-14 text-gray-500 text-xs font-semibold uppercase text-center">Active</Text>
+            {visibleColumns.image && <View className="w-12 mr-3" />}
+            {visibleColumns.name && <Text className="flex-1 text-gray-500 text-xs font-semibold uppercase">Product Name</Text>}
+            {visibleColumns.sku && <Text className="w-24 text-gray-500 text-xs font-semibold uppercase">SKU</Text>}
+            {visibleColumns.upc && <Text className="w-28 text-gray-500 text-xs font-semibold uppercase">UPC</Text>}
+            {visibleColumns.category && <Text className="w-28 text-gray-500 text-xs font-semibold uppercase">Category</Text>}
+            {visibleColumns.online && <Text className="w-16 text-gray-500 text-xs font-semibold uppercase text-center">Online</Text>}
+            {visibleColumns.baseCost && <Text className="w-20 text-gray-500 text-xs font-semibold uppercase text-center">Cost</Text>}
+            {visibleColumns.salePrice && <Text className="w-20 text-gray-500 text-xs font-semibold uppercase text-center">Sale</Text>}
+            {visibleColumns.active && <Text className="w-14 text-gray-500 text-xs font-semibold uppercase text-center">Active</Text>}
           </View>
 
           {/* Table Body */}
@@ -306,6 +352,137 @@ export default function ProductsScreen() {
           />
         </View>
       </ScrollView>
+
+      {/* Columns Selection Modal */}
+      <Modal
+        visible={showColumnsModal}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowColumnsModal(false)}
+      >
+        <View className="flex-1 bg-black/50 justify-center items-center">
+          <View className="bg-white rounded-xl w-80 max-w-[90%] p-6">
+            {/* Header */}
+            <View className="flex-row items-center justify-between mb-6">
+              <Text className="text-xl font-semibold text-gray-800">Select Columns</Text>
+              <Pressable onPress={() => setShowColumnsModal(false)}>
+                <Ionicons name="close" size={24} color="#9CA3AF" />
+              </Pressable>
+            </View>
+
+            {/* Column Options */}
+            <ScrollView className="max-h-96" showsVerticalScrollIndicator={false}>
+              {/* Image */}
+              <Pressable 
+                className="flex-row items-center py-3"
+                onPress={() => toggleColumn('image')}
+              >
+                <View className={`w-5 h-5 rounded border mr-3 items-center justify-center ${visibleColumns.image ? 'bg-red-500 border-red-500' : 'border-gray-300'}`}>
+                  {visibleColumns.image && <Ionicons name="checkmark" size={14} color="white" />}
+                </View>
+                <Text className="text-gray-700 text-base">Image</Text>
+              </Pressable>
+
+              {/* Name */}
+              <Pressable 
+                className="flex-row items-center py-3"
+                onPress={() => toggleColumn('name')}
+              >
+                <View className={`w-5 h-5 rounded border mr-3 items-center justify-center ${visibleColumns.name ? 'bg-red-500 border-red-500' : 'border-gray-300'}`}>
+                  {visibleColumns.name && <Ionicons name="checkmark" size={14} color="white" />}
+                </View>
+                <Text className="text-gray-700 text-base">Name</Text>
+              </Pressable>
+
+              {/* Base Cost Price */}
+              <Pressable 
+                className="flex-row items-center py-3"
+                onPress={() => toggleColumn('baseCost')}
+              >
+                <View className={`w-5 h-5 rounded border mr-3 items-center justify-center ${visibleColumns.baseCost ? 'bg-red-500 border-red-500' : 'border-gray-300'}`}>
+                  {visibleColumns.baseCost && <Ionicons name="checkmark" size={14} color="white" />}
+                </View>
+                <Text className="text-gray-700 text-base">Base Cost Price</Text>
+              </Pressable>
+
+              {/* SKU */}
+              <Pressable 
+                className="flex-row items-center py-3"
+                onPress={() => toggleColumn('sku')}
+              >
+                <View className={`w-5 h-5 rounded border mr-3 items-center justify-center ${visibleColumns.sku ? 'bg-red-500 border-red-500' : 'border-gray-300'}`}>
+                  {visibleColumns.sku && <Ionicons name="checkmark" size={14} color="white" />}
+                </View>
+                <Text className="text-gray-700 text-base">SKU</Text>
+              </Pressable>
+
+              {/* UPC */}
+              <Pressable 
+                className="flex-row items-center py-3"
+                onPress={() => toggleColumn('upc')}
+              >
+                <View className={`w-5 h-5 rounded border mr-3 items-center justify-center ${visibleColumns.upc ? 'bg-red-500 border-red-500' : 'border-gray-300'}`}>
+                  {visibleColumns.upc && <Ionicons name="checkmark" size={14} color="white" />}
+                </View>
+                <Text className="text-gray-700 text-base">UPC</Text>
+              </Pressable>
+
+              {/* Category */}
+              <Pressable 
+                className="flex-row items-center py-3"
+                onPress={() => toggleColumn('category')}
+              >
+                <View className={`w-5 h-5 rounded border mr-3 items-center justify-center ${visibleColumns.category ? 'bg-red-500 border-red-500' : 'border-gray-300'}`}>
+                  {visibleColumns.category && <Ionicons name="checkmark" size={14} color="white" />}
+                </View>
+                <Text className="text-gray-700 text-base">Category</Text>
+              </Pressable>
+
+              {/* Sale Price */}
+              <Pressable 
+                className="flex-row items-center py-3"
+                onPress={() => toggleColumn('salePrice')}
+              >
+                <View className={`w-5 h-5 rounded border mr-3 items-center justify-center ${visibleColumns.salePrice ? 'bg-red-500 border-red-500' : 'border-gray-300'}`}>
+                  {visibleColumns.salePrice && <Ionicons name="checkmark" size={14} color="white" />}
+                </View>
+                <Text className="text-gray-700 text-base">Sale Price</Text>
+              </Pressable>
+
+              {/* Online */}
+              <Pressable 
+                className="flex-row items-center py-3"
+                onPress={() => toggleColumn('online')}
+              >
+                <View className={`w-5 h-5 rounded border mr-3 items-center justify-center ${visibleColumns.online ? 'bg-red-500 border-red-500' : 'border-gray-300'}`}>
+                  {visibleColumns.online && <Ionicons name="checkmark" size={14} color="white" />}
+                </View>
+                <Text className="text-gray-700 text-base">Online</Text>
+              </Pressable>
+
+              {/* Active */}
+              <Pressable 
+                className="flex-row items-center py-3"
+                onPress={() => toggleColumn('active')}
+              >
+                <View className={`w-5 h-5 rounded border mr-3 items-center justify-center ${visibleColumns.active ? 'bg-red-500 border-red-500' : 'border-gray-300'}`}>
+                  {visibleColumns.active && <Ionicons name="checkmark" size={14} color="white" />}
+                </View>
+                <Text className="text-gray-700 text-base">Active</Text>
+              </Pressable>
+            </ScrollView>
+
+            {/* Footer Button */}
+            <Pressable
+              className="mt-6 py-3 rounded-lg items-center"
+              style={{ backgroundColor: "#3B82F6" }}
+              onPress={() => setShowColumnsModal(false)}
+            >
+              <Text className="text-white font-medium">Done</Text>
+            </Pressable>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
