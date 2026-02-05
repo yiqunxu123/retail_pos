@@ -3,13 +3,13 @@ import { useState } from "react";
 import { ActivityIndicator, Text, View, useWindowDimensions } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Sidebar } from "../components";
-import { StaffSidebar } from "../components/StaffSidebar";
 import { ClockInModal } from "../components/ClockInModal";
 import { ClockOutModal } from "../components/ClockOutModal";
+import { StaffSidebar } from "../components/StaffSidebar";
 import { AuthProvider, useAuth } from "../contexts/AuthContext";
 import { ClockProvider, useClock } from "../contexts/ClockContext";
-import { ViewModeProvider, useViewMode } from "../contexts/ViewModeContext";
 import { ParkedOrderProvider } from "../contexts/ParkedOrderContext";
+import { ViewModeProvider, useViewMode } from "../contexts/ViewModeContext";
 import "../global.css";
 import { PowerSyncProvider } from "../utils/powersync/PowerSyncProvider";
 import LoginScreen from "./login";
@@ -37,9 +37,8 @@ function LayoutContent() {
   const isOrderScreen = pathname.startsWith("/order");
   
   // Pages using StaffPageLayout have their own sidebar (hide default sidebar in both staff and admin modes)
+  // Note: sales-history and customers now use DataTable with PageHeader (no longer use StaffPageLayout)
   const isStaffPageLayoutScreen = 
-    pathname === "/sale/sales-history" ||
-    pathname === "/sale/customers" ||
     pathname === "/sale/sales-return" ||
     pathname === "/sale/parked-orders" ||
     pathname === "/sale/reports" ||

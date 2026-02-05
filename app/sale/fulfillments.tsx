@@ -1,13 +1,11 @@
-import { Ionicons } from "@expo/vector-icons";
-import { useMemo, useState } from "react";
-import {
-  FlatList,
-  Pressable,
-  Text,
-  TextInput,
-  View,
-} from "react-native";
-import { FilterDropdown, PageHeader } from "../../components";
+/**
+ * Fulfillments Screen
+ * Uses the unified DataTable component
+ */
+
+import { useState } from "react";
+import { Pressable, Text, View } from "react-native";
+import { ColumnDefinition, DataTable, FilterDefinition, PageHeader } from "../../components";
 import { Fulfillment } from "../../types";
 
 // ============================================================================
@@ -15,19 +13,6 @@ import { Fulfillment } from "../../types";
 // ============================================================================
 
 const TABS = ["All", "Pending", "Picking", "Packing"] as const;
-
-const SHIPPING_OPTIONS = [
-  { label: "All", value: "all" },
-  { label: "Pickup", value: "Pickup" },
-  { label: "Dropoff", value: "Dropoff" },
-  { label: "Delivery", value: "Delivery" },
-];
-
-const PICKER_OPTIONS = [
-  { label: "All", value: "all" },
-  { label: "Assigned", value: "assigned" },
-  { label: "Not Assigned", value: "not_assigned" },
-];
 
 // ============================================================================
 // Sample Data
@@ -45,10 +30,6 @@ const SAMPLE_FULFILLMENTS: Fulfillment[] = [
 // ============================================================================
 // Reusable Components
 // ============================================================================
-
-function TableCheckbox() {
-  return <View className="w-5 h-5 border border-gray-300 rounded" />;
-}
 
 function PickerBadge({ isAssigned, details }: { isAssigned: boolean; details: string }) {
   return (
@@ -74,62 +55,98 @@ function PickerBadge({ isAssigned, details }: { isAssigned: boolean; details: st
 // ============================================================================
 
 export default function FulfillmentsScreen() {
-  // Search & Filter State
-  const [searchQuery, setSearchQuery] = useState("");
   const [activeTab, setActiveTab] = useState<typeof TABS[number]>("All");
-  const [shippingFilter, setShippingFilter] = useState<string | null>(null);
-  const [pickerFilter, setPickerFilter] = useState<string | null>(null);
-
   const [fulfillments] = useState<Fulfillment[]>(SAMPLE_FULFILLMENTS);
 
-  // Apply filters
-  const filteredFulfillments = useMemo(() => {
-    let result = [...fulfillments];
-
-    // Search filter
-    if (searchQuery) {
-      const query = searchQuery.toLowerCase();
-      result = result.filter(
-        (f) =>
-          f.businessName.toLowerCase().includes(query) ||
-          f.customerName.toLowerCase().includes(query) ||
-          f.orderNo.toLowerCase().includes(query)
-      );
-    }
-
-    // Shipping type filter
-    if (shippingFilter && shippingFilter !== "all") {
-      result = result.filter((f) => f.shippingType === shippingFilter);
-    }
-
-    // Picker filter
-    if (pickerFilter && pickerFilter !== "all") {
-      result = result.filter((f) =>
-        pickerFilter === "assigned" ? f.pickerAssigned : !f.pickerAssigned
-      );
-    }
-
-    return result;
-  }, [fulfillments, searchQuery, activeTab, shippingFilter, pickerFilter]);
-
-  const renderFulfillmentRow = ({ item }: { item: Fulfillment }) => (
-    <Pressable className="flex-row items-center py-3 px-5 border-b border-gray-100 bg-white">
-      <View className="w-8 mr-4">
-        <TableCheckbox />
-      </View>
-      <View className="flex-1">
-        <Text className="text-blue-600 font-medium">{item.businessName}</Text>
-        {item.customerName && (
-          <Text className="text-blue-500 text-sm">{item.customerName}</Text>
-        )}
-      </View>
-      <Text className="w-36 text-blue-600 text-center">{item.orderNo}</Text>
-      <Text className="w-24 text-gray-600 text-center">{item.shippingType}</Text>
-      <View className="w-32">
+  // 列配置
+  const columns: ColumnDefinition<Fulfillment>[] = [
+    {
+      key: "businessName",
+      title: "Business Name / Customer Name",
+      width: "flex",
+      visible: true,
+      hideable: false,
+      render: (item) => (
+        <View>
+          <Text className="text-blue-600 font-medium">{item.businessName}</Text>
+          {item.customerName && (
+            <Text className="text-blue-500 text-sm">{item.customerName}</Text>
+          )}
+        </View>
+      ),
+    },
+    {
+      key: "orderNo",
+      title: "Order No",
+      width: 140,
+      align: "center",
+      visible: true,
+      render: (item) => <Text className="text-blue-600">{item.orderNo}</Text>,
+    },
+    {
+      key: "shippingType",
+      title: "Shipping",
+      width: 100,
+      align: "center",
+      visible: true,
+      render: (item) => <Text className="text-gray-600">{item.shippingType}</Text>,
+    },
+    {
+      key: "pickerDetails",
+      title: "Picker",
+      width: 140,
+      align: "center",
+      visible: true,
+      render: (item) => (
         <PickerBadge isAssigned={item.pickerAssigned} details={item.pickerDetails} />
-      </View>
-    </Pressable>
-  );
+      ),
+    },
+  ];
+
+  // 过滤器
+  const filters: FilterDefinition[] = [
+    {
+      key: "shippingType",
+      placeholder: "Shipping Type",
+      width: 140,
+      options: [
+        { label: "All", value: "all" },
+        { label: "Pickup", value: "Pickup" },
+        { label: "Dropoff", value: "Dropoff" },
+        { label: "Delivery", value: "Delivery" },
+      ],
+    },
+    {
+      key: "picker",
+      placeholder: "Picker Status",
+      width: 140,
+      options: [
+        { label: "All", value: "all" },
+        { label: "Assigned", value: "assigned" },
+        { label: "Not Assigned", value: "not_assigned" },
+      ],
+    },
+  ];
+
+  const handleSearch = (item: Fulfillment, query: string) => {
+    const q = query.toLowerCase();
+    return (
+      item.businessName.toLowerCase().includes(q) ||
+      item.customerName.toLowerCase().includes(q) ||
+      item.orderNo.toLowerCase().includes(q)
+    );
+  };
+
+  const handleFilter = (item: Fulfillment, filters: Record<string, string | null>) => {
+    if (filters.shippingType && filters.shippingType !== "all") {
+      if (item.shippingType !== filters.shippingType) return false;
+    }
+    if (filters.picker && filters.picker !== "all") {
+      if (filters.picker === "assigned" && !item.pickerAssigned) return false;
+      if (filters.picker === "not_assigned" && item.pickerAssigned) return false;
+    }
+    return true;
+  };
 
   return (
     <View className="flex-1 bg-gray-50">
@@ -153,97 +170,22 @@ export default function FulfillmentsScreen() {
         })}
       </View>
 
-      {/* Toolbar */}
-      <View className="bg-white px-5 py-4 border-b border-gray-200">
-        {/* Search Section */}
-        <Text className="text-gray-500 text-sm mb-2">
-          Search by Customer (Name, Phone, Address), Business Name, Order no
-        </Text>
-        <View className="flex-row gap-4 mb-4">
-          <View className="flex-1">
-            <TextInput
-              className="bg-gray-50 border border-gray-200 rounded-lg px-4 py-2.5"
-              placeholder="Search fulfillments..."
-              placeholderTextColor="#9ca3af"
-              value={searchQuery}
-              onChangeText={setSearchQuery}
-            />
-          </View>
-          <FilterDropdown
-            label=""
-            value={shippingFilter}
-            options={SHIPPING_OPTIONS}
-            onChange={setShippingFilter}
-            placeholder="Shipping Type"
-            width={140}
-          />
-          <FilterDropdown
-            label=""
-            value={pickerFilter}
-            options={PICKER_OPTIONS}
-            onChange={setPickerFilter}
-            placeholder="Picker Status"
-            width={140}
-          />
-        </View>
-
-        {/* Action Buttons */}
-        <View className="flex-row gap-3 items-center justify-between">
-          <View className="flex-row gap-3">
-            <Pressable className="bg-red-500 px-4 py-2 rounded-lg flex-row items-center gap-2">
-              <Text className="text-white font-medium">Bulk Actions</Text>
-              <Ionicons name="chevron-down" size={16} color="white" />
-            </Pressable>
-            <Pressable className="bg-gray-100 px-4 py-2 rounded-lg flex-row items-center gap-2">
-              <Ionicons name="grid" size={16} color="#374151" />
-              <Text className="text-gray-700">Freeze Columns</Text>
-            </Pressable>
-            <Pressable className="bg-gray-100 px-4 py-2 rounded-lg flex-row items-center gap-2">
-              <Ionicons name="grid" size={16} color="#374151" />
-              <Text className="text-gray-700">Columns</Text>
-            </Pressable>
-          </View>
-          <Text className="text-gray-400 text-sm">
-            {filteredFulfillments.length} fulfillments
-          </Text>
-        </View>
-      </View>
-
-      {/* Data Table */}
-      <View className="flex-1">
-        {/* Table Header */}
-        <View className="flex-row bg-gray-50 py-3 px-5 border-b border-gray-200">
-          <View className="w-8 mr-4">
-            <TableCheckbox />
-          </View>
-          <Text className="flex-1 text-gray-500 text-xs font-semibold uppercase">
-            Business Name / Customer Name
-          </Text>
-          <Text className="w-36 text-gray-500 text-xs font-semibold uppercase text-center">
-            Order No
-          </Text>
-          <Text className="w-24 text-gray-500 text-xs font-semibold uppercase text-center">
-            Shipping
-          </Text>
-          <Text className="w-32 text-gray-500 text-xs font-semibold uppercase text-center">
-            Picker
-          </Text>
-        </View>
-
-        {/* Table Body */}
-        <FlatList
-          data={filteredFulfillments}
-          keyExtractor={(item) => item.id}
-          renderItem={renderFulfillmentRow}
-          showsVerticalScrollIndicator={false}
-          ListEmptyComponent={
-            <View className="py-16 items-center">
-              <Ionicons name="cube-outline" size={48} color="#d1d5db" />
-              <Text className="text-gray-400 mt-2">No fulfillments found</Text>
-            </View>
-          }
-        />
-      </View>
+      <DataTable<Fulfillment>
+        data={fulfillments}
+        columns={columns}
+        keyExtractor={(item) => item.id}
+        searchable
+        searchPlaceholder="Search fulfillments..."
+        searchHint="Search by Customer (Name, Phone, Address), Business Name, Order no"
+        onSearch={handleSearch}
+        filters={filters}
+        onFilter={handleFilter}
+        columnSelector
+        bulkActions
+        emptyIcon="cube-outline"
+        emptyText="No fulfillments found"
+        totalCount={fulfillments.length}
+      />
     </View>
   );
 }
