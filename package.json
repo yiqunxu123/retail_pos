@@ -11,7 +11,9 @@
     "lint": "expo lint",
     "test": "jest",
     "test:watch": "jest --watch",
-    "test:coverage": "jest --coverage"
+    "test:coverage": "jest --coverage",
+    "mock:generate": "npx tsx scripts/generate-mock-data.ts",
+    "mock:analyze": "npx tsx scripts/analyze-mock-data.ts"
   },
   "dependencies": {
     "@expo/vector-icons": "^15.0.3",
