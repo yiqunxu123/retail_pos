@@ -69,16 +69,9 @@ export default function Dashboard() {
   const { viewMode, setViewMode, isStaffMode } = useViewMode();
   const { clearAndResync, isConnected, isSyncing } = usePowerSync();
 
-  // Dashboard filters - default to "Last 1 Year" (past year to today)
-  const [datePresetIndex, setDatePresetIndex] = useState<number | null>(7);
-  const [startDate, setStartDate] = useState(() => {
-    const d = new Date();
-    d.setFullYear(d.getFullYear() - 1);
-    const y = d.getFullYear();
-    const m = String(d.getMonth() + 1).padStart(2, '0');
-    const day = String(d.getDate()).padStart(2, '0');
-    return `${y}-${m}-${day}`;
-  });
+  // Dashboard filters - default to "Today"
+  const [datePresetIndex, setDatePresetIndex] = useState<number | null>(0);
+  const [startDate, setStartDate] = useState(getToday());
   const [endDate, setEndDate] = useState(getToday());
   const [selectedChannelIds, setSelectedChannelIds] = useState<number[]>([]);
   const [showDatePicker, setShowDatePicker] = useState(false);
