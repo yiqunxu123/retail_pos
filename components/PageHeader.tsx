@@ -1,6 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
-import { useRouter } from "expo-router";
 import { Text, TouchableOpacity, View } from "react-native";
+import { useAppNavigation } from "../hooks/useAppNavigation";
 
 interface PageHeaderProps {
   title: string;
@@ -12,10 +12,10 @@ interface PageHeaderProps {
  * Used for subsection screens to navigate back to dashboard
  */
 export function PageHeader({ title, showBack = true }: PageHeaderProps) {
-  const router = useRouter();
+  const { safeGoBack } = useAppNavigation();
 
   const handleBack = () => {
-    router.back();
+    safeGoBack();
   };
 
   return (

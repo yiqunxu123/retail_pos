@@ -1,6 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
-import { useRouter } from "expo-router";
 import { Text, TouchableOpacity, View } from "react-native";
+import { useAppNavigation } from "../hooks/useAppNavigation";
 
 interface HeaderProps {
   title: string;
@@ -14,10 +14,10 @@ interface HeaderProps {
  * Back button navigates to dashboard
  */
 export function Header({ title, subtitle, badge, showBack = false }: HeaderProps) {
-  const router = useRouter();
+  const { navigateTo } = useAppNavigation();
 
   const handleBack = () => {
-    router.push("/");
+    navigateTo("/");
   };
 
   return (

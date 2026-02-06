@@ -1,11 +1,11 @@
 import { Feather, Ionicons, MaterialCommunityIcons, MaterialIcons } from "@expo/vector-icons";
-import { usePathname, useRouter } from "expo-router";
 import { useEffect, useState } from "react";
 import { Alert, ScrollView, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAuth } from "../contexts/AuthContext";
 import { useClock } from "../contexts/ClockContext";
 import { useViewMode } from "../contexts/ViewModeContext";
+import { useAppNavigation } from "../hooks/useAppNavigation";
 import { BrandingSection } from "./BrandingSection";
 import { SidebarButton } from "./SidebarButton";
 
@@ -39,8 +39,7 @@ export function Sidebar({
   onClockInPress,
   onClockOutPress,
 }: SidebarProps) {
-  const router = useRouter();
-  const pathname = usePathname();
+  const { navigateTo, pathname } = useAppNavigation();
   const insets = useSafeAreaInsets();
   const { logout } = useAuth();
   const { isClockedIn, getClockInTimeString, getElapsedTime } = useClock();
@@ -49,8 +48,6 @@ export function Sidebar({
   // Check if we're on the dashboard/home page
   const isDashboard = pathname === "/" || pathname === "/index";
   const [elapsedTime, setElapsedTime] = useState("00:00:00");
-
-  const navigateTo = (path: string) => router.push(path as any);
 
   const handleLogout = () => {
     Alert.alert("Logout", "Are you sure you want to logout?", [
@@ -93,7 +90,7 @@ export function Sidebar({
             <SidebarButton
               title="Go to Menu"
               icon={<Ionicons name="menu-outline" size={20} color="#EC1A52" />}
-              onPress={() => router.push("/")}
+              onPress={() => navigateTo("/")}
             />
           )}
         </View>
