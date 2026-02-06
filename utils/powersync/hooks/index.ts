@@ -49,10 +49,6 @@ export type { Channel } from './useChannels';
 export { useCashManagement } from './useCashManagement';
 export type { CashSummary } from './useCashManagement';
 
-// Enhanced dashboard (combines local + server stats)
-export { useEnhancedDashboard } from './useEnhancedDashboard';
-export type { EnhancedDashboardData } from './useEnhancedDashboard';
-
 // Report hooks
 export {
     useBrandVelocityReport,
