@@ -97,7 +97,7 @@ export default function CustomersScreen() {
       title: "Ecom Status",
       width: 120,
       visible: true,
-      render: () => <EcomStatusBadge allowed={false} />,
+      render: (item) => <EcomStatusBadge allowed={item.allowEcom} />,
     },
     {
       key: "customerName",
@@ -124,9 +124,9 @@ export default function CustomersScreen() {
       title: "Balance",
       width: 100,
       visible: true,
-      render: () => (
+      render: (item) => (
         <Text className="text-red-600 text-sm font-bold">
-          {formatCurrency(88888.00)}
+          {formatCurrency(item.balance)}
         </Text>
       ),
     },
@@ -136,7 +136,7 @@ export default function CustomersScreen() {
       width: 100,
       align: "center",
       visible: true,
-      render: () => <StatusBadge isActive={true} />,
+      render: (item) => <StatusBadge isActive={item.isActive} />,
     },
     {
       key: "actions",
