@@ -5,25 +5,25 @@ import { PageHeader } from "../../components";
 
 // Sales report items
 const SALES_REPORTS = [
-  { id: "brand-velocity", title: "Brand Velocity Report", route: "/sale/reports/brand-velocity" },
-  { id: "customer-velocity-yoy", title: "Customer Velocity Report (Year on Year)", route: "/sale/reports/customer-velocity-yoy" },
-  { id: "category-velocity", title: "Category Velocity Report", route: "/sale/reports/category-velocity" },
-  { id: "customer-category-velocity", title: "Customer Category Velocity Report", route: "/sale/reports/customer-category-velocity" },
-  { id: "customer-category-sales", title: "Customer Category Sales Report", route: "/sale/reports/customer-category-sales" },
-  { id: "customer-brand-velocity", title: "Customer Brand Velocity Report", route: "/sale/reports/customer-brand-velocity" },
-  { id: "customer-product-velocity", title: "Customer Product Velocity Report", route: "/sale/reports/customer-product-velocity" },
-  { id: "county-velocity", title: "County Velocity Report", route: "/sale/reports/county-velocity" },
-  { id: "customer-velocity", title: "Customer Velocity Report", route: "/sale/reports/customer-velocity" },
-  { id: "customer-performance", title: "Customer Performance Report", route: "/sale/reports/customer-performance" },
-  { id: "detail-sale", title: "Detail Sale Report", route: "/sale/reports/detail-sale" },
-  { id: "item-velocity", title: "Item Velocity Report", route: "/sale/reports/item-velocity" },
-  { id: "item-velocity-wow", title: "Item Velocity Report (Week on Week)", route: "/sale/reports/item-velocity-wow" },
-  { id: "item-velocity-mom", title: "Item Velocity Report (Month on Month)", route: "/sale/reports/item-velocity-mom" },
-  { id: "lost-sale", title: "Lost Sale Report", route: "/sale/reports/lost-sale" },
-  { id: "sales-summary", title: "Sales Summary Report", route: "/sale/reports/sales-summary" },
-  { id: "sales-rep-category", title: "Sales Rep Category Report", route: "/sale/reports/sales-rep-category" },
-  { id: "sales-rep-product", title: "Sales Rep Product Report", route: "/sale/reports/sales-rep-product" },
-  { id: "sales-rep-brand", title: "Sales Rep Brand Report", route: "/sale/reports/sales-rep-brand" },
+  { id: "brand-velocity", title: "Brand Velocity Report" },
+  { id: "customer-velocity-yoy", title: "Customer Velocity Report (Year on Year)" },
+  { id: "category-velocity", title: "Category Velocity Report" },
+  { id: "customer-category-velocity", title: "Customer Category Velocity Report" },
+  { id: "customer-category-sales", title: "Customer Category Sales Report" },
+  { id: "customer-brand-velocity", title: "Customer Brand Velocity Report" },
+  { id: "customer-product-velocity", title: "Customer Product Velocity Report" },
+  { id: "county-velocity", title: "County Velocity Report" },
+  { id: "customer-velocity", title: "Customer Velocity Report" },
+  { id: "customer-performance", title: "Customer Performance Report" },
+  { id: "detail-sale", title: "Detail Sale Report" },
+  { id: "item-velocity", title: "Item Velocity Report" },
+  { id: "item-velocity-wow", title: "Item Velocity Report (Week on Week)" },
+  { id: "item-velocity-mom", title: "Item Velocity Report (Month on Month)" },
+  { id: "lost-sale", title: "Lost Sale Report" },
+  { id: "sales-summary", title: "Sales Summary Report" },
+  { id: "sales-rep-category", title: "Sales Rep Category Report" },
+  { id: "sales-rep-product", title: "Sales Rep Product Report" },
+  { id: "sales-rep-brand", title: "Sales Rep Brand Report" },
 ];
 
 interface ReportItemProps {
@@ -34,7 +34,6 @@ interface ReportItemProps {
 interface ReportConfig {
   id: string;
   title: string;
-  route: string;
 }
 
 function ReportItem({ title, onPress }: ReportItemProps) {
@@ -51,8 +50,8 @@ function ReportItem({ title, onPress }: ReportItemProps) {
 }
 
 export default function SalesReportsScreen() {
-  const handleReportPress = (route: string) => {
-    router.push(route as any);
+  const handleReportPress = (title: string) => {
+    router.push({ pathname: "/sale/report-page", params: { title } } as any);
   };
 
   // Split reports into two columns
@@ -72,7 +71,7 @@ export default function SalesReportsScreen() {
               <ReportItem
                 key={report.id}
                 title={report.title}
-                onPress={() => handleReportPress(report.route)}
+                onPress={() => handleReportPress(report.title)}
               />
             ))}
           </View>
@@ -83,7 +82,7 @@ export default function SalesReportsScreen() {
               <ReportItem
                 key={report.id}
                 title={report.title}
-                onPress={() => handleReportPress(report.route)}
+                onPress={() => handleReportPress(report.title)}
               />
             ))}
           </View>

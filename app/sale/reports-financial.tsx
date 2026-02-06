@@ -4,17 +4,17 @@ import { Pressable, ScrollView, Text, View } from "react-native";
 import { PageHeader } from "../../components";
 
 const FINANCIAL_REPORTS = [
-  { id: "customer-account-receivable", title: "Customer Account Receivable Report", route: "/sale/reports/customer-account-receivable" },
-  { id: "customer-payment-logs", title: "Customer Payment Logs Report", route: "/sale/reports/customer-payment-logs" },
-  { id: "customer-invoice-aging", title: "Customer Invoice Aging Report", route: "/sale/reports/customer-invoice-aging" },
-  { id: "daily-summary", title: "Daily Summary Report", route: "/sale/reports/daily-summary" },
-  { id: "invoice-history-by-customer", title: "Invoice History By Customer", route: "/sale/reports/invoice-history-by-customer" },
-  { id: "payment-received", title: "Payment Received Report", route: "/sale/reports/payment-received" },
-  { id: "profit-margin-accrual", title: "Profit Margin Report (Accrual Basis)", route: "/sale/reports/profit-margin-accrual" },
-  { id: "profit-margin-cash", title: "Profit Margin Report (Cash Basis)", route: "/sale/reports/profit-margin-cash" },
-  { id: "supplier-account-payable", title: "Supplier Account Payable Report", route: "/sale/reports/supplier-account-payable" },
-  { id: "sale-agent-commission", title: "Sale Agent Commission Report", route: "/sale/reports/sale-agent-commission" },
-  { id: "supplier-payment-logs", title: "Supplier Payment Logs Report", route: "/sale/reports/supplier-payment-logs" },
+  { id: "customer-account-receivable", title: "Customer Account Receivable Report" },
+  { id: "customer-payment-logs", title: "Customer Payment Logs Report" },
+  { id: "customer-invoice-aging", title: "Customer Invoice Aging Report" },
+  { id: "daily-summary", title: "Daily Summary Report" },
+  { id: "invoice-history-by-customer", title: "Invoice History By Customer" },
+  { id: "payment-received", title: "Payment Received Report" },
+  { id: "profit-margin-accrual", title: "Profit Margin Report (Accrual Basis)" },
+  { id: "profit-margin-cash", title: "Profit Margin Report (Cash Basis)" },
+  { id: "supplier-account-payable", title: "Supplier Account Payable Report" },
+  { id: "sale-agent-commission", title: "Sale Agent Commission Report" },
+  { id: "supplier-payment-logs", title: "Supplier Payment Logs Report" },
 ];
 
 interface ReportItemProps {
@@ -25,7 +25,6 @@ interface ReportItemProps {
 interface ReportConfig {
   id: string;
   title: string;
-  route: string;
 }
 
 function ReportItem({ title, onPress }: ReportItemProps) {
@@ -42,8 +41,8 @@ function ReportItem({ title, onPress }: ReportItemProps) {
 }
 
 export default function FinancialReportsScreen() {
-  const handleReportPress = (route: string) => {
-    router.push(route as any);
+  const handleReportPress = (title: string) => {
+    router.push({ pathname: "/sale/report-page", params: { title } } as any);
   };
 
   const leftColumn = FINANCIAL_REPORTS.filter((_, i) => i % 2 === 0);
@@ -60,7 +59,7 @@ export default function FinancialReportsScreen() {
               <ReportItem
                 key={report.id}
                 title={report.title}
-                onPress={() => handleReportPress(report.route)}
+                onPress={() => handleReportPress(report.title)}
               />
             ))}
           </View>
@@ -69,7 +68,7 @@ export default function FinancialReportsScreen() {
               <ReportItem
                 key={report.id}
                 title={report.title}
-                onPress={() => handleReportPress(report.route)}
+                onPress={() => handleReportPress(report.title)}
               />
             ))}
           </View>

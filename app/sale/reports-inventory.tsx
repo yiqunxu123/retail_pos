@@ -4,12 +4,12 @@ import { Pressable, ScrollView, Text, View } from "react-native";
 import { PageHeader } from "../../components";
 
 const INVENTORY_REPORTS = [
-  { id: "back-order", title: "Back Order Report", route: "/sale/reports/back-order" },
-  { id: "inventory-valuation", title: "Inventory Valuation Report", route: "/sale/reports/inventory-valuation" },
-  { id: "inventory-spot-check", title: "Inventory Spot Check Report", route: "/sale/reports/inventory-spot-check" },
-  { id: "inventory-adjustment", title: "Inventory Adjustment Report", route: "/sale/reports/inventory-adjustment" },
-  { id: "on-hold", title: "On Hold Report", route: "/sale/reports/on-hold" },
-  { id: "partially-fulfilled", title: "Partially Fulfilled Report", route: "/sale/reports/partially-fulfilled" },
+  { id: "back-order", title: "Back Order Report" },
+  { id: "inventory-valuation", title: "Inventory Valuation Report" },
+  { id: "inventory-spot-check", title: "Inventory Spot Check Report" },
+  { id: "inventory-adjustment", title: "Inventory Adjustment Report" },
+  { id: "on-hold", title: "On Hold Report" },
+  { id: "partially-fulfilled", title: "Partially Fulfilled Report" },
 ];
 
 interface ReportItemProps {
@@ -20,7 +20,6 @@ interface ReportItemProps {
 interface ReportConfig {
   id: string;
   title: string;
-  route: string;
 }
 
 function ReportItem({ title, onPress }: ReportItemProps) {
@@ -37,8 +36,8 @@ function ReportItem({ title, onPress }: ReportItemProps) {
 }
 
 export default function InventoryReportsScreen() {
-  const handleReportPress = (route: string) => {
-    router.push(route as any);
+  const handleReportPress = (title: string) => {
+    router.push({ pathname: "/sale/report-page", params: { title } } as any);
   };
 
   const leftColumn = INVENTORY_REPORTS.filter((_, i) => i % 2 === 0);
@@ -55,7 +54,7 @@ export default function InventoryReportsScreen() {
               <ReportItem
                 key={report.id}
                 title={report.title}
-                onPress={() => handleReportPress(report.route)}
+                onPress={() => handleReportPress(report.title)}
               />
             ))}
           </View>
@@ -64,7 +63,7 @@ export default function InventoryReportsScreen() {
               <ReportItem
                 key={report.id}
                 title={report.title}
-                onPress={() => handleReportPress(report.route)}
+                onPress={() => handleReportPress(report.title)}
               />
             ))}
           </View>

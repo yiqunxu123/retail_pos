@@ -4,9 +4,9 @@ import { Pressable, ScrollView, Text, View } from "react-native";
 import { PageHeader } from "../../components";
 
 const PURCHASE_REPORTS = [
-  { id: "purchase-received-history", title: "Purchase Received History Report", route: "/sale/reports/purchase-received-history" },
-  { id: "purchase-order-received-detailed", title: "Purchase Order Received Detailed Report", route: "/sale/reports/purchase-order-received-detailed" },
-  { id: "purchase-order-tax", title: "Purchase Order Tax Report", route: "/sale/reports/purchase-order-tax" },
+  { id: "purchase-received-history", title: "Purchase Received History Report" },
+  { id: "purchase-order-received-detailed", title: "Purchase Order Received Detailed Report" },
+  { id: "purchase-order-tax", title: "Purchase Order Tax Report" },
 ];
 
 interface ReportItemProps {
@@ -17,7 +17,6 @@ interface ReportItemProps {
 interface ReportConfig {
   id: string;
   title: string;
-  route: string;
 }
 
 function ReportItem({ title, onPress }: ReportItemProps) {
@@ -34,8 +33,8 @@ function ReportItem({ title, onPress }: ReportItemProps) {
 }
 
 export default function PurchaseReportsScreen() {
-  const handleReportPress = (route: string) => {
-    router.push(route as any);
+  const handleReportPress = (title: string) => {
+    router.push({ pathname: "/sale/report-page", params: { title } } as any);
   };
 
   const leftColumn = PURCHASE_REPORTS.filter((_, i) => i % 2 === 0);
@@ -52,7 +51,7 @@ export default function PurchaseReportsScreen() {
               <ReportItem
                 key={report.id}
                 title={report.title}
-                onPress={() => handleReportPress(report.route)}
+                onPress={() => handleReportPress(report.title)}
               />
             ))}
           </View>
@@ -61,7 +60,7 @@ export default function PurchaseReportsScreen() {
               <ReportItem
                 key={report.id}
                 title={report.title}
-                onPress={() => handleReportPress(report.route)}
+                onPress={() => handleReportPress(report.title)}
               />
             ))}
           </View>

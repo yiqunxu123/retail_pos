@@ -4,12 +4,12 @@ import { Pressable, ScrollView, Text, View } from "react-native";
 import { PageHeader } from "../../components";
 
 const MAS_REPORTS = [
-  { id: "mas-sales", title: "MAS Sales Report", route: "/sale/reports/mas-sales" },
-  { id: "mas-inventory", title: "MAS Inventory Report", route: "/sale/reports/mas-inventory" },
-  { id: "mas-compliance", title: "MAS Compliance Report", route: "/sale/reports/mas-compliance" },
-  { id: "mas-transaction", title: "MAS Transaction Report", route: "/sale/reports/mas-transaction" },
-  { id: "mas-summary", title: "MAS Summary Report", route: "/sale/reports/mas-summary" },
-  { id: "mas-audit", title: "MAS Audit Report", route: "/sale/reports/mas-audit" },
+  { id: "mas-sales", title: "MAS Sales Report" },
+  { id: "mas-inventory", title: "MAS Inventory Report" },
+  { id: "mas-compliance", title: "MAS Compliance Report" },
+  { id: "mas-transaction", title: "MAS Transaction Report" },
+  { id: "mas-summary", title: "MAS Summary Report" },
+  { id: "mas-audit", title: "MAS Audit Report" },
 ];
 
 interface ReportItemProps {
@@ -20,7 +20,6 @@ interface ReportItemProps {
 interface ReportConfig {
   id: string;
   title: string;
-  route: string;
 }
 
 function ReportItem({ title, onPress }: ReportItemProps) {
@@ -37,8 +36,8 @@ function ReportItem({ title, onPress }: ReportItemProps) {
 }
 
 export default function MASReportsScreen() {
-  const handleReportPress = (route: string) => {
-    router.push(route as any);
+  const handleReportPress = (title: string) => {
+    router.push({ pathname: "/sale/report-page", params: { title } } as any);
   };
 
   const leftColumn = MAS_REPORTS.filter((_, i) => i % 2 === 0);
@@ -55,7 +54,7 @@ export default function MASReportsScreen() {
               <ReportItem
                 key={report.id}
                 title={report.title}
-                onPress={() => handleReportPress(report.route)}
+                onPress={() => handleReportPress(report.title)}
               />
             ))}
           </View>
@@ -64,7 +63,7 @@ export default function MASReportsScreen() {
               <ReportItem
                 key={report.id}
                 title={report.title}
-                onPress={() => handleReportPress(report.route)}
+                onPress={() => handleReportPress(report.title)}
               />
             ))}
           </View>

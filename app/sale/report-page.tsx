@@ -1,12 +1,10 @@
 import { Ionicons } from "@expo/vector-icons";
+import { useLocalSearchParams } from "expo-router";
 import { Pressable, Text, View } from "react-native";
-import { useAppNavigation } from "../hooks/useAppNavigation";
+import { useAppNavigation } from "../../hooks/useAppNavigation";
 
-interface ReportPlaceholderProps {
-  title: string;
-}
-
-export default function ReportPlaceholder({ title }: ReportPlaceholderProps) {
+export default function ReportPage() {
+  const { title } = useLocalSearchParams<{ title: string }>();
   const { safeGoBack } = useAppNavigation();
 
   return (
@@ -16,7 +14,7 @@ export default function ReportPlaceholder({ title }: ReportPlaceholderProps) {
         <Pressable onPress={() => safeGoBack()} className="mr-4">
           <Ionicons name="arrow-back" size={24} color="#1A1A1A" />
         </Pressable>
-        <Text className="text-2xl font-bold text-gray-900">{title}</Text>
+        <Text className="text-2xl font-bold text-gray-900">{title || "Report"}</Text>
       </View>
 
       {/* Empty Content */}
