@@ -1,10 +1,11 @@
 import { FontAwesome5, Ionicons, MaterialCommunityIcons, MaterialIcons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useRouter } from "expo-router";
-import { useEffect, useState } from "react";
-import { Alert, ScrollView, Text, ToastAndroid, TouchableOpacity, useWindowDimensions, View } from "react-native";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { Alert, Modal, Pressable, ScrollView, Text, ToastAndroid, TouchableOpacity, useWindowDimensions, View } from "react-native";
 import {
     ActionCard,
+    DateRangePickerModal,
     SIDEBAR_WIDTH,
     StatCard
 } from "../components";
@@ -17,6 +18,9 @@ import { useAuth } from "../contexts/AuthContext";
 import { useClock } from "../contexts/ClockContext";
 import { useParkedOrders } from "../contexts/ParkedOrderContext";
 import { useViewMode } from "../contexts/ViewModeContext";
+import type { DashboardFilters } from "../utils/powersync/hooks";
+import { useCashManagement, useChannels, useDashboardStats } from "../utils/powersync/hooks";
+import { usePowerSync } from "../utils/powersync/PowerSyncProvider";
 import {
     addPrinter,
     addPrinterListener,
@@ -28,7 +32,6 @@ import {
     printToAll,
     printToOne
 } from "../utils/PrinterPoolManager";
-import { useDashboardStats } from "../utils/powersync/hooks";
 
 // Default printer configuration
 const DEFAULT_PRINTER_IP = "192.168.1.100";
@@ -44,13 +47,99 @@ const formatCurrency = (value: number): string => {
   return `$${value.toFixed(2)}`;
 };
 
+// Date helpers - use local date, NOT UTC
+function getToday(): string {
+  const d = new Date();
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}
+
+function formatDateDisplay(dateStr: string): string {
+  const [y, m, d] = dateStr.split('-');
+  return `${m}-${d}-${y}`; // MM-DD-YYYY like K Web
+}
+
 export default function Dashboard() {
   const { width, height } = useWindowDimensions();
   const router = useRouter();
   const { user, isAdmin } = useAuth();
   const { isClockedIn, selectedPosLine, selectPosLine, clockIn, getClockInTimeString, getElapsedTime } = useClock();
-  const { stats } = useDashboardStats();
   const { viewMode, setViewMode, isStaffMode } = useViewMode();
+  const { clearAndResync, isConnected, isSyncing } = usePowerSync();
+
+  // Dashboard filters - default to "Last 1 Year" (past year to today)
+  const [datePresetIndex, setDatePresetIndex] = useState<number | null>(7);
+  const [startDate, setStartDate] = useState(() => {
+    const d = new Date();
+    d.setFullYear(d.getFullYear() - 1);
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${y}-${m}-${day}`;
+  });
+  const [endDate, setEndDate] = useState(getToday());
+  const [selectedChannelIds, setSelectedChannelIds] = useState<number[]>([]);
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [showChannelPicker, setShowChannelPicker] = useState(false);
+
+  // Get channels
+  const { channels, primaryChannel } = useChannels();
+
+  // Initialize with primary channel when loaded
+  useEffect(() => {
+    if (primaryChannel && selectedChannelIds.length === 0) {
+      // Don't filter by channel initially (show all, same as K Web "All Channels")
+      // User can select specific channels if needed
+    }
+  }, [primaryChannel]);
+
+  // Build filters
+  const dashboardFilters = useMemo<DashboardFilters>(() => ({
+    startDate,
+    endDate,
+    channelIds: selectedChannelIds,
+  }), [startDate, endDate, selectedChannelIds]);
+
+  const { stats } = useDashboardStats(dashboardFilters);
+  const { cashSummary, userSales } = useCashManagement(user?.id);
+
+  // Date range selection (from DateRangePickerModal)
+  const handleDateApply = useCallback((start: string, end: string, presetIdx: number | null) => {
+    setStartDate(start);
+    setEndDate(end);
+    setDatePresetIndex(presetIdx);
+    setShowDatePicker(false);
+  }, []);
+
+  // Channel selection
+  const toggleChannel = useCallback((channelId: number) => {
+    setSelectedChannelIds(prev => {
+      if (prev.includes(channelId)) {
+        return prev.filter(id => id !== channelId);
+      }
+      return [...prev, channelId];
+    });
+  }, []);
+
+  const selectAllChannels = useCallback(() => {
+    setSelectedChannelIds([]);
+    setShowChannelPicker(false);
+  }, []);
+
+  // Get display label for current date range
+  const PRESET_LABELS = ['Today', 'Yesterday', 'Last 7 Days', 'Last 14 Days', 'Last 30 Days', 'This Month', 'This Year', 'Last 1 Year'];
+  const dateLabel = datePresetIndex !== null
+    ? PRESET_LABELS[datePresetIndex] || `${formatDateDisplay(startDate)} ~ ${formatDateDisplay(endDate)}`
+    : `${formatDateDisplay(startDate)} ~ ${formatDateDisplay(endDate)}`;
+  
+  // Get display label for current channel selection
+  const channelLabel = selectedChannelIds.length === 0 
+    ? 'All Channels' 
+    : selectedChannelIds.length === 1 
+      ? channels.find(c => c.id === selectedChannelIds[0])?.name || 'Channel'
+      : `${selectedChannelIds.length} Channels`;
   
   // Printer config state (loaded from AsyncStorage)
   const [printerIp, setPrinterIp] = useState(DEFAULT_PRINTER_IP);
@@ -67,14 +156,6 @@ export default function Dashboard() {
   const [showCashEntryModal, setShowCashEntryModal] = useState(false);
   const [showCashResultModal, setShowCashResultModal] = useState(false);
   const [cashResult, setCashResult] = useState({ isMatched: true, actualCash: 0 });
-  
-  // Mock cash summary
-  const cashSummary = {
-    openingBalance: 200.00,
-    totalSales: 1250.50,
-    totalRefunds: 45.00,
-    expectedCash: 200.00 + 1250.50 - 45.00,
-  };
   
   // Check if user is admin
   const showAdminStats = isAdmin();
@@ -294,7 +375,33 @@ Cookies               x3    $6.00
               elevation: 4,
             }}
           >
-            <View className="flex-1">
+            <TouchableOpacity 
+              className="flex-1"
+              onLongPress={() => {
+                Alert.alert(
+                  "🔄 Clear & Resync Database",
+                  "This will clear all local data and re-download everything from the server. The app may take a few moments to resync.\n\nContinue?",
+                  [
+                    { text: "Cancel", style: "cancel" },
+                    {
+                      text: "Clear & Resync",
+                      style: "destructive",
+                      onPress: async () => {
+                        try {
+                          ToastAndroid.show("🔄 Clearing database...", ToastAndroid.LONG);
+                          await clearAndResync();
+                          ToastAndroid.show("✅ Database cleared! Resyncing...", ToastAndroid.LONG);
+                        } catch (error) {
+                          const msg = error instanceof Error ? error.message : String(error);
+                          ToastAndroid.show(`❌ Error: ${msg}`, ToastAndroid.LONG);
+                        }
+                      },
+                    },
+                  ]
+                );
+              }}
+              activeOpacity={0.8}
+            >
               <Text 
                 className="text-white font-semibold"
                 style={{ fontSize: 28, letterSpacing: -0.5 }}
@@ -307,7 +414,24 @@ Cookies               x3    $6.00
               >
                 Access sales, reporting, and system actions quickly and securely.
               </Text>
-            </View>
+              {/* Sync Status Indicator */}
+              <View className="flex-row items-center mt-2 gap-2">
+                <View 
+                  style={{
+                    width: 8,
+                    height: 8,
+                    borderRadius: 4,
+                    backgroundColor: isConnected ? '#10B981' : '#EF4444',
+                  }}
+                />
+                <Text className="text-white text-xs opacity-75">
+                  {isSyncing ? 'Syncing...' : isConnected ? 'Connected' : 'Offline'}
+                </Text>
+                <Text className="text-white text-xs opacity-50 ml-2">
+                  (Long press to resync)
+                </Text>
+              </View>
+            </TouchableOpacity>
             
             {/* Role Badge */}
             <View 
@@ -446,7 +570,7 @@ Cookies               x3    $6.00
           >
             <View className="flex-1 rounded-lg py-3 px-3 border-2 border-white items-center">
               <Text className="text-white font-semibold" style={{ fontSize: 14 }}>User Sales :</Text>
-              <Text className="text-white font-bold" style={{ fontSize: 22 }}>$0.00</Text>
+              <Text className="text-white font-bold" style={{ fontSize: 22 }}>${userSales.toFixed(2)}</Text>
             </View>
             <View className="flex-1 rounded-lg py-3 px-3 border-2 border-white items-center">
               <Text className="text-white font-semibold" style={{ fontSize: 14 }}>Parked Orders :</Text>
@@ -543,7 +667,33 @@ Cookies               x3    $6.00
             elevation: 4,
           }}
         >
-          <View className="flex-1">
+          <TouchableOpacity 
+            className="flex-1"
+            onLongPress={() => {
+              Alert.alert(
+                "🔄 Clear & Resync Database",
+                "This will clear all local data and re-download everything from the server. The app may take a few moments to resync.\n\nContinue?",
+                [
+                  { text: "Cancel", style: "cancel" },
+                  {
+                    text: "Clear & Resync",
+                    style: "destructive",
+                    onPress: async () => {
+                      try {
+                        ToastAndroid.show("🔄 Clearing database...", ToastAndroid.LONG);
+                        await clearAndResync();
+                        ToastAndroid.show("✅ Database cleared! Resyncing...", ToastAndroid.LONG);
+                      } catch (error) {
+                        const msg = error instanceof Error ? error.message : String(error);
+                        ToastAndroid.show(`❌ Error: ${msg}`, ToastAndroid.LONG);
+                      }
+                    },
+                  },
+                ]
+              );
+            }}
+            activeOpacity={0.8}
+          >
             <Text 
               className="text-white font-semibold"
               style={{ fontSize: 28, letterSpacing: -0.5 }}
@@ -556,7 +706,24 @@ Cookies               x3    $6.00
             >
               Access sales, reporting, and system actions quickly and securely.
             </Text>
-          </View>
+            {/* Sync Status Indicator */}
+            <View className="flex-row items-center mt-2 gap-2">
+              <View 
+                style={{
+                  width: 8,
+                  height: 8,
+                  borderRadius: 4,
+                  backgroundColor: isConnected ? '#10B981' : '#EF4444',
+                }}
+              />
+              <Text className="text-white text-xs opacity-75">
+                {isSyncing ? 'Syncing...' : isConnected ? 'Connected' : 'Offline'}
+              </Text>
+              <Text className="text-white text-xs opacity-50 ml-2">
+                (Long press to resync)
+              </Text>
+            </View>
+          </TouchableOpacity>
           
           {/* Role Badge */}
           <View 
@@ -643,6 +810,33 @@ Cookies               x3    $6.00
           </TouchableOpacity>
         </View>
 
+        {/* ===== DASHBOARD FILTERS ===== */}
+        {showAdminStats && (
+          <View className="flex-row justify-end gap-3 mb-4">
+            {/* Date Range Selector */}
+            <TouchableOpacity
+              onPress={() => setShowDatePicker(true)}
+              className="flex-row items-center rounded-lg px-4 py-3 gap-2"
+              style={{ backgroundColor: '#fff', borderWidth: 1, borderColor: '#E5E7EB' }}
+            >
+              <Ionicons name="calendar-outline" size={18} color="#4B5563" />
+              <Text style={{ fontSize: 14, color: '#1F2937', fontWeight: '500' }}>{dateLabel}</Text>
+              <Ionicons name="chevron-down" size={14} color="#9CA3AF" />
+            </TouchableOpacity>
+
+            {/* Channel Selector */}
+            <TouchableOpacity
+              onPress={() => setShowChannelPicker(true)}
+              className="flex-row items-center rounded-lg px-4 py-3 gap-2"
+              style={{ backgroundColor: '#fff', borderWidth: 1, borderColor: '#E5E7EB' }}
+            >
+              <Ionicons name="storefront-outline" size={18} color="#4B5563" />
+              <Text style={{ fontSize: 14, color: '#1F2937', fontWeight: '500' }}>{channelLabel}</Text>
+              <Ionicons name="chevron-down" size={14} color="#9CA3AF" />
+            </TouchableOpacity>
+          </View>
+        )}
+
         {/* ===== DASHBOARD OVERVIEW GROUP ===== */}
         {showAdminStats && (
           <>
@@ -652,13 +846,13 @@ Cookies               x3    $6.00
                 value={formatCurrency(stats.totalRevenue)}
                 subtitle={`${stats.orderCount} orders`}
                 icon={<Ionicons name="pricetag" size={24} color="white" />}
-                variant="green"
+                variant="yellow"
               />
               <StatCard
                 title="Paid Amount"
                 value={formatCurrency(stats.paidAmount)}
                 icon={<FontAwesome5 name="coins" size={22} color="white" />}
-                variant="yellow"
+                variant="teal"
               />
               <StatCard
                 title="Payable Amount"
@@ -674,20 +868,19 @@ Cookies               x3    $6.00
                 value={formatCurrency(stats.receivableAmount)}
                 subtitle={`${stats.customerCount} customers`}
                 icon={<MaterialCommunityIcons name="cash-multiple" size={24} color="white" />}
-                variant="red"
-              />
-              <StatCard
-                title="Total Extended Stock"
-                value={formatCurrency(stats.extendedStockValue)}
-                subtitle={`${stats.productCount} products`}
-                icon={<MaterialCommunityIcons name="package-variant" size={24} color="white" />}
-                variant="yellow"
+                variant="blue"
               />
               <StatCard
                 title="Delivery Orders"
                 value={String(stats.deliveryOrdersCount)}
-                icon={<MaterialCommunityIcons name="clipboard-list-outline" size={24} color="white" />}
-                variant="orange"
+                icon={<MaterialCommunityIcons name="truck-delivery" size={24} color="white" />}
+                variant="pink"
+              />
+              <StatCard
+                title="Pickup Orders"
+                value={String(stats.pickupOrdersCount)}
+                icon={<MaterialCommunityIcons name="shopping" size={24} color="white" />}
+                variant="dark"
               />
             </View>
           </>
@@ -787,6 +980,106 @@ Cookies               x3    $6.00
           </TouchableOpacity>
         )}
       </View>
+
+      {/* ===== DATE RANGE PICKER MODAL ===== */}
+      <DateRangePickerModal
+        visible={showDatePicker}
+        onClose={() => setShowDatePicker(false)}
+        onApply={handleDateApply}
+        activePresetIndex={datePresetIndex}
+      />
+
+      {/* ===== CHANNEL PICKER MODAL ===== */}
+      <Modal
+        visible={showChannelPicker}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowChannelPicker(false)}
+      >
+        <Pressable 
+          className="flex-1 justify-center items-center"
+          style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}
+          onPress={() => setShowChannelPicker(false)}
+        >
+          <Pressable 
+            className="bg-white rounded-2xl p-6"
+            style={{ width: 360, maxWidth: '90%', maxHeight: '70%' }}
+            onPress={() => {}}
+          >
+            <Text className="font-bold mb-4" style={{ fontSize: 18, color: '#1F2937' }}>
+              Select Channels
+            </Text>
+            
+            {/* All Channels Option */}
+            <TouchableOpacity
+              onPress={selectAllChannels}
+              className="flex-row items-center py-3 px-4 rounded-lg mb-2"
+              style={{
+                backgroundColor: selectedChannelIds.length === 0 ? '#EC1A52' : '#F3F4F6',
+              }}
+            >
+              <Ionicons 
+                name={selectedChannelIds.length === 0 ? "checkmark-circle" : "ellipse-outline"} 
+                size={20} 
+                color={selectedChannelIds.length === 0 ? '#fff' : '#9CA3AF'} 
+              />
+              <Text 
+                className="ml-3 font-medium"
+                style={{ 
+                  fontSize: 15, 
+                  color: selectedChannelIds.length === 0 ? '#fff' : '#374151' 
+                }}
+              >
+                All Channels
+              </Text>
+            </TouchableOpacity>
+
+            {/* Individual Channels */}
+            <ScrollView style={{ maxHeight: 300 }}>
+              {channels.map(ch => {
+                const isSelected = selectedChannelIds.includes(ch.id);
+                return (
+                  <TouchableOpacity
+                    key={ch.id}
+                    onPress={() => toggleChannel(ch.id)}
+                    className="flex-row items-center py-3 px-4 rounded-lg mb-2"
+                    style={{
+                      backgroundColor: isSelected ? '#EFF6FF' : '#F3F4F6',
+                      borderWidth: isSelected ? 1 : 0,
+                      borderColor: '#3B82F6',
+                    }}
+                  >
+                    <Ionicons 
+                      name={isSelected ? "checkmark-circle" : "ellipse-outline"} 
+                      size={20} 
+                      color={isSelected ? '#3B82F6' : '#9CA3AF'} 
+                    />
+                    <Text 
+                      className="ml-3 font-medium"
+                      style={{ fontSize: 15, color: isSelected ? '#1D4ED8' : '#374151' }}
+                    >
+                      {ch.name}
+                    </Text>
+                    {ch.is_primary === 1 && (
+                      <View className="ml-2 bg-green-100 rounded-full px-2 py-0.5">
+                        <Text style={{ fontSize: 11, color: '#059669' }}>Primary</Text>
+                      </View>
+                    )}
+                  </TouchableOpacity>
+                );
+              })}
+            </ScrollView>
+
+            <TouchableOpacity
+              onPress={() => setShowChannelPicker(false)}
+              className="mt-3 py-3 items-center rounded-lg"
+              style={{ backgroundColor: '#EC1A52' }}
+            >
+              <Text style={{ fontSize: 15, color: '#fff', fontWeight: '600' }}>Done</Text>
+            </TouchableOpacity>
+          </Pressable>
+        </Pressable>
+      </Modal>
     </View>
   );
 }

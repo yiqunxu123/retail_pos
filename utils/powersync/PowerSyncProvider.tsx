@@ -25,6 +25,7 @@ interface PowerSyncContextType {
   isSyncing: boolean
   lastSyncTime: Date | null
   reconnect: () => Promise<void>
+  clearAndResync: () => Promise<void>
 }
 
 const PowerSyncContext = createContext<PowerSyncContextType | null>(null)
@@ -127,6 +128,39 @@ export function PowerSyncProvider({ children }: { children: ReactNode }) {
     clearReconnectTimeout()
     reconnectAttempts.current = 0
     await connectToSync()
+  }, [connectToSync])
+
+  // Clear local database and resync from server
+  const clearAndResync = useCallback(async () => {
+    console.log('[PowerSync] Clearing local database and resyncing...')
+    try {
+      setIsSyncing(true)
+      
+      // Disconnect first
+      if (powerSyncDb.connected) {
+        await powerSyncDb.disconnect()
+        console.log('[PowerSync] Disconnected')
+      }
+      
+      // Clear the local database
+      await powerSyncDb.disconnectAndClear()
+      console.log('[PowerSync] Local database cleared')
+      
+      // Reinitialize
+      await powerSyncDb.init()
+      console.log('[PowerSync] Database reinitialized')
+      setIsInitialized(true)
+      
+      // Reconnect to start fresh sync
+      reconnectAttempts.current = 0
+      await connectToSync()
+      console.log('[PowerSync] Clear and resync completed - fresh data will sync automatically')
+    } catch (error) {
+      console.error('[PowerSync] Clear and resync error:', error)
+      throw error
+    } finally {
+      setIsSyncing(false)
+    }
   }, [connectToSync])
 
   // Trigger a sync (useful after making local changes)
@@ -237,6 +271,7 @@ export function PowerSyncProvider({ children }: { children: ReactNode }) {
       isSyncing,
       lastSyncTime,
       reconnect,
+      clearAndResync,
     }}>
       {children}
     </PowerSyncContext.Provider>

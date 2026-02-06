@@ -14,7 +14,7 @@
  */
 
 // Customer hooks
-export { useCustomerById, useCustomers, useCustomerSearch } from './useCustomers';
+export { useCustomerById, useCustomerSearch, useCustomers } from './useCustomers';
 export type { CustomerView } from './useCustomers';
 
 // Customer Groups hooks
@@ -22,24 +22,36 @@ export { useCustomerGroupById, useCustomerGroups } from './useCustomerGroups';
 export type { CustomerGroupView } from './useCustomerGroups';
 
 // Product hooks
-export { useProductById, useProducts, useProductSearch } from './useProducts';
+export { useProductById, useProductSearch, useProducts } from './useProducts';
 export type { ProductView } from './useProducts';
 
 // Stock hooks
-export { useStockAlerts, useStocks, useStockSearch } from './useStocks';
+export { useStockAlerts, useStockSearch, useStocks } from './useStocks';
 export type { StockView } from './useStocks';
 
 // Sale order hooks
-export { FULFILMENT_STATUS, ORDER_STATUS, useSaleOrderById, useSaleOrders, useSaleOrderSearch } from './useSaleOrders';
+export { FULFILMENT_STATUS, ORDER_STATUS, useSaleOrderById, useSaleOrderSearch, useSaleOrders } from './useSaleOrders';
 export type { SaleOrderView } from './useSaleOrders';
 
 // Payment hooks
-export { PAYMENT_STATUS, PAYMENT_TYPE, usePaymentById, usePayments, usePaymentSearch } from './usePayments';
+export { PAYMENT_STATUS, PAYMENT_TYPE, usePaymentById, usePaymentSearch, usePayments } from './usePayments';
 export type { PaymentView } from './usePayments';
 
 // Dashboard stats hooks
 export { useDashboardStats } from './useDashboardStats';
-export type { DashboardStats } from './useDashboardStats';
+export type { DashboardFilters, DashboardStats } from './useDashboardStats';
+
+// Channel hooks
+export { useChannels } from './useChannels';
+export type { Channel } from './useChannels';
+
+// Cash management hooks
+export { useCashManagement } from './useCashManagement';
+export type { CashSummary } from './useCashManagement';
+
+// Enhanced dashboard (combines local + server stats)
+export { useEnhancedDashboard } from './useEnhancedDashboard';
+export type { EnhancedDashboardData } from './useEnhancedDashboard';
 
 // Report hooks
 export {

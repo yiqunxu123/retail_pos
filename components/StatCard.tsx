@@ -2,7 +2,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import { ReactNode } from "react";
 import { Pressable, Text, View } from "react-native";
 
-type StatCardVariant = "green" | "yellow" | "purple" | "red" | "orange";
+type StatCardVariant = "green" | "yellow" | "purple" | "red" | "orange" | "dark" | "teal" | "pink" | "blue";
 
 interface StatCardProps {
   title: string;
@@ -16,10 +16,14 @@ interface StatCardProps {
 // Gradient color pairs for each variant [start, end]
 const gradientColors: Record<StatCardVariant, [string, string]> = {
   green: ["#22c55e", "#16a34a"],    // emerald gradient
-  yellow: ["#facc15", "#eab308"],   // yellow gradient
-  purple: ["#a855f7", "#7c3aed"],   // purple gradient
+  yellow: ["#f5a623", "#e8961e"],   // orange-yellow (K Web Total Revenue)
+  purple: ["#9b59b6", "#8e44ad"],   // purple (K Web Payable Amount)
   red: ["#ef4444", "#dc2626"],      // red gradient
   orange: ["#fb923c", "#f97316"],   // orange gradient
+  dark: ["#2c3e50", "#1a252f"],     // dark (K Web Pickup Orders)
+  teal: ["#1abc9c", "#16a085"],     // teal (K Web Paid Amount)
+  pink: ["#e84393", "#d63384"],     // pink (K Web Delivery Orders)
+  blue: ["#3498db", "#2980b9"],     // blue (K Web Receivable Amount)
 };
 
 /**

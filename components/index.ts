@@ -6,6 +6,7 @@ export { CashPaymentModal } from "./CashPaymentModal";
 export { CustomerCard } from "./CustomerCard";
 export { DataTable } from "./DataTable";
 export type { ColumnDefinition, DataTableProps, FilterDefinition, FilterOption } from "./DataTable";
+export { DateRangePickerModal } from "./DateRangePickerModal";
 export { Dropdown } from "./Dropdown";
 export { FilterDropdown } from "./FilterDropdown";
 export { FormInput } from "./FormInput";
