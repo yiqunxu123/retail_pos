@@ -85,14 +85,18 @@ export default function ProductsScreen() {
       title: "Category",
       width: 120,
       visible: false,
-      render: () => <Text className="text-gray-600 text-sm">-</Text>,
+      render: (item) => (
+        <Text className="text-gray-600 text-sm">{item.categoryName || "-"}</Text>
+      ),
     },
     {
       key: "brand",
       title: "Brand",
       width: 120,
       visible: false,
-      render: () => <Text className="text-gray-600 text-sm">-</Text>,
+      render: (item) => (
+        <Text className="text-gray-600 text-sm">{item.brandName || "-"}</Text>
+      ),
     },
     {
       key: "costPrice",

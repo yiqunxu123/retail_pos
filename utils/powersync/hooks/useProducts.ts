@@ -44,6 +44,10 @@ interface ProductJoinRow {
   price: number | null;       // sale price
   cost: number | null;        // cost price
   base_cost: number | null;   // base cost
+  // From categories join
+  category_name: string | null;
+  // From brands join
+  brand_name: string | null;
 }
 
 /** Product data as displayed in the UI */
@@ -54,7 +58,9 @@ export interface ProductView {
   upc: string;
   description: string;
   brandId: number | null;
+  brandName: string;
   categoryId: number | null;
+  categoryName: string;
   weight: number | null;
   weightUnit: number | null;
   bin: string;
@@ -93,7 +99,9 @@ function toProductView(db: ProductJoinRow): ProductView {
     upc: db.upc || '',
     description: db.description || '',
     brandId: db.brand_id,
+    brandName: db.brand_name || '',
     categoryId: db.main_category_id,
+    categoryName: db.category_name || '',
     weight: db.weight,
     weightUnit: db.weight_unit,
     bin: db.bin || '',
@@ -117,15 +125,19 @@ function toProductView(db: ProductJoinRow): ProductView {
 
 /** Get all products with real-time sync */
 export function useProducts() {
-  // Join with primary channel (channel_id = 1) for prices
+  // Join with primary channel (channel_id = 1) for prices, categories, and brands
   const { data, isLoading, error, isStreaming, refresh } = useSyncStream<ProductJoinRow>(
     `SELECT 
       p.*,
       up.price,
       up.cost,
-      up.base_cost
+      up.base_cost,
+      c.name AS category_name,
+      b.name AS brand_name
      FROM products p
      LEFT JOIN unit_prices up ON p.id = up.product_id AND up.channel_id = 1
+     LEFT JOIN categories c ON p.main_category_id = c.id
+     LEFT JOIN brands b ON p.brand_id = b.id
      ORDER BY p.name ASC`
   );
 
