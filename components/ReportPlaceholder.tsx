@@ -1,6 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
-import { router } from "expo-router";
 import { Pressable, Text, View } from "react-native";
+import { useAppNavigation } from "../hooks/useAppNavigation";
 
 interface ReportPlaceholderProps {
   title: string;
@@ -11,11 +11,13 @@ export default function ReportPlaceholder({
   title, 
   description = "This report is under development and will be available soon." 
 }: ReportPlaceholderProps) {
+  const { safeGoBack } = useAppNavigation();
+
   return (
     <View className="flex-1 bg-white">
       {/* Header with Back Button */}
       <View className="px-6 py-4 flex-row items-center border-b border-gray-200">
-        <Pressable onPress={() => router.back()} className="mr-4">
+        <Pressable onPress={() => safeGoBack()} className="mr-4">
           <Ionicons name="arrow-back" size={24} color="#1A1A1A" />
         </Pressable>
         <Text className="text-2xl font-bold text-gray-900">{title}</Text>

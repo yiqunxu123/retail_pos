@@ -1,10 +1,10 @@
 import { Feather, Ionicons, MaterialCommunityIcons, MaterialIcons } from "@expo/vector-icons";
-import { useRouter } from "expo-router";
 import { Alert, ScrollView, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAuth } from "../contexts/AuthContext";
 import { useClock } from "../contexts/ClockContext";
 import { useViewMode } from "../contexts/ViewModeContext";
+import { useAppNavigation } from "../hooks/useAppNavigation";
 import { BrandingSection } from "./BrandingSection";
 import { SidebarButton } from "./SidebarButton";
 
@@ -26,7 +26,7 @@ export function StaffSidebar({
   onClockInPress,
   onClockOutPress,
 }: StaffSidebarProps) {
-  const router = useRouter();
+  const { navigateTo } = useAppNavigation();
   const insets = useSafeAreaInsets();
   const { logout } = useAuth();
   const { isClockedIn } = useClock();
@@ -46,11 +46,7 @@ export function StaffSidebar({
     ]);
   };
 
-  const handleSettings = () => {
-    router.push("/settings" as any);
-  };
-
-  const navigateTo = (path: string) => router.push(path as any);
+  const handleSettings = () => navigateTo("/settings");
 
   return (
     <View

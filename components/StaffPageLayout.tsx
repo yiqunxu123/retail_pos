@@ -1,8 +1,8 @@
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
-import { useRouter } from "expo-router";
 import { Alert, ScrollView, Text, TouchableOpacity, View } from "react-native";
 import { useAuth } from "../contexts/AuthContext";
 import { useClock } from "../contexts/ClockContext";
+import { useAppNavigation } from "../hooks/useAppNavigation";
 import { BrandingSection } from "./BrandingSection";
 import { SidebarButton } from "./SidebarButton";
 
@@ -19,7 +19,7 @@ interface StaffPageLayoutProps {
 }
 
 export default function StaffPageLayout({ children, sidebarCustomButtons, title, subTitle }: StaffPageLayoutProps) {
-  const router = useRouter();
+  const { navigateTo, router } = useAppNavigation();
   const { logout } = useAuth();
   const { isClockedIn, clockIn, clockOut } = useClock();
 
@@ -47,7 +47,7 @@ export default function StaffPageLayout({ children, sidebarCustomButtons, title,
   };
 
   const handleGoToMenu = () => {
-    router.push("/");
+    navigateTo("/");
   };
 
   const handleExit = () => {
