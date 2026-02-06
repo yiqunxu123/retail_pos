@@ -124,6 +124,7 @@ const taxes = new Table({
 // Sale orders table
 const sale_orders = new Table({
   customer_id: column.integer,
+  channel_id: column.integer,
   no: column.text,
   order_type: column.integer,
   sale_type: column.integer,
@@ -136,6 +137,8 @@ const sale_orders = new Table({
   shipping_type: column.integer,
   fulfilment_status: column.integer,
   order_date: column.text,
+  created_by_id: column.integer,
+  balance_adjustment_id: column.integer,
   created_at: column.text,
   updated_at: column.text,
 })
@@ -165,6 +168,41 @@ const payments = new Table({
   amount: column.real,
   category: column.integer,
   memo: column.text,
+  created_at: column.text,
+  updated_at: column.text,
+})
+
+// Invoices table (for receivable amount)
+const invoices = new Table({
+  sale_order_id: column.integer,
+  customer_id: column.integer,
+  no: column.text,
+  status: column.integer,
+  remaining_amount: column.real,
+  total_amount: column.real,
+  created_at: column.text,
+  updated_at: column.text,
+})
+
+// Purchase invoices table (for payable amount)
+const purchase_invoices = new Table({
+  purchase_order_id: column.integer,
+  supplier_id: column.integer,
+  no: column.text,
+  status: column.integer,
+  invoice_balance: column.real,
+  total_amount: column.real,
+  created_at: column.text,
+  updated_at: column.text,
+})
+
+// Purchase orders table (for payable amount join)
+const purchase_orders = new Table({
+  supplier_id: column.integer,
+  no: column.text,
+  status: column.integer,
+  total_price: column.real,
+  order_date: column.text,
   created_at: column.text,
   updated_at: column.text,
 })
@@ -238,6 +276,9 @@ export const AppSchema = new Schema({
   sale_orders,
   sale_order_details,
   payments,
+  invoices,
+  purchase_invoices,
+  purchase_orders,
   suppliers,
   settings,
   tags,
@@ -258,6 +299,9 @@ export type Tax = Database['taxes']
 export type SaleOrder = Database['sale_orders']
 export type SaleOrderDetail = Database['sale_order_details']
 export type Payment = Database['payments']
+export type Invoice = Database['invoices']
+export type PurchaseInvoice = Database['purchase_invoices']
+export type PurchaseOrder = Database['purchase_orders']
 export type Supplier = Database['suppliers']
 export type Setting = Database['settings']
 export type Tag = Database['tags']

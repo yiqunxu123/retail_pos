@@ -24,9 +24,10 @@ streams:
     query: "SELECT id, channel_id, product_id, qty, status, created_at, updated_at FROM stocks"
 
   # Tags stream
+  # NOTE: DB has 'value' column, client expects 'name'. No 'slug' in DB.
   tags:
     auto_subscribe: true
-    query: "SELECT id, name, slug, created_at, updated_at FROM tags"
+    query: "SELECT id, value as name, NULL as slug, created_at, updated_at FROM tags"
 
   # Channels stream
   channels:
@@ -69,12 +70,13 @@ streams:
   # Sale Orders stream (for dashboard stats)
   sale_orders:
     auto_subscribe: true
-    query: "SELECT id, customer_id, no, order_type, sale_type, status, total_price, tax, discount, total_discount, delivery_charges, shipping_type, fulfilment_status, order_date, created_at, updated_at FROM sale_orders"
+    query: "SELECT id, customer_id, channel_id, no, order_type, sale_type, status, total_price, tax, discount, total_discount, delivery_charges, shipping_type, fulfilment_status, order_date, created_by_id, balance_adjustment_id, created_at, updated_at FROM sale_orders"
 
   # Sale Order Details stream
+  # NOTE: DB has 'unit_price' (not 'price'), no 'channel_id', no 'total_price', no created_at/updated_at
   sale_order_details:
     auto_subscribe: true
-    query: "SELECT id, sale_order_id, product_id, channel_id, unit_price_id, qty, price, discount, total_price, created_at, updated_at FROM sale_order_details"
+    query: "SELECT id, sale_order_id, product_id, unit_price_id, qty, unit_price as price, discount FROM sale_order_details"
 
   # Payments stream (for dashboard stats)
   payments:
@@ -82,9 +84,25 @@ streams:
     query: "SELECT id, customer_id, invoice_id, no, status, payment_type, payment_date, amount, category, memo, created_at, updated_at FROM payments"
 
   # Suppliers stream (for payable amount)
+  # NOTE: DB has 'supplier_name' (not 'name'), 'phone' (not 'phone_no'), no 'status'
   suppliers:
     auto_subscribe: true
-    query: "SELECT id, name, email, phone_no, balance, status, created_at, updated_at FROM suppliers"
+    query: "SELECT id, supplier_name as name, email, phone as phone_no, balance, created_at, updated_at FROM suppliers"
+
+  # Invoices stream (for receivable amount calculation)
+  invoices:
+    auto_subscribe: true
+    query: "SELECT id, sale_order_id, customer_id, no, status, remaining_amount, total_amount, created_at, updated_at FROM invoices"
+
+  # Purchase Orders stream (for payable amount calculation)
+  purchase_orders:
+    auto_subscribe: true
+    query: "SELECT id, supplier_id, no, status, total_price, order_date, created_at, updated_at FROM purchase_orders"
+
+  # Purchase Invoices stream (for payable amount calculation)
+  purchase_invoices:
+    auto_subscribe: true
+    query: "SELECT id, purchase_order_id, supplier_id, no, status, invoice_balance, total_amount, created_at, updated_at FROM purchase_invoices"
 
 # Required for streams
 config:
