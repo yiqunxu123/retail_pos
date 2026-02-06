@@ -120,7 +120,15 @@ export default function StocksScreen() {
       width: 80,
       align: "center",
       visible: true,
-      render: () => <Text className="text-gray-400">-</Text>,
+      render: (item) => {
+        if (item.availableQty <= 0) {
+          return <Text className="text-red-500 font-medium text-xs">Out of Stock</Text>;
+        }
+        if (item.availableQty <= 5) {
+          return <Text className="text-orange-500 font-medium text-xs">Low</Text>;
+        }
+        return <Text className="text-green-500 text-xs">OK</Text>;
+      },
     },
     {
       key: "actions",
