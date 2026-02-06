@@ -4,12 +4,12 @@ import { Pressable, ScrollView, Text, View } from "react-native";
 import { PageHeader } from "../../components";
 
 const LEGAL_REPORTS = [
-  { id: "california-cigarette-receiving", title: "California Cigarette Receiving Report", route: "/sale/reports/california-cigarette-receiving" },
-  { id: "kentucky-cigarette-tax", title: "Kentucky Cigarette Tax Report", route: "/sale/reports/kentucky-cigarette-tax" },
-  { id: "kentucky-tobacco-tax", title: "Kentucky Tobacco Tax Report", route: "/sale/reports/kentucky-tobacco-tax" },
-  { id: "ldr", title: "LDR Report", route: "/sale/reports/ldr" },
-  { id: "rap", title: "RAP Report", route: "/sale/reports/rap" },
-  { id: "rcr", title: "RCR Report", route: "/sale/reports/rcr" },
+  { id: "california-cigarette-receiving", title: "California Cigarette Receiving Report" },
+  { id: "kentucky-cigarette-tax", title: "Kentucky Cigarette Tax Report" },
+  { id: "kentucky-tobacco-tax", title: "Kentucky Tobacco Tax Report" },
+  { id: "ldr", title: "LDR Report" },
+  { id: "rap", title: "RAP Report" },
+  { id: "rcr", title: "RCR Report" },
 ];
 
 interface ReportItemProps {
@@ -20,7 +20,6 @@ interface ReportItemProps {
 interface ReportConfig {
   id: string;
   title: string;
-  route: string;
 }
 
 function ReportItem({ title, onPress }: ReportItemProps) {
@@ -37,8 +36,8 @@ function ReportItem({ title, onPress }: ReportItemProps) {
 }
 
 export default function LegalReportsScreen() {
-  const handleReportPress = (route: string) => {
-    router.push(route as any);
+  const handleReportPress = (title: string) => {
+    router.push({ pathname: "/sale/report-page", params: { title } } as any);
   };
 
   const leftColumn = LEGAL_REPORTS.filter((_, i) => i % 2 === 0);
@@ -55,7 +54,7 @@ export default function LegalReportsScreen() {
               <ReportItem
                 key={report.id}
                 title={report.title}
-                onPress={() => handleReportPress(report.route)}
+                onPress={() => handleReportPress(report.title)}
               />
             ))}
           </View>
@@ -64,7 +63,7 @@ export default function LegalReportsScreen() {
               <ReportItem
                 key={report.id}
                 title={report.title}
-                onPress={() => handleReportPress(report.route)}
+                onPress={() => handleReportPress(report.title)}
               />
             ))}
           </View>
