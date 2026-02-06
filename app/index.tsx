@@ -21,6 +21,7 @@ import { useViewMode } from "../contexts/ViewModeContext";
 import type { DashboardFilters } from "../utils/powersync/hooks";
 import { useCashManagement, useChannels, useDashboardStats } from "../utils/powersync/hooks";
 import { usePowerSync } from "../utils/powersync/PowerSyncProvider";
+import { getLocalToday } from "../utils/powersync/sqlFilters";
 import {
     addPrinter,
     addPrinterListener,
@@ -47,14 +48,8 @@ const formatCurrency = (value: number): string => {
   return `$${value.toFixed(2)}`;
 };
 
-// Date helpers - use local date, NOT UTC
-function getToday(): string {
-  const d = new Date();
-  const y = d.getFullYear();
-  const m = String(d.getMonth() + 1).padStart(2, '0');
-  const day = String(d.getDate()).padStart(2, '0');
-  return `${y}-${m}-${day}`;
-}
+// Re-export getLocalToday as getToday for backward compat in this file
+const getToday = getLocalToday;
 
 function formatDateDisplay(dateStr: string): string {
   const [y, m, d] = dateStr.split('-');

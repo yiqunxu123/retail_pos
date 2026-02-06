@@ -211,7 +211,11 @@ export default function SalesHistoryScreen() {
       title: "Created By",
       width: 100,
       visible: true,
-      render: () => <Text className="text-gray-600 text-xs">User 1</Text>,
+      render: (item) => (
+        <Text className="text-gray-600 text-xs">
+          {item.createdByName || 'Unknown'}
+        </Text>
+      ),
     },
     {
       key: "total",

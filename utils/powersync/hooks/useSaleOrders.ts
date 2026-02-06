@@ -30,11 +30,16 @@ interface SaleOrderJoinRow {
   shipping_type: number;
   fulfilment_status: number;
   order_date: string;
+  created_by_id: number | null;
   created_at: string;
   updated_at: string;
   // From customer join
   customer_name: string | null;
   business_name: string | null;
+  // From user join
+  created_by_username: string | null;
+  created_by_first_name: string | null;
+  created_by_last_name: string | null;
 }
 
 /** Sale order data as displayed in the UI */
@@ -54,6 +59,8 @@ export interface SaleOrderView {
   shippingType: number;
   fulfilmentStatus: number;
   orderDate: string;
+  createdById: number | null;
+  createdByName: string;
   createdAt: string;
 }
 
@@ -79,6 +86,11 @@ export const FULFILMENT_STATUS = {
 
 /** Transform database record to UI view */
 function toSaleOrderView(db: SaleOrderJoinRow): SaleOrderView {
+  // Build creator name from first_name and last_name, fallback to username
+  const createdByName = db.created_by_first_name && db.created_by_last_name
+    ? `${db.created_by_first_name} ${db.created_by_last_name}`
+    : db.created_by_username || 'Unknown';
+
   return {
     id: db.id,
     orderNo: db.no || '',
@@ -95,6 +107,8 @@ function toSaleOrderView(db: SaleOrderJoinRow): SaleOrderView {
     shippingType: db.shipping_type,
     fulfilmentStatus: db.fulfilment_status,
     orderDate: db.order_date || db.created_at || '',
+    createdById: db.created_by_id,
+    createdByName,
     createdAt: db.created_at || '',
   };
 }
@@ -109,9 +123,13 @@ export function useSaleOrders() {
     `SELECT 
       so.*,
       c.name as customer_name,
-      c.business_name
+      c.business_name,
+      u.username as created_by_username,
+      u.first_name as created_by_first_name,
+      u.last_name as created_by_last_name
      FROM sale_orders so
      LEFT JOIN customers c ON so.customer_id = c.id
+     LEFT JOIN tenant_users u ON so.created_by_id = u.id
      ORDER BY so.created_at DESC`
   );
 
@@ -133,9 +151,13 @@ export function useSaleOrderById(id: string | null) {
     `SELECT 
       so.*,
       c.name as customer_name,
-      c.business_name
+      c.business_name,
+      u.username as created_by_username,
+      u.first_name as created_by_first_name,
+      u.last_name as created_by_last_name
      FROM sale_orders so
      LEFT JOIN customers c ON so.customer_id = c.id
+     LEFT JOIN tenant_users u ON so.created_by_id = u.id
      WHERE so.id = ?`,
     id ? [id] : [],
     { enabled: !!id }
@@ -154,9 +176,13 @@ export function useSaleOrderSearch(query: string) {
     `SELECT 
       so.*,
       c.name as customer_name,
-      c.business_name
+      c.business_name,
+      u.username as created_by_username,
+      u.first_name as created_by_first_name,
+      u.last_name as created_by_last_name
      FROM sale_orders so
      LEFT JOIN customers c ON so.customer_id = c.id
+     LEFT JOIN tenant_users u ON so.created_by_id = u.id
      WHERE so.no LIKE ? OR c.name LIKE ? OR c.business_name LIKE ?
      ORDER BY so.created_at DESC
      LIMIT 50`,
