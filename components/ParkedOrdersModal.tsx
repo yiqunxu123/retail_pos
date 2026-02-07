@@ -1,5 +1,5 @@
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
-import { Modal, View, Text, TouchableOpacity, ScrollView, Alert } from "react-native";
+import { Alert, Modal, ScrollView, Text, TouchableOpacity, View } from "react-native";
 import { ParkedOrder } from "../contexts/ParkedOrderContext";
 
 interface ParkedOrdersModalProps {
@@ -7,7 +7,7 @@ interface ParkedOrdersModalProps {
   onClose: () => void;
   parkedOrders: ParkedOrder[];
   onResumeOrder: (id: string) => void;
-  onDeleteOrder: (id: string) => void;
+  onDeleteOrder: (id: string) => void | Promise<void>;
 }
 
 /**

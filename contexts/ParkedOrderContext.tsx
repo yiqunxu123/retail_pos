@@ -1,11 +1,21 @@
-import { createContext, useContext, useState, ReactNode, useEffect } from "react";
-import AsyncStorage from "@react-native-async-storage/async-storage";
-import { OrderState, OrderProduct } from "./OrderContext";
+import { createContext, ReactNode, useContext } from "react";
+import { Alert } from "react-native";
+import khubApi from "../utils/api/khub";
+import {
+    useParkedOrders as useParkedOrdersSync,
+    type ParkedOrderView,
+} from "../utils/powersync/hooks";
+import { OrderState } from "./OrderContext";
 
+// ============================================================================
+// Types
+// ============================================================================
+
+/** Legacy parked order shape (kept for ParkedOrdersModal compatibility) */
 export interface ParkedOrder {
   id: string;
   customerName: string;
-  products: OrderProduct[];
+  products: never[];
   total: number;
   parkedAt: string;
   parkedBy: string;
@@ -13,91 +23,131 @@ export interface ParkedOrder {
 }
 
 interface ParkedOrderContextType {
+  /** Parked orders in legacy shape (for ParkedOrdersModal) */
   parkedOrders: ParkedOrder[];
-  parkOrder: (order: OrderState, parkedBy: string, note?: string) => void;
+  /** Full parked order views from PowerSync (for DataTable) */
+  remoteOrders: ParkedOrderView[];
+  /** Park the current order via API (POST with is_parked: true) */
+  parkOrder: (order: OrderState, parkedBy: string, note?: string) => Promise<void>;
+  /** Resume a parked order — returns legacy shape for compatibility */
   resumeOrder: (id: string) => ParkedOrder | null;
-  deleteParkedOrder: (id: string) => void;
+  /** Delete a parked order via API */
+  deleteParkedOrder: (id: string) => Promise<void>;
+  /** No-op, kept for interface compatibility */
   clearAllParkedOrders: () => void;
+  /** Loading state */
+  isLoading: boolean;
+  /** Total count */
+  count: number;
+  /** Refresh from PowerSync */
+  refresh: () => void;
 }
 
-const STORAGE_KEY = "@parked_orders";
+// ============================================================================
+// Context
+// ============================================================================
 
 const ParkedOrderContext = createContext<ParkedOrderContextType | null>(null);
 
+// ============================================================================
+// Provider
+// ============================================================================
+
 export function ParkedOrderProvider({ children }: { children: ReactNode }) {
-  const [parkedOrders, setParkedOrders] = useState<ParkedOrder[]>([]);
+  const {
+    orders: remoteOrders,
+    isLoading,
+    refresh,
+    count,
+  } = useParkedOrdersSync();
 
-  // Load parked orders from storage on mount
-  useEffect(() => {
-    loadParkedOrders();
-  }, []);
+  // Map to legacy shape for ParkedOrdersModal
+  const parkedOrders: ParkedOrder[] = remoteOrders.map(
+    (o: ParkedOrderView) => ({
+      id: o.id,
+      customerName: o.customerName || "Guest Customer",
+      products: [],
+      total: o.totalPrice,
+      parkedAt: o.createdAt,
+      parkedBy: o.createdByName,
+      note: o.orderNo,
+    })
+  );
 
-  const loadParkedOrders = async () => {
+  /**
+   * Park the current order via backend API.
+   * POST /sale/order with is_parked: true
+   */
+  const parkOrder = async (
+    order: OrderState,
+    _parkedBy: string,
+    note?: string
+  ) => {
     try {
-      const stored = await AsyncStorage.getItem(STORAGE_KEY);
-      if (stored) {
-        setParkedOrders(JSON.parse(stored));
-      }
-    } catch (error) {
-      console.error("Failed to load parked orders:", error);
+      const saleOrderDetails = order.products.map((p) => ({
+        product_id: p.id,
+        qty: p.quantity,
+        price: p.salePrice,
+        discount: 0,
+      }));
+
+      const payload = {
+        customer_id: order.customerId || null,
+        sale_order_details: saleOrderDetails,
+        is_parked: true,
+        park_note: note || "Parked from mobile app",
+        order_type: 0,
+        sale_type: 1,
+        shipping_type: 1,
+        discount: order.additionalDiscount || 0,
+      };
+
+      await khubApi.post("/tenant/api/v1/sale/order", payload);
+      refresh();
+    } catch (error: any) {
+      const msg =
+        error.response?.data?.message ||
+        error.response?.data?.errors?.[0] ||
+        "Failed to park order";
+      Alert.alert("Park Order Error", msg);
+      throw error;
     }
   };
 
-  const saveParkedOrders = async (orders: ParkedOrder[]) => {
-    try {
-      await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(orders));
-    } catch (error) {
-      console.error("Failed to save parked orders:", error);
-    }
-  };
-
-  const parkOrder = (order: OrderState, parkedBy: string, note?: string) => {
-    const total = order.products.reduce((sum, p) => sum + p.total, 0);
-    const newParkedOrder: ParkedOrder = {
-      id: `PO-${Date.now()}`,
-      customerName: order.customerName,
-      products: order.products,
-      total,
-      parkedAt: new Date().toISOString(),
-      parkedBy,
-      note,
-    };
-    const updated = [...parkedOrders, newParkedOrder];
-    setParkedOrders(updated);
-    saveParkedOrders(updated);
-  };
-
+  /** Resume — returns legacy shape; actual order data loaded from backend */
   const resumeOrder = (id: string): ParkedOrder | null => {
-    const order = parkedOrders.find((o) => o.id === id);
-    if (order) {
-      // Remove from parked orders
-      const updated = parkedOrders.filter((o) => o.id !== id);
-      setParkedOrders(updated);
-      saveParkedOrders(updated);
-      return order;
+    return parkedOrders.find((o) => o.id === id) || null;
+  };
+
+  /** Delete via API */
+  const deleteParkedOrder = async (id: string) => {
+    try {
+      await khubApi.delete(`/tenant/api/v1/sale/order/${id}`);
+      refresh();
+    } catch (error: any) {
+      const msg =
+        error.response?.data?.message ||
+        error.response?.data?.errors?.[0] ||
+        "Failed to delete parked order";
+      Alert.alert("Delete Error", msg);
+      throw error;
     }
-    return null;
   };
 
-  const deleteParkedOrder = (id: string) => {
-    const updated = parkedOrders.filter((o) => o.id !== id);
-    setParkedOrders(updated);
-    saveParkedOrders(updated);
-  };
-
-  const clearAllParkedOrders = () => {
-    setParkedOrders([]);
-    saveParkedOrders([]);
-  };
+  const clearAllParkedOrders = () => {};
 
   return (
     <ParkedOrderContext.Provider
       value={{
         parkedOrders,
+        remoteOrders,
         parkOrder,
         resumeOrder,
         deleteParkedOrder,
         clearAllParkedOrders,
+        isLoading,
+        count,
+        refresh,
       }}
     >
       {children}
@@ -105,8 +155,15 @@ export function ParkedOrderProvider({ children }: { children: ReactNode }) {
   );
 }
 
-export function useParkedOrders() {
+export function useParkedOrderContext() {
   const context = useContext(ParkedOrderContext);
-  if (!context) throw new Error("useParkedOrders must be used within ParkedOrderProvider");
+  if (!context)
+    throw new Error(
+      "useParkedOrderContext must be used within ParkedOrderProvider"
+    );
   return context;
+}
+
+export function useParkedOrders() {
+  return useParkedOrderContext();
 }

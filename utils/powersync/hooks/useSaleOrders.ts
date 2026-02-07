@@ -168,6 +168,55 @@ export function useSaleOrderById(id: string | null) {
   return { order, isLoading, error };
 }
 
+/** Get all parked sale orders (status = 70) with item count */
+export function useParkedOrders() {
+  const { data, isLoading, error, isStreaming, refresh } = useSyncStream<
+    SaleOrderJoinRow & { item_count: number; channel_name: string | null }
+  >(
+    `SELECT 
+      so.*,
+      c.name as customer_name,
+      c.business_name,
+      u.username as created_by_username,
+      u.first_name as created_by_first_name,
+      u.last_name as created_by_last_name,
+      ch.name as channel_name,
+      COALESCE(sod_agg.item_count, 0) as item_count
+     FROM sale_orders so
+     LEFT JOIN customers c ON so.customer_id = c.id
+     LEFT JOIN tenant_users u ON so.created_by_id = u.id
+     LEFT JOIN channels ch ON so.channel_id = ch.id
+     LEFT JOIN (
+       SELECT sale_order_id, SUM(qty) as item_count
+       FROM sale_order_details
+       GROUP BY sale_order_id
+     ) sod_agg ON sod_agg.sale_order_id = so.id
+     WHERE so.status = 70
+     ORDER BY so.created_at DESC`
+  );
+
+  const orders = useMemo(
+    () =>
+      data.map((row) => ({
+        ...toSaleOrderView(row),
+        itemCount: row.item_count || 0,
+        channelName: row.channel_name || 'Primary',
+      })),
+    [data]
+  );
+
+  return {
+    orders,
+    isLoading,
+    error,
+    isStreaming,
+    refresh,
+    count: orders.length,
+  };
+}
+
+export type ParkedOrderView = ReturnType<typeof useParkedOrders>['orders'][number];
+
 /** Search sale orders by order number or customer name */
 export function useSaleOrderSearch(query: string) {
   const searchTerm = `%${query}%`;

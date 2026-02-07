@@ -12,7 +12,7 @@ import { Alert, Pressable, Text, View } from "react-native";
 import { ColumnDefinition, DataTable, FilterDefinition, PageHeader } from "../../components";
 import { OrderDetailsModal } from "../../components/OrderDetailsModal";
 import { StatCardHorizontal } from "../../components/StatCardHorizontal";
-import { SaleOrderView, useSaleOrders } from "../../utils/powersync/hooks";
+import { SaleOrderView, useParkedOrders, useSaleOrders } from "../../utils/powersync/hooks";
 
 // ============================================================================
 // Constants
@@ -94,6 +94,7 @@ function ActionButton({
 
 export default function SalesHistoryScreen() {
   const { orders, isLoading, refresh, count } = useSaleOrders();
+  const { count: parkedCount } = useParkedOrders();
   
   // Modal States
   const [showOrderDetails, setShowOrderDetails] = useState(false);
@@ -356,7 +357,7 @@ export default function SalesHistoryScreen() {
           <View className="flex-row gap-3 mb-3">
             <StatCardHorizontal title="Completed" count={450} color="#3B82F6" />
             <StatCardHorizontal title="Delivery" count={321} color="#14B8A6" />
-            <StatCardHorizontal title="Parked" count={23} color="#8B5CF6" />
+            <StatCardHorizontal title="Parked" count={parkedCount} color="#8B5CF6" />
           </View>
           <View className="flex-row gap-3">
             <StatCardHorizontal title="Unpaid" count={450} color="#EC1A52" />

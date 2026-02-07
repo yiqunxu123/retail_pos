@@ -104,11 +104,15 @@ export default function AddProductsScreen() {
     setShowParkOrderModal(true);
   };
 
-  const handleConfirmParkOrder = (note?: string) => {
-    parkOrder(order, user?.name || "Staff", note);
-    setShowParkOrderModal(false);
-    clearOrder();
-    Alert.alert("Success", "Order parked successfully");
+  const handleConfirmParkOrder = async (note?: string) => {
+    try {
+      await parkOrder(order, user?.name || "Staff", note);
+      setShowParkOrderModal(false);
+      clearOrder();
+      Alert.alert("Success", "Order parked successfully");
+    } catch {
+      // Error alert already shown in parkOrder
+    }
   };
 
   const handleResumeOrder = (id: string) => {
@@ -124,8 +128,12 @@ export default function AddProductsScreen() {
     }
   };
 
-  const handleDeleteParkedOrder = (id: string) => {
-    deleteParkedOrder(id);
+  const handleDeleteParkedOrder = async (id: string) => {
+    try {
+      await deleteParkedOrder(id);
+    } catch {
+      // Error alert is already shown inside deleteParkedOrder
+    }
   };
 
   // Cash Management handlers
