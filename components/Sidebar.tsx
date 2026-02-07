@@ -200,17 +200,6 @@ export function Sidebar({
           />
         </View>
 
-        {/* Dev Tools - 仅开发模式显示 */}
-        {__DEV__ && (
-          <>
-            <View className="border-t border-gray-300 my-1" />
-            <SidebarButton
-              title="Dev Tools"
-              icon={<Ionicons name="construct-outline" size={24} color="#f59e0b" />}
-              onPress={() => navigateTo("/dev-tools")}
-            />
-          </>
-        )}
       </ScrollView>
     </View>
   );

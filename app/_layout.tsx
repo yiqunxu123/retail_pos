@@ -1,6 +1,7 @@
+import { Ionicons } from "@expo/vector-icons";
 import { Slot, usePathname, useRouter } from "expo-router";
-import { useState } from "react";
-import { ActivityIndicator, Text, View, useWindowDimensions } from "react-native";
+import { useRef, useState } from "react";
+import { ActivityIndicator, Animated, PanResponder, Pressable, Text, View, useWindowDimensions } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Sidebar } from "../components";
 import { ClockInModal } from "../components/ClockInModal";
@@ -153,7 +154,85 @@ function LayoutContent() {
         onClose={() => setShowClockOutModal(false)}
         onClockOut={handleClockOut}
       />
+
+      {/* Dev Tools Floating Button – 仅开发模式 */}
+      {__DEV__ && <DevToolsFab />}
     </View>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// DevToolsFab – Draggable floating button that navigates to /dev-tools
+// ---------------------------------------------------------------------------
+
+function DevToolsFab() {
+  const { width: screenWidth } = useWindowDimensions();
+  const router = useRouter();
+
+  const posRef = useRef({ x: -1, y: -1 });
+  const pan = useRef(new Animated.ValueXY({ x: 0, y: 0 })).current;
+  const isDraggingRef = useRef(false);
+
+  if (posRef.current.x < 0 && screenWidth > 0) {
+    const initX = screenWidth - 68;
+    const initY = 140;
+    posRef.current = { x: initX, y: initY };
+    pan.setValue({ x: initX, y: initY });
+  }
+
+  const panResponder = useRef(
+    PanResponder.create({
+      onStartShouldSetPanResponder: () => true,
+      onMoveShouldSetPanResponder: () => true,
+      onPanResponderGrant: () => {
+        isDraggingRef.current = false;
+      },
+      onPanResponderMove: (_evt, gs) => {
+        if (Math.abs(gs.dx) > 4 || Math.abs(gs.dy) > 4) {
+          isDraggingRef.current = true;
+        }
+        pan.setValue({
+          x: posRef.current.x + gs.dx,
+          y: posRef.current.y + gs.dy,
+        });
+      },
+      onPanResponderRelease: (_evt, gs) => {
+        posRef.current = {
+          x: posRef.current.x + gs.dx,
+          y: posRef.current.y + gs.dy,
+        };
+      },
+    }),
+  ).current;
+
+  return (
+    <Animated.View
+      style={{
+        position: "absolute",
+        left: pan.x,
+        top: pan.y,
+        zIndex: 9999,
+      }}
+      {...panResponder.panHandlers}
+    >
+      <Pressable
+        className="items-center justify-center"
+        style={{
+          width: 52,
+          height: 52,
+          borderRadius: 14,
+          backgroundColor: "rgba(0,0,0,0.55)",
+        }}
+        onPress={() => {
+          if (!isDraggingRef.current) {
+            router.push("/dev-tools");
+          }
+        }}
+      >
+        <Ionicons name="bug-outline" size={18} color="#22D3EE" />
+        <Text style={{ color: "#22D3EE", fontSize: 8, fontWeight: "900", letterSpacing: 1.5, marginTop: 1 }}>DEV</Text>
+      </Pressable>
+    </Animated.View>
   );
 }
 
