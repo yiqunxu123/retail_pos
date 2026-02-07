@@ -12,18 +12,18 @@
  */
 
 import { Ionicons } from "@expo/vector-icons";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
-  ActivityIndicator,
-  Animated,
-  FlatList,
-  Modal,
-  PanResponder,
-  Pressable,
-  ScrollView,
-  Text,
-  View,
-  useWindowDimensions,
+    ActivityIndicator,
+    Animated,
+    FlatList,
+    Modal,
+    PanResponder,
+    Pressable,
+    ScrollView,
+    Text,
+    View,
+    useWindowDimensions,
 } from "react-native";
 import { powerSyncDb } from "../utils/powersync/PowerSyncProvider";
 
@@ -129,7 +129,7 @@ export function DevDataOverlay({ tables, defaultTable }: DevDataOverlayProps) {
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
   const [selectedCols, setSelectedCols] = useState<string[]>(initialTable.defaultColumns);
-  const [showColPicker, setShowColPicker] = useState(false);
+  const [showColPicker, setShowColPicker] = useState(true);
 
   // --- Load data ---
   const loadData = useCallback(async (table: DevTableConfig) => {
