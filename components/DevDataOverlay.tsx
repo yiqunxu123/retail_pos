@@ -15,6 +15,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
     ActivityIndicator,
+    Alert,
     Animated,
     FlatList,
     Modal,
@@ -25,7 +26,7 @@ import {
     View,
     useWindowDimensions,
 } from "react-native";
-import { powerSyncDb } from "../utils/powersync/PowerSyncProvider";
+import { powerSyncDb, usePowerSync } from "../utils/powersync/PowerSyncProvider";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -83,6 +84,8 @@ export function DevDataOverlay({ tables, defaultTable }: DevDataOverlayProps) {
   if (!__DEV__) return null;
 
   const { width: screenWidth } = useWindowDimensions();
+  const { reconnect } = usePowerSync();
+  const [syncing, setSyncing] = useState(false);
 
   // --- Draggable button ---
   const devPosRef = useRef({ x: -1, y: -1 });
@@ -188,6 +191,26 @@ export function DevDataOverlay({ tables, defaultTable }: DevDataOverlayProps) {
     loadData(activeTable);
   }, [showSheet, activeTable, loadData]);
 
+  // --- Trigger PowerSync re-sync then reload data ---
+  const triggerResync = useCallback(async (table: DevTableConfig) => {
+    setSyncing(true);
+    setMessage("正在同步...");
+    try {
+      await reconnect();
+      // Give PowerSync a moment to pull fresh data from server
+      await new Promise((r) => setTimeout(r, 2500));
+      await loadData(table);
+      setMessage((prev) => {
+        const base = prev.replace("正在同步...", "").trim();
+        return base ? `${base} (已同步)` : "同步完成";
+      });
+    } catch (err: any) {
+      Alert.alert("同步失败", err?.message || String(err));
+    } finally {
+      setSyncing(false);
+    }
+  }, [reconnect, loadData]);
+
   // Reset columns and sort when switching tables
   const switchTable = useCallback((table: DevTableConfig) => {
     setActiveTable(table);
@@ -280,6 +303,18 @@ export function DevDataOverlay({ tables, defaultTable }: DevDataOverlayProps) {
                 >
                   <Ionicons name="refresh" size={14} color="#374151" />
                   <Text className="text-gray-700 text-sm">刷新</Text>
+                </Pressable>
+                <Pressable
+                  className="flex-row items-center gap-1 px-3 py-1.5 rounded-lg border border-blue-400"
+                  style={syncing ? { opacity: 0.6 } : {}}
+                  disabled={syncing}
+                  onPress={() => triggerResync(activeTable)}
+                >
+                  {syncing
+                    ? <ActivityIndicator size={14} color="#3B82F6" />
+                    : <Ionicons name="cloud-download-outline" size={14} color="#3B82F6" />
+                  }
+                  <Text className="text-blue-600 text-sm">{syncing ? "同步中" : "同步"}</Text>
                 </Pressable>
               </View>
             </View>
