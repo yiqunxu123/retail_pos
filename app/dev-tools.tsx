@@ -8,6 +8,7 @@
  */
 
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons'
+import { useLocalSearchParams } from 'expo-router'
 import { useCallback, useEffect, useState } from 'react'
 import {
     ActivityIndicator,
@@ -45,8 +46,25 @@ interface RowData {
 // 主组件
 // ============================================================================
 
+function resolveTab(input?: string, hasTable?: boolean): TabKey {
+  if (input === 'generate' || input === 'browse' || input === 'quick') return input
+  return hasTable ? 'browse' : 'generate'
+}
+
+function resolveTable(input?: string): string | undefined {
+  if (!input) return undefined
+  return TABLE_CONFIGS.find((t) => t.name === input)?.name
+}
+
 export default function DevToolsScreen() {
-  const [activeTab, setActiveTab] = useState<TabKey>('generate')
+  const params = useLocalSearchParams<{ tab?: string; table?: string }>()
+  const resolvedTable = resolveTable(params.table)
+  const resolvedTab = resolveTab(params.tab, !!resolvedTable)
+  const [activeTab, setActiveTab] = useState<TabKey>(resolvedTab)
+
+  useEffect(() => {
+    setActiveTab(resolvedTab)
+  }, [resolvedTab])
 
   // 生产环境拦截：即使通过 URL 直接访问也不会暴露
   if (!__DEV__) {
@@ -85,8 +103,8 @@ export default function DevToolsScreen() {
       </View>
 
       {/* Tab Content */}
-      {activeTab === 'generate' && <GenerateTab />}
-      {activeTab === 'browse' && <BrowseTab />}
+      {activeTab === 'generate' && <GenerateTab initialTable={resolvedTable} />}
+      {activeTab === 'browse' && <BrowseTab initialTable={resolvedTable} />}
       {activeTab === 'quick' && <QuickActionsTab />}
     </View>
   )
@@ -197,8 +215,8 @@ function TableSelector({
 // 生成 Tab
 // ============================================================================
 
-function GenerateTab() {
-  const [selectedTable, setSelectedTable] = useState(TABLE_CONFIGS[0].name)
+function GenerateTab({ initialTable }: { initialTable?: string }) {
+  const [selectedTable, setSelectedTable] = useState(initialTable || TABLE_CONFIGS[0].name)
   const [batchCount, setBatchCount] = useState('5')
   const [isGenerating, setIsGenerating] = useState(false)
   const [message, setMessage] = useState('')
@@ -211,6 +229,12 @@ function GenerateTab() {
     setFieldOverrides({})
     setMessage('')
   }, [selectedTable])
+
+  useEffect(() => {
+    if (initialTable && initialTable !== selectedTable) {
+      setSelectedTable(initialTable)
+    }
+  }, [initialTable, selectedTable])
 
   const handleGenerate = useCallback(async () => {
     if (!config) return
@@ -365,8 +389,8 @@ function GenerateTab() {
 // 浏览 Tab
 // ============================================================================
 
-function BrowseTab() {
-  const [selectedTable, setSelectedTable] = useState(TABLE_CONFIGS[0].name)
+function BrowseTab({ initialTable }: { initialTable?: string }) {
+  const [selectedTable, setSelectedTable] = useState(initialTable || TABLE_CONFIGS[0].name)
   const [rows, setRows] = useState<RowData[]>([])
   const [isLoading, setIsLoading] = useState(false)
   const [message, setMessage] = useState('')
@@ -409,6 +433,12 @@ function BrowseTab() {
   useEffect(() => {
     loadData()
   }, [loadData])
+
+  useEffect(() => {
+    if (initialTable && initialTable !== selectedTable) {
+      setSelectedTable(initialTable)
+    }
+  }, [initialTable, selectedTable])
 
   // 打开编辑弹窗
   const handleEditRow = useCallback(

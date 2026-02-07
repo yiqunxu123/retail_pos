@@ -6,9 +6,11 @@
  */
 
 import { Ionicons } from "@expo/vector-icons";
+import type { AxiosError } from "axios";
 import { useRouter } from "expo-router";
-import { useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
+    ActivityIndicator,
     Alert,
     Modal,
     Pressable,
@@ -19,6 +21,19 @@ import {
     View,
 } from "react-native";
 import { PageHeader } from "../../components";
+import { CATEGORIES_TABLE, DevDataOverlay, PRODUCTS_TABLE } from "../../components/DevDataOverlay";
+import {
+    createProduct,
+    fetchBrands,
+    fetchCategories,
+    fetchChannels,
+    fetchManufacturers,
+    fetchSuppliers,
+    parseProductApiError,
+    type ChannelInfoPayload,
+    type ListItem,
+    type ProductPayload,
+} from "../../utils/api/products";
 
 // Tab configuration
 const TABS = [
@@ -29,6 +44,139 @@ const TABS = [
   { key: "tax", label: "Tax Section" },
   { key: "promotions", label: "Promotions" },
 ];
+
+// Unit enum – mirrors kapp UNIT constants
+const UNIT = { PIECE: 1, PACK: 2, CASE: 3, PALLET: 4 } as const;
+
+// Video type enum – mirrors kapp VIDEO_TYPE constants
+const VIDEO_TYPE = { VIDEO: 4, YOUTUBE_LINK: 5 } as const;
+
+const MSA_CODES = [
+  { code: "003211", description: "Moist Snuff" },
+  { code: "003212", description: "Loose Leaf" },
+  { code: "003213", description: "Dry Snuff" },
+  { code: "003214", description: "Twist/Rope/Plug" },
+  { code: "003215", description: "DNU Plug" },
+  { code: "003217", description: "Snus" },
+  { code: "003218", description: "Hard Snuff" },
+  { code: "003221", description: "RYO Tobacco" },
+  { code: "003227", description: "Cigars - Handmade or hand rolled" },
+  { code: "003231", description: "Cigarettes" },
+  { code: "003232", description: "Heated Tobacco" },
+  { code: "003241", description: "Pipe Tobacco" },
+  { code: "003251", description: "Cigar" },
+  { code: "003252", description: "Little/Cigars Filtered" },
+  { code: "003261", description: "Tubes/Papers/Wraps" },
+  { code: "003262", description: "Accessories" },
+  { code: "003281", description: "Kits" },
+  { code: "003292", description: "E-Vapor" },
+  { code: "003293", description: "Tobacco Drived Nicotine Products" },
+  { code: "003263", description: "Lighters" },
+  { code: "003271", description: "3261-RJR" },
+  { code: "003291", description: "Nicotine Replace Therapy" },
+] as const;
+
+/** Round number to 2 decimal places */
+function round2(v: number | string): number {
+  const n = typeof v === "string" ? parseFloat(v) : v;
+  if (isNaN(n)) return 0;
+  return Math.round((n + Number.EPSILON) * 100) / 100;
+}
+
+/**
+ * Convert a quantity entered at `soldByUnit` level to the lowest (Piece) unit.
+ * Mirrors kapp's convertToLowest logic in utils.js.
+ *
+ *  unitPrices = the unit_prices array for this channel
+ *  soldByUnit = the unit the user sells by (UNIT.PIECE/PACK/CASE/PALLET)
+ *
+ * Returns the multiplier to convert 1 sold-unit qty into base (Piece) qty.
+ */
+function convertToLowest(
+  soldByUnit: number,
+  unitPrices: Array<{ unit: number; definition: number | null }>,
+): number {
+  if (soldByUnit === UNIT.PIECE) return 1;
+
+  // Build a lookup: unit -> definition
+  const defMap = new Map<number, number>();
+  for (const up of unitPrices) {
+    if (up.definition) defMap.set(up.unit, up.definition);
+  }
+
+  // Hierarchy: Pallet -> Case -> Pack -> Piece
+  const parentOf: Record<number, number> = {
+    [UNIT.PACK]: UNIT.PIECE,
+    [UNIT.CASE]: UNIT.PACK,
+    [UNIT.PALLET]: UNIT.CASE,
+  };
+
+  let multiplier = 1;
+  let current = soldByUnit;
+  while (current !== UNIT.PIECE) {
+    const def = defMap.get(current);
+    if (!def) return 1; // Missing definition – fallback to 1
+    multiplier *= def;
+    current = parentOf[current] ?? UNIT.PIECE;
+  }
+  return multiplier;
+}
+
+/** Map a unit label string to its numeric constant */
+function unitLabelToId(label: string): number {
+  switch (label) {
+    case "Pack": return UNIT.PACK;
+    case "Case": return UNIT.CASE;
+    case "Pallet": return UNIT.PALLET;
+    default: return UNIT.PIECE;
+  }
+}
+
+type CategoryNode = ListItem & {
+  children?: CategoryNode[];
+  parent_id?: number | null;
+  parentId?: number | null;
+};
+
+
+function normalizeCategoryList(data: unknown): ListItem[] {
+  if (!data) return [];
+  if (Array.isArray(data)) return data as ListItem[];
+  const obj = data as Record<string, unknown>;
+  const candidates = [
+    obj.entities,
+    obj.rows,
+    obj.categories,
+    obj.data,
+  ];
+  for (const candidate of candidates) {
+    if (Array.isArray(candidate)) return candidate as ListItem[];
+  }
+  return [];
+}
+
+function buildCategoryTree(items: ListItem[]): CategoryNode[] {
+  if (!items.length) return [];
+  const hasNestedChildren = items.some((item) => Array.isArray((item as CategoryNode).children));
+  if (hasNestedChildren) return items as CategoryNode[];
+
+  const nodes = new Map<number, CategoryNode>();
+  items.forEach((item) => {
+    nodes.set(item.id, { ...(item as CategoryNode), children: [] });
+  });
+
+  const roots: CategoryNode[] = [];
+  nodes.forEach((node) => {
+    const parentId = (node.parent_id ?? node.parentId ?? null) as number | null;
+    if (parentId && nodes.has(parentId)) {
+      nodes.get(parentId)?.children?.push(node);
+    } else {
+      roots.push(node);
+    }
+  });
+
+  return roots;
+}
 
 // Form input component
 function FormInput({ 
@@ -72,36 +220,6 @@ function FormInput({
   );
 }
 
-// Dropdown select component (simplified)
-function FormSelect({ 
-  label, 
-  placeholder,
-  value,
-  info,
-}: { 
-  label: string; 
-  placeholder?: string;
-  value?: string;
-  info?: boolean;
-}) {
-  return (
-    <View className="mb-4">
-      <View className="flex-row items-center mb-2">
-        <Text className="text-gray-700 text-sm font-medium">{label}</Text>
-        {info && (
-          <Ionicons name="information-circle-outline" size={16} color="#9CA3AF" style={{ marginLeft: 4 }} />
-        )}
-      </View>
-      <Pressable className="bg-white border border-gray-200 rounded-lg px-4 py-3 flex-row justify-between items-center">
-        <Text className={value ? "text-gray-800" : "text-gray-400"}>
-          {value || placeholder || "Select"}
-        </Text>
-        <Ionicons name="chevron-down" size={16} color="#9CA3AF" />
-      </Pressable>
-    </View>
-  );
-}
-
 // Switch component
 function FormSwitch({ 
   label, 
@@ -131,6 +249,23 @@ export default function AddProductScreen() {
   // Active Tab
   const [activeTab, setActiveTab] = useState("basic");
 
+  // ---------- Loading / submission state ----------
+  const [saving, setSaving] = useState(false);
+
+  // ---------- Reference data fetched from server ----------
+  const [channelsList, setChannelsList] = useState<ListItem[]>([]);
+  const [brandsList, setBrandsList] = useState<ListItem[]>([]);
+  const [categoriesList, setCategoriesList] = useState<ListItem[]>([]);
+  const [suppliersList, setSuppliersList] = useState<ListItem[]>([]);
+  const [manufacturersList, setManufacturersList] = useState<ListItem[]>([]);
+
+  // Selected references
+  const [selectedBrandId, setSelectedBrandId] = useState<number | null>(null);
+  const [selectedCategoryIds, setSelectedCategoryIds] = useState<number[]>([]);
+  const [selectedMainCategoryId, setSelectedMainCategoryId] = useState<number | null>(null);
+  const [selectedSupplierIds, setSelectedSupplierIds] = useState<number[]>([]);
+  const [selectedManufacturerIds, setSelectedManufacturerIds] = useState<number[]>([]);
+
   // Form state - Basic
   const [productName, setProductName] = useState("");
   const [alias, setAlias] = useState("");
@@ -147,6 +282,7 @@ export default function AddProductScreen() {
   const [aisle, setAisle] = useState("");
   const [tags, setTags] = useState("");
   const [productNote, setProductNote] = useState("");
+  const [description, setDescription] = useState("");
   
   // Switches - Basic
   const [isMsa, setIsMsa] = useState(false);
@@ -164,7 +300,11 @@ export default function AddProductScreen() {
   const [categoryMsaCode, setCategoryMsaCode] = useState("");
   const [categoryIsMsa, setCategoryIsMsa] = useState(false);
   const [categoryIsFeature, setCategoryIsFeature] = useState(false);
-  const [categoryParent, setCategoryParent] = useState("");
+  const [categoryParentId, setCategoryParentId] = useState<number | null>(null);
+  const [showMsaCodeModal, setShowMsaCodeModal] = useState(false);
+  const [msaCodeDraft, setMsaCodeDraft] = useState("");
+  const [showParentCategoryModal, setShowParentCategoryModal] = useState(false);
+
   
   // Pricing & Stock Tab state
   const [measuredBy, setMeasuredBy] = useState("Count");
@@ -173,29 +313,32 @@ export default function AddProductScreen() {
   
   // Unit of Measurement data
   const [unitData, setUnitData] = useState([
-    { unit: "Piece", qty: "1", upc: "" },
-    { unit: "Pack", qty: "", qtyLabel: "pieces", upc: "" },
-    { unit: "Case", qty: "", qtyLabel: "packs", upc: "" },
-    { unit: "Pallet", qty: "", qtyLabel: "cases", upc: "" },
+    { unit: "Piece", unitId: UNIT.PIECE, qty: "1", upc: "" },
+    { unit: "Pack", unitId: UNIT.PACK, qty: "", qtyLabel: "pieces", upc: "" },
+    { unit: "Case", unitId: UNIT.CASE, qty: "", qtyLabel: "packs", upc: "" },
+    { unit: "Pallet", unitId: UNIT.PALLET, qty: "", qtyLabel: "cases", upc: "" },
   ]);
   
   // Pricing data
   const [pricingData, setPricingData] = useState([
-    { unit: "Piece", qty: "1", baseCost: "", netCost: "", salePrice: "", margin: "", msrp: "", lowestPrice: "", ecomPrice: "", tier1: "", tier2: "", tier3: "", tier4: "", tier5: "" },
-    { unit: "Pack", qty: "", qtyLabel: "Pieces", baseCost: "", netCost: "", salePrice: "", margin: "", msrp: "", lowestPrice: "", ecomPrice: "", tier1: "", tier2: "", tier3: "", tier4: "", tier5: "" },
-    { unit: "Case", qty: "", qtyLabel: "Packs", baseCost: "", netCost: "", salePrice: "", margin: "", msrp: "", lowestPrice: "", ecomPrice: "", tier1: "", tier2: "", tier3: "", tier4: "", tier5: "" },
-    { unit: "Pallet", qty: "", qtyLabel: "Cases", baseCost: "", netCost: "", salePrice: "", margin: "", msrp: "", lowestPrice: "", ecomPrice: "", tier1: "", tier2: "", tier3: "", tier4: "", tier5: "" },
+    { unit: "Piece", unitId: UNIT.PIECE, qty: "1", baseCost: "", netCost: "", salePrice: "", margin: "", msrp: "", lowestPrice: "", ecomPrice: "", tier1: "", tier2: "", tier3: "", tier4: "", tier5: "" },
+    { unit: "Pack", unitId: UNIT.PACK, qty: "", qtyLabel: "Pieces", baseCost: "", netCost: "", salePrice: "", margin: "", msrp: "", lowestPrice: "", ecomPrice: "", tier1: "", tier2: "", tier3: "", tier4: "", tier5: "" },
+    { unit: "Case", unitId: UNIT.CASE, qty: "", qtyLabel: "Packs", baseCost: "", netCost: "", salePrice: "", margin: "", msrp: "", lowestPrice: "", ecomPrice: "", tier1: "", tier2: "", tier3: "", tier4: "", tier5: "" },
+    { unit: "Pallet", unitId: UNIT.PALLET, qty: "", qtyLabel: "Cases", baseCost: "", netCost: "", salePrice: "", margin: "", msrp: "", lowestPrice: "", ecomPrice: "", tier1: "", tier2: "", tier3: "", tier4: "", tier5: "" },
   ]);
   
   // Stock data
   const [stockData, setStockData] = useState([
-    { srNo: "1", warehouse: "Primary", availableQty: "0", onHoldQty: "0", damagedQty: "0", backOrderQty: "", comingSoonQty: "" },
+    { srNo: "1", warehouse: "Primary", channelId: 1, availableQty: "0", onHoldQty: "0", damagedQty: "0", backOrderQty: "", comingSoonQty: "" },
   ]);
   
   // Collapsible sections
   const [measurementExpanded, setMeasurementExpanded] = useState(true);
   const [pricingExpanded, setPricingExpanded] = useState(true);
   const [stockExpanded, setStockExpanded] = useState(true);
+
+  // Category tree expand/collapse
+  const [expandedCategoryIds, setExpandedCategoryIds] = useState<number[]>([]);
   
   // SEO Tab state
   const [seoSlug, setSeoSlug] = useState("");
@@ -213,27 +356,416 @@ export default function AddProductScreen() {
   // Youtube
   const [youtubeLink, setYoutubeLink] = useState("");
 
-  // Status
-  const [status, setStatus] = useState("active");
+  // Status (1 = Active, 2 = Inactive — mirrors kapp)
+  const [status, setStatus] = useState(1);
 
-  const handleSave = () => {
+  // Main category selector modal
+  const [showMainCategoryModal, setShowMainCategoryModal] = useState(false);
+
+  // ------------------------------------------------------------------
+  // Fetch reference data on mount (channels, brands, categories, etc.)
+  // ------------------------------------------------------------------
+  useEffect(() => {
+    const loadReferenceData = async () => {
+      try {
+        const [channelsRes, brandsRes, categoriesRes, suppliersRes, manufacturersRes] =
+          await Promise.allSettled([
+            fetchChannels({ page_size: 100 }),
+            fetchBrands({ page_size: 200 }),
+            fetchCategories(),
+            fetchSuppliers({ page_size: 200 }),
+            fetchManufacturers({ page_size: 200 }),
+          ]);
+
+        if (channelsRes.status === "fulfilled") {
+          const channels = channelsRes.value.data.entities || [];
+          setChannelsList(channels);
+          // Build initial stock data rows from channels
+          if (channels.length > 0) {
+            setStockData(
+              channels.map((ch, i) => ({
+                srNo: String(i + 1),
+                warehouse: ch.name,
+                channelId: ch.id,
+                availableQty: "0",
+                onHoldQty: "0",
+                damagedQty: "0",
+                backOrderQty: "",
+                comingSoonQty: "",
+              })),
+            );
+          }
+        }
+        if (brandsRes.status === "fulfilled") setBrandsList(brandsRes.value.data.entities || []);
+        if (categoriesRes.status === "fulfilled") {
+          setCategoriesList(normalizeCategoryList(categoriesRes.value.data));
+        }
+        if (suppliersRes.status === "fulfilled") setSuppliersList(suppliersRes.value.data.entities || []);
+        if (manufacturersRes.status === "fulfilled") setManufacturersList(manufacturersRes.value.data.entities || []);
+      } catch (e) {
+        console.warn("Failed to load reference data", e);
+      }
+    };
+    loadReferenceData();
+  }, []);
+
+  // ------------------------------------------------------------------
+  // Build unit_prices from the pricing + unit measurement form state
+  // Mirrors kapp's onSubmit + parseToIntData channel_info builder
+  // ------------------------------------------------------------------
+  const buildUnitPrices = useCallback(() => {
+    return unitData
+      .map((u, index) => {
+        const p = pricingData[index];
+        const def = u.unitId === UNIT.PIECE ? 1 : (parseInt(u.qty) || null);
+        // Skip units that have no definition (except piece)
+        if (!def && u.unitId !== UNIT.PIECE) return null;
+
+        return {
+          unit: u.unitId,
+          unit_name: u.unit,
+          definition: def,
+          upc: u.upc || "",
+          base_cost: round2(p.baseCost),
+          cost: round2(p.netCost),
+          price: round2(p.salePrice),
+          margin: round2(p.margin),
+          margin_type: 1,
+          lowest_selling_price: round2(p.lowestPrice),
+          ecom_price: round2(p.ecomPrice),
+          msrp_price: round2(p.msrp),
+          // Mirrors kapp: empty tier prices default to 0, not null
+          unit_price_tiers: [
+            { tier_id: 1, price: p.tier1 ? round2(p.tier1) : 0 },
+            { tier_id: 2, price: p.tier2 ? round2(p.tier2) : 0 },
+            { tier_id: 3, price: p.tier3 ? round2(p.tier3) : 0 },
+            { tier_id: 4, price: p.tier4 ? round2(p.tier4) : 0 },
+            { tier_id: 5, price: p.tier5 ? round2(p.tier5) : 0 },
+          ],
+        };
+      })
+      .filter(Boolean) as ChannelInfoPayload["unit_prices"];
+  }, [unitData, pricingData]);
+
+  // ------------------------------------------------------------------
+  // Build the full ProductPayload – mirrors kapp parseToIntData
+  // ------------------------------------------------------------------
+  const buildPayload = useCallback((): ProductPayload => {
+    const soldByUnit = unitLabelToId(soldBy);
+    const boughtByUnit = unitLabelToId(boughtBy);
+
+    const unitPrices = buildUnitPrices();
+
+    // Compute conversion multiplier – mirrors kapp convertToLowest
+    const inBase = convertToLowest(soldByUnit, unitPrices);
+
+    // Build channel_info array — one entry per channel (warehouse/storefront)
+    // Mirrors kapp parseToIntData: quantities are converted to lowest (Piece) unit
+    const channelInfo: ChannelInfoPayload[] = stockData.map((s) => ({
+      channel_id: s.channelId,
+      channel_name: s.warehouse,
+      in_hand: (parseInt(s.availableQty) || 0) * inBase,
+      on_hold: (parseInt(s.onHoldQty) || 0) * inBase,
+      damaged: (parseInt(s.damagedQty) || 0) * inBase,
+      back_order: (parseInt(s.backOrderQty) || 0) * inBase || null,
+      coming_soon: (parseInt(s.comingSoonQty) || 0) * inBase || null,
+      min_qty: 0,
+      max_qty: 0,
+      ps_allowed_qty: null,
+      autoCalculate: true,
+      sold_by_unit: soldByUnit,
+      bought_by_unit: boughtByUnit,
+      unit_prices: unitPrices,
+    }));
+
+    // If no channels loaded, create a default channel entry
+    if (channelInfo.length === 0) {
+      channelInfo.push({
+        channel_id: 1,
+        channel_name: "Primary",
+        in_hand: 0,
+        on_hold: 0,
+        damaged: 0,
+        back_order: null,
+        coming_soon: null,
+        min_qty: 0,
+        max_qty: 0,
+        ps_allowed_qty: null,
+        autoCalculate: true,
+        sold_by_unit: soldByUnit,
+        bought_by_unit: boughtByUnit,
+        unit_prices: unitPrices,
+      });
+    }
+
+    const tagValues = tags
+      .split(",")
+      .map((t) => t.trim())
+      .filter(Boolean);
+
+    const payload: ProductPayload = {
+      name: productName.trim(),
+      ecom_name: productEcomName.trim() || null,
+      auto_generate_sku: autoGenerateSku,
+      auto_fetch_img: autoFetchImage,
+      sku: autoGenerateSku ? undefined : sku.trim(),
+      slug: seoSlug.trim() || productName.trim(),
+      weight: weight ? round2(weight) : undefined,
+      weight_unit: 2, // lb
+      upc: upc.trim() || undefined,
+      upc_2: retailUpc1.trim() || undefined,
+      upc_3: retailUpc2.trim() || undefined,
+      bin: binCode.trim() || undefined,
+      zone: zone.trim() || undefined,
+      aisle: aisle.trim() || undefined,
+      description: description.trim() || productNote.trim() || undefined,
+      brand_id: selectedBrandId,
+      main_category_id: selectedMainCategoryId,
+      category_ids: selectedCategoryIds.length > 0
+        ? selectedCategoryIds
+        : selectedMainCategoryId
+          ? [selectedMainCategoryId]
+          : [],
+      supplier_ids: selectedSupplierIds,
+      manufacturer_ids: selectedManufacturerIds,
+      tag_values: tagValues,
+      status,
+      unit_of_measurement: measuredBy === "Weight" ? 2 : 1,
+      is_tax_applicable: isTaxApplicable,
+      is_msa_compliant: isMsa,
+      is_online: isOnline,
+      is_featured: isFeatured,
+      is_hot_seller: isHotSeller,
+      is_new_arrival: isNewArrival,
+      back_order_portal: enableBoProduct,
+      back_order_ecom: enableBoOnline,
+      channel_info: channelInfo,
+      images: [],
+      // Mirrors kapp VIDEO_TYPE: YouTube = 5
+      video_link: youtubeLink.trim() || undefined,
+      video_type: youtubeLink.trim() ? VIDEO_TYPE.YOUTUBE_LINK : undefined,
+      product_seo_meta_data: {
+        title: metaTitle.trim(),
+        description: metaDescription.trim(),
+      },
+    };
+
+    // Mirrors kapp: include msa_attributes only when is_msa_compliant is true
+    if (isMsa) {
+      payload.msa_attributes = {
+        category_id: selectedMainCategoryId || null,
+        category: "",
+        product_description: "",
+        promotion_description: "",
+        promotion_indicator: "N",
+        items_per_selling_unit: "",
+        dist_comp_shipper_flag: "",
+        manufacturer_promo_code: "",
+      };
+    }
+
+    return payload;
+  }, [
+    productName, productEcomName, autoGenerateSku, autoFetchImage, sku,
+    seoSlug, weight, upc, retailUpc1, retailUpc2, binCode, zone, aisle,
+    description, productNote, selectedBrandId, selectedMainCategoryId,
+    selectedCategoryIds, selectedSupplierIds, selectedManufacturerIds,
+    tags, status, measuredBy, isTaxApplicable, isMsa, isOnline, isFeatured,
+    isHotSeller, isNewArrival, enableBoProduct, enableBoOnline, stockData,
+    soldBy, boughtBy, buildUnitPrices, youtubeLink, metaTitle, metaDescription,
+  ]);
+
+  // ------------------------------------------------------------------
+  // Save handler – mirrors kapp AddFormPage.saveProduct
+  // ------------------------------------------------------------------
+  const handleSave = useCallback(async () => {
+    // --- Validation (mirrors kapp Yup schema + handleSaveClick) ---
+
+    // 1. Product name required (max 300 chars)
     if (!productName.trim()) {
-      Alert.alert("Error", "Product name is required");
+      Alert.alert("Validation Error", "Product name is required");
       return;
     }
-    
-    Alert.alert("Success", "Product added successfully", [
-      { text: "OK", onPress: () => router.back() }
-    ]);
+    if (productName.trim().length > 300) {
+      Alert.alert("Validation Error", "Product name must be at most 300 characters");
+      return;
+    }
+
+    // 2. SKU validation – mirrors kapp:
+    //    .required + .matches(/^[A-Za-z0-9]+(?:(?:(?!--)[A-Za-z0-9-])+[A-Za-z0-9])?$/) + .max(25)
+    if (!autoGenerateSku) {
+      const trimmedSku = sku.trim();
+      if (!trimmedSku) {
+        Alert.alert("Validation Error", "SKU is required when auto-generate is off");
+        return;
+      }
+      if (trimmedSku.length > 25) {
+        Alert.alert("Validation Error", "SKU must be at most 25 characters");
+        return;
+      }
+      const SKU_REGEX = /^[A-Za-z0-9]+(?:(?:(?!--)[A-Za-z0-9-])+[A-Za-z0-9])?$/;
+      if (!SKU_REGEX.test(trimmedSku)) {
+        Alert.alert("Validation Error", "SKU can only contain letters, numbers, and single hyphens (not at start/end)");
+        return;
+      }
+    }
+
+    // 3. Category required – mirrors kapp: categories.min(1) + main_category_id.required
+    if (!selectedMainCategoryId && selectedCategoryIds.length === 0) {
+      Alert.alert("Validation Error", "Please select at least one category");
+      return;
+    }
+
+    // 4. unit_name non-empty check – mirrors kapp handleSaveClick:
+    //    If a unit has definition or UPC but empty unit_name, reject.
+    const unitNameErrors: string[] = [];
+    const unitPositionNames = ["First unit", "Second unit", "Third unit", "Fourth unit"];
+    unitData.forEach((u, idx) => {
+      const hasDef = u.unitId === UNIT.PIECE ? true : !!(parseInt(u.qty) || 0);
+      const hasUpc = !!u.upc?.trim();
+      if ((hasDef || hasUpc) && (!u.unit || u.unit.trim() === "")) {
+        unitNameErrors.push(unitPositionNames[idx] || `Unit ${idx + 1}`);
+      }
+    });
+    if (unitNameErrors.length > 0) {
+      Alert.alert("Validation Error", `Please provide unit names for: ${unitNameErrors.join(", ")}`);
+      return;
+    }
+
+    try {
+      setSaving(true);
+      const payload = buildPayload();
+      const { data } = await createProduct(payload);
+
+      Alert.alert("Success", data.message || "Product created successfully", [
+        { text: "OK", onPress: () => router.back() },
+      ]);
+    } catch (error) {
+      const messages = parseProductApiError(error as AxiosError);
+      Alert.alert("Error", messages.join("\n"));
+    } finally {
+      setSaving(false);
+    }
+  }, [productName, autoGenerateSku, sku, selectedMainCategoryId, selectedCategoryIds, unitData, buildPayload, router]);
+
+  const categoryTree = useMemo(() => buildCategoryTree(categoriesList), [categoriesList]);
+  const parentCategoryOptions = useMemo(() => {
+    const flatten = (nodes: CategoryNode[], depth = 0): Array<{ id: number; label: string }> => {
+      return nodes.flatMap((node) => {
+        const prefix = depth > 0 ? `${"—".repeat(depth)} ` : "";
+        const current = { id: node.id, label: `${prefix}${node.name}` };
+        const children = node.children?.length ? flatten(node.children, depth + 1) : [];
+        return [current, ...children];
+      });
+    };
+    return flatten(categoryTree);
+  }, [categoryTree]);
+
+  const getAllParentIds = useCallback((categoryId: number, tree: CategoryNode[]): number[] => {
+    const findParents = (id: number, nodes: CategoryNode[], path: number[] = []): number[] | null => {
+      for (const node of nodes) {
+        const currentPath = [...path, node.id];
+        if (node.id === id) return path;
+        if (node.children?.length) {
+          const result = findParents(id, node.children, currentPath);
+          if (result) return result;
+        }
+      }
+      return null;
+    };
+
+    return findParents(categoryId, tree) || [];
+  }, []);
+
+  const toggleCategorySelection = useCallback((cat: CategoryNode) => {
+    const isSelected = selectedCategoryIds.includes(cat.id);
+    const isMain = selectedMainCategoryId === cat.id;
+
+    if (isSelected) {
+      const newSelectedIds = selectedCategoryIds.filter((id) => id !== cat.id);
+      setSelectedCategoryIds(newSelectedIds);
+
+      if (isMain) {
+        setSelectedMainCategoryId(newSelectedIds.length > 0 ? newSelectedIds[0] : null);
+      } else if (selectedMainCategoryId && !newSelectedIds.includes(selectedMainCategoryId)) {
+        setSelectedMainCategoryId(newSelectedIds.length > 0 ? newSelectedIds[0] : null);
+      }
+    } else {
+      const parentIds = getAllParentIds(cat.id, categoryTree);
+      const idsToAdd = [cat.id, ...parentIds].filter((id) => !selectedCategoryIds.includes(id));
+      const newSelectedIds = [...selectedCategoryIds, ...idsToAdd];
+      setSelectedCategoryIds(newSelectedIds);
+
+      if (!selectedMainCategoryId || !newSelectedIds.includes(selectedMainCategoryId)) {
+        setSelectedMainCategoryId(cat.id);
+      }
+    }
+  }, [selectedCategoryIds, selectedMainCategoryId, categoryTree, getAllParentIds]);
+
+  const renderCategoryNode = (cat: CategoryNode, depth: number) => {
+    const isSelected = selectedCategoryIds.includes(cat.id);
+    const isMain = selectedMainCategoryId === cat.id;
+    const hasChildren = !!cat.children?.length;
+    const isExpanded = expandedCategoryIds.includes(cat.id);
+
+    return (
+      <View key={cat.id}>
+        <View className={`rounded-lg ${isSelected ? "bg-red-50" : "bg-transparent"}`}>
+          <View
+            className="flex-row items-center py-2.5 pr-2"
+            style={{ paddingLeft: depth * 12 }}
+          >
+            <Pressable
+              className="w-5 h-5 items-center justify-center mr-1"
+              onPress={() => {
+                if (!hasChildren) return;
+                setExpandedCategoryIds((prev) =>
+                  prev.includes(cat.id) ? prev.filter((id) => id !== cat.id) : [...prev, cat.id],
+                );
+              }}
+              hitSlop={8}
+            >
+              {hasChildren ? (
+                <Ionicons name={isExpanded ? "chevron-down" : "chevron-forward"} size={14} color="#9CA3AF" />
+              ) : (
+                <View className="w-5 h-5" />
+              )}
+            </Pressable>
+
+            <Pressable
+              className="flex-row items-center flex-1"
+              onPress={() => toggleCategorySelection(cat)}
+            >
+              <View className={`w-4 h-4 rounded border mr-2 items-center justify-center ${isSelected ? "bg-red-500 border-red-500" : "border-gray-300"}`}>
+                {isSelected && <Ionicons name="checkmark" size={12} color="white" />}
+              </View>
+              <Text className={`text-sm flex-1 ${isSelected ? "text-gray-800 font-medium" : "text-gray-600"}`} numberOfLines={1}>
+                {cat.name}
+              </Text>
+              {isMain && (
+                <View className="bg-red-500 rounded px-1.5 py-0.5 ml-2">
+                  <Text className="text-white text-[10px] font-bold">Main</Text>
+                </View>
+              )}
+            </Pressable>
+          </View>
+        </View>
+
+        {hasChildren && isExpanded && cat.children?.map((child) => renderCategoryNode(child, depth + 1))}
+      </View>
+    );
   };
+
 
   // Render Basic Tab Content
   const renderBasicTab = () => (
     <View className="flex-1 flex-row">
-      {/* Left Sidebar - Category */}
+      {/* Left Sidebar - Category (mirrors kapp CategoryTree) */}
       <View className="w-56 bg-white border-r border-gray-200 p-4">
         <View className="flex-row items-center justify-between mb-4">
-          <Text className="text-gray-800 font-medium">Select Category</Text>
+          <Text className="text-gray-800 font-medium">
+            Select Category<Text className="text-red-500">*</Text>
+          </Text>
           <Pressable 
             className="w-6 h-6 rounded-full bg-red-50 items-center justify-center"
             onPress={() => setShowAddCategoryModal(true)}
@@ -241,16 +773,54 @@ export default function AddProductScreen() {
             <Ionicons name="add" size={16} color="#EC1A52" />
           </Pressable>
         </View>
-        <View className="flex-row items-center py-3">
-          <Text className="text-gray-500 text-sm flex-1">No Category Found</Text>
-          <Ionicons name="information-circle-outline" size={18} color="#9CA3AF" />
-        </View>
+
+        {categoryTree.length === 0 ? (
+          <View className="flex-row items-center py-3">
+            <Text className="text-gray-500 text-sm flex-1">No Category Found</Text>
+            <Ionicons name="information-circle-outline" size={18} color="#9CA3AF" />
+          </View>
+        ) : (
+          <ScrollView style={{ maxHeight: 500 }} showsVerticalScrollIndicator>
+            {categoryTree.map((cat) => renderCategoryNode(cat, 0))}
+          </ScrollView>
+        )}
       </View>
 
-      {/* Middle - Form */}
+      {/* Main Form */}
       <ScrollView className="flex-1 p-6" showsVerticalScrollIndicator={false}>
-        {/* General Information */}
-        <Text className="text-lg font-semibold text-gray-800 mb-6">General Information</Text>
+        {/* Status toggle row — mirrors kapp PRODUCT_STATUS: ACTIVE=1, INACTIVE=2, DISCONTINUED=3 */}
+        <View className="flex-row items-center justify-between mb-6">
+          <Text className="text-lg font-semibold text-gray-800">General Information</Text>
+          <Pressable
+            className="rounded-lg px-4 py-2 flex-row items-center"
+            style={{
+              backgroundColor:
+                status === 1 ? "#1F2937"    // ACTIVE  – dark
+                : status === 2 ? "#9CA3AF"  // INACTIVE – gray
+                : "#F59E0B",                 // DISCONTINUED – amber
+            }}
+            onPress={() => setStatus(status === 1 ? 2 : status === 2 ? 3 : 1)}
+          >
+            <View
+              style={{
+                width: 8,
+                height: 8,
+                borderRadius: 4,
+                marginRight: 6,
+                backgroundColor:
+                  status === 1 ? "#22C55E"     // green dot
+                  : status === 2 ? "#EF4444"   // red dot
+                  : "transparent",
+                borderWidth: status === 3 ? 1.5 : 0,
+                borderColor: status === 3 ? "#FFFFFF" : "transparent",
+              }}
+            />
+            <Text className="text-white font-medium mr-2">
+              {status === 1 ? "ACTIVE" : status === 2 ? "INACTIVE" : "DISCONTINUED"}
+            </Text>
+            <Ionicons name="chevron-down" size={14} color="white" />
+          </Pressable>
+        </View>
 
         {/* Row 1: Product Name, Alias, Product Ecom Name */}
         <View className="flex-row gap-4">
@@ -324,7 +894,35 @@ export default function AddProductScreen() {
             </View>
           </View>
           <View className="flex-1">
-            <FormSelect label="Select Brand" placeholder="Select" />
+            {/* Brand picker — shows list from brandsList */}
+            <View className="mb-4">
+              <View className="flex-row items-center mb-2">
+                <Text className="text-gray-700 text-sm font-medium">Select Brand</Text>
+              </View>
+              <Pressable
+                className="bg-white border border-gray-200 rounded-lg px-4 py-3 flex-row justify-between items-center"
+                onPress={() => {
+                  if (brandsList.length === 0) return;
+                  // Cycle through brands or show picker
+                  const currentIdx = brandsList.findIndex((b) => b.id === selectedBrandId);
+                  const nextIdx = (currentIdx + 1) % brandsList.length;
+                  setSelectedBrandId(brandsList[nextIdx].id);
+                }}
+                onLongPress={() => setSelectedBrandId(null)}
+              >
+                <Text className={selectedBrandId ? "text-gray-800" : "text-gray-400"}>
+                  {selectedBrandId
+                    ? brandsList.find((b) => b.id === selectedBrandId)?.name || "Select"
+                    : "Select"}
+                </Text>
+                <Ionicons name="chevron-down" size={16} color="#9CA3AF" />
+              </Pressable>
+              {selectedBrandId && (
+                <Pressable className="mt-1" onPress={() => setSelectedBrandId(null)}>
+                  <Text className="text-red-400 text-xs">Clear</Text>
+                </Pressable>
+              )}
+            </View>
           </View>
         </View>
 
@@ -397,14 +995,88 @@ export default function AddProductScreen() {
 
         {/* Row 5: Manufacturer, Select Suppliers, Select Main Category */}
         <View className="flex-row gap-4">
+          {/* Manufacturer picker */}
           <View className="flex-1">
-            <FormSelect label="Manufacturer" placeholder="Select" />
+            <View className="mb-4">
+              <Text className="text-gray-700 text-sm font-medium mb-2">Manufacturer</Text>
+              <Pressable
+                className="bg-white border border-gray-200 rounded-lg px-4 py-3 flex-row justify-between items-center"
+                onPress={() => {
+                  if (manufacturersList.length === 0) return;
+                  const currentIdx = manufacturersList.findIndex((m) => selectedManufacturerIds.includes(m.id));
+                  const nextIdx = (currentIdx + 1) % manufacturersList.length;
+                  setSelectedManufacturerIds([manufacturersList[nextIdx].id]);
+                }}
+                onLongPress={() => setSelectedManufacturerIds([])}
+              >
+                <Text className={selectedManufacturerIds.length ? "text-gray-800" : "text-gray-400"} numberOfLines={1}>
+                  {selectedManufacturerIds.length
+                    ? manufacturersList.find((m) => m.id === selectedManufacturerIds[0])?.name || "Select"
+                    : "Select"}
+                </Text>
+                <Ionicons name="chevron-down" size={16} color="#9CA3AF" />
+              </Pressable>
+              {selectedManufacturerIds.length > 0 && (
+                <Pressable className="mt-1" onPress={() => setSelectedManufacturerIds([])}>
+                  <Text className="text-red-400 text-xs">Clear</Text>
+                </Pressable>
+              )}
+            </View>
           </View>
+
+          {/* Suppliers picker */}
           <View className="flex-1">
-            <FormSelect label="Select Suppliers" placeholder="Select" />
+            <View className="mb-4">
+              <Text className="text-gray-700 text-sm font-medium mb-2">Select Suppliers</Text>
+              <Pressable
+                className="bg-white border border-gray-200 rounded-lg px-4 py-3 flex-row justify-between items-center"
+                onPress={() => {
+                  if (suppliersList.length === 0) return;
+                  const currentIdx = suppliersList.findIndex((s) => selectedSupplierIds.includes(s.id));
+                  const nextIdx = (currentIdx + 1) % suppliersList.length;
+                  setSelectedSupplierIds([suppliersList[nextIdx].id]);
+                }}
+                onLongPress={() => setSelectedSupplierIds([])}
+              >
+                <Text className={selectedSupplierIds.length ? "text-gray-800" : "text-gray-400"} numberOfLines={1}>
+                  {selectedSupplierIds.length
+                    ? suppliersList.find((s) => s.id === selectedSupplierIds[0])?.name || "Select"
+                    : "Select"}
+                </Text>
+                <Ionicons name="chevron-down" size={16} color="#9CA3AF" />
+              </Pressable>
+              {selectedSupplierIds.length > 0 && (
+                <Pressable className="mt-1" onPress={() => setSelectedSupplierIds([])}>
+                  <Text className="text-red-400 text-xs">Clear</Text>
+                </Pressable>
+              )}
+            </View>
           </View>
+
+          {/* Main Category picker */}
           <View className="flex-1">
-            <FormSelect label="Select Main Category" placeholder="Select" />
+            <View className="mb-4">
+              <Text className="text-gray-700 text-sm font-medium mb-2">
+                Select Main Category<Text className="text-red-500">*</Text>
+              </Text>
+              <Pressable
+                className="bg-white border border-gray-200 rounded-lg px-4 py-3 flex-row justify-between items-center"
+                onPress={() => {
+                  if (selectedCategoryIds.length === 0) {
+                    Alert.alert("Info", "Please select categories from the left panel first");
+                    return;
+                  }
+                  setShowMainCategoryModal(true);
+                }}
+              >
+                <Text className={selectedMainCategoryId ? "text-gray-800" : "text-gray-400"} numberOfLines={1}>
+                  {selectedMainCategoryId
+                    ? categoriesList.find((c) => c.id === selectedMainCategoryId)?.name || "Select"
+                    : "Select"}
+                </Text>
+                <Ionicons name="chevron-down" size={16} color="#9CA3AF" />
+              </Pressable>
+            </View>
           </View>
         </View>
 
@@ -466,47 +1138,26 @@ export default function AddProductScreen() {
           className="bg-white border border-gray-200 rounded-lg px-4 py-3 mb-6"
           placeholder="Enter product description..."
           placeholderTextColor="#9ca3af"
+          value={description}
+          onChangeText={setDescription}
           multiline
           numberOfLines={5}
           style={{ minHeight: 120, textAlignVertical: 'top' }}
         />
 
+        {/* Youtube Link */}
+        <View className="mb-6">
+          <FormInput
+            label="Youtube Link"
+            placeholder="Enter youtube link"
+            value={youtubeLink}
+            onChangeText={setYoutubeLink}
+          />
+        </View>
+
         {/* Bottom spacing */}
         <View className="h-20" />
       </ScrollView>
-
-      {/* Right Sidebar - Status & Image */}
-      <View className="w-64 bg-white border-l border-gray-200 p-4">
-        {/* Status Dropdown */}
-        <Pressable className="bg-gray-800 rounded-lg px-4 py-3 flex-row justify-between items-center mb-6">
-          <Text className="text-white font-medium">ACTIVE</Text>
-          <Ionicons name="chevron-down" size={16} color="white" />
-        </Pressable>
-
-        {/* Image Upload */}
-        <View className="bg-gray-100 rounded-lg p-6 items-center mb-6">
-          <View className="w-16 h-16 bg-white rounded-full items-center justify-center mb-4 border-2 border-dashed border-gray-300">
-            <Ionicons name="cloud-upload-outline" size={28} color="#9CA3AF" />
-          </View>
-          <Text className="text-gray-500 text-sm text-center">Upload up to 5 images</Text>
-          <Text className="text-gray-400 text-xs text-center mt-1">Image size should be 400 x 400 px</Text>
-        </View>
-
-        {/* Youtube Link */}
-        <Pressable 
-          className="rounded-lg py-3 items-center mb-4"
-          style={{ backgroundColor: "#EC1A52" }}
-        >
-          <Text className="text-white font-medium">Youtube Link</Text>
-        </Pressable>
-        <TextInput
-          className="bg-white border border-gray-200 rounded-lg px-4 py-3"
-          placeholder="Enter youtube link"
-          placeholderTextColor="#9ca3af"
-          value={youtubeLink}
-          onChangeText={setYoutubeLink}
-        />
-      </View>
     </View>
   );
 
@@ -655,7 +1306,13 @@ export default function AddProductScreen() {
                 </View>
                 
                 {/* Rows */}
-                {pricingData.map((item, index) => (
+                {pricingData.map((item, index) => {
+                  const updatePricing = (field: string, value: string) => {
+                    const newData = [...pricingData];
+                    (newData[index] as any)[field] = value;
+                    setPricingData(newData);
+                  };
+                  return (
                   <View key={item.unit} className="flex-row items-center py-2 border-b border-gray-100">
                     <Text className="w-16 text-gray-700 text-sm">{item.unit}</Text>
                     <View className="w-28 flex-row items-center">
@@ -665,31 +1322,33 @@ export default function AddProductScreen() {
                         placeholderTextColor="#9ca3af"
                         value={item.qty}
                         editable={index !== 0}
+                        onChangeText={(text) => updatePricing("qty", text)}
                         keyboardType="numeric"
                       />
                       {item.qtyLabel && (
                         <Text className="text-gray-400 text-xs ml-1">= {item.qtyLabel}</Text>
                       )}
                     </View>
-                    <TextInput className="w-24 bg-white border border-gray-200 rounded px-2 py-1.5 text-sm" placeholder="Base ..." placeholderTextColor="#d1d5db" />
-                    <TextInput className="w-24 bg-white border border-gray-200 rounded px-2 py-1.5 text-sm ml-1" placeholder="Net c..." placeholderTextColor="#d1d5db" />
-                    <TextInput className="w-20 bg-white border border-gray-200 rounded px-2 py-1.5 text-sm ml-1" placeholder="Price" placeholderTextColor="#d1d5db" />
+                    <TextInput className="w-24 bg-white border border-gray-200 rounded px-2 py-1.5 text-sm" placeholder="Base ..." placeholderTextColor="#d1d5db" value={item.baseCost} onChangeText={(v) => updatePricing("baseCost", v)} keyboardType="decimal-pad" />
+                    <TextInput className="w-24 bg-white border border-gray-200 rounded px-2 py-1.5 text-sm ml-1" placeholder="Net c..." placeholderTextColor="#d1d5db" value={item.netCost} onChangeText={(v) => updatePricing("netCost", v)} keyboardType="decimal-pad" />
+                    <TextInput className="w-20 bg-white border border-gray-200 rounded px-2 py-1.5 text-sm ml-1" placeholder="Price" placeholderTextColor="#d1d5db" value={item.salePrice} onChangeText={(v) => updatePricing("salePrice", v)} keyboardType="decimal-pad" />
                     <View className="w-20 flex-row items-center ml-1">
-                      <TextInput className="flex-1 bg-white border border-gray-200 rounded-l px-2 py-1.5 text-sm" placeholder="Margin" placeholderTextColor="#d1d5db" />
+                      <TextInput className="flex-1 bg-white border border-gray-200 rounded-l px-2 py-1.5 text-sm" placeholder="Margin" placeholderTextColor="#d1d5db" value={item.margin} onChangeText={(v) => updatePricing("margin", v)} keyboardType="decimal-pad" />
                       <Pressable className="bg-gray-100 border border-l-0 border-gray-200 rounded-r px-1 py-1.5">
                         <Text className="text-gray-500 text-xs">$</Text>
                       </Pressable>
                     </View>
-                    <TextInput className="w-16 bg-white border border-gray-200 rounded px-2 py-1.5 text-sm ml-1" placeholder="MSRP" placeholderTextColor="#d1d5db" />
-                    <TextInput className="w-20 bg-white border border-gray-200 rounded px-2 py-1.5 text-sm ml-1" placeholder="Lowest..." placeholderTextColor="#d1d5db" />
-                    <TextInput className="w-20 bg-white border border-gray-200 rounded px-2 py-1.5 text-sm ml-1" placeholder="Ecom ..." placeholderTextColor="#d1d5db" />
-                    <TextInput className="w-20 bg-gray-50 border border-gray-200 rounded px-2 py-1.5 text-sm ml-1" placeholder="Tier 1" placeholderTextColor="#d1d5db" />
-                    <TextInput className="w-20 bg-gray-50 border border-gray-200 rounded px-2 py-1.5 text-sm ml-1" placeholder="Tier 2" placeholderTextColor="#d1d5db" />
-                    <TextInput className="w-20 bg-gray-50 border border-gray-200 rounded px-2 py-1.5 text-sm ml-1" placeholder="Tier 3" placeholderTextColor="#d1d5db" />
-                    <TextInput className="w-20 bg-gray-50 border border-gray-200 rounded px-2 py-1.5 text-sm ml-1" placeholder="Tier 4" placeholderTextColor="#d1d5db" />
-                    <TextInput className="w-20 bg-gray-50 border border-gray-200 rounded px-2 py-1.5 text-sm ml-1" placeholder="Tier 5" placeholderTextColor="#d1d5db" />
+                    <TextInput className="w-16 bg-white border border-gray-200 rounded px-2 py-1.5 text-sm ml-1" placeholder="MSRP" placeholderTextColor="#d1d5db" value={item.msrp} onChangeText={(v) => updatePricing("msrp", v)} keyboardType="decimal-pad" />
+                    <TextInput className="w-20 bg-white border border-gray-200 rounded px-2 py-1.5 text-sm ml-1" placeholder="Lowest..." placeholderTextColor="#d1d5db" value={item.lowestPrice} onChangeText={(v) => updatePricing("lowestPrice", v)} keyboardType="decimal-pad" />
+                    <TextInput className="w-20 bg-white border border-gray-200 rounded px-2 py-1.5 text-sm ml-1" placeholder="Ecom ..." placeholderTextColor="#d1d5db" value={item.ecomPrice} onChangeText={(v) => updatePricing("ecomPrice", v)} keyboardType="decimal-pad" />
+                    <TextInput className="w-20 bg-gray-50 border border-gray-200 rounded px-2 py-1.5 text-sm ml-1" placeholder="Tier 1" placeholderTextColor="#d1d5db" value={item.tier1} onChangeText={(v) => updatePricing("tier1", v)} keyboardType="decimal-pad" />
+                    <TextInput className="w-20 bg-gray-50 border border-gray-200 rounded px-2 py-1.5 text-sm ml-1" placeholder="Tier 2" placeholderTextColor="#d1d5db" value={item.tier2} onChangeText={(v) => updatePricing("tier2", v)} keyboardType="decimal-pad" />
+                    <TextInput className="w-20 bg-gray-50 border border-gray-200 rounded px-2 py-1.5 text-sm ml-1" placeholder="Tier 3" placeholderTextColor="#d1d5db" value={item.tier3} onChangeText={(v) => updatePricing("tier3", v)} keyboardType="decimal-pad" />
+                    <TextInput className="w-20 bg-gray-50 border border-gray-200 rounded px-2 py-1.5 text-sm ml-1" placeholder="Tier 4" placeholderTextColor="#d1d5db" value={item.tier4} onChangeText={(v) => updatePricing("tier4", v)} keyboardType="decimal-pad" />
+                    <TextInput className="w-20 bg-gray-50 border border-gray-200 rounded px-2 py-1.5 text-sm ml-1" placeholder="Tier 5" placeholderTextColor="#d1d5db" value={item.tier5} onChangeText={(v) => updatePricing("tier5", v)} keyboardType="decimal-pad" />
                   </View>
-                ))}
+                  );
+                })}
               </View>
             </ScrollView>
           </View>
@@ -967,7 +1626,26 @@ export default function AddProductScreen() {
 
   return (
     <View className="flex-1 bg-gray-50">
-      <PageHeader title="Add Product" />
+      <PageHeader title="Add Product" rightContent={
+        <View className="flex-row items-center gap-3">
+          <Pressable
+            className="px-5 py-2.5 rounded-lg border border-gray-300"
+            onPress={() => router.back()}
+            disabled={saving}
+          >
+            <Text className="text-gray-700 font-medium">Cancel</Text>
+          </Pressable>
+          <Pressable
+            className="px-5 py-2.5 rounded-lg flex-row items-center"
+            style={{ backgroundColor: saving ? "#F87171" : "#EC1A52", opacity: saving ? 0.7 : 1 }}
+            onPress={handleSave}
+            disabled={saving}
+          >
+            {saving && <ActivityIndicator size="small" color="white" style={{ marginRight: 6 }} />}
+            <Text className="text-white font-medium">{saving ? "Saving..." : "Save"}</Text>
+          </Pressable>
+        </View>
+      } />
 
       {/* Tab Navigation */}
       <View className="bg-white border-b border-gray-200">
@@ -1045,8 +1723,23 @@ export default function AddProductScreen() {
                 </View>
                 <View className="flex-1">
                   <Text className="text-gray-700 text-sm font-medium mb-2">MSA Code</Text>
-                  <Pressable className="bg-white border border-gray-200 rounded-lg px-4 py-3 flex-row justify-between items-center">
-                    <Text className="text-gray-400">Please select Msa Code</Text>
+                  <Pressable
+                    className="bg-white border border-gray-200 rounded-lg px-4 py-3 flex-row justify-between items-center"
+                    onPress={() => {
+                      if (!categoryIsMsa) {
+                        Alert.alert("Info", "Turn on Is MSA to enter MSA code");
+                        return;
+                      }
+                      setMsaCodeDraft(categoryMsaCode);
+                      setShowMsaCodeModal(true);
+                    }}
+                    style={!categoryIsMsa ? { backgroundColor: "#F3F4F6" } : {}}
+                  >
+                    <Text className={categoryMsaCode ? "text-gray-800" : "text-gray-400"}>
+                      {categoryMsaCode
+                        ? `${categoryMsaCode} - ${MSA_CODES.find((m) => m.code === categoryMsaCode)?.description || ""}`
+                        : "Please select Msa Code"}
+                    </Text>
                     <Ionicons name="chevron-down" size={16} color="#9CA3AF" />
                   </Pressable>
                 </View>
@@ -1054,7 +1747,10 @@ export default function AddProductScreen() {
                   <Text className="text-gray-700 text-sm font-medium mb-2">Is MSA</Text>
                   <Switch
                     value={categoryIsMsa}
-                    onValueChange={setCategoryIsMsa}
+                    onValueChange={(val) => {
+                      setCategoryIsMsa(val);
+                      if (!val) setCategoryMsaCode("");
+                    }}
                     trackColor={{ false: "#D1D5DB", true: "#EC1A52" }}
                     thumbColor="white"
                   />
@@ -1073,17 +1769,19 @@ export default function AddProductScreen() {
               {/* Row 2: Parent Category */}
               <View className="mb-6">
                 <Text className="text-gray-700 text-sm font-medium mb-2">Parent Category</Text>
-                <Pressable className="bg-white border border-gray-200 rounded-lg px-4 py-3 flex-row justify-between items-center w-64">
-                  <Text className="text-gray-400">Please Select</Text>
+                <Pressable
+                  className="bg-white border border-gray-200 rounded-lg px-4 py-3 flex-row justify-between items-center w-64"
+                  onPress={() => setShowParentCategoryModal(true)}
+                >
+                  <Text className={categoryParentId ? "text-gray-800" : "text-gray-400"}>
+                    {categoryParentId
+                      ? categoriesList.find((c) => c.id === categoryParentId)?.name || "Select"
+                      : "Please Select"}
+                  </Text>
                   <Ionicons name="chevron-down" size={16} color="#9CA3AF" />
                 </Pressable>
               </View>
 
-              {/* Image Upload Area */}
-              <Pressable className="bg-gray-50 rounded-lg py-10 items-center mb-6">
-                <Text className="text-gray-600 text-base font-medium">Click to upload.</Text>
-                <Text className="text-gray-400 text-sm mt-1">Please Upload Image</Text>
-              </Pressable>
             </View>
 
             {/* Footer */}
@@ -1105,8 +1803,10 @@ export default function AddProductScreen() {
                   }
                   Alert.alert("Success", "Category added successfully");
                   setCategoryName("");
+                  setCategoryMsaCode("");
                   setCategoryIsMsa(false);
                   setCategoryIsFeature(false);
+                  setCategoryParentId(null);
                   setShowAddCategoryModal(false);
                 }}
               >
@@ -1116,6 +1816,157 @@ export default function AddProductScreen() {
           </View>
         </View>
       </Modal>
+
+      {/* Main Category Modal */}
+      <Modal
+        visible={showMainCategoryModal}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowMainCategoryModal(false)}
+      >
+        <View className="flex-1 bg-black/50 justify-center items-center">
+          <View className="bg-white rounded-xl w-[420px] max-w-[90%]">
+            <View className="flex-row items-center justify-between p-5 border-b border-gray-200">
+              <Text className="text-lg font-semibold text-gray-800">Select Main Category</Text>
+              <Pressable onPress={() => setShowMainCategoryModal(false)}>
+                <Ionicons name="close" size={22} color="#9CA3AF" />
+              </Pressable>
+            </View>
+            <ScrollView style={{ maxHeight: 360 }}>
+              {selectedCategoryIds.map((id) => {
+                const cat = categoriesList.find((c) => c.id === id);
+                if (!cat) return null;
+                const isActive = selectedMainCategoryId === id;
+                return (
+                  <Pressable
+                    key={id}
+                    className={`px-5 py-3 flex-row items-center justify-between ${isActive ? "bg-red-50" : ""}`}
+                    onPress={() => {
+                      setSelectedMainCategoryId(id);
+                      setShowMainCategoryModal(false);
+                    }}
+                  >
+                    <Text className={isActive ? "text-gray-800 font-medium" : "text-gray-700"}>
+                      {cat.name}
+                    </Text>
+                    {isActive && <Ionicons name="checkmark" size={18} color="#EC1A52" />}
+                  </Pressable>
+                );
+              })}
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
+
+      {/* MSA Code Modal */}
+      <Modal
+        visible={showMsaCodeModal}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowMsaCodeModal(false)}
+      >
+        <View className="flex-1 bg-black/50 justify-center items-center">
+          <View className="bg-white rounded-xl w-[520px] max-w-[92%]">
+            <View className="flex-row items-center justify-between p-5 border-b border-gray-200">
+              <Text className="text-lg font-semibold text-gray-800">MSA Code</Text>
+              <Pressable onPress={() => setShowMsaCodeModal(false)}>
+                <Ionicons name="close" size={22} color="#9CA3AF" />
+              </Pressable>
+            </View>
+            <ScrollView style={{ maxHeight: 360 }}>
+              {MSA_CODES.map((item) => {
+                const isActive = msaCodeDraft === item.code;
+                return (
+                  <Pressable
+                    key={item.code}
+                    className={`px-5 py-3 flex-row items-center justify-between ${isActive ? "bg-red-50" : ""}`}
+                    onPress={() => setMsaCodeDraft(item.code)}
+                  >
+                    <Text className={isActive ? "text-gray-800 font-medium" : "text-gray-700"}>
+                      {item.code} - {item.description}
+                    </Text>
+                    {isActive && <Ionicons name="checkmark" size={18} color="#EC1A52" />}
+                  </Pressable>
+                );
+              })}
+            </ScrollView>
+            <View className="flex-row justify-end gap-3 p-5 border-t border-gray-200">
+              <Pressable
+                className="px-5 py-2.5 rounded-lg border border-gray-300"
+                onPress={() => setShowMsaCodeModal(false)}
+              >
+                <Text className="text-gray-700 font-medium">Cancel</Text>
+              </Pressable>
+              <Pressable
+                className="px-5 py-2.5 rounded-lg"
+                style={{ backgroundColor: "#EC1A52" }}
+                onPress={() => {
+                  setCategoryMsaCode(msaCodeDraft.trim());
+                  setShowMsaCodeModal(false);
+                }}
+              >
+                <Text className="text-white font-medium">Apply</Text>
+              </Pressable>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Parent Category Modal */}
+      <Modal
+        visible={showParentCategoryModal}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowParentCategoryModal(false)}
+      >
+        <View className="flex-1 bg-black/50 justify-center items-center">
+          <View className="bg-white rounded-xl w-[520px] max-w-[92%]">
+            <View className="flex-row items-center justify-between p-5 border-b border-gray-200">
+              <Text className="text-lg font-semibold text-gray-800">Select Parent Category</Text>
+              <Pressable onPress={() => setShowParentCategoryModal(false)}>
+                <Ionicons name="close" size={22} color="#9CA3AF" />
+              </Pressable>
+            </View>
+            <ScrollView style={{ maxHeight: 360 }}>
+              <Pressable
+                className={`px-5 py-3 flex-row items-center justify-between ${categoryParentId === null ? "bg-red-50" : ""}`}
+                onPress={() => {
+                  setCategoryParentId(null);
+                  setShowParentCategoryModal(false);
+                }}
+              >
+                <Text className={categoryParentId === null ? "text-gray-800 font-medium" : "text-gray-700"}>
+                  No Parent
+                </Text>
+                {categoryParentId === null && <Ionicons name="checkmark" size={18} color="#EC1A52" />}
+              </Pressable>
+              {parentCategoryOptions.map((item) => {
+                const isActive = categoryParentId === item.id;
+                return (
+                  <Pressable
+                    key={item.id}
+                    className={`px-5 py-3 flex-row items-center justify-between ${isActive ? "bg-red-50" : ""}`}
+                    onPress={() => {
+                      setCategoryParentId(item.id);
+                      setShowParentCategoryModal(false);
+                    }}
+                  >
+                    <Text className={isActive ? "text-gray-800 font-medium" : "text-gray-700"}>
+                      {item.label}
+                    </Text>
+                    {isActive && <Ionicons name="checkmark" size={18} color="#EC1A52" />}
+                  </Pressable>
+                );
+              })}
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
+
+      <DevDataOverlay
+        tables={[PRODUCTS_TABLE, CATEGORIES_TABLE]}
+        defaultTable="products"
+      />
     </View>
   );
 }

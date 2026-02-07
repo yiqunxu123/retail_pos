@@ -7,6 +7,8 @@ export { CustomerCard } from "./CustomerCard";
 export { DataTable } from "./DataTable";
 export type { ColumnDefinition, DataTableProps, FilterDefinition, FilterOption } from "./DataTable";
 export { DateRangePickerModal } from "./DateRangePickerModal";
+export { CATEGORIES_TABLE, DevDataOverlay, PRODUCTS_TABLE } from "./DevDataOverlay";
+export type { DevTableConfig } from "./DevDataOverlay";
 export { Dropdown } from "./Dropdown";
 export { FilterDropdown } from "./FilterDropdown";
 export { FormInput } from "./FormInput";

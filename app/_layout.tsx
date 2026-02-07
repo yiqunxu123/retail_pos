@@ -47,8 +47,11 @@ function LayoutContent() {
   // Dev Tools page - hide sidebar to maximize workspace
   const isDevToolsScreen = pathname === "/dev-tools";
 
-  // Hide sidebar for: POS line, order pages (have their own action panel), StaffPageLayout pages, and Dev Tools
-  const hideSidebar = isPosLineScreen || isOrderScreen || isStaffPageLayoutScreen || isDevToolsScreen;
+  // Catalog pages - hide sidebar to maximize form workspace
+  const isCatalogScreen = pathname.startsWith("/catalog");
+
+  // Hide sidebar for: POS line, order pages (have their own action panel), StaffPageLayout pages, Dev Tools, and Catalog
+  const hideSidebar = isPosLineScreen || isOrderScreen || isStaffPageLayoutScreen || isDevToolsScreen || isCatalogScreen;
 
   // Show loading screen while checking stored authentication
   if (isLoading) {
