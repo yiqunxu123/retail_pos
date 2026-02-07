@@ -136,7 +136,7 @@ export default function Dashboard() {
   const [printerList, setPrinterList] = useState<{ id: string; name: string }[]>([]);
   
   // Parked orders
-  const { parkedOrders, resumeOrder, deleteParkedOrder } = useParkedOrders();
+  const { parkedOrders, deleteParkedOrder } = useParkedOrders();
   const [showParkedOrdersModal, setShowParkedOrdersModal] = useState(false);
   
   // Cash Management modals
@@ -581,11 +581,11 @@ Cookies               x3    $6.00
           onClose={() => setShowParkedOrdersModal(false)}
           parkedOrders={parkedOrders}
           onResumeOrder={(id) => {
-            const parkedOrder = resumeOrder(id);
-            if (parkedOrder) {
-              setShowParkedOrdersModal(false);
-              router.push("/order/add-products");
-            }
+            setShowParkedOrdersModal(false);
+            router.push({
+              pathname: "/order/add-products",
+              params: { retrieveOrderId: id },
+            });
           }}
           onDeleteOrder={deleteParkedOrder}
         />

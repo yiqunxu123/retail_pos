@@ -1,6 +1,6 @@
 import { Ionicons, MaterialCommunityIcons, MaterialIcons } from "@expo/vector-icons";
-import { useRouter } from "expo-router";
-import { useCallback, useState } from "react";
+import { useLocalSearchParams, useRouter } from "expo-router";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Alert, Pressable, ScrollView, Text, TextInput, TouchableOpacity, View } from "react-native";
 import { AddDiscountModal } from "../../components/AddDiscountModal";
 import { AddQuickCustomerModal } from "../../components/AddQuickCustomerModal";
@@ -35,7 +35,34 @@ export default function AddProductsScreen() {
   const { order, updateOrder, addProduct, updateProductQuantity, removeProduct, clearOrder, getOrderSummary } = useOrder();
   const { parkedOrders, parkOrder, resumeOrder, deleteParkedOrder } = useParkedOrders();
   const { user } = useAuth();
-  
+  const { retrieveOrderId } = useLocalSearchParams<{ retrieveOrderId?: string }>();
+  const resumedRef = useRef(false);
+
+  // Auto-resume parked order when navigated with retrieveOrderId
+  useEffect(() => {
+    if (!retrieveOrderId || resumedRef.current) return;
+    resumedRef.current = true;
+
+    (async () => {
+      const parkedOrder = await resumeOrder(retrieveOrderId);
+      if (parkedOrder && parkedOrder.products.length > 0) {
+        clearOrder();
+        parkedOrder.products.forEach((product) => {
+          addProduct(product);
+        });
+        updateOrder({
+          customerName: parkedOrder.customerName,
+          customerId: parkedOrder.customerId,
+        });
+        // Delete the parked order after successful resume
+        deleteParkedOrder(retrieveOrderId).catch(() => {});
+        Alert.alert("Success", `Order ${parkedOrder.note || ''} resumed with ${parkedOrder.products.length} product(s)`);
+      } else if (parkedOrder) {
+        Alert.alert("Warning", "Order resumed but no products found");
+      }
+    })();
+  }, [retrieveOrderId]);
+
   const [scanQty, setScanQty] = useState("1");
   const [showSearchModal, setShowSearchModal] = useState(false);
   const [showCashPaymentModal, setShowCashPaymentModal] = useState(false);
@@ -116,16 +143,25 @@ export default function AddProductsScreen() {
     }
   };
 
-  const handleResumeOrder = (id: string) => {
-    const parkedOrder = resumeOrder(id);
-    if (parkedOrder) {
+  const handleResumeOrder = async (id: string) => {
+    const parkedOrder = await resumeOrder(id);
+    if (parkedOrder && parkedOrder.products.length > 0) {
+      clearOrder();
       // Restore products to current order
       parkedOrder.products.forEach((product) => {
         addProduct(product);
       });
-      updateOrder({ customerName: parkedOrder.customerName });
+      updateOrder({
+        customerName: parkedOrder.customerName,
+        customerId: parkedOrder.customerId,
+      });
+      // Delete the parked order after successful resume
+      deleteParkedOrder(id).catch(() => {});
       setShowParkedOrdersModal(false);
-      Alert.alert("Success", "Order resumed successfully");
+      Alert.alert("Success", `Order resumed with ${parkedOrder.products.length} product(s)`);
+    } else if (parkedOrder) {
+      setShowParkedOrdersModal(false);
+      Alert.alert("Warning", "Order resumed but no products were found");
     }
   };
 

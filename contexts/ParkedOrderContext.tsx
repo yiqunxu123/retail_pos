@@ -1,11 +1,12 @@
-import { createContext, ReactNode, useContext } from "react";
+import { createContext, ReactNode, useCallback, useContext } from "react";
 import { Alert } from "react-native";
 import khubApi from "../utils/api/khub";
 import {
+    fetchSaleOrderProducts,
     useParkedOrders as useParkedOrdersSync,
     type ParkedOrderView,
 } from "../utils/powersync/hooks";
-import { OrderState } from "./OrderContext";
+import { OrderState, type OrderProduct } from "./OrderContext";
 
 // ============================================================================
 // Types
@@ -15,7 +16,8 @@ import { OrderState } from "./OrderContext";
 export interface ParkedOrder {
   id: string;
   customerName: string;
-  products: never[];
+  customerId: string | null;
+  products: OrderProduct[];
   total: number;
   parkedAt: string;
   parkedBy: string;
@@ -29,8 +31,8 @@ interface ParkedOrderContextType {
   remoteOrders: ParkedOrderView[];
   /** Park the current order via API (POST with is_parked: true) */
   parkOrder: (order: OrderState, parkedBy: string, note?: string) => Promise<void>;
-  /** Resume a parked order — returns legacy shape for compatibility */
-  resumeOrder: (id: string) => ParkedOrder | null;
+  /** Resume a parked order — fetches products from PowerSync and returns full order */
+  resumeOrder: (id: string) => Promise<ParkedOrder | null>;
   /** Delete a parked order via API */
   deleteParkedOrder: (id: string) => Promise<void>;
   /** No-op, kept for interface compatibility */
@@ -61,12 +63,13 @@ export function ParkedOrderProvider({ children }: { children: ReactNode }) {
     count,
   } = useParkedOrdersSync();
 
-  // Map to legacy shape for ParkedOrdersModal
+  // Map to legacy shape for ParkedOrdersModal (products loaded on resume)
   const parkedOrders: ParkedOrder[] = remoteOrders.map(
     (o: ParkedOrderView) => ({
       id: o.id,
       customerName: o.customerName || "Guest Customer",
-      products: [],
+      customerId: o.customerId ? String(o.customerId) : null,
+      products: [], // Products are fetched on-demand during resume
       total: o.totalPrice,
       parkedAt: o.createdAt,
       parkedBy: o.createdByName,
@@ -130,10 +133,21 @@ export function ParkedOrderProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  /** Resume — returns legacy shape; actual order data loaded from backend */
-  const resumeOrder = (id: string): ParkedOrder | null => {
-    return parkedOrders.find((o) => o.id === id) || null;
-  };
+  /** Resume — fetches order products from PowerSync local DB and returns full order */
+  const resumeOrder = useCallback(async (id: string): Promise<ParkedOrder | null> => {
+    const order = parkedOrders.find((o) => o.id === id);
+    if (!order) return null;
+
+    try {
+      const products = await fetchSaleOrderProducts(id);
+      console.log(`[ResumeOrder] Fetched ${products.length} products for order ${id}`);
+      return { ...order, products };
+    } catch (error) {
+      console.error("[ResumeOrder] Failed to fetch products:", error);
+      Alert.alert("Resume Error", "Failed to load order products");
+      return null;
+    }
+  }, [parkedOrders]);
 
   /** Delete via API */
   const deleteParkedOrder = async (id: string) => {

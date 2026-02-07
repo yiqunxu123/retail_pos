@@ -8,6 +8,7 @@
  */
 
 import { useMemo } from 'react';
+import { powerSyncDb } from '../PowerSyncProvider';
 import { useSyncStream } from '../useSyncStream';
 
 // ============================================================================
@@ -216,6 +217,77 @@ export function useParkedOrders() {
 }
 
 export type ParkedOrderView = ReturnType<typeof useParkedOrders>['orders'][number];
+
+// ============================================================================
+// One-shot fetchers (non-hook, for imperative use)
+// ============================================================================
+
+/** Raw row from sale_order_details JOIN products */
+interface SaleOrderDetailRow {
+  id: string;
+  sale_order_id: number;
+  product_id: number;
+  qty: number;
+  price: number;
+  discount: number;
+  total_price: number;
+  product_name: string | null;
+  product_sku: string | null;
+  product_upc: string | null;
+}
+
+/** Resolved product item ready for OrderContext */
+export interface ResolvedOrderProduct {
+  id: string;
+  productId: string;
+  sku: string;
+  name: string;
+  salePrice: number;
+  unit: string;
+  quantity: number;
+  tnVaporTax: number;
+  ncVaporTax: number;
+  total: number;
+}
+
+/**
+ * Fetch sale order detail rows + product info from local PowerSync DB.
+ * This is a one-shot query (not a hook) intended for imperative resume flow.
+ */
+export async function fetchSaleOrderProducts(
+  saleOrderId: string
+): Promise<ResolvedOrderProduct[]> {
+  const rows = await powerSyncDb.getAll<SaleOrderDetailRow>(
+    `SELECT
+       sod.id,
+       sod.sale_order_id,
+       sod.product_id,
+       sod.qty,
+       sod.price,
+       sod.discount,
+       sod.total_price,
+       p.name  AS product_name,
+       p.sku   AS product_sku,
+       p.upc   AS product_upc
+     FROM sale_order_details sod
+     LEFT JOIN products p ON p.id = sod.product_id
+     WHERE sod.sale_order_id = ?`,
+    [saleOrderId]
+  );
+
+  return rows.map((r) => ({
+    id: `${r.product_id}-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+    productId: String(r.product_id),
+    sku: r.product_sku || '',
+    name: r.product_name || `Product #${r.product_id}`,
+    salePrice: r.price || 0,
+    unit: 'Piece',
+    quantity: r.qty || 1,
+    tnVaporTax: 0,
+    ncVaporTax: 0,
+    total: r.total_price || (r.price || 0) * (r.qty || 1),
+  }));
+}
 
 /** Search sale orders by order number or customer name */
 export function useSaleOrderSearch(query: string) {

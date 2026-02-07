@@ -6,7 +6,7 @@ interface ParkedOrdersModalProps {
   visible: boolean;
   onClose: () => void;
   parkedOrders: ParkedOrder[];
-  onResumeOrder: (id: string) => void;
+  onResumeOrder: (id: string) => void | Promise<void>;
   onDeleteOrder: (id: string) => void | Promise<void>;
 }
 

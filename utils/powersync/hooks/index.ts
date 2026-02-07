@@ -30,8 +30,8 @@ export { useStockAlerts, useStockSearch, useStocks } from './useStocks';
 export type { StockView } from './useStocks';
 
 // Sale order hooks
-export { FULFILMENT_STATUS, ORDER_STATUS, useParkedOrders, useSaleOrderById, useSaleOrderSearch, useSaleOrders } from './useSaleOrders';
-export type { ParkedOrderView, SaleOrderView } from './useSaleOrders';
+export { FULFILMENT_STATUS, ORDER_STATUS, fetchSaleOrderProducts, useParkedOrders, useSaleOrderById, useSaleOrderSearch, useSaleOrders } from './useSaleOrders';
+export type { ParkedOrderView, ResolvedOrderProduct, SaleOrderView } from './useSaleOrders';
 
 // Payment hooks
 export { PAYMENT_STATUS, PAYMENT_TYPE, usePaymentById, usePaymentSearch, usePayments } from './usePayments';
