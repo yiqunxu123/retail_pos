@@ -1,7 +1,9 @@
-import { createContext, useContext, useState, ReactNode } from "react";
+import { createContext, ReactNode, useContext, useState } from "react";
 
 export interface OrderProduct {
   id: string;
+  /** Original product ID from the database (for API calls) */
+  productId: string;
   sku: string;
   name: string;
   salePrice: number;

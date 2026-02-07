@@ -1,6 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
-import { useState, useCallback } from "react";
-import { Modal, View, Text, Pressable, TextInput, ScrollView, Image } from "react-native";
+import { useCallback, useMemo, useState } from "react";
+import { ActivityIndicator, Image, Modal, Pressable, ScrollView, Text, TextInput, View } from "react-native";
+import { useProductSearch, useProducts } from "../utils/powersync/hooks";
 
 export interface SearchProduct {
   id: string;
@@ -16,35 +17,40 @@ interface SearchProductModalProps {
   visible: boolean;
   onClose: () => void;
   onSelectProduct: (product: SearchProduct) => void;
-  products?: SearchProduct[];
 }
-
-// Sample products for demonstration
-const SAMPLE_PRODUCTS: SearchProduct[] = [
-  { id: "1", name: "Shorts Green Athletic wear", sku: "6522/609137681542", category: "GROCERY/HEALTH", quantity: 5, price: 8.00 },
-  { id: "2", name: "Shorts Green Athletic wear", sku: "6522/609137681543", category: "GROCERY/HEALTH", quantity: 5, price: 8.00 },
-  { id: "3", name: "Shorts Green Athletic wear", sku: "6522/609137681544", category: "GROCERY/HEALTH", quantity: 5, price: 8.00 },
-  { id: "4", name: "Shorts Green Athletic wear", sku: "6522/609137681545", category: "GROCERY/HEALTH", quantity: 5, price: 8.00 },
-];
 
 /**
  * SearchProductModal - Searchable product list modal
- * Reusable across POS, order flow, and inventory screens
+ *
+ * Uses PowerSync local database for real-time product search.
+ * Shows initial product list on open, filters as user types.
  */
 export function SearchProductModal({
   visible,
   onClose,
   onSelectProduct,
-  products = SAMPLE_PRODUCTS,
 }: SearchProductModalProps) {
   const [searchQuery, setSearchQuery] = useState("");
 
-  // Filter products based on search query
-  const filteredProducts = products.filter(
-    (p) =>
-      p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      p.sku.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  // Use search hook when query >= 2 chars, otherwise show all products
+  const { products: searchResults, isLoading: searchLoading } = useProductSearch(searchQuery);
+  const { products: allProducts, isLoading: allLoading } = useProducts();
+
+  // Show search results when searching, otherwise show first 50 products
+  const displayProducts = useMemo(() => {
+    const source = searchQuery.length >= 2 ? searchResults : allProducts.slice(0, 50);
+    return source.map((p) => ({
+      id: p.id,
+      name: p.name,
+      sku: p.sku || p.upc || "",
+      category: p.categoryName || "Uncategorized",
+      quantity: 0, // Stock quantity not in product view, can be enhanced later
+      price: p.salePrice,
+      image: p.images?.[0],
+    }));
+  }, [searchQuery, searchResults, allProducts]);
+
+  const isLoading = searchQuery.length >= 2 ? searchLoading : allLoading;
 
   const handleSelectProduct = useCallback(
     (product: SearchProduct) => {
@@ -94,7 +100,7 @@ export function SearchProductModal({
               <Ionicons name="search" size={18} color="#9ca3af" />
               <TextInput
                 className="flex-1 ml-2 text-gray-800"
-                placeholder="Search by name, SKU..."
+                placeholder="Search by name, SKU, UPC..."
                 placeholderTextColor="#9ca3af"
                 value={searchQuery}
                 onChangeText={setSearchQuery}
@@ -106,18 +112,28 @@ export function SearchProductModal({
                 </Pressable>
               )}
             </View>
+            {searchQuery.length === 1 && (
+              <Text className="text-gray-400 text-xs mt-1 ml-1">
+                Type at least 2 characters to search
+              </Text>
+            )}
           </View>
 
           {/* Product List */}
           <View style={{ maxHeight: 350 }}>
-            {filteredProducts.length === 0 ? (
+            {isLoading ? (
+              <View className="py-8 items-center">
+                <ActivityIndicator size="small" color="#EC1A52" />
+                <Text className="text-gray-400 mt-2">Loading products...</Text>
+              </View>
+            ) : displayProducts.length === 0 ? (
               <View className="py-8 items-center">
                 <Ionicons name="search-outline" size={48} color="#d1d5db" />
                 <Text className="text-gray-400 mt-2">No products found</Text>
               </View>
             ) : (
               <ScrollView>
-                {filteredProducts.map((product) => (
+                {displayProducts.map((product) => (
                   <Pressable
                     key={product.id}
                     onPress={() => handleSelectProduct(product)}
@@ -148,15 +164,10 @@ export function SearchProductModal({
 
                     {/* Category Tag */}
                     <View className="bg-teal-100 px-2 py-1 rounded mr-2">
-                      <Text className="text-teal-700 text-xs font-medium">
+                      <Text className="text-teal-700 text-xs font-medium" numberOfLines={1}>
                         {product.category}
                       </Text>
                     </View>
-
-                    {/* Quantity */}
-                    <Text className="text-gray-500 text-xs mr-2">
-                      Qty: {product.quantity}
-                    </Text>
 
                     {/* Price */}
                     <Text className="text-gray-800 font-bold">

@@ -75,6 +75,7 @@ export default function AddProductsScreen() {
     const qty = parseInt(scanQty) || 1;
     const newProduct: OrderProduct = {
       id: `${searchProduct.id}-${Date.now()}`,
+      productId: searchProduct.id,
       sku: searchProduct.sku,
       name: searchProduct.name,
       salePrice: searchProduct.price,

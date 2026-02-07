@@ -1,17 +1,17 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-import { useState, useCallback } from "react";
+import { useCallback, useState } from "react";
 import {
-  ScrollView,
-  View,
-  Text,
-  Pressable,
-  TextInput,
-  Switch,
-  useWindowDimensions,
+    Pressable,
+    ScrollView,
+    Switch,
+    Text,
+    TextInput,
+    useWindowDimensions,
+    View,
 } from "react-native";
-import { SearchProductModal, SearchProduct } from "../../components/SearchProductModal";
-import { OrderProduct, OrderCustomer } from "../../types";
+import { SearchProduct, SearchProductModal } from "../../components/SearchProductModal";
+import { OrderCustomer, OrderProduct } from "../../types";
 
 export default function AddQuickOrderScreen() {
   const router = useRouter();
@@ -58,6 +58,7 @@ export default function AddQuickOrderScreen() {
     } else {
       const newProduct: OrderProduct = {
         id: `${searchProduct.id}-${Date.now()}`,
+        productId: searchProduct.id,
         sku: searchProduct.sku,
         name: searchProduct.name,
         price: searchProduct.price,

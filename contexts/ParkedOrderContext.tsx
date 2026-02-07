@@ -77,38 +77,54 @@ export function ParkedOrderProvider({ children }: { children: ReactNode }) {
   /**
    * Park the current order via backend API.
    * POST /sale/order with is_parked: true
+   *
+   * Payload format mirrors K Web's createOrder (see kapp ordersCrud.js)
+   * with special handling for parked orders (no payment, is_zero_tax_allowed).
    */
   const parkOrder = async (
     order: OrderState,
     _parkedBy: string,
-    note?: string
+    _note?: string
   ) => {
     try {
+      const now = new Date().toISOString();
+
       const saleOrderDetails = order.products.map((p) => ({
-        product_id: p.id,
+        product_id: parseInt(p.productId, 10),
         qty: p.quantity,
-        price: p.salePrice,
+        unit: 1, // 1 = Piece (default)
+        unit_price: p.salePrice,
         discount: 0,
+        discount_type: 1, // 1 = Fixed
+        sale_type: 1, // 1 = Sale Order
       }));
 
       const payload = {
-        customer_id: order.customerId || null,
-        sale_order_details: saleOrderDetails,
         is_parked: true,
-        park_note: note || "Parked from mobile app",
-        order_type: 0,
-        sale_type: 1,
-        shipping_type: 1,
+        is_zero_tax_allowed: true,
+        sale_order_details: saleOrderDetails,
+        customer_id: order.customerId ? parseInt(order.customerId, 10) : null,
+        order_type: 1, // 1 = Walk-in
+        sale_type: 1, // 1 = Sale Order
+        shipping_type: 1, // 1 = Pickup
+        channel_id: 1, // Default channel
+        order_date: now,
+        dispatch_date: now,
+        due_date: now,
         discount: order.additionalDiscount || 0,
+        discount_type: 1,
+        delivery_charges: order.shippingCharges || 0,
       };
 
+      console.log("[ParkOrder] Sending payload:", JSON.stringify(payload, null, 2));
       await khubApi.post("/tenant/api/v1/sale/order", payload);
       refresh();
     } catch (error: any) {
-      const msg =
-        error.response?.data?.message ||
-        error.response?.data?.errors?.[0] ||
-        "Failed to park order";
+      console.error("[ParkOrder] Error:", error.response?.status, JSON.stringify(error.response?.data));
+      const errors = error.response?.data?.errors;
+      const msg = Array.isArray(errors)
+        ? errors.join("\n")
+        : error.response?.data?.message || "Failed to park order";
       Alert.alert("Park Order Error", msg);
       throw error;
     }
