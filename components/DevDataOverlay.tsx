@@ -240,15 +240,21 @@ export function DevDataOverlay({ tables, defaultTable }: DevDataOverlayProps) {
         {...panResponder.panHandlers}
       >
         <Pressable
-          className="w-12 h-12 rounded-full items-center justify-center"
-          style={{ backgroundColor: "#111827", elevation: 6 }}
+          className="items-center justify-center"
+          style={{
+            width: 52,
+            height: 52,
+            borderRadius: 14,
+            backgroundColor: "rgba(0,0,0,0.55)",
+          }}
           onPress={() => {
             if (!isDraggingRef.current) {
               setShowSheet(true);
             }
           }}
         >
-          <Ionicons name="flask-outline" size={20} color="#FFFFFF" />
+          <Ionicons name="bug-outline" size={18} color="#22D3EE" />
+          <Text style={{ color: "#22D3EE", fontSize: 8, fontWeight: "900", letterSpacing: 1.5, marginTop: 1 }}>DEV</Text>
         </Pressable>
       </Animated.View>
 
@@ -264,10 +270,15 @@ export function DevDataOverlay({ tables, defaultTable }: DevDataOverlayProps) {
             {/* Header */}
             <View className="flex-row items-center justify-between px-5 py-4 border-b border-gray-200">
               <View className="flex-row items-center gap-2">
-                <Ionicons name="flask-outline" size={18} color="#111827" />
+                <View style={{ backgroundColor: "#1E1E1E", borderRadius: 4, padding: 3 }}>
+                  <Ionicons name="code-slash-outline" size={14} color="#22D3EE" />
+                </View>
                 <Text className="text-lg font-semibold text-gray-800">
                   数据测试 - {activeTable.label}
                 </Text>
+                <View style={{ backgroundColor: "#1E1E1E", borderRadius: 4, paddingHorizontal: 6, paddingVertical: 2 }}>
+                  <Text style={{ color: "#22D3EE", fontSize: 10, fontWeight: "700" }}>DEV ONLY</Text>
+                </View>
               </View>
               <Pressable onPress={() => setShowSheet(false)}>
                 <Ionicons name="close" size={22} color="#9CA3AF" />
