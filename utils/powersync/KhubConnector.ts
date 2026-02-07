@@ -250,6 +250,8 @@ export class KhubConnector implements PowerSyncBackendConnector {
       payments: '/tenant/api/v1/core/payments',
       invoices: '/tenant/api/v1/core/invoices',
       tenant_users: '/tenant/api/v1/core/user',
+      promotions: '/tenant/api/v1/marketing/promotions',
+      promotion_details: '/tenant/api/v1/marketing/promotion-details',
     }
 
     return endpoints[table] || `/tenant/api/v1/core/${table}`

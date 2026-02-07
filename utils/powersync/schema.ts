@@ -236,6 +236,41 @@ const tags = new Table({
   updated_at: column.text,
 })
 
+// Promotions table
+const promotions = new Table({
+  name: column.text,
+  start_datetime: column.text,
+  end_datetime: column.text,
+  status: column.integer,
+  applicable_for: column.integer,    // 1=Ecom, 2=Portal, 3=Both
+  applicable_to: column.integer,     // 1=All, 2=Registered, 3=Groups
+  has_sale_badge: column.integer,    // boolean
+  has_counter: column.integer,       // boolean
+  counter_duration: column.integer,
+  customer_group_ids: column.text,   // JSON array string
+  channel_ids: column.text,          // JSON array string
+  created_at: column.text,
+  updated_at: column.text,
+})
+
+// Promotion details table
+const promotion_details = new Table({
+  promotion_id: column.integer,
+  product_id: column.integer,
+  unit_price_id: column.integer,
+  channel_id: column.integer,
+  min_qty: column.integer,
+  value_type: column.integer,        // 1=% Disc, 2=Price Disc, 3=Fixed
+  value: column.real,
+  is_enabled: column.integer,        // boolean
+  total_ecom_sold: column.integer,
+  total_tenant_sold: column.integer,
+  total_app_sold: column.integer,
+  unit: column.integer,
+  created_at: column.text,
+  updated_at: column.text,
+})
+
 // Channels table
 const channels = new Table({
   name: column.text,
@@ -284,6 +319,8 @@ export const AppSchema = new Schema({
   tags,
   channels,
   tenant_users,
+  promotions,
+  promotion_details,
 })
 
 // TypeScript types for the schema
@@ -307,3 +344,5 @@ export type Setting = Database['settings']
 export type Tag = Database['tags']
 export type Channel = Database['channels']
 export type TenantUser = Database['tenant_users']
+export type Promotion = Database['promotions']
+export type PromotionDetailRow = Database['promotion_details']

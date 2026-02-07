@@ -26,6 +26,7 @@ import {
     View,
     useWindowDimensions,
 } from "react-native";
+import { clearPromotions, seedPromotions } from "../utils/api/products";
 import { powerSyncDb, usePowerSync } from "../utils/powersync/PowerSyncProvider";
 
 // ---------------------------------------------------------------------------
@@ -41,6 +42,8 @@ export interface DevTableConfig {
   allColumns: string[];
   /** Default visible columns */
   defaultColumns: string[];
+  /** Optional custom loader – if provided, uses this instead of PowerSync query */
+  loadFn?: () => Promise<Record<string, any>[]>;
 }
 
 interface DevDataOverlayProps {
@@ -75,6 +78,19 @@ export const CATEGORIES_TABLE: DevTableConfig = {
   defaultColumns: ["id", "name", "parent_id", "code", "created_at"],
 };
 
+export const PROMOTION_DETAILS_TABLE: DevTableConfig = {
+  name: "promotion_details",
+  label: "促销明细",
+  allColumns: [
+    "id", "promotion_id", "product_id", "unit_price_id", "channel_id",
+    "value_type", "value", "min_qty", "is_enabled",
+    "total_ecom_sold", "total_tenant_sold", "total_app_sold", "unit",
+    "created_at", "updated_at",
+  ],
+  defaultColumns: ["id", "promotion_id", "product_id", "value_type", "value", "is_enabled"],
+};
+
+
 // ---------------------------------------------------------------------------
 // Component
 // ---------------------------------------------------------------------------
@@ -86,6 +102,8 @@ export function DevDataOverlay({ tables, defaultTable }: DevDataOverlayProps) {
   const { width: screenWidth } = useWindowDimensions();
   const { reconnect } = usePowerSync();
   const [syncing, setSyncing] = useState(false);
+  const [seeding, setSeeding] = useState(false);
+  const [clearing, setClearing] = useState(false);
 
   // --- Draggable button ---
   const devPosRef = useRef({ x: -1, y: -1 });
@@ -165,22 +183,25 @@ export function DevDataOverlay({ tables, defaultTable }: DevDataOverlayProps) {
     setLoading(true);
     setMessage("");
     try {
-      const result = await powerSyncDb.getAll<Record<string, any>>(
-        `SELECT * FROM ${table.name} ORDER BY created_at DESC LIMIT 200`,
-      );
+      let result: Record<string, any>[];
+      if (table.loadFn) {
+        result = await table.loadFn();
+      } else {
+        try {
+          result = await powerSyncDb.getAll<Record<string, any>>(
+            `SELECT * FROM ${table.name} ORDER BY created_at DESC LIMIT 200`,
+          );
+        } catch {
+          result = await powerSyncDb.getAll<Record<string, any>>(
+            `SELECT * FROM ${table.name} LIMIT 200`,
+          );
+        }
+      }
       setRows(result);
       setMessage(`共 ${result.length} 条记录`);
-    } catch {
-      try {
-        const result = await powerSyncDb.getAll<Record<string, any>>(
-          `SELECT * FROM ${table.name} LIMIT 200`,
-        );
-        setRows(result);
-        setMessage(`共 ${result.length} 条记录`);
-      } catch (err2: any) {
-        setRows([]);
-        setMessage(`错误: ${err2.message || err2}`);
-      }
+    } catch (err: any) {
+      setRows([]);
+      setMessage(`错误: ${err.message || err}`);
     } finally {
       setLoading(false);
     }
@@ -330,6 +351,65 @@ export function DevDataOverlay({ tables, defaultTable }: DevDataOverlayProps) {
               </View>
             </View>
 
+            {/* Message */}
+            {message !== "" && (
+              <View className="px-5 pb-2">
+                <Text className="text-xs text-gray-500">{message}</Text>
+              </View>
+            )}
+
+            {/* Promotion tools – only visible on 促销明细 tab */}
+            {activeTable.name === "promotion_details" && (
+              <View className="flex-row items-center gap-2 px-5 pb-2">
+                <Pressable
+                  className="flex-row items-center gap-1 px-3 py-1.5 rounded-lg border border-orange-400 bg-orange-50"
+                  style={seeding ? { opacity: 0.6 } : {}}
+                  disabled={seeding}
+                  onPress={async () => {
+                    setSeeding(true);
+                    try {
+                      const count = await seedPromotions(powerSyncDb);
+                      setMessage(`已填充 ${count} 条 Promotion`);
+                      await loadData(activeTable);
+                    } catch (err: any) {
+                      Alert.alert("填充失败", err?.message || String(err));
+                    } finally {
+                      setSeeding(false);
+                    }
+                  }}
+                >
+                  {seeding
+                    ? <ActivityIndicator size={14} color="#EA580C" />
+                    : <Ionicons name="flask-outline" size={14} color="#EA580C" />
+                  }
+                  <Text className="text-orange-700 text-sm">{seeding ? "填充中" : "填充"}</Text>
+                </Pressable>
+                <Pressable
+                  className="flex-row items-center gap-1 px-3 py-1.5 rounded-lg border border-red-400 bg-red-50"
+                  style={clearing ? { opacity: 0.6 } : {}}
+                  disabled={clearing}
+                  onPress={async () => {
+                    setClearing(true);
+                    try {
+                      const msg = await clearPromotions(powerSyncDb);
+                      setMessage(msg);
+                      await loadData(activeTable);
+                    } catch (err: any) {
+                      Alert.alert("清理失败", err?.message || String(err));
+                    } finally {
+                      setClearing(false);
+                    }
+                  }}
+                >
+                  {clearing
+                    ? <ActivityIndicator size={14} color="#DC2626" />
+                    : <Ionicons name="trash-outline" size={14} color="#DC2626" />
+                  }
+                  <Text className="text-red-700 text-sm">{clearing ? "清理中" : "清理"}</Text>
+                </Pressable>
+              </View>
+            )}
+
             {/* Column picker */}
             {showColPicker && (
               <View className="flex-row flex-wrap items-center gap-1.5 px-5 pb-3">
@@ -357,13 +437,6 @@ export function DevDataOverlay({ tables, defaultTable }: DevDataOverlayProps) {
                     </Pressable>
                   );
                 })}
-              </View>
-            )}
-
-            {/* Message */}
-            {message !== "" && (
-              <View className="px-5 pb-2">
-                <Text className="text-xs text-gray-500">{message}</Text>
               </View>
             )}
 

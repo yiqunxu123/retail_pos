@@ -7,8 +7,9 @@
 
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-import { Text, View } from "react-native";
+import { StyleSheet, Text, View } from "react-native";
 import { ColumnDefinition, DataTable, FilterDefinition, PageHeader } from "../../components";
+import { CATEGORIES_TABLE, DevDataOverlay, PRODUCTS_TABLE } from "../../components/DevDataOverlay";
 import { ProductView, useProducts } from "../../utils/powersync/hooks";
 
 // ============================================================================
@@ -224,33 +225,43 @@ export default function ProductsScreen() {
   };
 
   return (
-    <View className="flex-1 bg-gray-50">
-      <PageHeader title="Products" />
-      
-      <DataTable<ProductView>
-        data={products}
-        columns={columns}
-        keyExtractor={(item) => item.id}
-        searchable
-        searchPlaceholder="Search products..."
-        searchHint="Search by Product Name, SKU, UPC"
-        onSearch={handleSearch}
-        filters={filters}
-        onFilter={handleFilter}
-        sortOptions={sortOptions}
-        onSort={handleSort}
-        columnSelector
-        bulkActions
-        addButton
-        addButtonText="Add Product"
-        onAddPress={() => router.push("/catalog/add-product")}
-        isLoading={isLoading}
-        isStreaming={isStreaming}
-        onRefresh={refresh}
-        emptyIcon="cube-outline"
-        emptyText="No products found"
-        totalCount={count}
-      />
+    <View className="flex-1">
+      <View className="flex-1 bg-gray-50">
+        <PageHeader title="Products" />
+        
+        <DataTable<ProductView>
+          data={products}
+          columns={columns}
+          keyExtractor={(item) => item.id}
+          searchable
+          searchPlaceholder="Search products..."
+          searchHint="Search by Product Name, SKU, UPC"
+          onSearch={handleSearch}
+          filters={filters}
+          onFilter={handleFilter}
+          sortOptions={sortOptions}
+          onSort={handleSort}
+          columnSelector
+          bulkActions
+          addButton
+          addButtonText="Add Product"
+          onAddPress={() => router.push("/catalog/add-product")}
+          isLoading={isLoading}
+          isStreaming={isStreaming}
+          onRefresh={refresh}
+          emptyIcon="cube-outline"
+          emptyText="No products found"
+          totalCount={count}
+        />
+      </View>
+
+      {/* Overlay layer for DevDataOverlay - box-none lets touches pass through to DataTable */}
+      <View style={StyleSheet.absoluteFill} pointerEvents="box-none">
+        <DevDataOverlay
+          tables={[PRODUCTS_TABLE, CATEGORIES_TABLE]}
+          defaultTable="products"
+        />
+      </View>
     </View>
   );
 }

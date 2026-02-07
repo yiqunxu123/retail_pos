@@ -8,7 +8,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import type { AxiosError } from "axios";
 import { useRouter } from "expo-router";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
     ActivityIndicator,
     Alert,
@@ -21,19 +21,23 @@ import {
     View,
 } from "react-native";
 import { PageHeader } from "../../components";
-import { CATEGORIES_TABLE, DevDataOverlay, PRODUCTS_TABLE } from "../../components/DevDataOverlay";
+import { CATEGORIES_TABLE, DevDataOverlay, PRODUCTS_TABLE, PROMOTION_DETAILS_TABLE } from "../../components/DevDataOverlay";
 import {
+    createCategory,
     createProduct,
     fetchBrands,
     fetchCategories,
     fetchChannels,
     fetchManufacturers,
     fetchSuppliers,
+    generateProductDescription,
     parseProductApiError,
     type ChannelInfoPayload,
     type ListItem,
     type ProductPayload,
+    type PromotionRow,
 } from "../../utils/api/products";
+import { powerSyncDb } from "../../utils/powersync/PowerSyncProvider";
 
 // Tab configuration
 const TABS = [
@@ -50,6 +54,27 @@ const UNIT = { PIECE: 1, PACK: 2, CASE: 3, PALLET: 4 } as const;
 
 // Video type enum – mirrors kapp VIDEO_TYPE constants
 const VIDEO_TYPE = { VIDEO: 4, YOUTUBE_LINK: 5 } as const;
+
+// Promotion constants – mirrors kapp Common/constants
+const PROMOTION_STATUS: Record<string, { name: string; value: number; color: string; textColor: string }> = {
+  ACTIVE:   { name: "Active",   value: 1, color: "#EAF4F0", textColor: "#10B265" },
+  UPCOMING: { name: "Upcoming", value: 2, color: "#E6ECFD", textColor: "#0646E9" },
+  EXPIRED:  { name: "Expired",  value: 3, color: "#FFE7E5", textColor: "#FB1100" },
+};
+
+const PROMOTION_VALUE_TYPE: Record<string, { type: string; value: number }> = {
+  PERCENTAGE_DISCOUNT: { type: "% Disc.",     value: 1 },
+  PRICE_DISCOUNT:      { type: "Price Disc.", value: 2 },
+  FIXED:               { type: "Fixed Price", value: 3 },
+};
+
+const SALE_ORDER_SOURCE: Record<string, { name: string; value: number }> = {
+  ECOM:   { name: "Ecom",   value: 1 },
+  PORTAL: { name: "Portal", value: 2 },
+  BOTH:   { name: "Both",   value: 3 },
+};
+
+const UNIT_NAMES: Record<number, string> = { 1: "Piece", 2: "Pack", 3: "Case", 4: "Pallet" };
 
 const MSA_CODES = [
   { code: "003211", description: "Moist Snuff" },
@@ -249,6 +274,17 @@ export default function AddProductScreen() {
   // Active Tab
   const [activeTab, setActiveTab] = useState("basic");
 
+  // --- Scroll refs for field focus ---
+  const basicScrollRef = useRef<ScrollView>(null);
+  const pricingScrollRef = useRef<ScrollView>(null);
+  const seoScrollRef = useRef<ScrollView>(null);
+  const fieldYMap = useRef<Record<string, number>>({});
+
+  // Helper: record a field's Y position relative to its parent ScrollView
+  const trackFieldLayout = useCallback((fieldKey: string, y: number) => {
+    fieldYMap.current[fieldKey] = y;
+  }, []);
+
   // ---------- Loading / submission state ----------
   const [saving, setSaving] = useState(false);
 
@@ -283,6 +319,7 @@ export default function AddProductScreen() {
   const [tags, setTags] = useState("");
   const [productNote, setProductNote] = useState("");
   const [description, setDescription] = useState("");
+  const [generatingDescription, setGeneratingDescription] = useState(false);
   
   // Switches - Basic
   const [isMsa, setIsMsa] = useState(false);
@@ -304,6 +341,7 @@ export default function AddProductScreen() {
   const [showMsaCodeModal, setShowMsaCodeModal] = useState(false);
   const [msaCodeDraft, setMsaCodeDraft] = useState("");
   const [showParentCategoryModal, setShowParentCategoryModal] = useState(false);
+  const [savingCategory, setSavingCategory] = useState(false);
 
   
   // Pricing & Stock Tab state
@@ -348,8 +386,10 @@ export default function AddProductScreen() {
   // Promotions Tab state
   const [promotionSearch, setPromotionSearch] = useState("");
   const [showAdvanceFilters, setShowAdvanceFilters] = useState(false);
-  const [promotionStatus, setPromotionStatus] = useState("");
-  const [promotions, setPromotions] = useState<any[]>([]);
+  const [promotionStatusFilter, setPromotionStatusFilter] = useState<number[]>([]);
+  const [promotionRows, setPromotionRows] = useState<PromotionRow[]>([]);
+  const [promotionsLoading, setPromotionsLoading] = useState(false);
+  const [promotionsTotalCount, setPromotionsTotalCount] = useState(0);
   const [isNewArrival, setIsNewArrival] = useState(false);
   const [enableBoOnline, setEnableBoOnline] = useState(false);
   
@@ -361,6 +401,31 @@ export default function AddProductScreen() {
 
   // Main category selector modal
   const [showMainCategoryModal, setShowMainCategoryModal] = useState(false);
+
+  // Generic picker modal for dropdowns (Sold By, Bought By, Measured By, etc.)
+  const [pickerModal, setPickerModal] = useState<{
+    visible: boolean;
+    title: string;
+    options: Array<{ label: string; value: string }>;
+    selected: string;
+    onSelect: (value: string) => void;
+  }>({ visible: false, title: '', options: [], selected: '', onSelect: () => {} });
+
+  const openPicker = useCallback((
+    title: string,
+    options: Array<{ label: string; value: string }>,
+    selected: string,
+    onSelect: (value: string) => void,
+  ) => {
+    setPickerModal({ visible: true, title, options, selected, onSelect });
+  }, []);
+
+  const closePicker = useCallback(() => {
+    setPickerModal((prev) => ({ ...prev, visible: false }));
+  }, []);
+
+  // Active channel tab in pricing section
+  const [activePricingChannel, setActivePricingChannel] = useState(0);
 
   // ------------------------------------------------------------------
   // Fetch reference data on mount (channels, brands, categories, etc.)
@@ -408,6 +473,88 @@ export default function AddProductScreen() {
     };
     loadReferenceData();
   }, []);
+
+  // ------------------------------------------------------------------
+  // Promotions: read from local PowerSync DB
+  // ------------------------------------------------------------------
+  const loadPromotions = useCallback(async () => {
+    try {
+      setPromotionsLoading(true);
+
+      // Build WHERE clauses for search / status filter
+      const conditions: string[] = [];
+      const params: any[] = [];
+
+      if (promotionSearch.trim()) {
+        conditions.push("p.name LIKE ?");
+        params.push(`%${promotionSearch.trim()}%`);
+      }
+
+      const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(" AND ")}` : "";
+
+      const sql = `
+        SELECT
+          pd.id            AS promotion_detail_id,
+          p.id             AS promotion_id,
+          p.name           AS name,
+          p.start_datetime AS start_datetime,
+          p.end_datetime   AS end_datetime,
+          p.applicable_for AS applicable_for,
+          p.status         AS promotion_status,
+          pd.value         AS value,
+          pd.value_type    AS value_type,
+          pd.unit          AS unit,
+          pd.total_ecom_sold   AS total_ecom_sold,
+          pd.total_tenant_sold AS total_tenant_sold,
+          pd.total_app_sold    AS total_app_sold
+        FROM promotions p
+        LEFT JOIN promotion_details pd ON pd.promotion_id = p.id
+        ${whereClause}
+        ORDER BY p.created_at DESC
+        LIMIT 50
+      `;
+
+      const rows = await powerSyncDb.getAll<any>(sql, params);
+
+      const mapped: PromotionRow[] = rows.map((r: any) => ({
+        promotion_detail_id: r.promotion_detail_id ?? 0,
+        promotion_id: r.promotion_id,
+        name: r.name,
+        start_datetime: r.start_datetime,
+        end_datetime: r.end_datetime,
+        applicable_for: r.applicable_for,
+        promotion_status: r.promotion_status,
+        value: r.value ?? 0,
+        value_type: r.value_type ?? 0,
+        unit_price: r.unit ? { id: 0, unit: r.unit } : undefined,
+        total_sold: (r.total_ecom_sold ?? 0) + (r.total_tenant_sold ?? 0),
+        total_tenant_sold: r.total_tenant_sold ?? 0,
+        total_ecom_sold: r.total_ecom_sold ?? 0,
+        total_app_sold: r.total_app_sold ?? 0,
+      }));
+
+      // Client-side status filter (promotion_status is computed, not stored)
+      const filtered = promotionStatusFilter.length > 0
+        ? mapped.filter((r) => promotionStatusFilter.includes(r.promotion_status))
+        : mapped;
+
+      setPromotionRows(filtered);
+      setPromotionsTotalCount(filtered.length);
+    } catch (err) {
+      console.warn("Failed to load promotions from local DB", err);
+      setPromotionRows([]);
+      setPromotionsTotalCount(0);
+    } finally {
+      setPromotionsLoading(false);
+    }
+  }, [promotionSearch, promotionStatusFilter]);
+
+  // Load promotions when switching to the promotions tab
+  useEffect(() => {
+    if (activeTab === "promotions") {
+      loadPromotions();
+    }
+  }, [activeTab, loadPromotions]);
 
   // ------------------------------------------------------------------
   // Build unit_prices from the pricing + unit measurement form state
@@ -530,7 +677,7 @@ export default function AddProductScreen() {
       manufacturer_ids: selectedManufacturerIds,
       tag_values: tagValues,
       status,
-      unit_of_measurement: measuredBy === "Weight" ? 2 : 1,
+      unit_of_measurement: 10, // UnitOfMeasurement.COUNT = 10 (only valid value on backend)
       is_tax_applicable: isTaxApplicable,
       is_msa_compliant: isMsa,
       is_online: isOnline,
@@ -578,46 +725,155 @@ export default function AddProductScreen() {
   // ------------------------------------------------------------------
   // Save handler – mirrors kapp AddFormPage.saveProduct
   // ------------------------------------------------------------------
+  // ------------------------------------------------------------------
+  // Calculate Prices – mirrors kapp handleAutoCalculation
+  // Divides the bought-by unit's prices down to per-piece, then scales
+  // up to every other defined unit.
+  // ------------------------------------------------------------------
+  const handleCalculatePrices = useCallback(() => {
+    const boughtByUnit = unitLabelToId(boughtBy);
+    const boughtByIndex = pricingData.findIndex((p) => p.unitId === boughtByUnit);
+    if (boughtByIndex === -1) {
+      Alert.alert("Info", "Bought-by unit not found in pricing data");
+      return;
+    }
+
+    const source = pricingData[boughtByIndex];
+    const sourceCost = parseFloat(source.netCost);
+    const sourceBaseCost = parseFloat(source.baseCost);
+    const sourcePrice = parseFloat(source.salePrice);
+
+    if (!sourceCost || !sourcePrice) {
+      Alert.alert("Info", "Please enter net cost and sale price for the bought-by unit first");
+      return;
+    }
+
+    // Build unit definitions for conversion
+    const unitPricesForConversion = unitData.map((u) => ({
+      unit: u.unitId,
+      definition: u.unitId === UNIT.PIECE ? 1 : (parseInt(u.qty) || null),
+    }));
+
+    const boughtByLowest = convertToLowest(boughtByUnit, unitPricesForConversion);
+
+    // Per-piece base values
+    const ppCost = sourceCost / boughtByLowest;
+    const ppBaseCost = sourceBaseCost / boughtByLowest;
+    const ppPrice = sourcePrice / boughtByLowest;
+    const ppMargin = parseFloat(source.margin || "0") / boughtByLowest;
+    const ppMsrp = parseFloat(source.msrp || "0") / boughtByLowest;
+    const ppLowest = parseFloat(source.lowestPrice || "0") / boughtByLowest;
+    const ppEcom = parseFloat(source.ecomPrice || "0") / boughtByLowest;
+
+    const newPricingData = pricingData.map((p) => {
+      if (p.unitId === boughtByUnit) return p; // Don't overwrite the source unit
+
+      const unitLowest = convertToLowest(p.unitId, unitPricesForConversion);
+      if (!unitLowest) return p;
+
+      return {
+        ...p,
+        baseCost: String(round2(ppBaseCost * unitLowest)),
+        netCost: String(round2(ppCost * unitLowest)),
+        salePrice: String(round2(ppPrice * unitLowest)),
+        margin: String(round2(ppMargin * unitLowest)),
+        msrp: String(round2(ppMsrp * unitLowest)),
+        lowestPrice: String(round2(ppLowest * unitLowest)),
+        ecomPrice: String(round2(ppEcom * unitLowest)),
+      };
+    });
+
+    setPricingData(newPricingData);
+    Alert.alert("Success", "Prices calculated based on bought-by unit");
+  }, [boughtBy, pricingData, unitData]);
+
+  // Helper: show validation error, switch tab if needed, and scroll to field
+  const showValidationError = useCallback((tab: string, message: string, fieldKey?: string) => {
+    const needsSwitch = activeTab !== tab;
+    if (needsSwitch) {
+      setActiveTab(tab);
+    }
+    // Delay so the tab switch renders & layout completes before scrolling + alert
+    const delay = needsSwitch ? 300 : 50;
+    setTimeout(() => {
+      // Scroll to the target field
+      if (fieldKey) {
+        const y = fieldYMap.current[fieldKey];
+        if (y !== undefined) {
+          const scrollRef =
+            tab === "basic" ? basicScrollRef
+            : tab === "pricing" ? pricingScrollRef
+            : tab === "seo" ? seoScrollRef
+            : null;
+          scrollRef?.current?.scrollTo({ y: Math.max(0, y - 20), animated: true });
+        }
+      }
+      Alert.alert("Validation Error", message);
+    }, delay);
+  }, [activeTab]);
+
   const handleSave = useCallback(async () => {
     // --- Validation (mirrors kapp Yup schema + handleSaveClick) ---
 
-    // 1. Product name required (max 300 chars)
+    // ===== Basic Tab validations =====
+
+    // 1. Product name required (min 2, max 300 chars)
     if (!productName.trim()) {
-      Alert.alert("Validation Error", "Product name is required");
+      showValidationError("basic", "Product name is required", "productName");
+      return;
+    }
+    if (productName.trim().length < 2) {
+      showValidationError("basic", "Product name must be at least 2 characters", "productName");
       return;
     }
     if (productName.trim().length > 300) {
-      Alert.alert("Validation Error", "Product name must be at most 300 characters");
+      showValidationError("basic", "Product name must be at most 300 characters", "productName");
       return;
     }
 
-    // 2. SKU validation – mirrors kapp:
-    //    .required + .matches(/^[A-Za-z0-9]+(?:(?:(?!--)[A-Za-z0-9-])+[A-Za-z0-9])?$/) + .max(25)
+    // 2. SKU validation – mirrors kapp: .required + .max(14) + regex
     if (!autoGenerateSku) {
       const trimmedSku = sku.trim();
       if (!trimmedSku) {
-        Alert.alert("Validation Error", "SKU is required when auto-generate is off");
+        showValidationError("basic", "SKU is required when auto-generate is off", "sku");
         return;
       }
-      if (trimmedSku.length > 25) {
-        Alert.alert("Validation Error", "SKU must be at most 25 characters");
+      if (trimmedSku.length > 14) {
+        showValidationError("basic", "SKU must be at most 14 characters", "sku");
         return;
       }
       const SKU_REGEX = /^[A-Za-z0-9]+(?:(?:(?!--)[A-Za-z0-9-])+[A-Za-z0-9])?$/;
       if (!SKU_REGEX.test(trimmedSku)) {
-        Alert.alert("Validation Error", "SKU can only contain letters, numbers, and single hyphens (not at start/end)");
+        showValidationError("basic", "SKU can only contain letters, numbers, and single hyphens (not at start/end)", "sku");
         return;
       }
     }
 
     // 3. Category required – mirrors kapp: categories.min(1) + main_category_id.required
     if (!selectedMainCategoryId && selectedCategoryIds.length === 0) {
-      Alert.alert("Validation Error", "Please select at least one category");
+      showValidationError("basic", "Please select at least one category", "mainCategory");
+      return;
+    }
+    if (!selectedMainCategoryId) {
+      showValidationError("basic", "Please select a main category", "mainCategory");
       return;
     }
 
-    // 4. unit_name non-empty check – mirrors kapp handleSaveClick:
-    //    If a unit has definition or UPC but empty unit_name, reject.
+    // 4. Weight validation – if provided, must be >= 0
+    if (weight !== undefined && weight !== null && weight !== "" && Number(weight) < 0) {
+      showValidationError("basic", "Weight must be 0 or greater", "weight");
+      return;
+    }
+
+    // ===== Pricing & Stock Tab validations =====
+
+    // 5. Channel info – at least one channel required
+    if (!stockData || stockData.length === 0) {
+      showValidationError("pricing", "Please add at least one sales channel", "channels");
+      return;
+    }
+
+    // 6. Unit name non-empty check – mirrors kapp handleSaveClick
     const unitNameErrors: string[] = [];
     const unitPositionNames = ["First unit", "Second unit", "Third unit", "Fourth unit"];
     unitData.forEach((u, idx) => {
@@ -628,8 +884,67 @@ export default function AddProductScreen() {
       }
     });
     if (unitNameErrors.length > 0) {
-      Alert.alert("Validation Error", `Please provide unit names for: ${unitNameErrors.join(", ")}`);
+      showValidationError("pricing", `Please provide unit names for: ${unitNameErrors.join(", ")}`, "unitMeasurement");
       return;
+    }
+
+    // 7. Piece unit price validations – cost, base_cost, price required & > 0
+    const piecePricing = pricingData.find((p) => p.unitId === UNIT.PIECE);
+    if (piecePricing) {
+      const cost = parseFloat(piecePricing.netCost as string);
+      const baseCost = parseFloat(piecePricing.baseCost as string);
+      const price = parseFloat(piecePricing.salePrice as string);
+      if (!cost || cost <= 0) {
+        showValidationError("pricing", "Piece net cost is required and must be greater than 0", "pricingTable");
+        return;
+      }
+      if (!baseCost || baseCost <= 0) {
+        showValidationError("pricing", "Piece base cost is required and must be greater than 0", "pricingTable");
+        return;
+      }
+      if (!price || price <= 0) {
+        showValidationError("pricing", "Piece sale price is required and must be greater than 0", "pricingTable");
+        return;
+      }
+      // Max 2 decimal places
+      const DECIMAL_2 = /^-?\d+(\.\d{1,2})?$/;
+      if (String(piecePricing.netCost).trim() && !DECIMAL_2.test(String(piecePricing.netCost).trim())) {
+        showValidationError("pricing", "Net cost can have at most 2 decimal places", "pricingTable");
+        return;
+      }
+      if (String(piecePricing.baseCost).trim() && !DECIMAL_2.test(String(piecePricing.baseCost).trim())) {
+        showValidationError("pricing", "Base cost can have at most 2 decimal places", "pricingTable");
+        return;
+      }
+      if (String(piecePricing.salePrice).trim() && !DECIMAL_2.test(String(piecePricing.salePrice).trim())) {
+        showValidationError("pricing", "Sale price can have at most 2 decimal places", "pricingTable");
+        return;
+      }
+    }
+
+    // ===== SEO Tab validations =====
+
+    // 8. Slug max length
+    if (seoSlug && seoSlug.length > 100) {
+      showValidationError("seo", "SEO slug must be at most 100 characters", "seoSlug");
+      return;
+    }
+
+    // 9. YouTube link format validation
+    if (youtubeLink && youtubeLink.trim()) {
+      const YT_REGEX = /^((?:https?:)?\/\/)?((?:www|m)\.)?((?:youtube\.com|youtu\.be))(\/(?:[\w\-]+\?v=|embed\/|v\/)?)([\w\-]+)(\S+)?$/;
+      if (!YT_REGEX.test(youtubeLink.trim())) {
+        showValidationError("basic", "Please enter a valid YouTube URL", "youtubeLink");
+        return;
+      }
+    }
+
+    // ===== MSA validations (Basic tab switches) =====
+    if (isMsa) {
+      if (!selectedMainCategoryId) {
+        showValidationError("basic", "MSA category is required when Is MSA is enabled", "mainCategory");
+        return;
+      }
     }
 
     try {
@@ -641,14 +956,23 @@ export default function AddProductScreen() {
         { text: "OK", onPress: () => router.back() },
       ]);
     } catch (error) {
-      const messages = parseProductApiError(error as AxiosError);
+      const axErr = error as AxiosError;
+      console.warn("[AddProduct] Save failed:", axErr?.response?.status, JSON.stringify(axErr?.response?.data));
+      const messages = parseProductApiError(axErr);
       Alert.alert("Error", messages.join("\n"));
     } finally {
       setSaving(false);
     }
-  }, [productName, autoGenerateSku, sku, selectedMainCategoryId, selectedCategoryIds, unitData, buildPayload, router]);
+  }, [productName, autoGenerateSku, sku, selectedMainCategoryId, selectedCategoryIds,
+    unitData, pricingData, stockData, weight, seoSlug, youtubeLink, isMsa, activeTab,
+    buildPayload, router, showValidationError]);
 
   const categoryTree = useMemo(() => buildCategoryTree(categoriesList), [categoriesList]);
+
+  // Defined units for Sold By / Bought By dropdowns.
+  // In kapp, all 4 unit_prices have unit_name pre-populated ("Piece","Pack","Case","Pallet"),
+  // so getDefinedUnits() always returns all 4.  We mirror that behaviour here.
+  const definedUnits = useMemo(() => unitData, [unitData]);
   const parentCategoryOptions = useMemo(() => {
     const flatten = (nodes: CategoryNode[], depth = 0): Array<{ id: number; label: string }> => {
       return nodes.flatMap((node) => {
@@ -787,7 +1111,7 @@ export default function AddProductScreen() {
       </View>
 
       {/* Main Form */}
-      <ScrollView className="flex-1 p-6" showsVerticalScrollIndicator={false}>
+      <ScrollView ref={basicScrollRef} className="flex-1 p-6" showsVerticalScrollIndicator={false}>
         {/* Status toggle row — mirrors kapp PRODUCT_STATUS: ACTIVE=1, INACTIVE=2, DISCONTINUED=3 */}
         <View className="flex-row items-center justify-between mb-6">
           <Text className="text-lg font-semibold text-gray-800">General Information</Text>
@@ -823,7 +1147,7 @@ export default function AddProductScreen() {
         </View>
 
         {/* Row 1: Product Name, Alias, Product Ecom Name */}
-        <View className="flex-row gap-4">
+        <View className="flex-row gap-4" onLayout={(e) => trackFieldLayout("productName", e.nativeEvent.layout.y)}>
           <View className="flex-1">
             <FormInput
               label="Product Name"
@@ -854,7 +1178,7 @@ export default function AddProductScreen() {
         </View>
 
         {/* Row 2: SKU, Weight, Select Brand */}
-        <View className="flex-row gap-4">
+        <View className="flex-row gap-4" onLayout={(e) => trackFieldLayout("sku", e.nativeEvent.layout.y)}>
           <View className="flex-1">
             <FormInput
               label="SKU"
@@ -994,7 +1318,7 @@ export default function AddProductScreen() {
         </View>
 
         {/* Row 5: Manufacturer, Select Suppliers, Select Main Category */}
-        <View className="flex-row gap-4">
+        <View className="flex-row gap-4" onLayout={(e) => trackFieldLayout("mainCategory", e.nativeEvent.layout.y)}>
           {/* Manufacturer picker */}
           <View className="flex-1">
             <View className="mb-4">
@@ -1130,8 +1454,41 @@ export default function AddProductScreen() {
         {/* Detail Product Description */}
         <View className="flex-row items-center justify-between mb-4">
           <Text className="text-lg font-semibold text-gray-800">Detail Product Description</Text>
-          <Pressable className="border border-gray-300 rounded-lg px-4 py-2">
-            <Text className="text-gray-600">Generate Description</Text>
+          <Pressable
+            className="border border-gray-300 rounded-lg px-4 py-2 flex-row items-center"
+            style={generatingDescription ? { opacity: 0.6 } : {}}
+            disabled={generatingDescription}
+            onPress={async () => {
+              if (!productName.trim()) {
+                Alert.alert("Info", "Please enter product name to get description");
+                return;
+              }
+              if (!selectedMainCategoryId) {
+                Alert.alert("Info", "Please select category to get description");
+                return;
+              }
+              const brandName = selectedBrandId
+                ? brandsList.find((b) => b.id === selectedBrandId)?.name
+                : undefined;
+              try {
+                setGeneratingDescription(true);
+                const { data } = await generateProductDescription({
+                  product_name: productName.trim(),
+                  brand_name: brandName || undefined,
+                  main_category_id: selectedMainCategoryId,
+                });
+                if (data.description) {
+                  setDescription(data.description);
+                }
+              } catch (err: any) {
+                Alert.alert("Error", err?.response?.data?.message || err?.message || "Failed to generate description");
+              } finally {
+                setGeneratingDescription(false);
+              }
+            }}
+          >
+            {generatingDescription && <ActivityIndicator size="small" color="#6B7280" style={{ marginRight: 6 }} />}
+            <Text className="text-gray-600">{generatingDescription ? "Generating..." : "Generate Description"}</Text>
           </Pressable>
         </View>
         <TextInput
@@ -1146,10 +1503,12 @@ export default function AddProductScreen() {
         />
 
         {/* Youtube Link */}
-        <View className="mb-6">
-          <FormInput
-            label="Youtube Link"
+        <View className="mb-6 flex-row items-center" onLayout={(e) => trackFieldLayout("youtubeLink", e.nativeEvent.layout.y)}>
+          <Text className="text-gray-700 text-sm font-medium mr-3" style={{ width: 90 }}>Youtube Link</Text>
+          <TextInput
+            className="flex-1 bg-white border border-gray-200 rounded-lg px-4 py-3"
             placeholder="Enter youtube link"
+            placeholderTextColor="#9ca3af"
             value={youtubeLink}
             onChangeText={setYoutubeLink}
           />
@@ -1163,9 +1522,9 @@ export default function AddProductScreen() {
 
   // Render Pricing & Stock Tab Content
   const renderPricingTab = () => (
-    <ScrollView className="flex-1 bg-gray-50" showsVerticalScrollIndicator={false}>
+    <ScrollView ref={pricingScrollRef} className="flex-1 bg-gray-50" showsVerticalScrollIndicator={false}>
       {/* Define Unit of Measurement Section */}
-      <View className="bg-white m-4 rounded-lg border border-gray-200">
+      <View className="bg-white m-4 rounded-lg border border-gray-200" onLayout={(e) => trackFieldLayout("unitMeasurement", e.nativeEvent.layout.y)}>
         <Pressable 
           className="flex-row items-center justify-between p-4 border-b border-gray-100"
           onPress={() => setMeasurementExpanded(!measurementExpanded)}
@@ -1181,7 +1540,15 @@ export default function AddProductScreen() {
               <Text className="text-gray-700 text-sm mb-2">
                 This product is measured by<Text className="text-red-500">*</Text>
               </Text>
-              <Pressable className="bg-white border border-gray-200 rounded-lg px-4 py-3 flex-row justify-between items-center w-48">
+              <Pressable
+                className="bg-white border border-gray-200 rounded-lg px-4 py-3 flex-row justify-between items-center w-48"
+                onPress={() => openPicker(
+                  "Measured By",
+                  [{ label: "Count", value: "Count" }],
+                  measuredBy,
+                  (v) => setMeasuredBy(v),
+                )}
+              >
                 <Text className="text-gray-800">{measuredBy}</Text>
                 <Ionicons name="chevron-down" size={16} color="#9CA3AF" />
               </Pressable>
@@ -1237,7 +1604,7 @@ export default function AddProductScreen() {
       </View>
 
       {/* Define Pricing Section */}
-      <View className="bg-white mx-4 mb-4 rounded-lg border border-gray-200">
+      <View className="bg-white mx-4 mb-4 rounded-lg border border-gray-200" onLayout={(e) => trackFieldLayout("pricingTable", e.nativeEvent.layout.y)}>
         <Pressable 
           className="flex-row items-center justify-between p-4 border-b border-gray-100"
           onPress={() => setPricingExpanded(!pricingExpanded)}
@@ -1248,9 +1615,25 @@ export default function AddProductScreen() {
         
         {pricingExpanded && (
           <View className="p-4">
-            {/* Primary Tab */}
-            <View className="mb-4">
-              <Text className="text-red-500 font-medium pb-2 border-b-2 border-red-500 w-16">Primary</Text>
+            {/* Channel Tabs — mirrors kapp channel TabPane */}
+            <View className="flex-row mb-4 border-b border-gray-200">
+              {stockData.map((ch, idx) => {
+                const isActiveChannel = activePricingChannel === idx;
+                return (
+                  <Pressable
+                    key={ch.channelId}
+                    className="mr-1 px-4 pb-2"
+                    onPress={() => setActivePricingChannel(idx)}
+                  >
+                    <Text className={`text-sm font-medium ${isActiveChannel ? "text-red-500" : "text-gray-500"}`}>
+                      {ch.warehouse}
+                    </Text>
+                    {isActiveChannel && (
+                      <View className="mt-2 h-0.5 rounded-full" style={{ backgroundColor: "#EC1A52" }} />
+                    )}
+                  </Pressable>
+                );
+              })}
             </View>
 
             {/* Sold By & Bought By */}
@@ -1259,7 +1642,15 @@ export default function AddProductScreen() {
                 <Text className="text-gray-700 text-sm mb-2">
                   This product is sold by<Text className="text-red-500">*</Text>
                 </Text>
-                <Pressable className="bg-white border border-gray-200 rounded-lg px-4 py-3 flex-row justify-between items-center">
+                <Pressable
+                  className="bg-white border border-gray-200 rounded-lg px-4 py-3 flex-row justify-between items-center"
+                  onPress={() => openPicker(
+                    "This product is sold by",
+                    definedUnits.map((u) => ({ label: u.unit, value: u.unit })),
+                    soldBy,
+                    (v) => setSoldBy(v),
+                  )}
+                >
                   <Text className="text-gray-800">{soldBy}</Text>
                   <Ionicons name="chevron-down" size={16} color="#9CA3AF" />
                 </Pressable>
@@ -1268,7 +1659,15 @@ export default function AddProductScreen() {
                 <Text className="text-gray-700 text-sm mb-2">
                   This product is bought by<Text className="text-red-500">*</Text>
                 </Text>
-                <Pressable className="bg-white border border-gray-200 rounded-lg px-4 py-3 flex-row justify-between items-center">
+                <Pressable
+                  className="bg-white border border-gray-200 rounded-lg px-4 py-3 flex-row justify-between items-center"
+                  onPress={() => openPicker(
+                    "This product is bought by",
+                    definedUnits.map((u) => ({ label: u.unit, value: u.unit })),
+                    boughtBy,
+                    (v) => setBoughtBy(v),
+                  )}
+                >
                   <Text className="text-gray-800">{boughtBy}</Text>
                   <Ionicons name="chevron-down" size={16} color="#9CA3AF" />
                 </Pressable>
@@ -1277,6 +1676,7 @@ export default function AddProductScreen() {
                 <Pressable 
                   className="flex-row items-center justify-center px-4 py-3 rounded-lg"
                   style={{ backgroundColor: "#8B5CF6" }}
+                  onPress={handleCalculatePrices}
                 >
                   <Ionicons name="calculator-outline" size={18} color="white" />
                   <Text className="text-white font-medium ml-2">Calculate Prices</Text>
@@ -1356,7 +1756,7 @@ export default function AddProductScreen() {
       </View>
 
       {/* Stock Information Section */}
-      <View className="bg-white mx-4 mb-4 rounded-lg border border-gray-200">
+      <View className="bg-white mx-4 mb-4 rounded-lg border border-gray-200" onLayout={(e) => trackFieldLayout("channels", e.nativeEvent.layout.y)}>
         <Pressable 
           className="flex-row items-center justify-between p-4 border-b border-gray-100"
           onPress={() => setStockExpanded(!stockExpanded)}
@@ -1452,10 +1852,10 @@ export default function AddProductScreen() {
 
   // Render SEO Tab Content
   const renderSeoTab = () => (
-    <ScrollView className="flex-1 bg-gray-50 p-6" showsVerticalScrollIndicator={false}>
+    <ScrollView ref={seoScrollRef} className="flex-1 bg-gray-50 p-6" showsVerticalScrollIndicator={false}>
       <View className="bg-white rounded-lg border border-gray-200 p-6">
         {/* Slug */}
-        <View className="mb-6">
+        <View className="mb-6" onLayout={(e) => trackFieldLayout("seoSlug", e.nativeEvent.layout.y)}>
           <View className="flex-row items-center mb-2">
             <Text className="text-gray-700 text-sm font-medium">Slug</Text>
             <Ionicons name="information-circle-outline" size={16} color="#9CA3AF" style={{ marginLeft: 4 }} />
@@ -1506,115 +1906,241 @@ export default function AddProductScreen() {
   );
 
   // Render Promotions Tab Content
-  const renderPromotionsTab = () => (
-    <View className="flex-1 bg-gray-50">
-      <View className="p-6">
-        {/* Search Section */}
-        <View className="bg-white rounded-lg border border-gray-200 p-4 mb-4">
-          <Text className="text-gray-800 font-medium mb-3">Search Promotions</Text>
-          <View className="flex-row gap-3">
-            <TextInput
-              className="flex-1 bg-white border border-gray-200 rounded-lg px-4 py-2.5"
-              placeholder="Search"
-              placeholderTextColor="#9ca3af"
-              value={promotionSearch}
-              onChangeText={setPromotionSearch}
-            />
-            <Pressable 
-              className="flex-row items-center gap-2 px-4 py-2.5 rounded-lg border border-gray-300"
-              onPress={() => setShowAdvanceFilters(!showAdvanceFilters)}
-            >
-              <Ionicons name="filter" size={16} color="#374151" />
-              <Text className="text-gray-700 font-medium">Advance Filters</Text>
-            </Pressable>
-          </View>
+  // Mirrors kapp PromotionsSectionCard + PromotionsSectionListTable + filters
+  const renderPromotionsTab = () => {
+    // Helper: format promo value display – mirrors kapp PROMOTION_VALUE_TYPE render
+    const formatPromoValue = (row: PromotionRow) => {
+      for (const key of Object.keys(PROMOTION_VALUE_TYPE)) {
+        const vt = PROMOTION_VALUE_TYPE[key];
+        if (row.value_type === vt.value) {
+          const suffix = vt.value !== PROMOTION_VALUE_TYPE.PERCENTAGE_DISCOUNT.value ? " $" : "";
+          return `${row.value}${suffix} (${vt.type})`;
+        }
+      }
+      return String(row.value ?? "");
+    };
 
-          {/* Advance Filters Popup */}
-          {showAdvanceFilters && (
-            <View className="mt-4 bg-white border border-gray-200 rounded-lg p-4 shadow-lg">
-              <Text className="text-lg font-semibold text-gray-800 mb-4">Advance Filters</Text>
-              
-              <View className="mb-4">
-                <Text className="text-gray-700 text-sm font-medium mb-2">Status</Text>
-                <Pressable className="bg-white border border-gray-200 rounded-lg px-4 py-3 flex-row justify-between items-center">
-                  <Text className="text-gray-400">Select Status</Text>
-                  <Ionicons name="chevron-down" size={16} color="#9CA3AF" />
-                </Pressable>
-              </View>
+    // Helper: format applicable_for – mirrors kapp ApplicableForColumnFormatter
+    const formatApplicableFor = (value: number) => {
+      for (const key of Object.keys(SALE_ORDER_SOURCE)) {
+        if (SALE_ORDER_SOURCE[key].value === value) return SALE_ORDER_SOURCE[key].name;
+      }
+      return "";
+    };
 
+    // Helper: format date string – simple MM/DD/YYYY HH:mm
+    const formatDT = (dt: string | null) => {
+      if (!dt) return "";
+      try {
+        const d = new Date(dt);
+        if (isNaN(d.getTime())) return dt;
+        const mm = String(d.getMonth() + 1).padStart(2, "0");
+        const dd = String(d.getDate()).padStart(2, "0");
+        const yyyy = d.getFullYear();
+        const hh = String(d.getHours()).padStart(2, "0");
+        const mi = String(d.getMinutes()).padStart(2, "0");
+        return `${mm}/${dd}/${yyyy} ${hh}:${mi}`;
+      } catch { return dt || ""; }
+    };
+
+    // Helper: get promotion status badge info
+    const getStatusBadge = (statusValue: number) => {
+      for (const key of Object.keys(PROMOTION_STATUS)) {
+        if (PROMOTION_STATUS[key].value === statusValue) return PROMOTION_STATUS[key];
+      }
+      return null;
+    };
+
+    // Toggle a status filter chip
+    const toggleStatusFilter = (value: number) => {
+      setPromotionStatusFilter((prev) =>
+        prev.includes(value) ? prev.filter((v) => v !== value) : [...prev, value],
+      );
+    };
+
+    return (
+      <View className="flex-1 bg-gray-50">
+        <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
+          <View className="p-4">
+            {/* Search & Filter Section */}
+            <View className="bg-white rounded-lg border border-gray-200 p-4 mb-4">
+              <Text className="text-gray-800 font-medium mb-3">Search Promotions</Text>
               <View className="flex-row gap-3">
-                <Pressable 
-                  className="flex-1 py-3 rounded-lg border border-gray-300 items-center"
-                  onPress={() => {
-                    setPromotionStatus("");
-                    setShowAdvanceFilters(false);
-                  }}
+                <TextInput
+                  className="flex-1 bg-white border border-gray-200 rounded-lg px-4 py-2.5"
+                  placeholder="Search"
+                  placeholderTextColor="#9ca3af"
+                  value={promotionSearch}
+                  onChangeText={setPromotionSearch}
+                />
+                <Pressable
+                  className="flex-row items-center gap-2 px-4 py-2.5 rounded-lg border border-gray-300"
+                  onPress={() => setShowAdvanceFilters(!showAdvanceFilters)}
                 >
-                  <Text className="text-gray-700 font-medium">Clear Filter</Text>
-                </Pressable>
-                <Pressable 
-                  className="flex-1 py-3 rounded-lg items-center"
-                  style={{ backgroundColor: "#EC1A52" }}
-                  onPress={() => setShowAdvanceFilters(false)}
-                >
-                  <Text className="text-white font-medium">Apply</Text>
+                  <Ionicons name="filter" size={16} color="#374151" />
+                  <Text className="text-gray-700 font-medium">Advance Filters</Text>
                 </Pressable>
               </View>
-            </View>
-          )}
-        </View>
 
-        {/* Promotions Table */}
-        <View className="bg-white rounded-lg border border-gray-200">
-          <ScrollView horizontal showsHorizontalScrollIndicator={true}>
-            <View>
-              {/* Table Header */}
-              <View className="flex-row bg-gray-50 py-3 px-4 border-b border-gray-200">
-                <View className="w-8 mr-3">
-                  <View className="w-5 h-5 border border-gray-300 rounded" />
-                </View>
-                <Text className="w-48 text-gray-500 text-xs font-semibold uppercase">Promotion Name</Text>
-                <Text className="w-32 text-gray-500 text-xs font-semibold uppercase">Promo Price</Text>
-                <Text className="w-32 text-gray-500 text-xs font-semibold uppercase">Applied To</Text>
-                <Text className="w-24 text-gray-500 text-xs font-semibold uppercase">Unit</Text>
-                <Text className="w-32 text-gray-500 text-xs font-semibold uppercase">Start Date</Text>
-                <Text className="w-32 text-gray-500 text-xs font-semibold uppercase">End Date</Text>
-                <Text className="w-32 text-gray-500 text-xs font-semibold uppercase">Total Qty Sold</Text>
-                <Text className="w-24 text-gray-500 text-xs font-semibold uppercase">Pos Qty</Text>
-                <Text className="w-32 text-gray-500 text-xs font-semibold uppercase">Ecom Web Qty</Text>
-              </View>
+              {/* Advance Filters Panel */}
+              {showAdvanceFilters && (
+                <View className="mt-4 bg-white border border-gray-200 rounded-lg p-4">
+                  <Text className="text-lg font-semibold text-gray-800 mb-4">Advance Filters</Text>
 
-              {/* Empty State */}
-              {promotions.length === 0 && (
-                <View className="py-20 items-center justify-center">
-                  <Ionicons name="document-outline" size={48} color="#D1D5DB" />
-                  <Text className="text-gray-400 mt-4 text-base">No Data</Text>
+                  {/* Status multi-select chips */}
+                  <View className="mb-4">
+                    <Text className="text-gray-700 text-sm font-medium mb-2">Status</Text>
+                    <View className="flex-row flex-wrap gap-2">
+                      {Object.keys(PROMOTION_STATUS).map((key) => {
+                        const st = PROMOTION_STATUS[key];
+                        const selected = promotionStatusFilter.includes(st.value);
+                        return (
+                          <Pressable
+                            key={key}
+                            className="px-4 py-2 rounded-full border"
+                            style={{
+                              backgroundColor: selected ? st.color : "#fff",
+                              borderColor: selected ? st.textColor : "#D1D5DB",
+                            }}
+                            onPress={() => toggleStatusFilter(st.value)}
+                          >
+                            <Text style={{ color: selected ? st.textColor : "#6B7280", fontWeight: selected ? "600" : "400" }}>
+                              {st.name}
+                            </Text>
+                          </Pressable>
+                        );
+                      })}
+                    </View>
+                  </View>
+
+                  {/* Active filter tags preview */}
+                  {promotionStatusFilter.length > 0 && (
+                    <View className="flex-row flex-wrap gap-1 mb-3">
+                      {promotionStatusFilter.map((v) => {
+                        const badge = getStatusBadge(v);
+                        return badge ? (
+                          <View key={v} className="flex-row items-center px-2 py-1 rounded-full" style={{ backgroundColor: badge.color }}>
+                            <Text style={{ color: badge.textColor, fontSize: 12 }}>{badge.name}</Text>
+                            <Pressable onPress={() => toggleStatusFilter(v)} className="ml-1">
+                              <Ionicons name="close-circle" size={14} color={badge.textColor} />
+                            </Pressable>
+                          </View>
+                        ) : null;
+                      })}
+                    </View>
+                  )}
+
+                  <View className="flex-row gap-3">
+                    <Pressable
+                      className="flex-1 py-3 rounded-lg border border-gray-300 items-center"
+                      onPress={() => {
+                        setPromotionStatusFilter([]);
+                        setPromotionSearch("");
+                        setShowAdvanceFilters(false);
+                      }}
+                    >
+                      <Text className="text-gray-700 font-medium">Clear Filter</Text>
+                    </Pressable>
+                    <Pressable
+                      className="flex-1 py-3 rounded-lg items-center"
+                      style={{ backgroundColor: "#EC1A52" }}
+                      onPress={() => {
+                        setShowAdvanceFilters(false);
+                        loadPromotions();
+                      }}
+                    >
+                      <Text className="text-white font-medium">Apply</Text>
+                    </Pressable>
+                  </View>
                 </View>
               )}
-
-              {/* Table Rows would go here */}
-              {promotions.map((promo, index) => (
-                <View key={index} className="flex-row items-center py-3 px-4 border-b border-gray-100">
-                  <View className="w-8 mr-3">
-                    <View className="w-5 h-5 border border-gray-300 rounded" />
-                  </View>
-                  <Text className="w-48 text-gray-700">{promo.name}</Text>
-                  <Text className="w-32 text-gray-700">{promo.price}</Text>
-                  <Text className="w-32 text-gray-700">{promo.appliedTo}</Text>
-                  <Text className="w-24 text-gray-700">{promo.unit}</Text>
-                  <Text className="w-32 text-gray-700">{promo.startDate}</Text>
-                  <Text className="w-32 text-gray-700">{promo.endDate}</Text>
-                  <Text className="w-32 text-gray-700">{promo.totalQty}</Text>
-                  <Text className="w-24 text-gray-700">{promo.posQty}</Text>
-                  <Text className="w-32 text-gray-700">{promo.ecomQty}</Text>
-                </View>
-              ))}
             </View>
-          </ScrollView>
-        </View>
+
+            {/* Info banner for new product (no productId yet) */}
+            <View className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4 flex-row items-center">
+              <Ionicons name="information-circle-outline" size={20} color="#3B82F6" />
+              <Text className="text-blue-700 text-sm ml-2 flex-1">
+                Promotions will be available after the product is saved. You can link promotions from the Marketing module.
+              </Text>
+            </View>
+
+
+            {/* Loading Indicator */}
+            {promotionsLoading && (
+              <View className="py-8 items-center">
+                <ActivityIndicator size="large" color="#EC1A52" />
+              </View>
+            )}
+
+            {/* Promotions Table */}
+            {!promotionsLoading && (
+              <View className="bg-white rounded-lg border border-gray-200">
+                <ScrollView horizontal showsHorizontalScrollIndicator={true}>
+                  <View style={{ minWidth: 1100 }}>
+                    {/* Table Header – mirrors kapp columns */}
+                    <View className="flex-row bg-gray-50 py-3 px-4 border-b border-gray-200">
+                      <Text className="text-gray-500 text-xs font-semibold uppercase" style={{ width: 180 }}>Promotion Name</Text>
+                      <Text className="text-gray-500 text-xs font-semibold uppercase" style={{ width: 150 }}>Promo Price</Text>
+                      <Text className="text-gray-500 text-xs font-semibold uppercase text-center" style={{ width: 100 }}>Applied To</Text>
+                      <Text className="text-gray-500 text-xs font-semibold uppercase text-center" style={{ width: 80 }}>Unit</Text>
+                      <Text className="text-gray-500 text-xs font-semibold uppercase text-center" style={{ width: 130 }}>Start Date</Text>
+                      <Text className="text-gray-500 text-xs font-semibold uppercase text-center" style={{ width: 130 }}>End Date</Text>
+                      <Text className="text-gray-500 text-xs font-semibold uppercase text-center" style={{ width: 90 }}>Total Qty</Text>
+                      <Text className="text-gray-500 text-xs font-semibold uppercase text-center" style={{ width: 80 }}>POS Qty</Text>
+                      <Text className="text-gray-500 text-xs font-semibold uppercase text-center" style={{ width: 90 }}>Ecom Qty</Text>
+                      <Text className="text-gray-500 text-xs font-semibold uppercase text-center" style={{ width: 80 }}>Status</Text>
+                    </View>
+
+                    {/* Empty State */}
+                    {promotionRows.length === 0 && (
+                      <View className="py-20 items-center justify-center">
+                        <Ionicons name="document-outline" size={48} color="#D1D5DB" />
+                        <Text className="text-gray-400 mt-4 text-base">No Data</Text>
+                      </View>
+                    )}
+
+                    {/* Data Rows */}
+                    {promotionRows.map((row, index) => {
+                      const badge = getStatusBadge(row.promotion_status);
+                      return (
+                        <View key={`${row.promotion_id}-${row.promotion_detail_id}-${index}`} className="flex-row items-center py-3 px-4 border-b border-gray-100">
+                          <Text className="text-gray-800 text-sm" style={{ width: 180 }} numberOfLines={2}>{row.name}</Text>
+                          <Text className="text-gray-700 text-sm" style={{ width: 150 }}>{formatPromoValue(row)}</Text>
+                          <Text className="text-gray-700 text-sm text-center" style={{ width: 100 }}>{formatApplicableFor(row.applicable_for)}</Text>
+                          <Text className="text-gray-700 text-sm text-center" style={{ width: 80 }}>{UNIT_NAMES[row.unit_price?.unit ?? 0] || ""}</Text>
+                          <Text className="text-gray-600 text-xs text-center" style={{ width: 130 }}>{formatDT(row.start_datetime)}</Text>
+                          <Text className="text-gray-600 text-xs text-center" style={{ width: 130 }}>{formatDT(row.end_datetime)}</Text>
+                          <Text className="text-gray-700 text-sm text-center" style={{ width: 90 }}>{Number(row.total_sold)}</Text>
+                          <Text className="text-gray-700 text-sm text-center" style={{ width: 80 }}>{Number(row.total_tenant_sold)}</Text>
+                          <Text className="text-gray-700 text-sm text-center" style={{ width: 90 }}>{Number(row.total_ecom_sold)}</Text>
+                          <View style={{ width: 80, alignItems: "center" }}>
+                            {badge ? (
+                              <View className="px-2 py-1 rounded" style={{ backgroundColor: badge.color }}>
+                                <Text style={{ color: badge.textColor, fontSize: 11, fontWeight: "600" }}>{badge.name}</Text>
+                              </View>
+                            ) : null}
+                          </View>
+                        </View>
+                      );
+                    })}
+                  </View>
+                </ScrollView>
+
+                {/* Total count footer */}
+                {promotionRows.length > 0 && (
+                  <View className="flex-row justify-between items-center px-4 py-3 border-t border-gray-200 bg-gray-50">
+                    <Text className="text-gray-500 text-sm">
+                      Showing {promotionRows.length} of {promotionsTotalCount} promotion(s)
+                    </Text>
+                  </View>
+                )}
+              </View>
+            )}
+          </View>
+        </ScrollView>
       </View>
-    </View>
-  );
+    );
+  };
 
   // Render placeholder for other tabs
   const renderPlaceholderTab = (tabName: string) => (
@@ -1794,23 +2320,53 @@ export default function AddProductScreen() {
                 <Text className="text-white font-medium">Close</Text>
               </Pressable>
               <Pressable
-                className="px-6 py-3 rounded-lg"
-                style={{ backgroundColor: "#8B5CF6" }}
-                onPress={() => {
+                className="px-6 py-3 rounded-lg flex-row items-center"
+                style={[
+                  { backgroundColor: "#8B5CF6" },
+                  savingCategory ? { opacity: 0.6 } : {},
+                ]}
+                disabled={savingCategory}
+                onPress={async () => {
                   if (!categoryName.trim()) {
                     Alert.alert("Error", "Category name is required");
                     return;
                   }
-                  Alert.alert("Success", "Category added successfully");
-                  setCategoryName("");
-                  setCategoryMsaCode("");
-                  setCategoryIsMsa(false);
-                  setCategoryIsFeature(false);
-                  setCategoryParentId(null);
-                  setShowAddCategoryModal(false);
+                  if (categoryIsMsa && !categoryMsaCode) {
+                    Alert.alert("Error", "MSA Code is required when Is MSA is on");
+                    return;
+                  }
+                  try {
+                    setSavingCategory(true);
+                    await createCategory({
+                      name: categoryName.trim(),
+                      parent_id: categoryParentId || null,
+                      code: categoryIsMsa ? categoryMsaCode : null,
+                      is_msa_compliant: categoryIsMsa,
+                      visible_on_ecom: categoryIsFeature,
+                    });
+                    Alert.alert("Success", "Category added successfully");
+                    // Reset form
+                    setCategoryName("");
+                    setCategoryMsaCode("");
+                    setCategoryIsMsa(false);
+                    setCategoryIsFeature(false);
+                    setCategoryParentId(null);
+                    setShowAddCategoryModal(false);
+                    // Refresh categories list
+                    const categoriesRes = await fetchCategories();
+                    setCategoriesList(normalizeCategoryList(categoriesRes.data));
+                  } catch (err: any) {
+                    const msg = err?.response?.data?.errors
+                      ? err.response.data.errors.join("\n")
+                      : err?.response?.data?.message || err?.message || "Failed to create category";
+                    Alert.alert("Error", msg);
+                  } finally {
+                    setSavingCategory(false);
+                  }
                 }}
               >
-                <Text className="text-white font-medium">Save</Text>
+                {savingCategory && <ActivityIndicator size="small" color="#FFF" style={{ marginRight: 6 }} />}
+                <Text className="text-white font-medium">{savingCategory ? "Saving..." : "Save"}</Text>
               </Pressable>
             </View>
           </View>
@@ -1963,8 +2519,52 @@ export default function AddProductScreen() {
         </View>
       </Modal>
 
+      {/* Generic Picker Modal — used for Sold By, Bought By, Measured By dropdowns */}
+      <Modal
+        visible={pickerModal.visible}
+        transparent
+        animationType="fade"
+        onRequestClose={closePicker}
+      >
+        <View className="flex-1 bg-black/50 justify-center items-center">
+          <View className="bg-white rounded-xl w-[420px] max-w-[90%]">
+            <View className="flex-row items-center justify-between p-5 border-b border-gray-200">
+              <Text className="text-lg font-semibold text-gray-800">{pickerModal.title}</Text>
+              <Pressable onPress={closePicker} hitSlop={8}>
+                <Ionicons name="close" size={22} color="#9CA3AF" />
+              </Pressable>
+            </View>
+            <ScrollView style={{ maxHeight: 360 }}>
+              {pickerModal.options.map((opt) => {
+                const isActive = pickerModal.selected === opt.value;
+                return (
+                  <Pressable
+                    key={opt.value}
+                    className={`px-5 py-3 flex-row items-center justify-between ${isActive ? "bg-red-50" : ""}`}
+                    onPress={() => {
+                      pickerModal.onSelect(opt.value);
+                      closePicker();
+                    }}
+                  >
+                    <Text className={isActive ? "text-gray-800 font-medium" : "text-gray-700"}>
+                      {opt.label}
+                    </Text>
+                    {isActive && <Ionicons name="checkmark" size={18} color="#EC1A52" />}
+                  </Pressable>
+                );
+              })}
+              {pickerModal.options.length === 0 && (
+                <View className="py-12 items-center">
+                  <Text className="text-gray-400">No options available</Text>
+                </View>
+              )}
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
+
       <DevDataOverlay
-        tables={[PRODUCTS_TABLE, CATEGORIES_TABLE]}
+        tables={[PRODUCTS_TABLE, CATEGORIES_TABLE, PROMOTION_DETAILS_TABLE]}
         defaultTable="products"
       />
     </View>
