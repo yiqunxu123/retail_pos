@@ -1,7 +1,8 @@
 import { Ionicons, MaterialCommunityIcons, MaterialIcons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Alert, Pressable, ScrollView, Text, TextInput, TouchableOpacity, View } from "react-native";
+import { Alert, Image, Modal, Pressable, ScrollView, Text, TextInput, TouchableOpacity, View } from "react-native";
+import { captureRef } from "react-native-view-shot";
 import { AddDiscountModal } from "../../components/AddDiscountModal";
 import { AddQuickCustomerModal } from "../../components/AddQuickCustomerModal";
 import { AddTaxModal } from "../../components/AddTaxModal";
@@ -13,6 +14,7 @@ import { DeclareCashModal } from "../../components/DeclareCashModal";
 import { ParkOrderModal } from "../../components/ParkOrderModal";
 import { ParkedOrdersModal } from "../../components/ParkedOrdersModal";
 import { ProductSettingsModal } from "../../components/ProductSettingsModal";
+import { ReceiptData, ReceiptTemplate } from "../../components/ReceiptTemplate";
 import { SearchProduct, SearchProductModal } from "../../components/SearchProductModal";
 import { SidebarButton } from "../../components/SidebarButton";
 import { useAuth } from "../../contexts/AuthContext";
@@ -86,8 +88,61 @@ export default function AddProductsScreen() {
   const [showProductSettingsModal, setShowProductSettingsModal] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<OrderProduct | null>(null);
 
+  // Receipt image
+  const receiptRef = useRef<View>(null);
+  const [generatingReceipt, setGeneratingReceipt] = useState(false);
+  const [receiptImageUri, setReceiptImageUri] = useState<string | null>(null);
+  const [showReceiptPreview, setShowReceiptPreview] = useState(false);
+
   const products = order.products;
   const summary = getOrderSummary();
+
+  // Build receipt data from current order
+  const buildReceiptData = useCallback((): ReceiptData => {
+    const now = new Date();
+    const dateStr = `${String(now.getMonth() + 1).padStart(2, "0")}/${String(now.getDate()).padStart(2, "0")}/${String(now.getFullYear()).slice(-2)} ${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`;
+    return {
+      orderNo: order.orderNumber || "--",
+      dateTime: dateStr,
+      items: products.map((p) => ({
+        name: p.name,
+        qty: p.quantity,
+        price: p.salePrice,
+        totalPrice: p.total,
+      })),
+      subtotal: summary.subTotal,
+      discount: order.additionalDiscount,
+      taxLabel: summary.tax > 0 ? undefined : "0%",
+      tax: summary.tax,
+      total: summary.total,
+    };
+  }, [order, products, summary]);
+
+  const handlePrintReceipt = useCallback(async () => {
+    if (products.length === 0) {
+      Alert.alert("No Products", "Add products before printing receipt.");
+      return;
+    }
+    setGeneratingReceipt(true);
+    try {
+      await new Promise((r) => setTimeout(r, 300));
+      if (!receiptRef.current) {
+        Alert.alert("Error", "Receipt template not ready");
+        return;
+      }
+      const uri = await captureRef(receiptRef, {
+        format: "png",
+        quality: 1,
+        result: "data-uri",
+      });
+      setReceiptImageUri(uri);
+      setShowReceiptPreview(true);
+    } catch (err: any) {
+      Alert.alert("Receipt Error", err?.message || String(err));
+    } finally {
+      setGeneratingReceipt(false);
+    }
+  }, [products]);
   
   // Mock cash summary - in real app this would come from backend
   const cashSummary = {
@@ -512,9 +567,9 @@ export default function AddProductsScreen() {
               fullWidth={false}
             />
             <SidebarButton
-              title="Payment Method"
-              onPress={() => Alert.alert("Payment Method 4", "Feature coming soon")}
-              icon={<MaterialIcons name="payment" size={20} color="#EC1A52" />}
+              title={generatingReceipt ? "Printing..." : "Print Receipt"}
+              onPress={handlePrintReceipt}
+              icon={<Ionicons name="print-outline" size={20} color="#EC1A52" />}
               fullWidth={false}
             />
           </View>
@@ -684,6 +739,49 @@ export default function AddProductsScreen() {
         }}
         product={selectedProduct}
       />
+
+      {/* Hidden receipt template for capture */}
+      <View
+        style={{ position: "absolute", top: 0, left: 0, opacity: 0 }}
+        pointerEvents="none"
+        collapsable={false}
+      >
+        <ReceiptTemplate ref={receiptRef} data={buildReceiptData()} />
+      </View>
+
+      {/* Receipt Image Preview Modal */}
+      <Modal
+        visible={showReceiptPreview}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowReceiptPreview(false)}
+      >
+        <Pressable
+          style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.85)", justifyContent: "center", alignItems: "center" }}
+          onPress={() => setShowReceiptPreview(false)}
+        >
+          <Pressable
+            style={{ backgroundColor: "#FFF", borderRadius: 12, padding: 16, maxWidth: "90%", maxHeight: "85%", alignItems: "center" }}
+            onPress={() => {}}
+          >
+            <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", width: "100%", marginBottom: 12 }}>
+              <Text style={{ fontSize: 16, fontWeight: "700", color: "#111" }}>打印预览</Text>
+              <TouchableOpacity onPress={() => setShowReceiptPreview(false)}>
+                <Ionicons name="close-circle" size={24} color="#9CA3AF" />
+              </TouchableOpacity>
+            </View>
+            {receiptImageUri && (
+              <ScrollView style={{ maxHeight: 500 }} showsVerticalScrollIndicator>
+                <Image
+                  source={{ uri: receiptImageUri }}
+                  style={{ width: 360, height: 450 }}
+                  resizeMode="contain"
+                />
+              </ScrollView>
+            )}
+          </Pressable>
+        </Pressable>
+      </Modal>
     </View>
   );
 }

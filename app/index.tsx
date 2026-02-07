@@ -4,10 +4,10 @@ import { useRouter } from "expo-router";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Alert, Modal, Pressable, ScrollView, Text, ToastAndroid, TouchableOpacity, useWindowDimensions, View } from "react-native";
 import {
-    ActionCard,
-    DateRangePickerModal,
-    SIDEBAR_WIDTH,
-    StatCard
+  ActionCard,
+  DateRangePickerModal,
+  SIDEBAR_WIDTH,
+  StatCard
 } from "../components";
 import { CashEntryModal } from "../components/CashEntryModal";
 import { CashResultModal } from "../components/CashResultModal";
@@ -23,15 +23,15 @@ import { useCashManagement, useChannels, useDashboardStats } from "../utils/powe
 import { usePowerSync } from "../utils/powersync/PowerSyncProvider";
 import { getLocalToday } from "../utils/powersync/sqlFilters";
 import {
-    addPrinter,
-    addPrinterListener,
-    getPoolStatus,
-    getPrinters,
-    isAnyPrinterModuleAvailable,
-    openCashDrawer,
-    print,
-    printToAll,
-    printToOne
+  addPrinter,
+  addPrinterListener,
+  getPoolStatus,
+  getPrinters,
+  isAnyPrinterModuleAvailable,
+  openCashDrawer,
+  print,
+  printToAll,
+  printToOne
 } from "../utils/PrinterPoolManager";
 
 // Default printer configuration
@@ -629,6 +629,7 @@ Cookies               x3    $6.00
           expectedAmount={cashSummary.expectedCash}
           actualAmount={cashResult.actualCash}
         />
+
       </View>
     );
   }
@@ -967,6 +968,7 @@ Cookies               x3    $6.00
             </Text>
           </TouchableOpacity>
         )}
+
       </View>
 
       {/* ===== DATE RANGE PICKER MODAL ===== */}

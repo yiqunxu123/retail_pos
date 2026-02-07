@@ -18,6 +18,7 @@ import {
     Alert,
     Animated,
     FlatList,
+    Image,
     Modal,
     PanResponder,
     Pressable,
@@ -26,8 +27,28 @@ import {
     View,
     useWindowDimensions,
 } from "react-native";
+import { captureRef } from "react-native-view-shot";
 import { clearPromotions, seedPromotions } from "../utils/api/products";
 import { powerSyncDb, usePowerSync } from "../utils/powersync/PowerSyncProvider";
+import { ReceiptData, ReceiptTemplate } from "./ReceiptTemplate";
+
+// ---------------------------------------------------------------------------
+// Mock receipt data for testing
+// ---------------------------------------------------------------------------
+
+const MOCK_RECEIPT_DATA: ReceiptData = {
+  orderNo: "A5",
+  dateTime: "02/06/26 21:25",
+  items: [
+    { name: "Drinks", qty: 2, price: 5.00, totalPrice: 10.00 },
+    { name: "Open A Table For 2 People", qty: 1, price: 23.00, totalPrice: 23.00 },
+  ],
+  subtotal: 33.00,
+  discount: 0,
+  taxLabel: "0%",
+  tax: 0.00,
+  total: 33.00,
+};
 
 // ---------------------------------------------------------------------------
 // Types
@@ -104,6 +125,12 @@ export function DevDataOverlay({ tables, defaultTable }: DevDataOverlayProps) {
   const [syncing, setSyncing] = useState(false);
   const [seeding, setSeeding] = useState(false);
   const [clearing, setClearing] = useState(false);
+
+  // --- Receipt test state ---
+  const receiptRef = useRef<View>(null);
+  const [generatingReceipt, setGeneratingReceipt] = useState(false);
+  const [receiptImageUri, setReceiptImageUri] = useState<string | null>(null);
+  const [showReceiptPreview, setShowReceiptPreview] = useState(false);
 
   // --- Draggable button ---
   const devPosRef = useRef({ x: -1, y: -1 });
@@ -241,6 +268,33 @@ export function DevDataOverlay({ tables, defaultTable }: DevDataOverlayProps) {
     setSortDir("asc");
   }, []);
 
+  // --- Generate receipt image from mock data ---
+  const handleReceiptTest = useCallback(async () => {
+    setGeneratingReceipt(true);
+    try {
+      // Small delay to ensure the off-screen ReceiptTemplate is rendered
+      await new Promise((r) => setTimeout(r, 300));
+
+      if (!receiptRef.current) {
+        Alert.alert("Error", "Receipt template ref not available");
+        return;
+      }
+
+      const uri = await captureRef(receiptRef, {
+        format: "png",
+        quality: 1,
+        result: "data-uri",
+      });
+
+      setReceiptImageUri(uri);
+      setShowReceiptPreview(true);
+    } catch (err: any) {
+      Alert.alert("Receipt generation failed", err?.message || String(err));
+    } finally {
+      setGeneratingReceipt(false);
+    }
+  }, []);
+
   // --- Column width helper ---
   const colWidth = (col: string) => {
     if (col === "id") return 80;
@@ -278,6 +332,46 @@ export function DevDataOverlay({ tables, defaultTable }: DevDataOverlayProps) {
           <Text style={{ color: "#22D3EE", fontSize: 8, fontWeight: "900", letterSpacing: 1.5, marginTop: 1 }}>DEV</Text>
         </Pressable>
       </Animated.View>
+
+      {/* Hidden receipt template for capture (opacity:0, collapsable:false for Android) */}
+      <View
+        style={{ position: "absolute", top: 0, left: 0, opacity: 0 }}
+        pointerEvents="none"
+        collapsable={false}
+      >
+        <ReceiptTemplate ref={receiptRef} data={MOCK_RECEIPT_DATA} />
+      </View>
+
+      {/* Receipt image preview modal */}
+      <Modal
+        visible={showReceiptPreview}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowReceiptPreview(false)}
+      >
+        <View style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.85)", justifyContent: "center", alignItems: "center" }}>
+          <View style={{ backgroundColor: "#FFF", borderRadius: 12, padding: 16, maxWidth: "90%", maxHeight: "85%", alignItems: "center" }}>
+            <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", width: "100%", marginBottom: 12 }}>
+              <Text style={{ fontSize: 16, fontWeight: "700", color: "#111" }}>Receipt Preview</Text>
+              <Pressable onPress={() => setShowReceiptPreview(false)}>
+                <Ionicons name="close-circle" size={24} color="#9CA3AF" />
+              </Pressable>
+            </View>
+            {receiptImageUri && (
+              <ScrollView style={{ maxHeight: 500 }} showsVerticalScrollIndicator>
+                <Image
+                  source={{ uri: receiptImageUri }}
+                  style={{ width: 320, height: 400 }}
+                  resizeMode="contain"
+                />
+              </ScrollView>
+            )}
+            <Text style={{ fontSize: 11, color: "#9CA3AF", marginTop: 8 }}>
+              800px width - ~10cm thermal paper
+            </Text>
+          </View>
+        </View>
+      </Modal>
 
       {/* Half-sheet modal */}
       <Modal
@@ -347,6 +441,18 @@ export function DevDataOverlay({ tables, defaultTable }: DevDataOverlayProps) {
                     : <Ionicons name="cloud-download-outline" size={14} color="#3B82F6" />
                   }
                   <Text className="text-blue-600 text-sm">{syncing ? "同步中" : "同步"}</Text>
+                </Pressable>
+                <Pressable
+                  className="flex-row items-center gap-1 px-3 py-1.5 rounded-lg border border-green-500 bg-green-50"
+                  style={generatingReceipt ? { opacity: 0.6 } : {}}
+                  disabled={generatingReceipt}
+                  onPress={handleReceiptTest}
+                >
+                  {generatingReceipt
+                    ? <ActivityIndicator size={14} color="#16A34A" />
+                    : <Ionicons name="receipt-outline" size={14} color="#16A34A" />
+                  }
+                  <Text className="text-green-700 text-sm">{generatingReceipt ? "生成中" : "Receipt"}</Text>
                 </Pressable>
               </View>
             </View>
