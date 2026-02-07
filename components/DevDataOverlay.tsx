@@ -12,7 +12,7 @@
  */
 
 import { Ionicons } from "@expo/vector-icons";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
     ActivityIndicator,
     Animated,
@@ -130,6 +130,32 @@ export function DevDataOverlay({ tables, defaultTable }: DevDataOverlayProps) {
   const [message, setMessage] = useState("");
   const [selectedCols, setSelectedCols] = useState<string[]>(initialTable.defaultColumns);
   const [showColPicker, setShowColPicker] = useState(true);
+  const [sortCol, setSortCol] = useState<string | null>(null);
+  const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
+
+  // --- Sorting ---
+  const sortedRows = useMemo(() => {
+    if (!sortCol) return rows;
+    const sorted = [...rows].sort((a, b) => {
+      const va = a[sortCol];
+      const vb = b[sortCol];
+      if (va == null && vb == null) return 0;
+      if (va == null) return 1;
+      if (vb == null) return -1;
+      if (typeof va === "number" && typeof vb === "number") return va - vb;
+      return String(va).localeCompare(String(vb), undefined, { numeric: true });
+    });
+    return sortDir === "desc" ? sorted.reverse() : sorted;
+  }, [rows, sortCol, sortDir]);
+
+  const toggleSort = useCallback((col: string) => {
+    if (sortCol === col) {
+      setSortDir((prev) => (prev === "asc" ? "desc" : "asc"));
+    } else {
+      setSortCol(col);
+      setSortDir("asc");
+    }
+  }, [sortCol]);
 
   // --- Load data ---
   const loadData = useCallback(async (table: DevTableConfig) => {
@@ -162,11 +188,13 @@ export function DevDataOverlay({ tables, defaultTable }: DevDataOverlayProps) {
     loadData(activeTable);
   }, [showSheet, activeTable, loadData]);
 
-  // Reset columns when switching tables
+  // Reset columns and sort when switching tables
   const switchTable = useCallback((table: DevTableConfig) => {
     setActiveTable(table);
     setSelectedCols(table.defaultColumns);
     setShowColPicker(false);
+    setSortCol(null);
+    setSortDir("asc");
   }, []);
 
   // --- Column width helper ---
@@ -298,18 +326,37 @@ export function DevDataOverlay({ tables, defaultTable }: DevDataOverlayProps) {
               <ScrollView horizontal showsHorizontalScrollIndicator>
                 <View className="flex-1">
                   {/* Header row */}
-                  <View className="flex-row bg-gray-100 rounded-t-lg px-3 py-2">
-                    {selectedCols.map((col) => (
-                      <View key={col} style={{ width: colWidth(col) }} className="px-1">
-                        <Text className="text-xs text-gray-500 font-semibold" numberOfLines={1}>
-                          {col}
-                        </Text>
-                      </View>
-                    ))}
+                  <View className="flex-row bg-gray-100 rounded-t-lg px-3 py-3">
+                    {selectedCols.map((col) => {
+                      const isSorted = sortCol === col;
+                      return (
+                        <Pressable
+                          key={col}
+                          style={{ width: colWidth(col), minHeight: 32 }}
+                          className="px-1 flex-row items-center"
+                          onPress={() => toggleSort(col)}
+                        >
+                          <Text
+                            className={`text-sm font-bold ${isSorted ? "text-gray-900" : "text-gray-600"}`}
+                            numberOfLines={1}
+                          >
+                            {col}
+                          </Text>
+                          {isSorted && (
+                            <Ionicons
+                              name={sortDir === "asc" ? "arrow-up" : "arrow-down"}
+                              size={12}
+                              color="#111827"
+                              style={{ marginLeft: 3 }}
+                            />
+                          )}
+                        </Pressable>
+                      );
+                    })}
                   </View>
                   {/* Data rows */}
                   <FlatList
-                    data={rows}
+                    data={sortedRows}
                     keyExtractor={(item, index) => item.id || String(index)}
                     renderItem={({ item }) => (
                       <View className="flex-row items-center bg-white border-b border-gray-100 px-3 py-2">
