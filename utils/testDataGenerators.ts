@@ -1,29 +1,29 @@
 /**
  * Test Data Generators
  *
- * 为 PowerSync 同步的 20 张数据表提供测试数据生成器。
- * 每张表有列定义、类型信息、以及智能默认值生成函数。
+ * Provides test data generators for 20 PowerSync-synced tables.
+ * Each table has column definitions, type info, and smart default value generators.
  *
- * - 数字字段：在合理范围内随机
- * - 字符串字段：加上 _index 后缀
- * - 外键引用：在快捷操作中自动关联
+ * - Numeric fields: random within reasonable ranges
+ * - String fields: appended with _index suffix
+ * - Foreign keys: auto-linked in quick actions
  */
 
 // ============================================================================
 // Helpers
 // ============================================================================
 
-/** 生成指定范围内的随机整数 [min, max] */
+/** Generate random integer in range [min, max] */
 export function randInt(min: number, max: number): number {
   return Math.floor(Math.random() * (max - min + 1)) + min
 }
 
-/** 生成指定范围内的随机浮点数，保留2位小数 */
+/** Generate random float in range, rounded to 2 decimals */
 export function randFloat(min: number, max: number): number {
   return Math.round((Math.random() * (max - min) + min) * 100) / 100
 }
 
-/** 生成随机 UUID (v4-like) */
+/** Generate random UUID (v4-like) */
 export function uuid(): string {
   return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
     const r = (Math.random() * 16) | 0
@@ -32,21 +32,21 @@ export function uuid(): string {
   })
 }
 
-/** 生成随机 12 位 UPC 码 */
+/** Generate random 12-digit UPC code */
 function randUpc(): string {
   let upc = ''
   for (let i = 0; i < 12; i++) upc += randInt(0, 9).toString()
   return upc
 }
 
-/** 获取最近 N 天内的随机日期字符串 */
+/** Get random date string within last N days */
 function randRecentDate(days = 90): string {
   const now = Date.now()
   const offset = randInt(0, days * 24 * 60 * 60 * 1000)
   return new Date(now - offset).toISOString()
 }
 
-/** 当前时间 ISO 字符串 */
+/** Current time as ISO string */
 function nowISO(): string {
   return new Date().toISOString()
 }
@@ -60,367 +60,367 @@ export type ColumnType = 'text' | 'integer' | 'real'
 export interface ColumnDef {
   name: string
   type: ColumnType
-  /** 列的中文标签 */
+  /** Column display label */
   label: string
-  /** 默认值生成函数，index 为批量生成的序号 */
+  /** Default value generator function, index is the batch sequence number */
   defaultValue: (index: number) => string | number | null
 }
 
 export interface TableConfig {
-  /** 表名 */
+  /** Table name */
   name: string
-  /** 中文显示名 */
+  /** Display label */
   label: string
-  /** 列定义（不含 id，id 自动生成 uuid） */
+  /** Column definitions (excluding id, id is auto-generated as uuid) */
   columns: ColumnDef[]
 }
 
 // ============================================================================
-// Table Configs - 全部 20 张 PowerSync 表
+// Table Configs - all 20 PowerSync tables
 // ============================================================================
 
 export const TABLE_CONFIGS: TableConfig[] = [
-  // ---- 分类 ----
+  // ---- Categories ----
   {
     name: 'categories',
-    label: '分类 (Categories)',
+    label: 'Categories',
     columns: [
-      { name: 'name', type: 'text', label: '名称', defaultValue: (i) => `Category_${i}` },
-      { name: 'code', type: 'text', label: '编码', defaultValue: (i) => `CAT${String(i).padStart(3, '0')}` },
+      { name: 'name', type: 'text', label: 'Name', defaultValue: (i) => `Category_${i}` },
+      { name: 'code', type: 'text', label: 'Code', defaultValue: (i) => `CAT${String(i).padStart(3, '0')}` },
       { name: 'slug', type: 'text', label: 'Slug', defaultValue: (i) => `category-${i}` },
-      { name: 'is_featured', type: 'integer', label: '是否推荐', defaultValue: () => randInt(0, 1) },
-      { name: 'image', type: 'text', label: '图片', defaultValue: () => '' },
-      { name: 'parent_id', type: 'integer', label: '父分类ID', defaultValue: () => null },
-      { name: 'created_at', type: 'text', label: '创建时间', defaultValue: () => nowISO() },
-      { name: 'updated_at', type: 'text', label: '更新时间', defaultValue: () => nowISO() },
+      { name: 'is_featured', type: 'integer', label: 'Featured', defaultValue: () => randInt(0, 1) },
+      { name: 'image', type: 'text', label: 'Image', defaultValue: () => '' },
+      { name: 'parent_id', type: 'integer', label: 'Parent Cat. ID', defaultValue: () => null },
+      { name: 'created_at', type: 'text', label: 'Created At', defaultValue: () => nowISO() },
+      { name: 'updated_at', type: 'text', label: 'Updated At', defaultValue: () => nowISO() },
     ],
   },
 
-  // ---- 品牌 ----
+  // ---- Brands ----
   {
     name: 'brands',
-    label: '品牌 (Brands)',
+    label: 'Brands',
     columns: [
-      { name: 'name', type: 'text', label: '名称', defaultValue: (i) => `Brand_${i}` },
+      { name: 'name', type: 'text', label: 'Name', defaultValue: (i) => `Brand_${i}` },
       { name: 'slug', type: 'text', label: 'Slug', defaultValue: (i) => `brand-${i}` },
-      { name: 'image', type: 'text', label: '图片', defaultValue: () => '' },
-      { name: 'is_featured', type: 'integer', label: '是否推荐', defaultValue: () => randInt(0, 1) },
-      { name: 'created_at', type: 'text', label: '创建时间', defaultValue: () => nowISO() },
-      { name: 'updated_at', type: 'text', label: '更新时间', defaultValue: () => nowISO() },
+      { name: 'image', type: 'text', label: 'Image', defaultValue: () => '' },
+      { name: 'is_featured', type: 'integer', label: 'Featured', defaultValue: () => randInt(0, 1) },
+      { name: 'created_at', type: 'text', label: 'Created At', defaultValue: () => nowISO() },
+      { name: 'updated_at', type: 'text', label: 'Updated At', defaultValue: () => nowISO() },
     ],
   },
 
-  // ---- 渠道 ----
+  // ---- Channels ----
   {
     name: 'channels',
-    label: '渠道 (Channels)',
+    label: 'Channels',
     columns: [
-      { name: 'name', type: 'text', label: '名称', defaultValue: (i) => `Channel_${i}` },
-      { name: 'description', type: 'text', label: '描述', defaultValue: (i) => `Test channel ${i}` },
-      { name: 'is_primary', type: 'integer', label: '是否主渠道', defaultValue: (i) => (i === 1 ? 1 : 0) },
-      { name: 'type', type: 'integer', label: '类型', defaultValue: () => 1 },
-      { name: 'created_at', type: 'text', label: '创建时间', defaultValue: () => nowISO() },
-      { name: 'updated_at', type: 'text', label: '更新时间', defaultValue: () => nowISO() },
+      { name: 'name', type: 'text', label: 'Name', defaultValue: (i) => `Channel_${i}` },
+      { name: 'description', type: 'text', label: 'Description', defaultValue: (i) => `Test channel ${i}` },
+      { name: 'is_primary', type: 'integer', label: 'Primary', defaultValue: (i) => (i === 1 ? 1 : 0) },
+      { name: 'type', type: 'integer', label: 'Type', defaultValue: () => 1 },
+      { name: 'created_at', type: 'text', label: 'Created At', defaultValue: () => nowISO() },
+      { name: 'updated_at', type: 'text', label: 'Updated At', defaultValue: () => nowISO() },
     ],
   },
 
-  // ---- 产品 ----
+  // ---- Products ----
   {
     name: 'products',
-    label: '产品 (Products)',
+    label: 'Products',
     columns: [
-      { name: 'brand_id', type: 'integer', label: '品牌ID', defaultValue: () => null },
-      { name: 'name', type: 'text', label: '名称', defaultValue: (i) => `Product_${i}` },
-      { name: 'weight', type: 'real', label: '重量', defaultValue: () => randFloat(0.1, 50) },
-      { name: 'weight_unit', type: 'integer', label: '重量单位', defaultValue: () => 1 },
+      { name: 'brand_id', type: 'integer', label: 'Brand ID', defaultValue: () => null },
+      { name: 'name', type: 'text', label: 'Name', defaultValue: (i) => `Product_${i}` },
+      { name: 'weight', type: 'real', label: 'Weight', defaultValue: () => randFloat(0.1, 50) },
+      { name: 'weight_unit', type: 'integer', label: 'Weight Unit', defaultValue: () => 1 },
       { name: 'sku', type: 'text', label: 'SKU', defaultValue: (i) => `SKU-${String(i).padStart(5, '0')}` },
       { name: 'upc', type: 'text', label: 'UPC', defaultValue: () => randUpc() },
       { name: 'upc_2', type: 'text', label: 'UPC 2', defaultValue: () => '' },
       { name: 'upc_3', type: 'text', label: 'UPC 3', defaultValue: () => '' },
       { name: 'mlc', type: 'text', label: 'MLC', defaultValue: () => '' },
       { name: 'bin', type: 'text', label: 'Bin', defaultValue: (i) => `BIN-${String(i).padStart(3, '0')}` },
-      { name: 'description', type: 'text', label: '描述', defaultValue: (i) => `Test product description ${i}` },
-      { name: 'is_online', type: 'integer', label: '线上销售', defaultValue: () => 1 },
-      { name: 'status', type: 'integer', label: '状态(1=活跃)', defaultValue: () => 1 },
-      { name: 'unit_of_measurement', type: 'integer', label: '计量单位', defaultValue: () => 1 },
+      { name: 'description', type: 'text', label: 'Description', defaultValue: (i) => `Test product description ${i}` },
+      { name: 'is_online', type: 'integer', label: 'Online', defaultValue: () => 1 },
+      { name: 'status', type: 'integer', label: 'Status (1=active)', defaultValue: () => 1 },
+      { name: 'unit_of_measurement', type: 'integer', label: 'Unit of Measure', defaultValue: () => 1 },
       { name: 'slug', type: 'text', label: 'Slug', defaultValue: (i) => `product-${i}` },
-      { name: 'sold_count', type: 'integer', label: '已售数量', defaultValue: () => randInt(0, 500) },
-      { name: 'is_featured', type: 'integer', label: '是否推荐', defaultValue: () => randInt(0, 1) },
-      { name: 'main_category_id', type: 'integer', label: '主分类ID', defaultValue: () => null },
-      { name: 'images', type: 'text', label: '图片(JSON)', defaultValue: () => '[]' },
-      { name: 'created_at', type: 'text', label: '创建时间', defaultValue: () => nowISO() },
-      { name: 'updated_at', type: 'text', label: '更新时间', defaultValue: () => nowISO() },
+      { name: 'sold_count', type: 'integer', label: 'Sold Count', defaultValue: () => randInt(0, 500) },
+      { name: 'is_featured', type: 'integer', label: 'Featured', defaultValue: () => randInt(0, 1) },
+      { name: 'main_category_id', type: 'integer', label: 'Main Cat. ID', defaultValue: () => null },
+      { name: 'images', type: 'text', label: 'Images (JSON)', defaultValue: () => '[]' },
+      { name: 'created_at', type: 'text', label: 'Created At', defaultValue: () => nowISO() },
+      { name: 'updated_at', type: 'text', label: 'Updated At', defaultValue: () => nowISO() },
     ],
   },
 
-  // ---- 单价 ----
+  // ---- Unit Prices ----
   {
     name: 'unit_prices',
-    label: '单价 (Unit Prices)',
+    label: 'Unit Prices',
     columns: [
-      { name: 'product_id', type: 'integer', label: '产品ID', defaultValue: () => null },
-      { name: 'channel_id', type: 'integer', label: '渠道ID', defaultValue: () => 1 },
-      { name: 'cost', type: 'real', label: '成本价', defaultValue: () => randFloat(1, 500) },
-      { name: 'price', type: 'real', label: '售价', defaultValue: () => randFloat(5, 999) },
-      { name: 'base_cost', type: 'real', label: '基础成本', defaultValue: () => randFloat(1, 400) },
-      { name: 'ecom_price', type: 'real', label: '电商价', defaultValue: () => randFloat(5, 999) },
+      { name: 'product_id', type: 'integer', label: 'Product ID', defaultValue: () => null },
+      { name: 'channel_id', type: 'integer', label: 'Channel ID', defaultValue: () => 1 },
+      { name: 'cost', type: 'real', label: 'Cost', defaultValue: () => randFloat(1, 500) },
+      { name: 'price', type: 'real', label: 'Price', defaultValue: () => randFloat(5, 999) },
+      { name: 'base_cost', type: 'real', label: 'Base Cost', defaultValue: () => randFloat(1, 400) },
+      { name: 'ecom_price', type: 'real', label: 'E-com Price', defaultValue: () => randFloat(5, 999) },
       { name: 'upc', type: 'text', label: 'UPC', defaultValue: () => '' },
-      { name: 'unit', type: 'integer', label: '单位', defaultValue: () => 1 },
-      { name: 'created_at', type: 'text', label: '创建时间', defaultValue: () => nowISO() },
-      { name: 'updated_at', type: 'text', label: '更新时间', defaultValue: () => nowISO() },
+      { name: 'unit', type: 'integer', label: 'Unit', defaultValue: () => 1 },
+      { name: 'created_at', type: 'text', label: 'Created At', defaultValue: () => nowISO() },
+      { name: 'updated_at', type: 'text', label: 'Updated At', defaultValue: () => nowISO() },
     ],
   },
 
-  // ---- 库存 ----
+  // ---- Stocks ----
   {
     name: 'stocks',
-    label: '库存 (Stocks)',
+    label: 'Stocks',
     columns: [
-      { name: 'channel_id', type: 'integer', label: '渠道ID', defaultValue: () => 1 },
-      { name: 'product_id', type: 'integer', label: '产品ID', defaultValue: () => null },
-      { name: 'qty', type: 'integer', label: '数量', defaultValue: () => randInt(0, 1000) },
-      { name: 'status', type: 'integer', label: '状态', defaultValue: () => 1 },
-      { name: 'created_at', type: 'text', label: '创建时间', defaultValue: () => nowISO() },
-      { name: 'updated_at', type: 'text', label: '更新时间', defaultValue: () => nowISO() },
+      { name: 'channel_id', type: 'integer', label: 'Channel ID', defaultValue: () => 1 },
+      { name: 'product_id', type: 'integer', label: 'Product ID', defaultValue: () => null },
+      { name: 'qty', type: 'integer', label: 'Qty', defaultValue: () => randInt(0, 1000) },
+      { name: 'status', type: 'integer', label: 'Status', defaultValue: () => 1 },
+      { name: 'created_at', type: 'text', label: 'Created At', defaultValue: () => nowISO() },
+      { name: 'updated_at', type: 'text', label: 'Updated At', defaultValue: () => nowISO() },
     ],
   },
 
-  // ---- 客户 ----
+  // ---- Customers ----
   {
     name: 'customers',
-    label: '客户 (Customers)',
+    label: 'Customers',
     columns: [
-      { name: 'no', type: 'text', label: '编号', defaultValue: (i) => `CUST-${String(i).padStart(4, '0')}` },
-      { name: 'name', type: 'text', label: '姓名', defaultValue: (i) => `Customer_${i}` },
-      { name: 'email', type: 'text', label: '邮箱', defaultValue: (i) => `customer${i}@test.com` },
-      { name: 'balance', type: 'real', label: '余额', defaultValue: () => randFloat(0, 10000) },
-      { name: 'balance_limit', type: 'real', label: '余额限额', defaultValue: () => randFloat(5000, 50000) },
-      { name: 'phone_no', type: 'text', label: '电话', defaultValue: (i) => `555-${String(1000 + i).slice(-4)}` },
-      { name: 'business_name', type: 'text', label: '公司名', defaultValue: (i) => `Business_${i} LLC` },
-      { name: 'business_city', type: 'text', label: '城市', defaultValue: () => 'New York' },
-      { name: 'business_state', type: 'text', label: '州', defaultValue: () => 'NY' },
-      { name: 'business_country', type: 'text', label: '国家', defaultValue: () => 'US' },
-      { name: 'business_zip_code', type: 'text', label: '邮编', defaultValue: () => String(randInt(10000, 99999)) },
-      { name: 'business_phone_no', type: 'text', label: '公司电话', defaultValue: (i) => `555-${String(2000 + i).slice(-4)}` },
-      { name: 'address', type: 'text', label: '地址', defaultValue: (i) => `${randInt(1, 999)} Test Street #${i}` },
-      { name: 'status', type: 'integer', label: '状态(1=活跃)', defaultValue: () => 1 },
-      { name: 'allow_ecom', type: 'text', label: '允许电商(Y/N)', defaultValue: () => 'Y' },
-      { name: 'created_at', type: 'text', label: '创建时间', defaultValue: () => nowISO() },
-      { name: 'updated_at', type: 'text', label: '更新时间', defaultValue: () => nowISO() },
+      { name: 'no', type: 'text', label: 'No.', defaultValue: (i) => `CUST-${String(i).padStart(4, '0')}` },
+      { name: 'name', type: 'text', label: 'Name', defaultValue: (i) => `Customer_${i}` },
+      { name: 'email', type: 'text', label: 'Email', defaultValue: (i) => `customer${i}@test.com` },
+      { name: 'balance', type: 'real', label: 'Balance', defaultValue: () => randFloat(0, 10000) },
+      { name: 'balance_limit', type: 'real', label: 'Balance Limit', defaultValue: () => randFloat(5000, 50000) },
+      { name: 'phone_no', type: 'text', label: 'Phone', defaultValue: (i) => `555-${String(1000 + i).slice(-4)}` },
+      { name: 'business_name', type: 'text', label: 'Business Name', defaultValue: (i) => `Business_${i} LLC` },
+      { name: 'business_city', type: 'text', label: 'City', defaultValue: () => 'New York' },
+      { name: 'business_state', type: 'text', label: 'State', defaultValue: () => 'NY' },
+      { name: 'business_country', type: 'text', label: 'Country', defaultValue: () => 'US' },
+      { name: 'business_zip_code', type: 'text', label: 'Zip Code', defaultValue: () => String(randInt(10000, 99999)) },
+      { name: 'business_phone_no', type: 'text', label: 'Business Phone', defaultValue: (i) => `555-${String(2000 + i).slice(-4)}` },
+      { name: 'address', type: 'text', label: 'Address', defaultValue: (i) => `${randInt(1, 999)} Test Street #${i}` },
+      { name: 'status', type: 'integer', label: 'Status (1=active)', defaultValue: () => 1 },
+      { name: 'allow_ecom', type: 'text', label: 'Allow E-com (Y/N)', defaultValue: () => 'Y' },
+      { name: 'created_at', type: 'text', label: 'Created At', defaultValue: () => nowISO() },
+      { name: 'updated_at', type: 'text', label: 'Updated At', defaultValue: () => nowISO() },
     ],
   },
 
-  // ---- 客户分组 ----
+  // ---- Customer Groups ----
   {
     name: 'customer_groups',
-    label: '客户分组 (Customer Groups)',
+    label: 'Customer Groups',
     columns: [
-      { name: 'name', type: 'text', label: '名称', defaultValue: (i) => `Group_${i}` },
-      { name: 'is_active', type: 'integer', label: '是否活跃', defaultValue: () => 1 },
-      { name: 'tier_id', type: 'integer', label: '等级ID', defaultValue: () => null },
-      { name: 'created_at', type: 'text', label: '创建时间', defaultValue: () => nowISO() },
-      { name: 'updated_at', type: 'text', label: '更新时间', defaultValue: () => nowISO() },
+      { name: 'name', type: 'text', label: 'Name', defaultValue: (i) => `Group_${i}` },
+      { name: 'is_active', type: 'integer', label: 'Active', defaultValue: () => 1 },
+      { name: 'tier_id', type: 'integer', label: 'Tier ID', defaultValue: () => null },
+      { name: 'created_at', type: 'text', label: 'Created At', defaultValue: () => nowISO() },
+      { name: 'updated_at', type: 'text', label: 'Updated At', defaultValue: () => nowISO() },
     ],
   },
 
-  // ---- 客户分组关联 ----
+  // ---- Group-Customer Links ----
   {
     name: 'customer_groups_customer',
-    label: '客户分组关联 (Group-Customer)',
+    label: 'Group-Customer Links',
     columns: [
-      { name: 'customer_group_id', type: 'integer', label: '分组ID', defaultValue: () => null },
-      { name: 'customer_id', type: 'integer', label: '客户ID', defaultValue: () => null },
+      { name: 'customer_group_id', type: 'integer', label: 'Group ID', defaultValue: () => null },
+      { name: 'customer_id', type: 'integer', label: 'Customer ID', defaultValue: () => null },
     ],
   },
 
-  // ---- 供应商 ----
+  // ---- Suppliers ----
   {
     name: 'suppliers',
-    label: '供应商 (Suppliers)',
+    label: 'Suppliers',
     columns: [
-      { name: 'name', type: 'text', label: '名称', defaultValue: (i) => `Supplier_${i}` },
-      { name: 'email', type: 'text', label: '邮箱', defaultValue: (i) => `supplier${i}@test.com` },
-      { name: 'phone_no', type: 'text', label: '电话', defaultValue: (i) => `555-${String(3000 + i).slice(-4)}` },
-      { name: 'balance', type: 'real', label: '余额', defaultValue: () => randFloat(0, 50000) },
-      { name: 'status', type: 'integer', label: '状态', defaultValue: () => 1 },
-      { name: 'created_at', type: 'text', label: '创建时间', defaultValue: () => nowISO() },
-      { name: 'updated_at', type: 'text', label: '更新时间', defaultValue: () => nowISO() },
+      { name: 'name', type: 'text', label: 'Name', defaultValue: (i) => `Supplier_${i}` },
+      { name: 'email', type: 'text', label: 'Email', defaultValue: (i) => `supplier${i}@test.com` },
+      { name: 'phone_no', type: 'text', label: 'Phone', defaultValue: (i) => `555-${String(3000 + i).slice(-4)}` },
+      { name: 'balance', type: 'real', label: 'Balance', defaultValue: () => randFloat(0, 50000) },
+      { name: 'status', type: 'integer', label: 'Status', defaultValue: () => 1 },
+      { name: 'created_at', type: 'text', label: 'Created At', defaultValue: () => nowISO() },
+      { name: 'updated_at', type: 'text', label: 'Updated At', defaultValue: () => nowISO() },
     ],
   },
 
-  // ---- 税率 ----
+  // ---- Taxes ----
   {
     name: 'taxes',
-    label: '税率 (Taxes)',
+    label: 'Taxes',
     columns: [
-      { name: 'name', type: 'text', label: '名称', defaultValue: (i) => `Tax_${i}` },
-      { name: 'rate', type: 'real', label: '税率', defaultValue: () => randFloat(0.01, 0.15) },
-      { name: 'type', type: 'text', label: '类型', defaultValue: () => 'percentage' },
-      { name: 'enabled', type: 'integer', label: '是否启用', defaultValue: () => 1 },
-      { name: 'created_at', type: 'text', label: '创建时间', defaultValue: () => nowISO() },
-      { name: 'updated_at', type: 'text', label: '更新时间', defaultValue: () => nowISO() },
+      { name: 'name', type: 'text', label: 'Name', defaultValue: (i) => `Tax_${i}` },
+      { name: 'rate', type: 'real', label: 'Tax Rate', defaultValue: () => randFloat(0.01, 0.15) },
+      { name: 'type', type: 'text', label: 'Type', defaultValue: () => 'percentage' },
+      { name: 'enabled', type: 'integer', label: 'Enabled', defaultValue: () => 1 },
+      { name: 'created_at', type: 'text', label: 'Created At', defaultValue: () => nowISO() },
+      { name: 'updated_at', type: 'text', label: 'Updated At', defaultValue: () => nowISO() },
     ],
   },
 
-  // ---- 销售订单 ----
+  // ---- Sale Orders ----
   {
     name: 'sale_orders',
-    label: '销售订单 (Sale Orders)',
+    label: 'Sale Orders',
     columns: [
-      { name: 'customer_id', type: 'integer', label: '客户ID', defaultValue: () => null },
-      { name: 'channel_id', type: 'integer', label: '渠道ID', defaultValue: () => 1 },
-      { name: 'no', type: 'text', label: '订单号', defaultValue: (i) => `SO-${String(i).padStart(5, '0')}` },
-      { name: 'order_type', type: 'integer', label: '订单类型', defaultValue: () => 1 },
-      { name: 'sale_type', type: 'integer', label: '销售类型', defaultValue: () => 1 },
-      { name: 'status', type: 'integer', label: '状态(1-5)', defaultValue: () => randInt(1, 5) },
-      { name: 'total_price', type: 'real', label: '总价', defaultValue: () => randFloat(10, 5000) },
-      { name: 'tax', type: 'real', label: '税额', defaultValue: () => randFloat(0, 500) },
-      { name: 'discount', type: 'real', label: '折扣', defaultValue: () => randFloat(0, 100) },
-      { name: 'total_discount', type: 'real', label: '总折扣', defaultValue: () => randFloat(0, 200) },
-      { name: 'delivery_charges', type: 'real', label: '运费', defaultValue: () => randFloat(0, 50) },
-      { name: 'shipping_type', type: 'integer', label: '配送类型', defaultValue: () => 1 },
-      { name: 'fulfilment_status', type: 'integer', label: '履约状态', defaultValue: () => randInt(0, 3) },
-      { name: 'order_date', type: 'text', label: '订单日期', defaultValue: () => randRecentDate(90) },
-      { name: 'created_by_id', type: 'integer', label: '创建人ID', defaultValue: () => null },
-      { name: 'balance_adjustment_id', type: 'integer', label: '余额调整ID', defaultValue: () => null },
-      { name: 'created_at', type: 'text', label: '创建时间', defaultValue: () => nowISO() },
-      { name: 'updated_at', type: 'text', label: '更新时间', defaultValue: () => nowISO() },
+      { name: 'customer_id', type: 'integer', label: 'Customer ID', defaultValue: () => null },
+      { name: 'channel_id', type: 'integer', label: 'Channel ID', defaultValue: () => 1 },
+      { name: 'no', type: 'text', label: 'Order No.', defaultValue: (i) => `SO-${String(i).padStart(5, '0')}` },
+      { name: 'order_type', type: 'integer', label: 'Order Type', defaultValue: () => 1 },
+      { name: 'sale_type', type: 'integer', label: 'Sale Type', defaultValue: () => 1 },
+      { name: 'status', type: 'integer', label: 'Status (1-5)', defaultValue: () => randInt(1, 5) },
+      { name: 'total_price', type: 'real', label: 'Total Price', defaultValue: () => randFloat(10, 5000) },
+      { name: 'tax', type: 'real', label: 'Tax', defaultValue: () => randFloat(0, 500) },
+      { name: 'discount', type: 'real', label: 'Discount', defaultValue: () => randFloat(0, 100) },
+      { name: 'total_discount', type: 'real', label: 'Total Discount', defaultValue: () => randFloat(0, 200) },
+      { name: 'delivery_charges', type: 'real', label: 'Delivery Charges', defaultValue: () => randFloat(0, 50) },
+      { name: 'shipping_type', type: 'integer', label: 'Shipping Type', defaultValue: () => 1 },
+      { name: 'fulfilment_status', type: 'integer', label: 'Fulfilment Status', defaultValue: () => randInt(0, 3) },
+      { name: 'order_date', type: 'text', label: 'Order Date', defaultValue: () => randRecentDate(90) },
+      { name: 'created_by_id', type: 'integer', label: 'Created By ID', defaultValue: () => null },
+      { name: 'balance_adjustment_id', type: 'integer', label: 'Balance Adj. ID', defaultValue: () => null },
+      { name: 'created_at', type: 'text', label: 'Created At', defaultValue: () => nowISO() },
+      { name: 'updated_at', type: 'text', label: 'Updated At', defaultValue: () => nowISO() },
     ],
   },
 
-  // ---- 订单明细 ----
+  // ---- Sale Order Details ----
   {
     name: 'sale_order_details',
-    label: '订单明细 (Sale Order Details)',
+    label: 'Sale Order Details',
     columns: [
-      { name: 'sale_order_id', type: 'integer', label: '订单ID', defaultValue: () => null },
-      { name: 'product_id', type: 'integer', label: '产品ID', defaultValue: () => null },
-      { name: 'channel_id', type: 'integer', label: '渠道ID', defaultValue: () => 1 },
-      { name: 'unit_price_id', type: 'integer', label: '单价ID', defaultValue: () => null },
-      { name: 'qty', type: 'real', label: '数量', defaultValue: () => randInt(1, 100) },
-      { name: 'price', type: 'real', label: '单价', defaultValue: () => randFloat(1, 999) },
-      { name: 'discount', type: 'real', label: '折扣', defaultValue: () => randFloat(0, 50) },
-      { name: 'total_price', type: 'real', label: '小计', defaultValue: () => randFloat(10, 5000) },
-      { name: 'created_at', type: 'text', label: '创建时间', defaultValue: () => nowISO() },
-      { name: 'updated_at', type: 'text', label: '更新时间', defaultValue: () => nowISO() },
+      { name: 'sale_order_id', type: 'integer', label: 'Order ID', defaultValue: () => null },
+      { name: 'product_id', type: 'integer', label: 'Product ID', defaultValue: () => null },
+      { name: 'channel_id', type: 'integer', label: 'Channel ID', defaultValue: () => 1 },
+      { name: 'unit_price_id', type: 'integer', label: 'Unit Price ID', defaultValue: () => null },
+      { name: 'qty', type: 'real', label: 'Qty', defaultValue: () => randInt(1, 100) },
+      { name: 'price', type: 'real', label: 'Unit Price', defaultValue: () => randFloat(1, 999) },
+      { name: 'discount', type: 'real', label: 'Discount', defaultValue: () => randFloat(0, 50) },
+      { name: 'total_price', type: 'real', label: 'Subtotal', defaultValue: () => randFloat(10, 5000) },
+      { name: 'created_at', type: 'text', label: 'Created At', defaultValue: () => nowISO() },
+      { name: 'updated_at', type: 'text', label: 'Updated At', defaultValue: () => nowISO() },
     ],
   },
 
-  // ---- 支付 ----
+  // ---- Payments ----
   {
     name: 'payments',
-    label: '支付 (Payments)',
+    label: 'Payments',
     columns: [
-      { name: 'customer_id', type: 'integer', label: '客户ID', defaultValue: () => null },
-      { name: 'invoice_id', type: 'integer', label: '发票ID', defaultValue: () => null },
-      { name: 'no', type: 'text', label: '支付号', defaultValue: (i) => `PAY-${String(i).padStart(5, '0')}` },
-      { name: 'status', type: 'integer', label: '状态', defaultValue: () => randInt(1, 3) },
-      { name: 'payment_type', type: 'integer', label: '支付方式(1-4)', defaultValue: () => randInt(1, 4) },
-      { name: 'payment_date', type: 'text', label: '支付日期', defaultValue: () => randRecentDate(60) },
-      { name: 'amount', type: 'real', label: '金额', defaultValue: () => randFloat(10, 5000) },
-      { name: 'category', type: 'integer', label: '类别', defaultValue: () => 1 },
-      { name: 'memo', type: 'text', label: '备注', defaultValue: (i) => `Payment memo ${i}` },
-      { name: 'created_at', type: 'text', label: '创建时间', defaultValue: () => nowISO() },
-      { name: 'updated_at', type: 'text', label: '更新时间', defaultValue: () => nowISO() },
+      { name: 'customer_id', type: 'integer', label: 'Customer ID', defaultValue: () => null },
+      { name: 'invoice_id', type: 'integer', label: 'Invoice ID', defaultValue: () => null },
+      { name: 'no', type: 'text', label: 'Payment No.', defaultValue: (i) => `PAY-${String(i).padStart(5, '0')}` },
+      { name: 'status', type: 'integer', label: 'Status', defaultValue: () => randInt(1, 3) },
+      { name: 'payment_type', type: 'integer', label: 'Payment Type (1-4)', defaultValue: () => randInt(1, 4) },
+      { name: 'payment_date', type: 'text', label: 'Payment Date', defaultValue: () => randRecentDate(60) },
+      { name: 'amount', type: 'real', label: 'Amount', defaultValue: () => randFloat(10, 5000) },
+      { name: 'category', type: 'integer', label: 'Category', defaultValue: () => 1 },
+      { name: 'memo', type: 'text', label: 'Memo', defaultValue: (i) => `Payment memo ${i}` },
+      { name: 'created_at', type: 'text', label: 'Created At', defaultValue: () => nowISO() },
+      { name: 'updated_at', type: 'text', label: 'Updated At', defaultValue: () => nowISO() },
     ],
   },
 
-  // ---- 发票 ----
+  // ---- Invoices ----
   {
     name: 'invoices',
-    label: '发票 (Invoices)',
+    label: 'Invoices',
     columns: [
-      { name: 'sale_order_id', type: 'integer', label: '订单ID', defaultValue: () => null },
-      { name: 'customer_id', type: 'integer', label: '客户ID', defaultValue: () => null },
-      { name: 'no', type: 'text', label: '发票号', defaultValue: (i) => `INV-${String(i).padStart(5, '0')}` },
-      { name: 'status', type: 'integer', label: '状态', defaultValue: () => randInt(1, 3) },
-      { name: 'remaining_amount', type: 'real', label: '剩余金额', defaultValue: () => randFloat(0, 2000) },
-      { name: 'total_amount', type: 'real', label: '总金额', defaultValue: () => randFloat(100, 5000) },
-      { name: 'created_at', type: 'text', label: '创建时间', defaultValue: () => nowISO() },
-      { name: 'updated_at', type: 'text', label: '更新时间', defaultValue: () => nowISO() },
+      { name: 'sale_order_id', type: 'integer', label: 'Order ID', defaultValue: () => null },
+      { name: 'customer_id', type: 'integer', label: 'Customer ID', defaultValue: () => null },
+      { name: 'no', type: 'text', label: 'Invoice No.', defaultValue: (i) => `INV-${String(i).padStart(5, '0')}` },
+      { name: 'status', type: 'integer', label: 'Status', defaultValue: () => randInt(1, 3) },
+      { name: 'remaining_amount', type: 'real', label: 'Remaining Amount', defaultValue: () => randFloat(0, 2000) },
+      { name: 'total_amount', type: 'real', label: 'Total Amount', defaultValue: () => randFloat(100, 5000) },
+      { name: 'created_at', type: 'text', label: 'Created At', defaultValue: () => nowISO() },
+      { name: 'updated_at', type: 'text', label: 'Updated At', defaultValue: () => nowISO() },
     ],
   },
 
-  // ---- 采购发票 ----
+  // ---- Purchase Invoices ----
   {
     name: 'purchase_invoices',
-    label: '采购发票 (Purchase Invoices)',
+    label: 'Purchase Invoices',
     columns: [
-      { name: 'purchase_order_id', type: 'integer', label: '采购订单ID', defaultValue: () => null },
-      { name: 'supplier_id', type: 'integer', label: '供应商ID', defaultValue: () => null },
-      { name: 'no', type: 'text', label: '发票号', defaultValue: (i) => `PI-${String(i).padStart(5, '0')}` },
-      { name: 'status', type: 'integer', label: '状态', defaultValue: () => randInt(1, 3) },
-      { name: 'invoice_balance', type: 'real', label: '发票余额', defaultValue: () => randFloat(0, 10000) },
-      { name: 'total_amount', type: 'real', label: '总金额', defaultValue: () => randFloat(500, 50000) },
-      { name: 'created_at', type: 'text', label: '创建时间', defaultValue: () => nowISO() },
-      { name: 'updated_at', type: 'text', label: '更新时间', defaultValue: () => nowISO() },
+      { name: 'purchase_order_id', type: 'integer', label: 'Purchase Order ID', defaultValue: () => null },
+      { name: 'supplier_id', type: 'integer', label: 'Supplier ID', defaultValue: () => null },
+      { name: 'no', type: 'text', label: 'Invoice No.', defaultValue: (i) => `PI-${String(i).padStart(5, '0')}` },
+      { name: 'status', type: 'integer', label: 'Status', defaultValue: () => randInt(1, 3) },
+      { name: 'invoice_balance', type: 'real', label: 'Invoice Balance', defaultValue: () => randFloat(0, 10000) },
+      { name: 'total_amount', type: 'real', label: 'Total Amount', defaultValue: () => randFloat(500, 50000) },
+      { name: 'created_at', type: 'text', label: 'Created At', defaultValue: () => nowISO() },
+      { name: 'updated_at', type: 'text', label: 'Updated At', defaultValue: () => nowISO() },
     ],
   },
 
-  // ---- 采购订单 ----
+  // ---- Purchase Orders ----
   {
     name: 'purchase_orders',
-    label: '采购订单 (Purchase Orders)',
+    label: 'Purchase Orders',
     columns: [
-      { name: 'supplier_id', type: 'integer', label: '供应商ID', defaultValue: () => null },
-      { name: 'no', type: 'text', label: '订单号', defaultValue: (i) => `PO-${String(i).padStart(5, '0')}` },
-      { name: 'status', type: 'integer', label: '状态', defaultValue: () => randInt(1, 4) },
-      { name: 'total_price', type: 'real', label: '总价', defaultValue: () => randFloat(500, 50000) },
-      { name: 'order_date', type: 'text', label: '订单日期', defaultValue: () => randRecentDate(60) },
-      { name: 'created_at', type: 'text', label: '创建时间', defaultValue: () => nowISO() },
-      { name: 'updated_at', type: 'text', label: '更新时间', defaultValue: () => nowISO() },
+      { name: 'supplier_id', type: 'integer', label: 'Supplier ID', defaultValue: () => null },
+      { name: 'no', type: 'text', label: 'Order No.', defaultValue: (i) => `PO-${String(i).padStart(5, '0')}` },
+      { name: 'status', type: 'integer', label: 'Status', defaultValue: () => randInt(1, 4) },
+      { name: 'total_price', type: 'real', label: 'Total Price', defaultValue: () => randFloat(500, 50000) },
+      { name: 'order_date', type: 'text', label: 'Order Date', defaultValue: () => randRecentDate(60) },
+      { name: 'created_at', type: 'text', label: 'Created At', defaultValue: () => nowISO() },
+      { name: 'updated_at', type: 'text', label: 'Updated At', defaultValue: () => nowISO() },
     ],
   },
 
-  // ---- 标签 ----
+  // ---- Tags ----
   {
     name: 'tags',
-    label: '标签 (Tags)',
+    label: 'Tags',
     columns: [
-      { name: 'name', type: 'text', label: '名称', defaultValue: (i) => `Tag_${i}` },
+      { name: 'name', type: 'text', label: 'Name', defaultValue: (i) => `Tag_${i}` },
       { name: 'slug', type: 'text', label: 'Slug', defaultValue: (i) => `tag-${i}` },
-      { name: 'type', type: 'text', label: '类型', defaultValue: () => 'product' },
-      { name: 'created_at', type: 'text', label: '创建时间', defaultValue: () => nowISO() },
-      { name: 'updated_at', type: 'text', label: '更新时间', defaultValue: () => nowISO() },
+      { name: 'type', type: 'text', label: 'Type', defaultValue: () => 'product' },
+      { name: 'created_at', type: 'text', label: 'Created At', defaultValue: () => nowISO() },
+      { name: 'updated_at', type: 'text', label: 'Updated At', defaultValue: () => nowISO() },
     ],
   },
 
-  // ---- 设置 ----
+  // ---- Settings ----
   {
     name: 'settings',
-    label: '设置 (Settings)',
+    label: 'Settings',
     columns: [
-      { name: 'type', type: 'text', label: '类型', defaultValue: () => 'test' },
-      { name: 'sub_type', type: 'text', label: '子类型', defaultValue: (i) => `setting_${i}` },
-      { name: 'value', type: 'text', label: '值(JSON)', defaultValue: (i) => JSON.stringify({ key: `value_${i}`, enabled: true }) },
-      { name: 'created_at', type: 'text', label: '创建时间', defaultValue: () => nowISO() },
-      { name: 'updated_at', type: 'text', label: '更新时间', defaultValue: () => nowISO() },
+      { name: 'type', type: 'text', label: 'Type', defaultValue: () => 'test' },
+      { name: 'sub_type', type: 'text', label: 'Sub Type', defaultValue: (i) => `setting_${i}` },
+      { name: 'value', type: 'text', label: 'Value (JSON)', defaultValue: (i) => JSON.stringify({ key: `value_${i}`, enabled: true }) },
+      { name: 'created_at', type: 'text', label: 'Created At', defaultValue: () => nowISO() },
+      { name: 'updated_at', type: 'text', label: 'Updated At', defaultValue: () => nowISO() },
     ],
   },
 
-  // ---- 租户用户 ----
+  // ---- Tenant Users ----
   {
     name: 'tenant_users',
-    label: '租户用户 (Tenant Users)',
+    label: 'Tenant Users',
     columns: [
-      { name: 'first_name', type: 'text', label: '名', defaultValue: (i) => `User_${i}` },
-      { name: 'last_name', type: 'text', label: '姓', defaultValue: (i) => `Test_${i}` },
-      { name: 'username', type: 'text', label: '用户名', defaultValue: (i) => `user${i}` },
-      { name: 'email', type: 'text', label: '邮箱', defaultValue: (i) => `user${i}@test.com` },
-      { name: 'phone_no', type: 'text', label: '电话', defaultValue: (i) => `555-${String(4000 + i).slice(-4)}` },
-      { name: 'image', type: 'text', label: '头像', defaultValue: () => '' },
-      { name: 'master_admin', type: 'integer', label: '超级管理员', defaultValue: () => 0 },
-      { name: 'status', type: 'integer', label: '状态', defaultValue: () => 1 },
-      { name: 'assign_customer', type: 'integer', label: '分配客户', defaultValue: () => 0 },
-      { name: 'view_all_customers', type: 'integer', label: '查看所有客户', defaultValue: () => 1 },
-      { name: 'created_at', type: 'text', label: '创建时间', defaultValue: () => nowISO() },
-      { name: 'updated_at', type: 'text', label: '更新时间', defaultValue: () => nowISO() },
+      { name: 'first_name', type: 'text', label: 'First Name', defaultValue: (i) => `User_${i}` },
+      { name: 'last_name', type: 'text', label: 'Last Name', defaultValue: (i) => `Test_${i}` },
+      { name: 'username', type: 'text', label: 'Username', defaultValue: (i) => `user${i}` },
+      { name: 'email', type: 'text', label: 'Email', defaultValue: (i) => `user${i}@test.com` },
+      { name: 'phone_no', type: 'text', label: 'Phone', defaultValue: (i) => `555-${String(4000 + i).slice(-4)}` },
+      { name: 'image', type: 'text', label: 'Avatar', defaultValue: () => '' },
+      { name: 'master_admin', type: 'integer', label: 'Master Admin', defaultValue: () => 0 },
+      { name: 'status', type: 'integer', label: 'Status', defaultValue: () => 1 },
+      { name: 'assign_customer', type: 'integer', label: 'Assign Customer', defaultValue: () => 0 },
+      { name: 'view_all_customers', type: 'integer', label: 'View All Customers', defaultValue: () => 1 },
+      { name: 'created_at', type: 'text', label: 'Created At', defaultValue: () => nowISO() },
+      { name: 'updated_at', type: 'text', label: 'Updated At', defaultValue: () => nowISO() },
     ],
   },
 ]
 
 // ============================================================================
-// 根据表名获取配置
+// Get config by table name
 // ============================================================================
 
 export function getTableConfig(tableName: string): TableConfig | undefined {
@@ -428,7 +428,7 @@ export function getTableConfig(tableName: string): TableConfig | undefined {
 }
 
 // ============================================================================
-// 生成单条记录
+// Generate a single record
 // ============================================================================
 
 export function generateRecord(
@@ -448,7 +448,7 @@ export function generateRecord(
 }
 
 // ============================================================================
-// 快捷操作：生成完整 POS 测试数据集
+// Quick action: generate a full POS test dataset
 // ============================================================================
 
 export interface FullDatasetCounts {
@@ -474,45 +474,45 @@ export const DEFAULT_DATASET_COUNTS: FullDatasetCounts = {
 }
 
 /**
- * 生成完整的关联测试数据集。
- * 返回一个 Map<tableName, records[]>，按插入顺序排列。
- * 外键会自动引用前面生成的记录的 id。
+ * Generate a full linked test dataset.
+ * Returns a Map<tableName, records[]>, ordered by insertion sequence.
+ * Foreign keys automatically reference ids of previously generated records.
  */
 export function generateFullDataset(
   counts: FullDatasetCounts = DEFAULT_DATASET_COUNTS
 ): Map<string, Record<string, string | number | null>[]> {
   const dataset = new Map<string, Record<string, string | number | null>[]>()
 
-  // 1. 分类
+  // 1. Categories
   const cats: Record<string, string | number | null>[] = []
   for (let i = 1; i <= counts.categories; i++) {
     cats.push(generateRecord('categories', i)!)
   }
   dataset.set('categories', cats)
 
-  // 2. 品牌
+  // 2. Brands
   const brs: Record<string, string | number | null>[] = []
   for (let i = 1; i <= counts.brands; i++) {
     brs.push(generateRecord('brands', i)!)
   }
   dataset.set('brands', brs)
 
-  // 3. 渠道
+  // 3. Channels
   const chs: Record<string, string | number | null>[] = []
   for (let i = 1; i <= counts.channels; i++) {
     chs.push(generateRecord('channels', i)!)
   }
   dataset.set('channels', chs)
 
-  // 4. 产品（关联品牌和分类）
+  // 4. Products (linked to brands and categories)
   const prods: Record<string, string | number | null>[] = []
   for (let i = 1; i <= counts.products; i++) {
     const rec = generateRecord('products', i)!
-    // 关联随机品牌
+    // Link to random brand
     if (brs.length > 0) {
       rec.brand_id = brs[randInt(0, brs.length - 1)].id
     }
-    // 关联随机分类
+    // Link to random category
     if (cats.length > 0) {
       rec.main_category_id = cats[randInt(0, cats.length - 1)].id
     }
@@ -520,7 +520,7 @@ export function generateFullDataset(
   }
   dataset.set('products', prods)
 
-  // 5. 单价（关联产品和渠道）
+  // 5. Unit prices (linked to products and channels)
   const ups: Record<string, string | number | null>[] = []
   for (const prod of prods) {
     for (const ch of chs) {
@@ -542,7 +542,7 @@ export function generateFullDataset(
   }
   dataset.set('unit_prices', ups)
 
-  // 6. 库存（关联产品和渠道）
+  // 6. Stocks (linked to products and channels)
   const stks: Record<string, string | number | null>[] = []
   for (const prod of prods) {
     for (const ch of chs) {
@@ -559,21 +559,21 @@ export function generateFullDataset(
   }
   dataset.set('stocks', stks)
 
-  // 7. 客户
+  // 7. Customers
   const custs: Record<string, string | number | null>[] = []
   for (let i = 1; i <= counts.customers; i++) {
     custs.push(generateRecord('customers', i)!)
   }
   dataset.set('customers', custs)
 
-  // 8. 供应商
+  // 8. Suppliers
   const supps: Record<string, string | number | null>[] = []
   for (let i = 1; i <= counts.suppliers; i++) {
     supps.push(generateRecord('suppliers', i)!)
   }
   dataset.set('suppliers', supps)
 
-  // 9. 销售订单（关联客户和渠道）
+  // 9. Sale orders (linked to customers and channels)
   const sos: Record<string, string | number | null>[] = []
   for (let i = 1; i <= counts.sale_orders; i++) {
     const rec = generateRecord('sale_orders', i)!
@@ -587,7 +587,7 @@ export function generateFullDataset(
   }
   dataset.set('sale_orders', sos)
 
-  // 10. 订单明细（每个订单 1-3 条明细）
+  // 10. Sale order details (1-3 details per order)
   const sods: Record<string, string | number | null>[] = []
   for (const so of sos) {
     const detailCount = randInt(1, 3)
@@ -612,7 +612,7 @@ export function generateFullDataset(
   }
   dataset.set('sale_order_details', sods)
 
-  // 11. 发票（每个订单一张）
+  // 11. Invoices (one per order)
   const invs: Record<string, string | number | null>[] = []
   for (let i = 0; i < sos.length; i++) {
     const so = sos[i]
@@ -631,7 +631,7 @@ export function generateFullDataset(
   }
   dataset.set('invoices', invs)
 
-  // 12. 支付（关联发票和客户）
+  // 12. Payments (linked to invoices and customers)
   const pays: Record<string, string | number | null>[] = []
   for (let i = 1; i <= counts.payments; i++) {
     const inv = invs[randInt(0, invs.length - 1)]
@@ -652,7 +652,7 @@ export function generateFullDataset(
   }
   dataset.set('payments', pays)
 
-  // 13. 采购订单（关联供应商）
+  // 13. Purchase orders (linked to suppliers)
   const pos: Record<string, string | number | null>[] = []
   for (let i = 1; i <= counts.suppliers; i++) {
     const supp = supps[i - 1]
@@ -669,7 +669,7 @@ export function generateFullDataset(
   }
   dataset.set('purchase_orders', pos)
 
-  // 14. 采购发票（关联采购订单和供应商）
+  // 14. Purchase invoices (linked to purchase orders and suppliers)
   const pis: Record<string, string | number | null>[] = []
   for (let i = 0; i < pos.length; i++) {
     const po = pos[i]

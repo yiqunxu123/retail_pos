@@ -42,7 +42,7 @@ const formatCurrency = (value: number) =>
 export default function StocksScreen() {
   const { stocks, isLoading, isStreaming, refresh, count } = useStocks();
 
-  // 列配置
+  // Column config
   const columns: ColumnDefinition<StockView>[] = [
     {
       key: "productName",
@@ -161,7 +161,7 @@ export default function StocksScreen() {
     },
   ];
 
-  // 过滤器
+  // Filters
   const filters: FilterDefinition[] = [
     {
       key: "stockLevel",
@@ -175,7 +175,7 @@ export default function StocksScreen() {
     },
   ];
 
-  // 搜索逻辑
+  // Search logic
   const handleSearch = (item: StockView, query: string) => {
     const q = query.toLowerCase();
     return (
@@ -185,7 +185,7 @@ export default function StocksScreen() {
     );
   };
 
-  // 过滤逻辑
+  // Filter logic
   const handleFilter = (
     item: StockView,
     filters: Record<string, string | null>

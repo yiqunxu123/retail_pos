@@ -58,7 +58,7 @@ export default function FulfillmentsScreen() {
   const [activeTab, setActiveTab] = useState<typeof TABS[number]>("All");
   const [fulfillments] = useState<Fulfillment[]>(SAMPLE_FULFILLMENTS);
 
-  // 列配置
+  // Column config
   const columns: ColumnDefinition<Fulfillment>[] = [
     {
       key: "businessName",
@@ -103,7 +103,7 @@ export default function FulfillmentsScreen() {
     },
   ];
 
-  // 过滤器
+  // Filters
   const filters: FilterDefinition[] = [
     {
       key: "shippingType",

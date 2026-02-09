@@ -78,7 +78,7 @@ export default function CustomersScreen() {
     Alert.alert("Print", `Printing invoice for ${customer.businessName || customer.name}...`);
   };
 
-  // 列配置
+  // Column config
   const columns: ColumnDefinition<CustomerView>[] = [
     {
       key: "businessName",
@@ -159,7 +159,7 @@ export default function CustomersScreen() {
     },
   ];
 
-  // 搜索逻辑
+  // Search logic
   const handleSearch = (item: CustomerView, query: string) => {
     const q = query.toLowerCase();
     return (

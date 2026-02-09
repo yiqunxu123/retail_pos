@@ -551,7 +551,7 @@ export async function clearPromotions(
   }
 
   console.log(`[clearPromotions] Cleared ${promoCount} promotions, ${detailCount} details`);
-  return `清理完成: ${promoCount} 条 promotions, ${detailCount} 条 promotion_details`;
+  return `Cleanup complete: ${promoCount} promotions, ${detailCount} promotion_details`;
 }
 
 /**

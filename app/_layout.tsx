@@ -155,7 +155,7 @@ function LayoutContent() {
         onClockOut={handleClockOut}
       />
 
-      {/* Dev Tools Floating Button – 仅开发模式 */}
+      {/* Dev Tools Floating Button – dev mode only */}
       {__DEV__ && <DevToolsFab />}
     </View>
   );

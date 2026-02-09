@@ -1,15 +1,15 @@
 /**
- * DataTable - 统一的数据表格组件
+ * DataTable - unified data table component
  * 
- * 支持功能:
- * - 列定义和自定义渲染
- * - 搜索过滤
- * - 下拉过滤器
- * - 列可见性切换
- * - 刷新控制
- * - 空状态显示
- * - Loading 状态
- * - 实时同步标识
+ * Supported features:
+ * - Column definitions and custom rendering
+ * - Search filtering
+ * - Dropdown filters
+ * - Column visibility toggle
+ * - Refresh control
+ * - Empty state display
+ * - Loading state
+ * - Real-time sync indicator
  */
 
 import { Ionicons } from "@expo/vector-icons";
@@ -33,21 +33,21 @@ import { FilterDropdown } from "./FilterDropdown";
 // ============================================================================
 
 export interface ColumnDefinition<T = any> {
-  /** 列唯一标识 */
+  /** Column unique identifier */
   key: string;
-  /** 列显示标题 */
+  /** Column display title */
   title: string;
-  /** 列宽度 (flex 或固定宽度) */
+  /** Column width (flex or fixed) */
   width?: number | "flex";
-  /** 是否默认可见 */
+  /** Whether visible by default */
   visible?: boolean;
-  /** 是否可以隐藏 (false 表示强制显示) */
+  /** Whether hideable (false = always shown) */
   hideable?: boolean;
-  /** 对齐方式 */
+  /** Alignment */
   align?: "left" | "center" | "right";
-  /** 自定义渲染函数 */
+  /** Custom render function */
   render?: (item: T) => ReactNode;
-  /** 排序字段 (如果支持排序) */
+  /** Sort field (if sorting supported) */
   sortKey?: string;
 }
 
@@ -57,92 +57,92 @@ export interface FilterOption {
 }
 
 export interface FilterDefinition {
-  /** 过滤器唯一标识 */
+  /** Filter unique identifier */
   key: string;
-  /** 占位符文本 */
+  /** Placeholder text */
   placeholder: string;
-  /** 过滤选项 */
+  /** Filter options */
   options: FilterOption[];
-  /** 过滤器宽度 */
+  /** Filter width */
   width?: number;
 }
 
 export interface DataTableProps<T = any> {
-  /** 表格标题 */
+  /** Table title */
   title?: string;
-  /** 数据源 */
+  /** Data source */
   data: T[];
-  /** 列定义 */
+  /** Column definitions */
   columns: ColumnDefinition<T>[];
-  /** 获取数据项的唯一 key */
+  /** Get unique key for data item */
   keyExtractor: (item: T) => string;
   
-  // 搜索相关
-  /** 是否显示搜索框 */
+  // Search related
+  /** Whether to show search box */
   searchable?: boolean;
-  /** 搜索占位符 */
+  /** Search placeholder */
   searchPlaceholder?: string;
-  /** 搜索提示文本 */
+  /** Search hint text */
   searchHint?: string;
-  /** 自定义搜索过滤逻辑 */
+  /** Custom search filter logic */
   onSearch?: (item: T, query: string) => boolean;
   
-  // 过滤器相关
-  /** 过滤器定义 */
+  // Filter related
+  /** Filter definitions */
   filters?: FilterDefinition[];
-  /** 自定义过滤逻辑 */
+  /** Custom filter logic */
   onFilter?: (item: T, filters: Record<string, string | null>) => boolean;
   
-  // 排序相关
-  /** 排序选项 */
+  // Sort related
+  /** Sort options */
   sortOptions?: FilterOption[];
-  /** 自定义排序逻辑 */
+  /** Custom sort logic */
   onSort?: (data: T[], sortBy: string | null) => T[];
   
-  // 功能开关
-  /** 是否显示列选择器 */
+  // Feature toggles
+  /** Whether to show column selector */
   columnSelector?: boolean;
-  /** 是否显示批量操作按钮 */
+  /** Whether to show bulk action buttons */
   bulkActions?: boolean;
-  /** 是否显示添加按钮 */
+  /** Whether to show add button */
   addButton?: boolean;
-  /** 添加按钮文本 */
+  /** Add button text */
   addButtonText?: string;
-  /** 添加按钮点击事件 */
+  /** Add button click handler */
   onAddPress?: () => void;
   
-  // 状态
-  /** 是否加载中 */
+  // State
+  /** Whether loading */
   isLoading?: boolean;
-  /** 是否实时同步 */
+  /** Whether real-time synced */
   isStreaming?: boolean;
-  /** 下拉刷新中 */
+  /** Pull-to-refresh active */
   refreshing?: boolean;
-  /** 刷新回调 */
+  /** Refresh callback */
   onRefresh?: () => void | Promise<void>;
   
-  // 空状态
-  /** 空状态图标 */
+  // Empty state
+  /** Empty state icon */
   emptyIcon?: keyof typeof Ionicons.glyphMap;
-  /** 空状态文本 */
+  /** Empty state text */
   emptyText?: string;
   
-  // 统计信息
-  /** 显示的数据总数 */
+  // Stats
+  /** Total displayed data count */
   totalCount?: number;
   
-  // 样式
-  /** 容器样式 */
+  // Styling
+  /** Container style */
   containerStyle?: ViewStyle;
-  /** 是否需要横向滚动 */
+  /** Whether horizontal scroll is needed */
   horizontalScroll?: boolean;
-  /** 最小宽度 (横向滚动时) */
+  /** Min width (for horizontal scroll) */
   minWidth?: number;
   
-  // 行渲染
-  /** 自定义行渲染 */
+  // Row rendering
+  /** Custom row rendering */
   renderRow?: (item: T, columns: ColumnDefinition<T>[], visibleColumns: Record<string, boolean>) => ReactNode;
-  /** 行点击事件 */
+  /** Row click handler */
   onRowPress?: (item: T) => void;
 }
 
@@ -198,10 +198,10 @@ export function DataTable<T = any>(props: DataTableProps<T>) {
   const [showColumnsModal, setShowColumnsModal] = useState(false);
   const [internalRefreshing, setInternalRefreshing] = useState(false);
   
-  // 内部管理的刷新状态，支持外部传入或内部自动管理
+  // Internal refresh state, supports external or auto-managed
   const isRefreshing = refreshing || internalRefreshing;
   
-  // 包装 onRefresh，自动管理 refreshing 状态
+  // Wrap onRefresh, auto-manage refreshing state
   const handleRefresh = useCallback(async () => {
     if (!onRefresh || isRefreshing) return;
     

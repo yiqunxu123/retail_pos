@@ -37,7 +37,7 @@ function formatDate(dateStr: string): string {
 export default function CustomerCategorySalesReportScreen() {
   const { reports, isLoading, isStreaming } = useCustomerSalesReport();
 
-  // 列配置
+  // Column config
   const columns: ColumnDefinition<CustomerSalesReportView>[] = [
     {
       key: "orderDate",
@@ -95,7 +95,7 @@ export default function CustomerCategorySalesReportScreen() {
     },
   ];
 
-  // 排序选项
+  // Sort options
   const sortOptions = [
     { label: "Date (Newest)", value: "date_desc" },
     { label: "Date (Oldest)", value: "date_asc" },

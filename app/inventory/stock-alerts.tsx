@@ -22,7 +22,7 @@ const SAMPLE_ALERTS: StockAlert[] = [
 // ============================================================================
 
 export default function StockAlertsScreen() {
-  // 列配置
+  // Column config
   const columns: ColumnDefinition<StockAlert>[] = [
     {
       key: "productName",
@@ -100,7 +100,7 @@ export default function StockAlertsScreen() {
     },
   ];
 
-  // 过滤器
+  // Filters
   const filters: FilterDefinition[] = [
     {
       key: "channel",

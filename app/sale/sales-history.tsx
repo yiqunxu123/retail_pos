@@ -101,7 +101,7 @@ export default function SalesHistoryScreen() {
   const [selectedOrder, setSelectedOrder] = useState<any>(null);
   const [showStats, setShowStats] = useState(true);
 
-  // 转换订单详情
+  // Transform order details
   const convertToOrderDetails = (order: SaleOrderView) => {
     const getDisplayStatus = (status: number) => {
       if (status === 50) return "Completed";
@@ -171,7 +171,7 @@ export default function SalesHistoryScreen() {
     Alert.alert("Print", `Printing invoice for order ${order.orderNo || order.id.slice(0, 8)}...`);
   };
 
-  // 列配置
+  // Column config
   const columns: ColumnDefinition<SaleOrderView>[] = [
     {
       key: "orderNo",
@@ -264,7 +264,7 @@ export default function SalesHistoryScreen() {
     },
   ];
 
-  // 过滤器
+  // Filters
   const filters: FilterDefinition[] = [
     {
       key: "status",
@@ -292,7 +292,7 @@ export default function SalesHistoryScreen() {
     },
   ];
 
-  // 排序选项
+  // Sort options
   const sortOptions = [
     { label: "Date (Newest)", value: "date_desc" },
     { label: "Date (Oldest)", value: "date_asc" },
@@ -300,7 +300,7 @@ export default function SalesHistoryScreen() {
     { label: "Total (Low-High)", value: "total_asc" },
   ];
 
-  // 搜索逻辑
+  // Search logic
   const handleSearch = (item: SaleOrderView, query: string) => {
     const q = query.toLowerCase();
     return (
@@ -311,7 +311,7 @@ export default function SalesHistoryScreen() {
     );
   };
 
-  // 过滤逻辑
+  // Filter logic
   const handleFilter = (
     item: SaleOrderView,
     filters: Record<string, string | null>
@@ -325,7 +325,7 @@ export default function SalesHistoryScreen() {
     return true;
   };
 
-  // 排序逻辑
+  // Sort logic
   const handleSort = (data: SaleOrderView[], sortBy: string | null) => {
     if (!sortBy) return data;
     const sorted = [...data];

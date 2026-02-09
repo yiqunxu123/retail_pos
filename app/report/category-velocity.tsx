@@ -35,7 +35,7 @@ function MarginBadge({ percentage }: { percentage: number }) {
 export default function CategoryVelocityReportScreen() {
   const { reports, isLoading, isStreaming } = useCategoryVelocityReport();
 
-  // 列配置
+  // Column config
   const columns: ColumnDefinition<CategoryReportView>[] = [
     {
       key: "categoryName",
@@ -91,7 +91,7 @@ export default function CategoryVelocityReportScreen() {
     },
   ];
 
-  // 过滤器
+  // Filters
   const filters: FilterDefinition[] = [
     {
       key: "margin",
@@ -106,7 +106,7 @@ export default function CategoryVelocityReportScreen() {
     },
   ];
 
-  // 排序选项
+  // Sort options
   const sortOptions = [
     { label: "Revenue (High-Low)", value: "revenue_desc" },
     { label: "Revenue (Low-High)", value: "revenue_asc" },

@@ -52,7 +52,7 @@ function formatCurrency(value: number): string {
 // ============================================================================
 
 export default function SalesReturnScreen() {
-  // 列配置
+  // Column config
   const columns: ColumnDefinition<SalesReturn>[] = [
     {
       key: "returnNumber",
@@ -152,7 +152,7 @@ export default function SalesReturnScreen() {
     },
   ];
 
-  // 过滤器
+  // Filters
   const filters: FilterDefinition[] = [
     {
       key: "status",

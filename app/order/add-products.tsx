@@ -765,7 +765,7 @@ export default function AddProductsScreen() {
             onPress={() => {}}
           >
             <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", width: "100%", marginBottom: 12 }}>
-              <Text style={{ fontSize: 16, fontWeight: "700", color: "#111" }}>打印预览</Text>
+              <Text style={{ fontSize: 16, fontWeight: "700", color: "#111" }}>Print Preview</Text>
               <TouchableOpacity onPress={() => setShowReceiptPreview(false)}>
                 <Ionicons name="close-circle" size={24} color="#9CA3AF" />
               </TouchableOpacity>

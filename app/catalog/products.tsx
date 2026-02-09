@@ -35,7 +35,7 @@ export default function ProductsScreen() {
   const router = useRouter();
   const { products, isLoading, isStreaming, refresh, count } = useProducts();
 
-  // 列配置
+  // Column config
   const columns: ColumnDefinition<ProductView>[] = [
     {
       key: "image",
@@ -149,7 +149,7 @@ export default function ProductsScreen() {
     },
   ];
 
-  // 过滤器
+  // Filters
   const filters: FilterDefinition[] = [
     {
       key: "status",
@@ -172,7 +172,7 @@ export default function ProductsScreen() {
     },
   ];
 
-  // 排序选项
+  // Sort options
   const sortOptions = [
     { label: "Name (A-Z)", value: "name_asc" },
     { label: "Name (Z-A)", value: "name_desc" },
@@ -180,7 +180,7 @@ export default function ProductsScreen() {
     { label: "Price (High-Low)", value: "price_desc" },
   ];
 
-  // 搜索逻辑
+  // Search logic
   const handleSearch = (item: ProductView, query: string) => {
     const q = query.toLowerCase();
     return (
@@ -190,7 +190,7 @@ export default function ProductsScreen() {
     );
   };
 
-  // 过滤逻辑
+  // Filter logic
   const handleFilter = (
     item: ProductView,
     filters: Record<string, string | null>
@@ -206,7 +206,7 @@ export default function ProductsScreen() {
     return true;
   };
 
-  // 排序逻辑
+  // Sort logic
   const handleSort = (data: ProductView[], sortBy: string | null) => {
     if (!sortBy) return data;
     const sorted = [...data];

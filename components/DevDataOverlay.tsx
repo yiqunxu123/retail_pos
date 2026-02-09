@@ -80,7 +80,7 @@ interface DevDataOverlayProps {
 
 export const PRODUCTS_TABLE: DevTableConfig = {
   name: "products",
-  label: "产品",
+  label: "Products",
   allColumns: [
     "id", "name", "sku", "upc", "brand_id", "main_category_id", "status",
     "weight", "weight_unit", "description", "is_online", "unit_of_measurement",
@@ -91,7 +91,7 @@ export const PRODUCTS_TABLE: DevTableConfig = {
 
 export const CATEGORIES_TABLE: DevTableConfig = {
   name: "categories",
-  label: "分类",
+  label: "Categories",
   allColumns: [
     "id", "name", "code", "slug", "is_featured", "image", "parent_id",
     "created_at", "updated_at",
@@ -101,7 +101,7 @@ export const CATEGORIES_TABLE: DevTableConfig = {
 
 export const PROMOTION_DETAILS_TABLE: DevTableConfig = {
   name: "promotion_details",
-  label: "促销明细",
+  label: "Promo Details",
   allColumns: [
     "id", "promotion_id", "product_id", "unit_price_id", "channel_id",
     "value_type", "value", "min_qty", "is_enabled",
@@ -225,10 +225,10 @@ export function DevDataOverlay({ tables, defaultTable }: DevDataOverlayProps) {
         }
       }
       setRows(result);
-      setMessage(`共 ${result.length} 条记录`);
+      setMessage(`${result.length} records`);
     } catch (err: any) {
       setRows([]);
-      setMessage(`错误: ${err.message || err}`);
+      setMessage(`Error: ${err.message || err}`);
     } finally {
       setLoading(false);
     }
@@ -242,18 +242,18 @@ export function DevDataOverlay({ tables, defaultTable }: DevDataOverlayProps) {
   // --- Trigger PowerSync re-sync then reload data ---
   const triggerResync = useCallback(async (table: DevTableConfig) => {
     setSyncing(true);
-    setMessage("正在同步...");
+    setMessage("Syncing...");
     try {
       await reconnect();
       // Give PowerSync a moment to pull fresh data from server
       await new Promise((r) => setTimeout(r, 2500));
       await loadData(table);
       setMessage((prev) => {
-        const base = prev.replace("正在同步...", "").trim();
-        return base ? `${base} (已同步)` : "同步完成";
+        const base = prev.replace("Syncing...", "").trim();
+        return base ? `${base} (synced)` : "Sync complete";
       });
     } catch (err: any) {
-      Alert.alert("同步失败", err?.message || String(err));
+      Alert.alert("Sync Failed", err?.message || String(err));
     } finally {
       setSyncing(false);
     }
@@ -389,7 +389,7 @@ export function DevDataOverlay({ tables, defaultTable }: DevDataOverlayProps) {
                   <Ionicons name="code-slash-outline" size={14} color="#22D3EE" />
                 </View>
                 <Text className="text-lg font-semibold text-gray-800">
-                  数据测试 - {activeTable.label}
+                  Data Test - {activeTable.label}
                 </Text>
                 <View style={{ backgroundColor: "#1E1E1E", borderRadius: 4, paddingHorizontal: 6, paddingVertical: 2 }}>
                   <Text style={{ color: "#22D3EE", fontSize: 10, fontWeight: "700" }}>DEV ONLY</Text>
@@ -421,14 +421,14 @@ export function DevDataOverlay({ tables, defaultTable }: DevDataOverlayProps) {
                   onPress={() => setShowColPicker(!showColPicker)}
                 >
                   <Ionicons name="options-outline" size={14} color="#374151" />
-                  <Text className="text-gray-700 text-sm">列</Text>
+                  <Text className="text-gray-700 text-sm">Cols</Text>
                 </Pressable>
                 <Pressable
                   className="flex-row items-center gap-1 px-3 py-1.5 rounded-lg border border-gray-300"
                   onPress={() => loadData(activeTable)}
                 >
                   <Ionicons name="refresh" size={14} color="#374151" />
-                  <Text className="text-gray-700 text-sm">刷新</Text>
+                  <Text className="text-gray-700 text-sm">Refresh</Text>
                 </Pressable>
                 <Pressable
                   className="flex-row items-center gap-1 px-3 py-1.5 rounded-lg border border-blue-400"
@@ -440,7 +440,7 @@ export function DevDataOverlay({ tables, defaultTable }: DevDataOverlayProps) {
                     ? <ActivityIndicator size={14} color="#3B82F6" />
                     : <Ionicons name="cloud-download-outline" size={14} color="#3B82F6" />
                   }
-                  <Text className="text-blue-600 text-sm">{syncing ? "同步中" : "同步"}</Text>
+                  <Text className="text-blue-600 text-sm">{syncing ? "Syncing" : "Sync"}</Text>
                 </Pressable>
                 <Pressable
                   className="flex-row items-center gap-1 px-3 py-1.5 rounded-lg border border-green-500 bg-green-50"
@@ -452,7 +452,7 @@ export function DevDataOverlay({ tables, defaultTable }: DevDataOverlayProps) {
                     ? <ActivityIndicator size={14} color="#16A34A" />
                     : <Ionicons name="receipt-outline" size={14} color="#16A34A" />
                   }
-                  <Text className="text-green-700 text-sm">{generatingReceipt ? "生成中" : "Receipt"}</Text>
+                  <Text className="text-green-700 text-sm">{generatingReceipt ? "Generating" : "Receipt"}</Text>
                 </Pressable>
               </View>
             </View>
@@ -464,7 +464,7 @@ export function DevDataOverlay({ tables, defaultTable }: DevDataOverlayProps) {
               </View>
             )}
 
-            {/* Promotion tools – only visible on 促销明细 tab */}
+            {/* Promotion tools – only visible on Promo Details tab */}
             {activeTable.name === "promotion_details" && (
               <View className="flex-row items-center gap-2 px-5 pb-2">
                 <Pressable
@@ -475,10 +475,10 @@ export function DevDataOverlay({ tables, defaultTable }: DevDataOverlayProps) {
                     setSeeding(true);
                     try {
                       const count = await seedPromotions(powerSyncDb);
-                      setMessage(`已填充 ${count} 条 Promotion`);
+                      setMessage(`Seeded ${count} promotions`);
                       await loadData(activeTable);
                     } catch (err: any) {
-                      Alert.alert("填充失败", err?.message || String(err));
+                      Alert.alert("Seed Failed", err?.message || String(err));
                     } finally {
                       setSeeding(false);
                     }
@@ -488,7 +488,7 @@ export function DevDataOverlay({ tables, defaultTable }: DevDataOverlayProps) {
                     ? <ActivityIndicator size={14} color="#EA580C" />
                     : <Ionicons name="flask-outline" size={14} color="#EA580C" />
                   }
-                  <Text className="text-orange-700 text-sm">{seeding ? "填充中" : "填充"}</Text>
+                  <Text className="text-orange-700 text-sm">{seeding ? "Seeding" : "Seed"}</Text>
                 </Pressable>
                 <Pressable
                   className="flex-row items-center gap-1 px-3 py-1.5 rounded-lg border border-red-400 bg-red-50"
@@ -501,7 +501,7 @@ export function DevDataOverlay({ tables, defaultTable }: DevDataOverlayProps) {
                       setMessage(msg);
                       await loadData(activeTable);
                     } catch (err: any) {
-                      Alert.alert("清理失败", err?.message || String(err));
+                      Alert.alert("Clear Failed", err?.message || String(err));
                     } finally {
                       setClearing(false);
                     }
@@ -511,7 +511,7 @@ export function DevDataOverlay({ tables, defaultTable }: DevDataOverlayProps) {
                     ? <ActivityIndicator size={14} color="#DC2626" />
                     : <Ionicons name="trash-outline" size={14} color="#DC2626" />
                   }
-                  <Text className="text-red-700 text-sm">{clearing ? "清理中" : "清理"}</Text>
+                  <Text className="text-red-700 text-sm">{clearing ? "Clearing" : "Clear"}</Text>
                 </Pressable>
               </View>
             )}
@@ -520,10 +520,10 @@ export function DevDataOverlay({ tables, defaultTable }: DevDataOverlayProps) {
             {showColPicker && (
               <View className="flex-row flex-wrap items-center gap-1.5 px-5 pb-3">
                 <Pressable onPress={() => setSelectedCols([...activeTable.allColumns])}>
-                  <Text className="text-blue-500 text-xs font-medium mr-1">全选</Text>
+                  <Text className="text-blue-500 text-xs font-medium mr-1">All</Text>
                 </Pressable>
                 <Pressable onPress={() => setSelectedCols(activeTable.defaultColumns)}>
-                  <Text className="text-gray-400 text-xs font-medium mr-2">重置</Text>
+                  <Text className="text-gray-400 text-xs font-medium mr-2">Reset</Text>
                 </Pressable>
                 {activeTable.allColumns.map((col) => {
                   const isOn = selectedCols.includes(col);
@@ -606,7 +606,7 @@ export function DevDataOverlay({ tables, defaultTable }: DevDataOverlayProps) {
                       ) : (
                         <View className="items-center py-8">
                           <Ionicons name="document-outline" size={28} color="#d1d5db" />
-                          <Text className="text-gray-400 mt-2">暂无数据</Text>
+                          <Text className="text-gray-400 mt-2">No data</Text>
                         </View>
                       )
                     }

@@ -20,7 +20,7 @@ import { CustomerGroupView, useCustomerGroups } from "../../utils/powersync/hook
 export default function CustomerGroupsScreen() {
   const { groups, isLoading, isStreaming, refresh, count } = useCustomerGroups();
 
-  // 列配置
+  // Column config
   const columns: ColumnDefinition<CustomerGroupView>[] = [
     {
       key: "name",
@@ -76,7 +76,7 @@ export default function CustomerGroupsScreen() {
     },
   ];
 
-  // 排序选项
+  // Sort options
   const sortOptions = [
     { label: "Name (A-Z)", value: "name_asc" },
     { label: "Name (Z-A)", value: "name_desc" },

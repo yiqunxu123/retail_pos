@@ -1,10 +1,10 @@
 /**
- * Dev Tools - 测试数据生成器页面
+ * Dev Tools - Test data generator page
  *
- * 功能：
- * 1. 生成 Tab - 选择表 -> 编辑字段默认值 -> 批量生成 N 条记录
- * 2. 浏览 Tab - 选择表 -> 查看已有数据 -> 删除单行或清空
- * 3. 快捷操作 Tab - 一键生成完整 POS 测试数据集
+ * Features:
+ * 1. Generate Tab - select table -> edit field defaults -> batch generate N records
+ * 2. Browse Tab - select table -> view existing data -> delete row or clear
+ * 3. Quick Actions Tab - one-click generate full POS test dataset
  */
 
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons'
@@ -43,7 +43,7 @@ interface RowData {
 }
 
 // ============================================================================
-// 主组件
+// Main component
 // ============================================================================
 
 function resolveTab(input?: string, hasTable?: boolean): TabKey {
@@ -66,7 +66,7 @@ export default function DevToolsScreen() {
     setActiveTab(resolvedTab)
   }, [resolvedTab])
 
-  // 生产环境拦截：即使通过 URL 直接访问也不会暴露
+  // Production guard: prevent access even via direct URL
   if (!__DEV__) {
     return (
       <View className="flex-1 bg-gray-50 items-center justify-center">
@@ -83,19 +83,19 @@ export default function DevToolsScreen() {
       {/* Tab Bar */}
       <View className="flex-row bg-white border-b border-gray-200">
         <TabButton
-          title="生成数据"
+          title="Generate"
           icon="add-circle-outline"
           isActive={activeTab === 'generate'}
           onPress={() => setActiveTab('generate')}
         />
         <TabButton
-          title="浏览数据"
+          title="Browse"
           icon="list-outline"
           isActive={activeTab === 'browse'}
           onPress={() => setActiveTab('browse')}
         />
         <TabButton
-          title="快捷操作"
+          title="Quick Actions"
           icon="flash-outline"
           isActive={activeTab === 'quick'}
           onPress={() => setActiveTab('quick')}
@@ -149,7 +149,7 @@ function TabButton({
 }
 
 // ============================================================================
-// 表选择器
+// Table selector
 // ============================================================================
 
 function TableSelector({
@@ -164,7 +164,7 @@ function TableSelector({
 
   return (
     <View className="mb-4">
-      <Text className="text-gray-600 text-xs font-medium mb-1">选择数据表</Text>
+      <Text className="text-gray-600 text-xs font-medium mb-1">Select Table</Text>
       <TouchableOpacity
         onPress={() => setIsOpen(!isOpen)}
         className="bg-white border border-gray-300 rounded-lg px-4 py-3 flex-row items-center justify-between"
@@ -212,7 +212,7 @@ function TableSelector({
 }
 
 // ============================================================================
-// 生成 Tab
+// Generate Tab
 // ============================================================================
 
 function GenerateTab({ initialTable }: { initialTable?: string }) {
@@ -224,7 +224,7 @@ function GenerateTab({ initialTable }: { initialTable?: string }) {
 
   const config = getTableConfig(selectedTable)
 
-  // 切换表时重置覆盖值
+  // Reset overrides when switching tables
   useEffect(() => {
     setFieldOverrides({})
     setMessage('')
@@ -248,7 +248,7 @@ function GenerateTab({ initialTable }: { initialTable?: string }) {
         const record = generateRecord(selectedTable, i)
         if (!record) continue
 
-        // 应用用户的覆盖值
+        // Apply user overrides
         for (const [key, val] of Object.entries(fieldOverrides)) {
           if (val.trim() === '') continue
           const colDef = config.columns.find((c) => c.name === key)
@@ -258,12 +258,12 @@ function GenerateTab({ initialTable }: { initialTable?: string }) {
           } else if (colDef.type === 'real') {
             record[key] = parseFloat(val) || 0
           } else {
-            // 字符串类型支持 {i} 占位符
+            // String type supports {i} placeholder
             record[key] = val.replace(/\{i\}/g, String(i))
           }
         }
 
-        // 构建 INSERT SQL
+        // Build INSERT SQL
         const cols = Object.keys(record)
         const placeholders = cols.map(() => '?').join(', ')
         const values = cols.map((c) => record[c])
@@ -273,9 +273,9 @@ function GenerateTab({ initialTable }: { initialTable?: string }) {
         inserted++
       }
 
-      setMessage(`成功插入 ${inserted} 条 ${config.label} 记录`)
+      setMessage(`Successfully inserted ${inserted} ${config.label} records`)
     } catch (err: any) {
-      setMessage(`错误: ${err.message}`)
+      setMessage(`Error: ${err.message}`)
       console.error('[DevTools] Generate error:', err)
     } finally {
       setIsGenerating(false)
@@ -288,9 +288,9 @@ function GenerateTab({ initialTable }: { initialTable?: string }) {
     <ScrollView className="flex-1 p-4" keyboardShouldPersistTaps="handled">
       <TableSelector selectedTable={selectedTable} onSelect={setSelectedTable} />
 
-      {/* 批量数量 */}
+      {/* Batch count */}
       <View className="flex-row items-center gap-3 mb-4">
-        <Text className="text-gray-600 text-sm font-medium">批量数量:</Text>
+        <Text className="text-gray-600 text-sm font-medium">Batch Count:</Text>
         <TextInput
           className="bg-white border border-gray-300 rounded-lg px-3 py-2 w-20 text-center text-base"
           keyboardType="number-pad"
@@ -309,20 +309,20 @@ function GenerateTab({ initialTable }: { initialTable?: string }) {
           ) : (
             <Ionicons name="add-circle" size={18} color="white" />
           )}
-          <Text className="text-white font-medium">生成</Text>
+          <Text className="text-white font-medium">Generate</Text>
         </TouchableOpacity>
       </View>
 
-      {/* 消息提示 */}
+      {/* Message hint */}
       {message !== '' && (
         <View
           className={`rounded-lg p-3 mb-4 ${
-            message.startsWith('错误') ? 'bg-red-50' : 'bg-green-50'
+            message.startsWith('Error') ? 'bg-red-50' : 'bg-green-50'
           }`}
         >
           <Text
             className={`text-sm ${
-              message.startsWith('错误') ? 'text-red-700' : 'text-green-700'
+              message.startsWith('Error') ? 'text-red-700' : 'text-green-700'
             }`}
           >
             {message}
@@ -330,16 +330,16 @@ function GenerateTab({ initialTable }: { initialTable?: string }) {
         </View>
       )}
 
-      {/* 字段编辑 */}
+      {/* Field config */}
       <View className="bg-white rounded-xl border border-gray-200 overflow-hidden">
         <View className="bg-gray-50 px-4 py-3 border-b border-gray-200">
           <Text className="text-gray-700 font-semibold">
-            字段配置 (留空使用默认值, 字符串支持 {'{i}'} 占位符)
+            Field Config (leave empty for defaults, strings support {'{i}'} placeholder)
           </Text>
         </View>
 
         {config.columns.map((col) => {
-          // 预览默认值
+          // Preview default value
           const previewValue = col.defaultValue(1)
           const previewStr =
             previewValue === null ? 'null' : String(previewValue)
@@ -349,7 +349,7 @@ function GenerateTab({ initialTable }: { initialTable?: string }) {
               key={col.name}
               className="flex-row items-center px-4 py-2.5 border-b border-gray-100"
             >
-              {/* 列名和类型 */}
+              {/* Column name and type */}
               <View className="flex-1">
                 <Text className="text-gray-800 text-sm font-medium">
                   {col.label}
@@ -359,7 +359,7 @@ function GenerateTab({ initialTable }: { initialTable?: string }) {
                 </Text>
               </View>
 
-              {/* 输入框 */}
+              {/* Input field */}
               <TextInput
                 className="bg-gray-50 border border-gray-200 rounded-lg px-3 py-1.5 text-sm flex-1 ml-3"
                 placeholder={previewStr}
@@ -379,14 +379,14 @@ function GenerateTab({ initialTable }: { initialTable?: string }) {
         })}
       </View>
 
-      {/* 底部留白 */}
+      {/* Bottom padding */}
       <View className="h-20" />
     </ScrollView>
   )
 }
 
 // ============================================================================
-// 浏览 Tab
+// Browse Tab
 // ============================================================================
 
 function BrowseTab({ initialTable }: { initialTable?: string }) {
@@ -394,16 +394,16 @@ function BrowseTab({ initialTable }: { initialTable?: string }) {
   const [rows, setRows] = useState<RowData[]>([])
   const [isLoading, setIsLoading] = useState(false)
   const [message, setMessage] = useState('')
-  // 编辑弹窗状态
+  // Edit modal state
   const [editingRow, setEditingRow] = useState<RowData | null>(null)
   const [editValues, setEditValues] = useState<Record<string, string>>({})
   const [isSaving, setIsSaving] = useState(false)
-  // 列选择
+  // Column selection
   const [selectedColumns, setSelectedColumns] = useState<string[]>([])
 
   const config = getTableConfig(selectedTable)
 
-  // 加载数据
+  // Load data
   const loadData = useCallback(async () => {
     setIsLoading(true)
     setMessage('')
@@ -412,17 +412,17 @@ function BrowseTab({ initialTable }: { initialTable?: string }) {
         `SELECT * FROM ${selectedTable} ORDER BY created_at DESC LIMIT 200`
       )
       setRows(result)
-      setMessage(`共 ${result.length} 条记录`)
+      setMessage(`${result.length} records`)
     } catch (err: any) {
-      // 有些表没有 created_at 列
+      // Some tables don't have a created_at column
       try {
         const result = await powerSyncDb.getAll<RowData>(
           `SELECT * FROM ${selectedTable} LIMIT 200`
         )
         setRows(result)
-        setMessage(`共 ${result.length} 条记录`)
+        setMessage(`${result.length} records`)
       } catch (err2: any) {
-        setMessage(`错误: ${err2.message}`)
+        setMessage(`Error: ${err2.message}`)
         setRows([])
       }
     } finally {
@@ -440,11 +440,11 @@ function BrowseTab({ initialTable }: { initialTable?: string }) {
     }
   }, [initialTable, selectedTable])
 
-  // 打开编辑弹窗
+  // Open edit modal
   const handleEditRow = useCallback(
     (row: RowData) => {
       setEditingRow(row)
-      // 将当前行数据转为字符串用于编辑
+      // Convert current row data to strings for editing
       const values: Record<string, string> = {}
       if (config) {
         for (const col of config.columns) {
@@ -457,13 +457,13 @@ function BrowseTab({ initialTable }: { initialTable?: string }) {
     [config]
   )
 
-  // 保存编辑
+  // Save edits
   const handleSaveEdit = useCallback(async () => {
     if (!editingRow || !config) return
     setIsSaving(true)
 
     try {
-      // 构建 UPDATE SET 子句
+      // Build UPDATE SET clause
       const setClauses: string[] = []
       const values: any[] = []
 
@@ -491,7 +491,7 @@ function BrowseTab({ initialTable }: { initialTable?: string }) {
       const sql = `UPDATE ${selectedTable} SET ${setClauses.join(', ')} WHERE id = ?`
       await powerSyncDb.execute(sql, values)
 
-      // 更新本地行数据
+      // Update local row data
       setRows((prev) =>
         prev.map((r) => {
           if (r.id !== editingRow.id) return r
@@ -512,22 +512,22 @@ function BrowseTab({ initialTable }: { initialTable?: string }) {
         })
       )
 
-      setMessage('修改已保存')
+      setMessage('Changes saved')
       setEditingRow(null)
     } catch (err: any) {
-      Alert.alert('保存失败', err.message)
+      Alert.alert('Save Failed', err.message)
     } finally {
       setIsSaving(false)
     }
   }, [editingRow, editValues, config, selectedTable])
 
-  // 删除单条记录
+  // Delete single record
   const handleDeleteRow = useCallback(
     async (id: string) => {
-      Alert.alert('确认删除', `删除 ID: ${id.slice(0, 8)}... ?`, [
-        { text: '取消', style: 'cancel' },
+      Alert.alert('Confirm Delete', `Delete ID: ${id.slice(0, 8)}... ?`, [
+        { text: 'Cancel', style: 'cancel' },
         {
-          text: '删除',
+          text: 'Delete',
           style: 'destructive',
           onPress: async () => {
             try {
@@ -536,9 +536,9 @@ function BrowseTab({ initialTable }: { initialTable?: string }) {
                 [id]
               )
               setRows((prev) => prev.filter((r) => r.id !== id))
-              setMessage(`已删除, 剩余 ${rows.length - 1} 条`)
+              setMessage(`Deleted, ${rows.length - 1} remaining`)
             } catch (err: any) {
-              Alert.alert('错误', err.message)
+              Alert.alert('Error', err.message)
             }
           },
         },
@@ -547,23 +547,23 @@ function BrowseTab({ initialTable }: { initialTable?: string }) {
     [selectedTable, rows.length]
   )
 
-  // 清空表
+  // Clear table
   const handleClearTable = useCallback(() => {
     Alert.alert(
-      '清空数据表',
-      `确定要删除 ${config?.label || selectedTable} 的全部数据吗？`,
+      'Clear Table',
+      `Are you sure you want to delete all data from ${config?.label || selectedTable}?`,
       [
-        { text: '取消', style: 'cancel' },
+        { text: 'Cancel', style: 'cancel' },
         {
-          text: '清空',
+          text: 'Clear',
           style: 'destructive',
           onPress: async () => {
             try {
               await powerSyncDb.execute(`DELETE FROM ${selectedTable}`)
               setRows([])
-              setMessage('已清空')
+              setMessage('Cleared')
             } catch (err: any) {
-              Alert.alert('错误', err.message)
+              Alert.alert('Error', err.message)
             }
           },
         },
@@ -571,7 +571,7 @@ function BrowseTab({ initialTable }: { initialTable?: string }) {
     )
   }, [selectedTable, config])
 
-  // 切换表时重置列选择为默认前 4 列
+  // Reset column selection to default first 4 columns when switching tables
   useEffect(() => {
     if (config) {
       setSelectedColumns(['id', ...config.columns.slice(0, 4).map((c) => c.name)])
@@ -580,10 +580,10 @@ function BrowseTab({ initialTable }: { initialTable?: string }) {
     }
   }, [selectedTable]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  // 切换列选中状态
+  // Toggle column selection
   const toggleColumn = useCallback((colName: string) => {
     setSelectedColumns((prev) => {
-      if (colName === 'id') return prev // id 始终显示
+      if (colName === 'id') return prev // id is always visible
       if (prev.includes(colName)) {
         return prev.filter((c) => c !== colName)
       }
@@ -591,7 +591,7 @@ function BrowseTab({ initialTable }: { initialTable?: string }) {
     })
   }, [])
 
-  // 全选 / 全不选
+  // Select all / deselect all
   const selectAllColumns = useCallback(() => {
     if (!config) return
     setSelectedColumns(['id', ...config.columns.map((c) => c.name)])
@@ -619,14 +619,14 @@ function BrowseTab({ initialTable }: { initialTable?: string }) {
             </Text>
           </View>
         ))}
-        {/* 编辑按钮 */}
+        {/* Edit button */}
         <TouchableOpacity
           onPress={() => handleEditRow(item)}
           className="px-2 py-1"
         >
           <Ionicons name="pencil-outline" size={16} color="#3b82f6" />
         </TouchableOpacity>
-        {/* 删除按钮 */}
+        {/* Delete button */}
         <TouchableOpacity
           onPress={() => handleDeleteRow(item.id)}
           className="px-2 py-1"
@@ -638,7 +638,7 @@ function BrowseTab({ initialTable }: { initialTable?: string }) {
     [displayColumns, handleDeleteRow, handleEditRow]
   )
 
-  // 编辑弹窗
+  // Edit modal
   const renderEditModal = () => {
     if (!editingRow || !config) return null
 
@@ -659,12 +659,12 @@ function BrowseTab({ initialTable }: { initialTable?: string }) {
             style={{ width: 520, maxHeight: '85%' }}
             onStartShouldSetResponder={() => true}
           >
-            {/* 弹窗标题 */}
+            {/* Modal title */}
             <View className="flex-row justify-between items-center px-5 py-4 border-b border-gray-200 bg-gray-50">
               <View className="flex-row items-center gap-2">
                 <Ionicons name="pencil" size={18} color="#3b82f6" />
                 <Text className="text-lg font-semibold text-gray-800">
-                  编辑记录
+                  Edit Record
                 </Text>
               </View>
               <TouchableOpacity onPress={() => setEditingRow(null)}>
@@ -672,15 +672,15 @@ function BrowseTab({ initialTable }: { initialTable?: string }) {
               </TouchableOpacity>
             </View>
 
-            {/* ID (只读) */}
+            {/* ID (read-only) */}
             <View className="px-5 pt-4 pb-2">
-              <Text className="text-gray-400 text-xs">ID (只读)</Text>
+              <Text className="text-gray-400 text-xs">ID (read-only)</Text>
               <Text className="text-gray-500 text-sm font-mono">
                 {editingRow.id}
               </Text>
             </View>
 
-            {/* 字段编辑列表 */}
+            {/* Field edit list */}
             <ScrollView className="px-5 pb-4" keyboardShouldPersistTaps="handled">
               {config.columns.map((col) => (
                 <View key={col.name} className="mb-3">
@@ -704,17 +704,17 @@ function BrowseTab({ initialTable }: { initialTable?: string }) {
                   />
                 </View>
               ))}
-              {/* 底部留白给键盘 */}
+              {/* Bottom padding for keyboard */}
               <View className="h-4" />
             </ScrollView>
 
-            {/* 底部按钮 */}
+            {/* Bottom buttons */}
             <View className="flex-row gap-3 px-5 py-4 border-t border-gray-200">
               <TouchableOpacity
                 onPress={() => setEditingRow(null)}
                 className="flex-1 border border-gray-300 rounded-xl py-3 items-center"
               >
-                <Text className="text-gray-700 font-medium">取消</Text>
+                <Text className="text-gray-700 font-medium">Cancel</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 onPress={handleSaveEdit}
@@ -726,7 +726,7 @@ function BrowseTab({ initialTable }: { initialTable?: string }) {
                 {isSaving ? (
                   <ActivityIndicator size="small" color="white" />
                 ) : (
-                  <Text className="text-white font-medium">保存修改</Text>
+                  <Text className="text-white font-medium">Save Changes</Text>
                 )}
               </TouchableOpacity>
             </View>
@@ -740,21 +740,21 @@ function BrowseTab({ initialTable }: { initialTable?: string }) {
     <View className="flex-1 p-4">
       <TableSelector selectedTable={selectedTable} onSelect={setSelectedTable} />
 
-      {/* 操作栏 */}
+      {/* Action bar */}
       <View className="flex-row items-center gap-3 mb-3">
         <TouchableOpacity
           onPress={loadData}
           className="flex-row items-center gap-1 bg-blue-500 px-4 py-2 rounded-lg"
         >
           <Ionicons name="refresh" size={16} color="white" />
-          <Text className="text-white font-medium text-sm">刷新</Text>
+          <Text className="text-white font-medium text-sm">Refresh</Text>
         </TouchableOpacity>
         <TouchableOpacity
           onPress={handleClearTable}
           className="flex-row items-center gap-1 bg-red-500 px-4 py-2 rounded-lg"
         >
           <Ionicons name="trash" size={16} color="white" />
-          <Text className="text-white font-medium text-sm">清空表</Text>
+          <Text className="text-white font-medium text-sm">Clear Table</Text>
         </TouchableOpacity>
         {message !== '' && (
           <Text className="text-gray-500 text-sm ml-2">{message}</Text>
@@ -762,14 +762,14 @@ function BrowseTab({ initialTable }: { initialTable?: string }) {
         {isLoading && <ActivityIndicator size="small" color="#3b82f6" />}
       </View>
 
-      {/* 列选择 */}
+      {/* Column selection */}
       {config && (
         <View className="flex-row flex-wrap items-center gap-1.5 mb-3">
           <TouchableOpacity onPress={selectAllColumns} className="mr-1">
-            <Text className="text-blue-500 text-xs font-medium">全选</Text>
+            <Text className="text-blue-500 text-xs font-medium">All</Text>
           </TouchableOpacity>
           <TouchableOpacity onPress={deselectAllColumns} className="mr-2">
-            <Text className="text-gray-400 text-xs font-medium">重置</Text>
+            <Text className="text-gray-400 text-xs font-medium">Reset</Text>
           </TouchableOpacity>
           <View className="bg-blue-100 rounded px-2 py-1">
             <Text className="text-blue-700 text-xs">id</Text>
@@ -791,7 +791,7 @@ function BrowseTab({ initialTable }: { initialTable?: string }) {
         </View>
       )}
 
-      {/* 表头 */}
+      {/* Table header */}
       <View className="flex-row bg-gray-100 rounded-t-lg px-3 py-2">
         {displayColumns.map((col) => {
           const colDef = config?.columns.find((c) => c.name === col)
@@ -803,11 +803,11 @@ function BrowseTab({ initialTable }: { initialTable?: string }) {
             </View>
           )
         })}
-        {/* 操作列占位 */}
+        {/* Action column placeholder */}
         <View className="w-16" />
       </View>
 
-      {/* 数据行 */}
+      {/* Data rows */}
       <FlatList
         data={rows}
         keyExtractor={(item, index) => item.id || String(index)}
@@ -816,19 +816,19 @@ function BrowseTab({ initialTable }: { initialTable?: string }) {
         ListEmptyComponent={
           <View className="items-center py-10">
             <Ionicons name="document-outline" size={36} color="#d1d5db" />
-            <Text className="text-gray-400 mt-2">暂无数据</Text>
+            <Text className="text-gray-400 mt-2">No data</Text>
           </View>
         }
       />
 
-      {/* 编辑弹窗 */}
+      {/* Edit modal */}
       {renderEditModal()}
     </View>
   )
 }
 
 // ============================================================================
-// 快捷操作 Tab
+// Quick Actions Tab
 // ============================================================================
 
 function QuickActionsTab() {
@@ -842,11 +842,11 @@ function QuickActionsTab() {
     setLogs((prev) => [...prev, `[${new Date().toLocaleTimeString()}] ${msg}`])
   }
 
-  // 一键生成完整数据集
+  // One-click generate full dataset
   const handleGenerateFullDataset = useCallback(async () => {
     setIsRunning(true)
     setLogs([])
-    addLog('开始生成完整测试数据集...')
+    addLog('Starting full test dataset generation...')
 
     try {
       const dataset = generateFullDataset(counts)
@@ -854,7 +854,7 @@ function QuickActionsTab() {
       for (const [tableName, records] of dataset) {
         if (records.length === 0) continue
 
-        addLog(`正在插入 ${records.length} 条 ${tableName} 记录...`)
+        addLog(`Inserting ${records.length} ${tableName} records...`)
 
         for (const record of records) {
           const cols = Object.keys(record)
@@ -865,46 +865,46 @@ function QuickActionsTab() {
           try {
             await powerSyncDb.execute(sql, values)
           } catch (err: any) {
-            addLog(`  [警告] ${tableName} 插入失败: ${err.message}`)
+            addLog(`  [Warning] ${tableName} insert failed: ${err.message}`)
           }
         }
 
-        addLog(`  ${tableName} 完成 (${records.length} 条)`)
+        addLog(`  ${tableName} done (${records.length} records)`)
       }
 
-      addLog('全部完成! 数据将通过 PowerSync 自动同步到后端。')
+      addLog('All done! Data will auto-sync to backend via PowerSync.')
     } catch (err: any) {
-      addLog(`错误: ${err.message}`)
+      addLog(`Error: ${err.message}`)
     } finally {
       setIsRunning(false)
     }
   }, [counts])
 
-  // 一键清空所有表
+  // One-click clear all tables
   const handleClearAll = useCallback(() => {
     Alert.alert(
-      '清空所有数据',
-      '确定要清空所有 PowerSync 数据表吗？此操作不可恢复！',
+      'Clear All Data',
+      'Are you sure you want to clear all PowerSync tables? This cannot be undone!',
       [
-        { text: '取消', style: 'cancel' },
+        { text: 'Cancel', style: 'cancel' },
         {
-          text: '清空全部',
+          text: 'Clear All',
           style: 'destructive',
           onPress: async () => {
             setIsRunning(true)
             setLogs([])
-            addLog('开始清空所有数据表...')
+            addLog('Clearing all tables...')
 
             for (const table of TABLE_CONFIGS) {
               try {
                 await powerSyncDb.execute(`DELETE FROM ${table.name}`)
-                addLog(`  ${table.name} 已清空`)
+                addLog(`  ${table.name} cleared`)
               } catch (err: any) {
-                addLog(`  [警告] ${table.name}: ${err.message}`)
+                addLog(`  [Warning] ${table.name}: ${err.message}`)
               }
             }
 
-            addLog('全部清空完成!')
+            addLog('All tables cleared!')
             setIsRunning(false)
           },
         },
@@ -912,10 +912,10 @@ function QuickActionsTab() {
     )
   }, [])
 
-  // 快速统计各表行数
+  // Quick count rows per table
   const handleCountAll = useCallback(async () => {
     setLogs([])
-    addLog('统计各表行数...')
+    addLog('Counting rows per table...')
 
     for (const table of TABLE_CONFIGS) {
       try {
@@ -923,22 +923,22 @@ function QuickActionsTab() {
           `SELECT COUNT(*) as cnt FROM ${table.name}`
         )
         const cnt = result[0]?.cnt ?? 0
-        addLog(`  ${table.label}: ${cnt} 条`)
+        addLog(`  ${table.label}: ${cnt} rows`)
       } catch (err: any) {
-        addLog(`  ${table.label}: 错误 - ${err.message}`)
+        addLog(`  ${table.label}: Error - ${err.message}`)
       }
     }
 
-    addLog('统计完成')
+    addLog('Count complete')
   }, [])
 
   return (
     <ScrollView className="flex-1 p-4" keyboardShouldPersistTaps="handled">
-      {/* 数量配置 */}
+      {/* Quantity config */}
       <View className="bg-white rounded-xl border border-gray-200 overflow-hidden mb-4">
         <View className="bg-gray-50 px-4 py-3 border-b border-gray-200 flex-row items-center gap-2">
           <MaterialCommunityIcons name="tune-variant" size={18} color="#6b7280" />
-          <Text className="text-gray-700 font-semibold">生成数量配置</Text>
+          <Text className="text-gray-700 font-semibold">Generation Quantity Config</Text>
         </View>
 
         <View className="p-4">
@@ -965,7 +965,7 @@ function QuickActionsTab() {
         </View>
       </View>
 
-      {/* 快捷按钮 */}
+      {/* Quick action buttons */}
       <View className="gap-3 mb-4">
         <TouchableOpacity
           onPress={handleGenerateFullDataset}
@@ -981,10 +981,10 @@ function QuickActionsTab() {
           )}
           <View className="flex-1">
             <Text className="text-white font-bold text-base">
-              一键生成完整 POS 数据集
+              One-click Generate Full POS Dataset
             </Text>
             <Text className="text-blue-100 text-xs">
-              分类 + 品牌 + 产品 + 客户 + 订单 + 支付，自动关联外键
+              Categories + Brands + Products + Customers + Orders + Payments, auto-linked foreign keys
             </Text>
           </View>
         </TouchableOpacity>
@@ -996,7 +996,7 @@ function QuickActionsTab() {
             className="flex-1 flex-row items-center justify-center gap-2 bg-purple-500 p-3 rounded-xl"
           >
             <Ionicons name="stats-chart" size={18} color="white" />
-            <Text className="text-white font-medium">统计所有表</Text>
+            <Text className="text-white font-medium">Count All Tables</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
@@ -1005,18 +1005,18 @@ function QuickActionsTab() {
             className="flex-1 flex-row items-center justify-center gap-2 bg-red-500 p-3 rounded-xl"
           >
             <Ionicons name="nuclear" size={18} color="white" />
-            <Text className="text-white font-medium">清空所有表</Text>
+            <Text className="text-white font-medium">Clear All Tables</Text>
           </TouchableOpacity>
         </View>
       </View>
 
-      {/* 日志输出 */}
+      {/* Log output */}
       {logs.length > 0 && (
         <View className="bg-gray-900 rounded-xl overflow-hidden mb-4">
           <View className="px-4 py-2 bg-gray-800 flex-row items-center justify-between">
             <Text className="text-gray-300 text-xs font-mono">Output Log</Text>
             <TouchableOpacity onPress={() => setLogs([])}>
-              <Text className="text-gray-400 text-xs">清除</Text>
+              <Text className="text-gray-400 text-xs">Clear</Text>
             </TouchableOpacity>
           </View>
           <ScrollView className="p-3 max-h-80">
@@ -1024,9 +1024,9 @@ function QuickActionsTab() {
               <Text
                 key={i}
                 className={`text-xs font-mono leading-5 ${
-                  log.includes('错误') || log.includes('警告')
+                  log.includes('Error') || log.includes('Warning')
                     ? 'text-yellow-400'
-                    : log.includes('完成')
+                    : log.includes('done') || log.includes('complete')
                     ? 'text-green-400'
                     : 'text-gray-300'
                 }`}
@@ -1038,7 +1038,7 @@ function QuickActionsTab() {
         </View>
       )}
 
-      {/* 底部留白 */}
+      {/* Bottom padding */}
       <View className="h-20" />
     </ScrollView>
   )
