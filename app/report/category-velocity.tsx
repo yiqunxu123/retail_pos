@@ -1,11 +1,38 @@
-/**
- * Category Velocity Report
- * Uses the unified DataTable component
- */
+import { Ionicons } from "@expo/vector-icons";
+import { useRouter } from "expo-router";
+import { useMemo, useState } from "react";
+import {
+  ActivityIndicator,
+  FlatList,
+  ScrollView,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
+} from "react-native";
+import { FilterDropdown } from "../../components";
+import { useCategoryVelocityReport, CategoryReportView } from "../../utils/powersync/hooks";
 
-import { Text, View } from "react-native";
-import { ColumnDefinition, DataTable, FilterDefinition, PageHeader } from "../../components";
-import { CategoryReportView, useCategoryVelocityReport } from "../../utils/powersync/hooks";
+// ============================================================================
+// Constants
+// ============================================================================
+
+const SORT_OPTIONS = [
+  { label: "Revenue (High-Low)", value: "revenue_desc" },
+  { label: "Revenue (Low-High)", value: "revenue_asc" },
+  { label: "Qty Sold (High-Low)", value: "qty_desc" },
+  { label: "Qty Sold (Low-High)", value: "qty_asc" },
+  { label: "Margin % (High-Low)", value: "margin_desc" },
+  { label: "Margin % (Low-High)", value: "margin_asc" },
+  { label: "Category (A-Z)", value: "category_asc" },
+];
+
+const MARGIN_FILTER_OPTIONS = [
+  { label: "All Margins", value: "all" },
+  { label: "High (>=15%)", value: "high" },
+  { label: "Medium (8-15%)", value: "medium" },
+  { label: "Low (<8%)", value: "low" },
+];
 
 // ============================================================================
 // Helper Functions
@@ -18,12 +45,23 @@ function formatCurrency(value: number): string {
   });
 }
 
+function getMarginColorClasses(percentage: number): { bg: string; text: string } {
+  if (percentage >= 15) return { bg: "bg-green-100", text: "text-green-700" };
+  if (percentage >= 8) return { bg: "bg-yellow-100", text: "text-yellow-700" };
+  return { bg: "bg-red-100", text: "text-red-700" };
+}
+
+// ============================================================================
+// Reusable Components
+// ============================================================================
+
 function MarginBadge({ percentage }: { percentage: number }) {
-  const bg = percentage >= 15 ? "bg-green-100" : percentage >= 8 ? "bg-yellow-100" : "bg-red-100";
-  const text = percentage >= 15 ? "text-green-700" : percentage >= 8 ? "text-yellow-700" : "text-red-700";
+  const colors = getMarginColorClasses(percentage);
   return (
-    <View className={`px-3 py-1 rounded ${bg}`}>
-      <Text className={`font-medium ${text}`}>{percentage.toFixed(1)}%</Text>
+    <View className={`px-3 py-1 rounded ${colors.bg}`}>
+      <Text className={`font-medium ${colors.text}`}>
+        {percentage.toFixed(1)}%
+      </Text>
     </View>
   );
 }
@@ -33,143 +71,214 @@ function MarginBadge({ percentage }: { percentage: number }) {
 // ============================================================================
 
 export default function CategoryVelocityReportScreen() {
+  const router = useRouter();
+  
+  // Data from PowerSync
   const { reports, isLoading, isStreaming } = useCategoryVelocityReport();
 
-  // Column config
-  const columns: ColumnDefinition<CategoryReportView>[] = [
-    {
-      key: "categoryName",
-      title: "Category Name",
-      width: "flex",
-      visible: true,
-      hideable: false,
-      render: (item) => (
-        <Text className="text-gray-800 font-medium pr-2">{item.categoryName}</Text>
-      ),
-    },
-    {
-      key: "qtySold",
-      title: "Qty Sold",
-      width: 100,
-      align: "center",
-      visible: true,
-      render: (item) => <Text className="text-gray-800">{item.qtySold.toLocaleString()}</Text>,
-    },
-    {
-      key: "salesRevenue",
-      title: "Sales Revenue ($)",
-      width: 140,
-      align: "center",
-      visible: true,
-      render: (item) => <Text className="text-gray-800">{formatCurrency(item.salesRevenue)}</Text>,
-    },
-    {
-      key: "cost",
-      title: "Cost ($)",
-      width: 120,
-      align: "center",
-      visible: true,
-      render: (item) => <Text className="text-gray-800">{formatCurrency(item.cost)}</Text>,
-    },
-    {
-      key: "margin",
-      title: "Margin ($)",
-      width: 120,
-      align: "center",
-      visible: true,
-      render: (item) => (
-        <Text className="text-green-600 font-medium">{formatCurrency(item.margin)}</Text>
-      ),
-    },
-    {
-      key: "marginPercentage",
-      title: "Margin (%)",
-      width: 120,
-      align: "center",
-      visible: true,
-      render: (item) => <MarginBadge percentage={item.marginPercentage} />,
-    },
-  ];
+  // Search & Filter State
+  const [searchQuery, setSearchQuery] = useState("");
+  const [sortBy, setSortBy] = useState<string | null>("revenue_desc");
+  const [marginFilter, setMarginFilter] = useState<string | null>(null);
 
-  // Filters
-  const filters: FilterDefinition[] = [
-    {
-      key: "margin",
-      placeholder: "Margin Level",
-      width: 140,
-      options: [
-        { label: "All Margins", value: "all" },
-        { label: "High (>=15%)", value: "high" },
-        { label: "Medium (8-15%)", value: "medium" },
-        { label: "Low (<8%)", value: "low" },
-      ],
-    },
-  ];
+  // Apply filters and sorting
+  const filteredReports = useMemo(() => {
+    let result = [...reports];
 
-  // Sort options
-  const sortOptions = [
-    { label: "Revenue (High-Low)", value: "revenue_desc" },
-    { label: "Revenue (Low-High)", value: "revenue_asc" },
-    { label: "Qty Sold (High-Low)", value: "qty_desc" },
-    { label: "Qty Sold (Low-High)", value: "qty_asc" },
-    { label: "Margin % (High-Low)", value: "margin_desc" },
-    { label: "Margin % (Low-High)", value: "margin_asc" },
-    { label: "Category (A-Z)", value: "category_asc" },
-  ];
-
-  const handleSearch = (item: CategoryReportView, query: string) => {
-    return item.categoryName.toLowerCase().includes(query.toLowerCase());
-  };
-
-  const handleFilter = (item: CategoryReportView, filters: Record<string, string | null>) => {
-    if (filters.margin && filters.margin !== "all") {
-      if (filters.margin === "high" && item.marginPercentage < 15) return false;
-      if (filters.margin === "medium" && (item.marginPercentage < 8 || item.marginPercentage >= 15)) return false;
-      if (filters.margin === "low" && item.marginPercentage >= 8) return false;
+    // Search filter
+    if (searchQuery) {
+      result = result.filter((r) =>
+        r.categoryName.toLowerCase().includes(searchQuery.toLowerCase())
+      );
     }
-    return true;
-  };
 
-  const handleSort = (data: CategoryReportView[], sortBy: string | null) => {
-    if (!sortBy) return data;
-    const sorted = [...data];
-    switch (sortBy) {
-      case "revenue_desc": return sorted.sort((a, b) => b.salesRevenue - a.salesRevenue);
-      case "revenue_asc": return sorted.sort((a, b) => a.salesRevenue - b.salesRevenue);
-      case "qty_desc": return sorted.sort((a, b) => b.qtySold - a.qtySold);
-      case "qty_asc": return sorted.sort((a, b) => a.qtySold - b.qtySold);
-      case "margin_desc": return sorted.sort((a, b) => b.marginPercentage - a.marginPercentage);
-      case "margin_asc": return sorted.sort((a, b) => a.marginPercentage - b.marginPercentage);
-      case "category_asc": return sorted.sort((a, b) => a.categoryName.localeCompare(b.categoryName));
-      default: return sorted;
+    // Margin filter
+    if (marginFilter && marginFilter !== "all") {
+      switch (marginFilter) {
+        case "high":
+          result = result.filter((r) => r.marginPercentage >= 15);
+          break;
+        case "medium":
+          result = result.filter((r) => r.marginPercentage >= 8 && r.marginPercentage < 15);
+          break;
+        case "low":
+          result = result.filter((r) => r.marginPercentage < 8);
+          break;
+      }
     }
-  };
+
+    // Sort
+    if (sortBy) {
+      switch (sortBy) {
+        case "revenue_desc":
+          result.sort((a, b) => b.salesRevenue - a.salesRevenue);
+          break;
+        case "revenue_asc":
+          result.sort((a, b) => a.salesRevenue - b.salesRevenue);
+          break;
+        case "qty_desc":
+          result.sort((a, b) => b.qtySold - a.qtySold);
+          break;
+        case "qty_asc":
+          result.sort((a, b) => a.qtySold - b.qtySold);
+          break;
+        case "margin_desc":
+          result.sort((a, b) => b.marginPercentage - a.marginPercentage);
+          break;
+        case "margin_asc":
+          result.sort((a, b) => a.marginPercentage - b.marginPercentage);
+          break;
+        case "category_asc":
+          result.sort((a, b) => a.categoryName.localeCompare(b.categoryName));
+          break;
+      }
+    }
+
+    return result;
+  }, [reports, searchQuery, sortBy, marginFilter]);
+
+  // Calculate totals
+  const totals = filteredReports.reduce(
+    (acc, r) => ({
+      qtySold: acc.qtySold + r.qtySold,
+      revenue: acc.revenue + r.salesRevenue,
+      cost: acc.cost + r.cost,
+      margin: acc.margin + r.margin,
+    }),
+    { qtySold: 0, revenue: 0, cost: 0, margin: 0 }
+  );
+
+  const avgMarginPercentage = totals.revenue > 0 ? (totals.margin / totals.revenue) * 100 : 0;
+
+  // Loading state
+  if (isLoading && reports.length === 0) {
+    return (
+      <View className="flex-1 bg-gray-50">
+        <View className="bg-white px-5 py-4 border-b border-gray-200 flex-row items-center">
+          <TouchableOpacity onPress={() => router.push("/")} className="mr-3 p-1">
+            <Ionicons name="arrow-back" size={24} color="#374151" />
+          </TouchableOpacity>
+          <Text className="text-2xl font-bold text-gray-800">Category Velocity Report</Text>
+        </View>
+        <View className="flex-1 justify-center items-center">
+          <ActivityIndicator size="large" color="#3B82F6" />
+          <Text className="mt-4 text-gray-600">Loading report...</Text>
+        </View>
+      </View>
+    );
+  }
+
+  const renderReport = ({ item }: { item: CategoryReportView }) => (
+    <View className="flex-row items-center py-4 px-5 border-b border-gray-100 bg-white">
+      <Text className="w-64 text-gray-800 font-medium pr-2">{item.categoryName}</Text>
+      <Text className="w-28 text-gray-800 text-center">{item.qtySold.toLocaleString()}</Text>
+      <Text className="w-40 text-gray-800 text-center">{formatCurrency(item.salesRevenue)}</Text>
+      <Text className="w-36 text-gray-800 text-center">{formatCurrency(item.cost)}</Text>
+      <Text className="w-32 text-green-600 text-center font-medium">{formatCurrency(item.margin)}</Text>
+      <View className="w-32 items-center">
+        <MarginBadge percentage={item.marginPercentage} />
+      </View>
+    </View>
+  );
+
+  const renderTableFooter = () => (
+    <View className="flex-row items-center py-4 px-5 bg-gray-100 border-t-2 border-gray-300">
+      <Text className="w-64 text-gray-800 font-bold">TOTAL ({filteredReports.length} categories)</Text>
+      <Text className="w-28 text-gray-800 text-center font-bold">{totals.qtySold.toLocaleString()}</Text>
+      <Text className="w-40 text-gray-800 text-center font-bold">{formatCurrency(totals.revenue)}</Text>
+      <Text className="w-36 text-gray-800 text-center font-bold">{formatCurrency(totals.cost)}</Text>
+      <Text className="w-32 text-green-600 text-center font-bold">{formatCurrency(totals.margin)}</Text>
+      <Text className="w-32 text-blue-600 text-center font-bold">{avgMarginPercentage.toFixed(1)}%</Text>
+    </View>
+  );
 
   return (
     <View className="flex-1 bg-gray-50">
-      <PageHeader title="Category Velocity Report">
-        {isStreaming && <Text className="text-green-600 text-xs ml-3">● Live</Text>}
-      </PageHeader>
+      {/* Header */}
+      <View className="bg-white px-5 py-4 border-b border-gray-200 flex-row items-center justify-between">
+        <View className="flex-row items-center">
+          <TouchableOpacity
+            onPress={() => router.push("/")}
+            className="mr-3 p-1"
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+          >
+            <Ionicons name="arrow-back" size={24} color="#374151" />
+          </TouchableOpacity>
+          <Text className="text-2xl font-bold text-gray-800">Category Velocity Report</Text>
+          {isStreaming && (
+            <Text className="text-green-600 text-xs ml-3">● Live</Text>
+          )}
+        </View>
+      </View>
 
-      <DataTable<CategoryReportView>
-        data={reports}
-        columns={columns}
-        keyExtractor={(item) => item.id}
-        searchable
-        searchPlaceholder="Search categories..."
-        searchHint="Search by Category name"
-        onSearch={handleSearch}
-        filters={filters}
-        onFilter={handleFilter}
-        sortOptions={sortOptions}
-        onSort={handleSort}
-        columnSelector
-        isLoading={isLoading}
-        isStreaming={isStreaming}
-        emptyIcon="pie-chart-outline"
-        emptyText="No categories found"
-        totalCount={reports.length}
-      />
+      {/* Search & Filters */}
+      <View className="bg-white px-5 py-4 border-b border-gray-200">
+        <View className="flex-row items-end gap-4 mb-4">
+          <View className="flex-1 max-w-md">
+            <Text className="text-gray-600 text-sm mb-1.5">Search by Category name</Text>
+            <TextInput
+              className="bg-gray-50 border border-gray-200 rounded-lg px-4 py-3"
+              placeholder="Search categories..."
+              placeholderTextColor="#9ca3af"
+              value={searchQuery}
+              onChangeText={setSearchQuery}
+            />
+          </View>
+          <FilterDropdown
+            label="Sort By"
+            value={sortBy}
+            options={SORT_OPTIONS}
+            onChange={setSortBy}
+            placeholder="Sort..."
+            width={170}
+          />
+          <FilterDropdown
+            label="Margin Level"
+            value={marginFilter}
+            options={MARGIN_FILTER_OPTIONS}
+            onChange={setMarginFilter}
+            placeholder="All Margins"
+            width={140}
+          />
+        </View>
+
+        {/* Applied Filters */}
+        <View className="flex-row items-center">
+          <Text className="text-gray-600 text-sm">
+            Showing {filteredReports.length} of {reports.length} categories
+          </Text>
+        </View>
+      </View>
+
+      {/* Table */}
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} className="flex-1">
+        <View style={{ minWidth: 1050 }}>
+          {/* Table Header */}
+          <View className="flex-row bg-gray-50 py-3 px-5 border-b border-gray-200">
+            <Text className="w-64 text-gray-700 text-sm font-semibold">Category Name</Text>
+            <Text className="w-28 text-gray-700 text-sm font-semibold text-center">Qty Sold</Text>
+            <Text className="w-40 text-gray-700 text-sm font-semibold text-center">Sales Revenue ($)</Text>
+            <Text className="w-36 text-gray-700 text-sm font-semibold text-center">Cost ($)</Text>
+            <Text className="w-32 text-gray-700 text-sm font-semibold text-center">Margin ($)</Text>
+            <Text className="w-32 text-gray-700 text-sm font-semibold text-center">Margin (%)</Text>
+          </View>
+
+          {/* List */}
+          <FlatList
+            data={filteredReports}
+            keyExtractor={(item) => item.id}
+            renderItem={renderReport}
+            showsVerticalScrollIndicator={false}
+            ListFooterComponent={filteredReports.length > 0 ? renderTableFooter : null}
+            ListEmptyComponent={
+              <View className="py-16 items-center">
+                <Ionicons name="pie-chart-outline" size={48} color="#d1d5db" />
+                <Text className="text-gray-400 mt-2">No categories found</Text>
+              </View>
+            }
+          />
+        </View>
+      </ScrollView>
     </View>
   );
 }
