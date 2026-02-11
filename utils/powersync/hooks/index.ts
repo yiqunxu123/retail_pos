@@ -21,8 +21,12 @@ export type { CustomerView } from './useCustomers';
 export { useCustomerGroupById, useCustomerGroups } from './useCustomerGroups';
 export type { CustomerGroupView } from './useCustomerGroups';
 
+// Category hooks
+export { useCategories } from './useCategories';
+export type { CategoryView } from './useCategories';
+
 // Product hooks
-export { useProductById, useProductSearch, useProducts } from './useProducts';
+export { useProductById, useProductSearch, useProducts, useProductsByCategory } from './useProducts';
 export type { ProductView } from './useProducts';
 
 // Stock hooks

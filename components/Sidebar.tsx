@@ -1,6 +1,5 @@
 import { Feather, Ionicons, MaterialCommunityIcons, MaterialIcons } from "@expo/vector-icons";
-import { useEffect, useState } from "react";
-import { Alert, ScrollView, Text, View } from "react-native";
+import { Alert, ScrollView, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAuth } from "../contexts/AuthContext";
 import { useClock } from "../contexts/ClockContext";
@@ -42,12 +41,11 @@ export function Sidebar({
   const { navigateTo, pathname } = useAppNavigation();
   const insets = useSafeAreaInsets();
   const { logout } = useAuth();
-  const { isClockedIn, getClockInTimeString, getElapsedTime } = useClock();
+  const { isClockedIn } = useClock();
   const { setViewMode } = useViewMode();
   
   // Check if we're on the dashboard/home page
   const isDashboard = pathname === "/" || pathname === "/index";
-  const [elapsedTime, setElapsedTime] = useState("00:00:00");
 
   const handleLogout = () => {
     Alert.alert("Logout", "Are you sure you want to logout?", [
@@ -55,15 +53,6 @@ export function Sidebar({
       { text: "Confirm", style: "destructive", onPress: () => logout() },
     ]);
   };
-
-  useEffect(() => {
-    if (!isClockedIn) {
-      setElapsedTime("00:00:00");
-      return;
-    }
-    const interval = setInterval(() => setElapsedTime(getElapsedTime()), 1000);
-    return () => clearInterval(interval);
-  }, [isClockedIn, getElapsedTime]);
 
   return (
     <View
@@ -79,27 +68,25 @@ export function Sidebar({
         <BrandingSection />
 
         {/* Switch to Cashier (on dashboard) or Go to Menu (on other pages) */}
-        <View className="mb-3">
-          {isDashboard ? (
-            <SidebarButton
-              title="Switch to Cashier"
-              icon={<Ionicons name="swap-horizontal" size={20} color="#EC1A52" />}
-              onPress={() => setViewMode("staff")}
-            />
-          ) : (
-            <SidebarButton
-              title="Go to Menu"
-              icon={<Ionicons name="menu-outline" size={20} color="#EC1A52" />}
-              onPress={() => navigateTo("/")}
-            />
-          )}
-        </View>
+        {isDashboard ? (
+          <SidebarButton
+            title="Switch to Cashier"
+            icon={<Ionicons name="swap-horizontal" size={20} color="#EC1A52" />}
+            onPress={() => setViewMode("staff")}
+          />
+        ) : (
+          <SidebarButton
+            title="Go to Menu"
+            icon={<Ionicons name="menu-outline" size={20} color="#EC1A52" />}
+            onPress={() => navigateTo("/")}
+          />
+        )}
 
-        {/* Clock In/Out Row */}
+        {/* Row: Time Clock | Clock Out */}
         <View className="flex-row gap-2">
           <SidebarButton
-            title="Clock In"
-            icon={<Ionicons name="log-in-outline" size={24} color={isClockedIn ? "#848484" : "#EC1A52"} />}
+            title="Time Clock"
+            icon={<Ionicons name="time-outline" size={24} color={isClockedIn ? "#848484" : "#EC1A52"} />}
             onPress={onClockInPress}
             isActive={!isClockedIn}
             fullWidth={false}
@@ -113,76 +100,53 @@ export function Sidebar({
           />
         </View>
 
-        {/* Clock Status */}
-        {isClockedIn && (
-          <View className="bg-purple-100 rounded-lg p-2">
-            <View className="flex-row justify-between">
-              <View>
-                <Text className="text-purple-600" style={{ fontSize: 10 }}>Clock In:</Text>
-                <Text className="text-purple-800 font-bold" style={{ fontSize: 11 }}>{getClockInTimeString()}</Text>
-              </View>
-              <View className="items-end">
-                <Text className="text-purple-600" style={{ fontSize: 10 }}>Duration:</Text>
-                <Text className="text-purple-800 font-bold" style={{ fontSize: 11 }}>{elapsedTime}</Text>
-              </View>
-            </View>
-          </View>
-        )}
+        {/* Sales History - Full width */}
+        <SidebarButton
+          title="Sales History"
+          icon={<MaterialCommunityIcons name="history" size={24} color={isClockedIn ? "#EC1A52" : "#848484"} />}
+          onPress={() => navigateTo("/sale/sales-history")}
+          isActive={isClockedIn}
+        />
 
-        {/* Divider Line - Separates clock from navigation */}
-        <View className="border-t border-gray-300 my-1" />
+        {/* Sales Return - Full width */}
+        <SidebarButton
+          title="Sales Return"
+          icon={<MaterialIcons name="assignment-return" size={24} color={isClockedIn ? "#EC1A52" : "#848484"} />}
+          onPress={() => navigateTo("/sale/sales-return")}
+          isActive={isClockedIn}
+        />
 
-        {/* Navigation - 2 columns */}
-        <View className="flex-row gap-2">
-          <SidebarButton
-            title="Sales History"
-            icon={<MaterialCommunityIcons name="history" size={24} color={isClockedIn ? "#EC1A52" : "#848484"} />}
-            onPress={() => navigateTo("/sale/sales-history")}
-            isActive={isClockedIn}
-            fullWidth={false}
-          />
-          <SidebarButton
-            title="Sales Return"
-            icon={<MaterialIcons name="assignment-return" size={24} color={isClockedIn ? "#EC1A52" : "#848484"} />}
-            onPress={() => navigateTo("/sale/sales-return")}
-            isActive={isClockedIn}
-            fullWidth={false}
-          />
-        </View>
+        {/* View Reports - Full width */}
+        <SidebarButton
+          title="View Reports"
+          icon={<Ionicons name="bar-chart-outline" size={24} color={isClockedIn ? "#EC1A52" : "#848484"} />}
+          onPress={() => navigateTo("/sale/reports")}
+          isActive={isClockedIn}
+        />
 
-        <View className="flex-row gap-2">
-          <SidebarButton
-            title="Reports"
-            icon={<Ionicons name="bar-chart-outline" size={24} color={isClockedIn ? "#EC1A52" : "#848484"} />}
-            onPress={() => navigateTo("/sale/reports")}
-            isActive={isClockedIn}
-            fullWidth={false}
-          />
-          <SidebarButton
-            title="Customers"
-            icon={<Ionicons name="people-outline" size={24} color={isClockedIn ? "#EC1A52" : "#848484"} />}
-            onPress={() => navigateTo("/sale/customers")}
-            isActive={isClockedIn}
-            fullWidth={false}
-          />
-        </View>
+        {/* View Customers - Full width */}
+        <SidebarButton
+          title="View Customers"
+          icon={<Ionicons name="people-outline" size={24} color={isClockedIn ? "#EC1A52" : "#848484"} />}
+          onPress={() => navigateTo("/sale/customers")}
+          isActive={isClockedIn}
+        />
 
-        <View className="flex-row gap-2">
-          <SidebarButton
-            title="Parked Orders"
-            icon={<MaterialCommunityIcons name="pause-circle-outline" size={24} color={isClockedIn ? "#EC1A52" : "#848484"} />}
-            onPress={() => navigateTo("/sale/parked-orders")}
-            isActive={isClockedIn}
-            fullWidth={false}
-          />
-          <SidebarButton
-            title="Payments"
-            icon={<Ionicons name="card-outline" size={24} color={isClockedIn ? "#EC1A52" : "#848484"} />}
-            onPress={() => navigateTo("/sale/payments-history")}
-            isActive={isClockedIn}
-            fullWidth={false}
-          />
-        </View>
+        {/* View Parked Orders - Full width */}
+        <SidebarButton
+          title="View Parked Orders"
+          icon={<MaterialCommunityIcons name="pause-circle-outline" size={24} color={isClockedIn ? "#EC1A52" : "#848484"} />}
+          onPress={() => navigateTo("/sale/parked-orders")}
+          isActive={isClockedIn}
+        />
+
+        {/* Payments - Full width */}
+        <SidebarButton
+          title="Payments"
+          icon={<Ionicons name="card-outline" size={24} color={isClockedIn ? "#EC1A52" : "#848484"} />}
+          onPress={() => navigateTo("/sale/payments-history")}
+          isActive={isClockedIn}
+        />
 
         {/* Bottom Actions */}
         <View className="flex-row gap-2 mt-1">

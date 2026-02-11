@@ -14,7 +14,7 @@ import { useCallback, useRef } from "react";
  */
 export function useAppNavigation() {
   const router = useRouter();
-  const pathname = usePathname();
+  const pathname = String(usePathname() || "/");
   const isNavigatingRef = useRef(false);
 
   /** 导航到指定路径（单例模式，栈始终保持最多两层） */

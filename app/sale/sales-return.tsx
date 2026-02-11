@@ -183,7 +183,9 @@ export default function SalesReturnScreen() {
 
   return (
     <View className="flex-1 bg-gray-50">
-      <PageHeader title="Sales Return" />
+      <View className="px-4 pt-4">
+        <PageHeader title="Sales Return" variant="banner" />
+      </View>
 
       <DataTable<SalesReturn>
         data={SAMPLE_RETURNS}

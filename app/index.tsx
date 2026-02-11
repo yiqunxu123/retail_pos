@@ -4,10 +4,10 @@ import { useRouter } from "expo-router";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Alert, Modal, Pressable, ScrollView, Text, ToastAndroid, TouchableOpacity, useWindowDimensions, View } from "react-native";
 import {
-  ActionCard,
-  DateRangePickerModal,
-  SIDEBAR_WIDTH,
-  StatCard
+    ActionCard,
+    DateRangePickerModal,
+    SIDEBAR_WIDTH,
+    StatCard
 } from "../components";
 import { CashEntryModal } from "../components/CashEntryModal";
 import { CashResultModal } from "../components/CashResultModal";
@@ -23,15 +23,15 @@ import { useCashManagement, useChannels, useDashboardStats } from "../utils/powe
 import { usePowerSync } from "../utils/powersync/PowerSyncProvider";
 import { getLocalToday } from "../utils/powersync/sqlFilters";
 import {
-  addPrinter,
-  addPrinterListener,
-  getPoolStatus,
-  getPrinters,
-  isAnyPrinterModuleAvailable,
-  openCashDrawer,
-  print,
-  printToAll,
-  printToOne
+    addPrinter,
+    addPrinterListener,
+    getPoolStatus,
+    getPrinters,
+    isAnyPrinterModuleAvailable,
+    openCashDrawer,
+    print,
+    printToAll,
+    printToOne
 } from "../utils/PrinterPoolManager";
 
 // Default printer configuration
@@ -133,6 +133,7 @@ export default function Dashboard() {
   const [printerIp, setPrinterIp] = useState(DEFAULT_PRINTER_IP);
   const [printerPort, setPrinterPort] = useState(DEFAULT_PRINTER_PORT);
   const [clockDuration, setClockDuration] = useState("00:00:00");
+  const [currentTime, setCurrentTime] = useState(new Date());
   const [printerList, setPrinterList] = useState<{ id: string; name: string }[]>([]);
   
   // Parked orders
@@ -166,6 +167,12 @@ export default function Dashboard() {
     }, 1000);
     return () => clearInterval(interval);
   }, [isClockedIn, getElapsedTime]);
+
+  // Real-time clock
+  useEffect(() => {
+    const timer = setInterval(() => setCurrentTime(new Date()), 1000);
+    return () => clearInterval(timer);
+  }, []);
   
   // Load saved printer settings on mount
   useEffect(() => {
@@ -455,22 +462,18 @@ Cookies               x3    $6.00
 
           {/* Secondary Action Buttons */}
           <View className="flex-row gap-4 mb-4">
-            <TouchableOpacity
+            <ActionCard
+              title="Open Drawer"
+              backgroundColor="#EC1A52"
+              outline
+              icon={<MaterialCommunityIcons name="package-variant-closed" size={48} color={isClockedIn ? "#EC1A52" : "#848484"} />}
               onPress={async () => {
-                // Check if any printer is available in pool
                 const poolStatus = getPoolStatus();
                 const hasIdlePrinter = poolStatus.printers.some(p => p.enabled && p.status === 'idle');
-
                 if (!isAnyPrinterModuleAvailable() || !hasIdlePrinter) {
-                  Alert.alert(
-                    "Printer Not Available",
-                    "Cash drawer requires a connected printer.\n\nPlease configure a printer in Settings.",
-                    [{ text: "OK" }]
-                  );
+                  Alert.alert("Printer Not Available", "Cash drawer requires a connected printer.\n\nPlease configure a printer in Settings.", [{ text: "OK" }]);
                   return;
                 }
-
-                // Open drawer via pool (auto-select available printer)
                 try {
                   await openCashDrawer();
                   Alert.alert("Success", "Cash drawer opened");
@@ -479,65 +482,25 @@ Cookies               x3    $6.00
                 }
               }}
               disabled={!isClockedIn}
-              className="flex-1 rounded-xl justify-center items-center gap-2 py-6"
-              style={{
-                backgroundColor: isClockedIn ? "#FFFFFF" : "#F2F2F2",
-                borderWidth: 2,
-                borderColor: isClockedIn ? "#EC1A52" : "#848484",
-                opacity: isClockedIn ? 1 : 0.6,
-              }}
-            >
-              <MaterialCommunityIcons 
-                name="package-variant-closed" 
-                size={48} 
-                color={isClockedIn ? "#EC1A52" : "#848484"} 
-              />
-              <Text style={{ fontSize: 20, color: isClockedIn ? "#EC1A52" : "#848484", fontWeight: "500" }}>
-                Open Drawer
-              </Text>
-            </TouchableOpacity>
+            />
 
-            <TouchableOpacity
+            <ActionCard
+              title="Declare Cash"
+              backgroundColor="#EC1A52"
+              outline
+              icon={<MaterialCommunityIcons name="cash-multiple" size={48} color={isClockedIn ? "#EC1A52" : "#848484"} />}
               onPress={() => setShowDeclareCashModal(true)}
               disabled={!isClockedIn}
-              className="flex-1 rounded-xl justify-center items-center gap-2 py-6"
-              style={{
-                backgroundColor: isClockedIn ? "#FFFFFF" : "#F2F2F2",
-                borderWidth: 2,
-                borderColor: isClockedIn ? "#EC1A52" : "#848484",
-                opacity: isClockedIn ? 1 : 0.6,
-              }}
-            >
-              <MaterialCommunityIcons 
-                name="cash-multiple" 
-                size={48} 
-                color={isClockedIn ? "#EC1A52" : "#848484"} 
-              />
-              <Text style={{ fontSize: 20, color: isClockedIn ? "#EC1A52" : "#848484", fontWeight: "500" }}>
-                Declare Cash
-              </Text>
-            </TouchableOpacity>
+            />
 
-            <TouchableOpacity
+            <ActionCard
+              title="Payments History"
+              backgroundColor="#EC1A52"
+              outline
+              icon={<MaterialIcons name="payment" size={48} color={isClockedIn ? "#EC1A52" : "#848484"} />}
               onPress={() => router.push("/sale/payments-history")}
               disabled={!isClockedIn}
-              className="flex-1 rounded-xl justify-center items-center gap-2 py-6"
-              style={{
-                backgroundColor: isClockedIn ? "#FFFFFF" : "#F2F2F2",
-                borderWidth: 2,
-                borderColor: isClockedIn ? "#EC1A52" : "#848484",
-                opacity: isClockedIn ? 1 : 0.6,
-              }}
-            >
-              <MaterialIcons 
-                name="payment" 
-                size={48} 
-                color={isClockedIn ? "#EC1A52" : "#848484"} 
-              />
-              <Text style={{ fontSize: 20, color: isClockedIn ? "#EC1A52" : "#848484", fontWeight: "500" }}>
-                Payments History
-              </Text>
-            </TouchableOpacity>
+            />
           </View>
 
           {/* Clock Status (when not clocked in) */}
@@ -730,73 +693,30 @@ Cookies               x3    $6.00
 
         {/* ===== NAVIGATION GROUP ===== */}
         <View className="flex-row gap-4 mb-4">
-          <TouchableOpacity
+          <ActionCard
+            title="Product Catalog"
+            backgroundColor="#3B82F6"
+            icon={<Ionicons name="cube-outline" size={32} color="white" />}
             onPress={() => router.push("/catalog/products")}
-            className="flex-1 rounded-xl justify-center items-center gap-2"
-            style={{
-              backgroundColor: "#3B82F6",
-              minHeight: 160,
-              shadowColor: "#989898",
-              shadowOffset: { width: 4, height: 4 },
-              shadowOpacity: 0.25,
-              shadowRadius: 4,
-              elevation: 4,
-            }}
-          >
-            <Ionicons name="cube-outline" size={32} color="white" />
-            <Text className="text-white font-medium" style={{ fontSize: 16 }}>Product Catalog</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
+          />
+          <ActionCard
+            title="Inventory"
+            backgroundColor="#10B981"
+            icon={<Ionicons name="layers-outline" size={32} color="white" />}
             onPress={() => router.push("/inventory/stocks")}
-            className="flex-1 rounded-xl justify-center items-center gap-2"
-            style={{
-              backgroundColor: "#10B981",
-              minHeight: 160,
-              shadowColor: "#989898",
-              shadowOffset: { width: 4, height: 4 },
-              shadowOpacity: 0.25,
-              shadowRadius: 4,
-              elevation: 4,
-            }}
-          >
-            <Ionicons name="layers-outline" size={32} color="white" />
-            <Text className="text-white font-medium" style={{ fontSize: 16 }}>Inventory</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
+          />
+          <ActionCard
+            title="Sales"
+            backgroundColor="#8B5CF6"
+            icon={<Ionicons name="cart-outline" size={32} color="white" />}
             onPress={() => router.push("/sale/customers")}
-            className="flex-1 rounded-xl justify-center items-center gap-2"
-            style={{
-              backgroundColor: "#8B5CF6",
-              minHeight: 160,
-              shadowColor: "#989898",
-              shadowOffset: { width: 4, height: 4 },
-              shadowOpacity: 0.25,
-              shadowRadius: 4,
-              elevation: 4,
-            }}
-          >
-            <Ionicons name="cart-outline" size={32} color="white" />
-            <Text className="text-white font-medium" style={{ fontSize: 16 }}>Sales</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
+          />
+          <ActionCard
+            title="Report"
+            backgroundColor="#F59E0B"
+            icon={<Ionicons name="bar-chart-outline" size={32} color="white" />}
             onPress={() => router.push("/report")}
-            className="flex-1 rounded-xl justify-center items-center gap-2"
-            style={{
-              backgroundColor: "#F59E0B",
-              minHeight: 160,
-              shadowColor: "#989898",
-              shadowOffset: { width: 4, height: 4 },
-              shadowOpacity: 0.25,
-              shadowRadius: 4,
-              elevation: 4,
-            }}
-          >
-            <Ionicons name="bar-chart-outline" size={32} color="white" />
-            <Text className="text-white font-medium" style={{ fontSize: 16 }}>Report</Text>
-          </TouchableOpacity>
+          />
         </View>
 
         {/* ===== DASHBOARD FILTERS ===== */}
@@ -875,6 +795,37 @@ Cookies               x3    $6.00
           </>
         )}
       </ScrollView>
+
+      {/* Bottom Stats Bar - Time & Clock Info */}
+      <View 
+        className="flex-row px-4 py-3 gap-4"
+        style={{ backgroundColor: "#1A1A1A" }}
+      >
+        <View className="flex-1 rounded-lg py-3 px-3 border-2 border-white items-center">
+          <Text className="text-white font-semibold" style={{ fontSize: 14 }}>Current Time :</Text>
+          <Text className="text-white font-bold" style={{ fontSize: 22 }}>
+            {currentTime.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: true })}
+          </Text>
+        </View>
+        <View className="flex-1 rounded-lg py-3 px-3 border-2 border-white items-center">
+          <Text className="text-white font-semibold" style={{ fontSize: 14 }}>Date :</Text>
+          <Text className="text-white font-bold" style={{ fontSize: 22 }}>
+            {currentTime.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
+          </Text>
+        </View>
+        {isClockedIn && (
+          <>
+            <View className="flex-1 rounded-lg py-3 px-3 border-2 border-white items-center">
+              <Text className="text-white font-semibold" style={{ fontSize: 14 }}>Clock In Time :</Text>
+              <Text className="text-white font-bold" style={{ fontSize: 22 }}>{getClockInTimeString()}</Text>
+            </View>
+            <View className="flex-1 rounded-lg py-3 px-3 border-2 border-white items-center">
+              <Text className="text-white font-semibold" style={{ fontSize: 14 }}>Clock In Duration :</Text>
+              <Text className="text-white font-bold" style={{ fontSize: 22 }}>{clockDuration}</Text>
+            </View>
+          </>
+        )}
+      </View>
 
       {/* Floating Test Buttons */}
       <View

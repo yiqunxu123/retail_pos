@@ -1,37 +1,25 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useState } from "react";
-import { View, Text, Pressable } from "react-native";
-import { AddQuickCustomerModal } from "./AddQuickCustomerModal";
+import { Pressable, Text, View } from "react-native";
+import { AddQuickCustomerModal, type QuickCustomerResult } from "./AddQuickCustomerModal";
 
 interface CustomerCardProps {
   customerName?: string;
-  onCustomerAdded?: (customer: {
-    businessName: string;
-    email: string;
-    phone: string;
-    classOfTrades: string;
-    customerType: string;
-    salesRep: string;
-  }) => void;
+  /** Pass a customer ID to enable edit mode in the modal */
+  customerId?: number | null;
+  onCustomerAdded?: (customer: QuickCustomerResult) => void;
 }
 
 /**
  * CustomerCard - Shows current customer status with add quick customer
  * Integrates AddQuickCustomerModal for easy customer creation
  */
-export function CustomerCard({ customerName, onCustomerAdded }: CustomerCardProps) {
+export function CustomerCard({ customerName, customerId, onCustomerAdded }: CustomerCardProps) {
   const [showModal, setShowModal] = useState(false);
   const [currentCustomer, setCurrentCustomer] = useState(customerName || "Guest Customer");
 
-  const handleSaveCustomer = (customer: {
-    businessName: string;
-    email: string;
-    phone: string;
-    classOfTrades: string;
-    customerType: string;
-    salesRep: string;
-  }) => {
-    setCurrentCustomer(customer.businessName);
+  const handleSaveCustomer = (customer: QuickCustomerResult) => {
+    setCurrentCustomer(customer.business_name);
     setShowModal(false);
     onCustomerAdded?.(customer);
   };
@@ -63,6 +51,7 @@ export function CustomerCard({ customerName, onCustomerAdded }: CustomerCardProp
         visible={showModal}
         onClose={() => setShowModal(false)}
         onSave={handleSaveCustomer}
+        customerId={customerId}
       />
     </>
   );

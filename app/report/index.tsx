@@ -39,7 +39,9 @@ export default function ReportingScreen() {
   return (
     <View className="flex-1 bg-white">
       {/* Header */}
-      <PageHeader title="Business Reporting" />
+      <View className="px-4 pt-4">
+        <PageHeader title="Business Reporting" variant="banner" />
+      </View>
 
       {/* Reports Grid */}
       <ScrollView className="flex-1" contentContainerClassName="p-5">

@@ -26,11 +26,14 @@ export function StaffSidebar({
   onClockInPress,
   onClockOutPress,
 }: StaffSidebarProps) {
-  const { navigateTo } = useAppNavigation();
+  const { navigateTo, pathname } = useAppNavigation();
   const insets = useSafeAreaInsets();
   const { logout } = useAuth();
   const { isClockedIn } = useClock();
   const { setViewMode } = useViewMode();
+
+  // Check if we're on the dashboard/home page
+  const isDashboard = pathname === "/" || pathname === "/index";
 
   const handleLogout = () => {
     Alert.alert("Logout", "Are you sure you want to logout?", [
@@ -61,12 +64,20 @@ export function StaffSidebar({
         {/* Branding Section */}
         <BrandingSection />
 
-        {/* Switch to Admin Mode */}
-        <SidebarButton
-          title="Switch to Admin"
-          icon={<Ionicons name="swap-horizontal" size={20} color="#EC1A52" />}
-          onPress={() => setViewMode("admin")}
-        />
+        {/* Switch to Admin (on dashboard) or Back to Menu (on other pages) */}
+        {isDashboard ? (
+          <SidebarButton
+            title="Switch to Admin"
+            icon={<Ionicons name="swap-horizontal" size={20} color="#EC1A52" />}
+            onPress={() => setViewMode("admin")}
+          />
+        ) : (
+          <SidebarButton
+            title="Back to Menu"
+            icon={<Ionicons name="arrow-back" size={20} color="#EC1A52" />}
+            onPress={() => navigateTo("/")}
+          />
+        )}
 
         {/* Row 1: Time Clock | Change User */}
         <View className="flex-row gap-2">

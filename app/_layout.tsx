@@ -21,7 +21,7 @@ import LoginScreen from "./login";
 function LayoutContent() {
   const { width, height } = useWindowDimensions();
   const insets = useSafeAreaInsets();
-  const pathname = usePathname();
+  const pathname = String(usePathname() || "/");
   const router = useRouter();
   const { isAuthenticated, isLoading, user, logout } = useAuth();
   const { isClockedIn, selectedPosLine, clockIn, clockOut, selectPosLine } = useClock();
@@ -33,26 +33,16 @@ function LayoutContent() {
   // Determine layout orientation
   const isLandscape = width > height;
 
-  // Check if we're on screens that should hide the sidebar entirely
+  // Check if we're on screens that have their OWN sidebar (hide global sidebar)
   const isPosLineScreen = pathname === "/pos-line";
-  const isOrderScreen = pathname.startsWith("/order");
+  // Only add-products has its own action sidebar; other order pages get the global sidebar
+  const isOrderAddProductsScreen = pathname === "/order/add-products";
   
-  // Pages using StaffPageLayout have their own sidebar (hide default sidebar in both staff and admin modes)
-  // Note: sales-history and customers now use DataTable with PageHeader (no longer use StaffPageLayout)
-  const isStaffPageLayoutScreen = 
-    pathname === "/sale/sales-return" ||
-    pathname === "/sale/parked-orders" ||
-    pathname === "/sale/reports" ||
-    pathname.startsWith("/sale/reports-"); // Sub-report pages
+  // Only /sale/reports actually uses StaffPageLayout with its own sidebar
+  const isStaffPageLayoutScreen = pathname === "/sale/reports";
   
-  // Dev Tools page - hide sidebar to maximize workspace
-  const isDevToolsScreen = pathname === "/dev-tools";
-
-  // Catalog pages - hide sidebar to maximize form workspace
-  const isCatalogScreen = pathname.startsWith("/catalog");
-
-  // Hide sidebar for: POS line, order pages (have their own action panel), StaffPageLayout pages, Dev Tools, and Catalog
-  const hideSidebar = isPosLineScreen || isOrderScreen || isStaffPageLayoutScreen || isDevToolsScreen || isCatalogScreen;
+  // Hide global sidebar ONLY for pages that provide their own sidebar/action panel
+  const hideSidebar = isPosLineScreen || isOrderAddProductsScreen || isStaffPageLayoutScreen;
 
   // Show loading screen while checking stored authentication
   if (isLoading) {

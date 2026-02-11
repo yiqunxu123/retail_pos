@@ -184,14 +184,56 @@ export function useProductSearch(query: string) {
       p.*,
       up.price,
       up.cost,
-      up.base_cost
+      up.base_cost,
+      c.name AS category_name,
+      b.name AS brand_name
      FROM products p
      LEFT JOIN unit_prices up ON p.id = up.product_id AND up.channel_id = 1
+     LEFT JOIN categories c ON p.main_category_id = c.id
+     LEFT JOIN brands b ON p.brand_id = b.id
      WHERE p.name LIKE ? OR p.sku LIKE ? OR p.upc LIKE ?
      ORDER BY p.name ASC
      LIMIT 50`,
     [searchTerm, searchTerm, searchTerm],
     { enabled: query.length >= 2 }
+  );
+
+  const products = useMemo(() => data.map(toProductView), [data]);
+
+  return { products, isLoading, error };
+}
+
+/** Get products filtered by category ID (null = all) */
+export function useProductsByCategory(categoryId: string | null) {
+  const { data, isLoading, error } = useSyncStream<ProductJoinRow>(
+    categoryId
+      ? `SELECT 
+          p.*,
+          up.price,
+          up.cost,
+          up.base_cost,
+          c.name AS category_name,
+          b.name AS brand_name
+         FROM products p
+         LEFT JOIN unit_prices up ON p.id = up.product_id AND up.channel_id = 1
+         LEFT JOIN categories c ON p.main_category_id = c.id
+         LEFT JOIN brands b ON p.brand_id = b.id
+         WHERE p.main_category_id = ?
+         ORDER BY p.name ASC`
+      : `SELECT 
+          p.*,
+          up.price,
+          up.cost,
+          up.base_cost,
+          c.name AS category_name,
+          b.name AS brand_name
+         FROM products p
+         LEFT JOIN unit_prices up ON p.id = up.product_id AND up.channel_id = 1
+         LEFT JOIN categories c ON p.main_category_id = c.id
+         LEFT JOIN brands b ON p.brand_id = b.id
+         ORDER BY p.name ASC
+         LIMIT 100`,
+    categoryId ? [categoryId] : []
   );
 
   const products = useMemo(() => data.map(toProductView), [data]);

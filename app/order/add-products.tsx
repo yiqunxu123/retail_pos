@@ -4,27 +4,34 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Alert, Dimensions, Image, Modal, Pressable, ScrollView, Text, TextInput, TouchableOpacity, View } from "react-native";
 import { captureRef } from "react-native-view-shot";
 import { AddDiscountModal } from "../../components/AddDiscountModal";
-import { AddQuickCustomerModal } from "../../components/AddQuickCustomerModal";
+import { AddQuickCustomerModal, type QuickCustomerResult } from "../../components/AddQuickCustomerModal";
 import { AddTaxModal } from "../../components/AddTaxModal";
 import { BrandingSection } from "../../components/BrandingSection";
 import { CashEntryModal } from "../../components/CashEntryModal";
 import { CashPaymentModal } from "../../components/CashPaymentModal";
 import { CashResultModal } from "../../components/CashResultModal";
 import { DeclareCashModal } from "../../components/DeclareCashModal";
-import { ParkOrderModal } from "../../components/ParkOrderModal";
 import { ParkedOrdersModal } from "../../components/ParkedOrdersModal";
+import { ParkOrderModal } from "../../components/ParkOrderModal";
 import { ProductSettingsModal } from "../../components/ProductSettingsModal";
 import { ReceiptData, ReceiptTemplate } from "../../components/ReceiptTemplate";
+import { SaleInvoiceModal } from "../../components/SaleInvoiceModal";
 import { SearchProduct, SearchProductModal } from "../../components/SearchProductModal";
 import { SidebarButton } from "../../components/SidebarButton";
 import { useAuth } from "../../contexts/AuthContext";
 import { OrderProduct, useOrder } from "../../contexts/OrderContext";
 import { useParkedOrders } from "../../contexts/ParkedOrderContext";
 import {
-    getPoolStatus,
-    isAnyPrinterModuleAvailable,
-    openCashDrawer,
-    printToAllWithFormat,
+  createSaleOrder,
+  getSaleOrderById,
+  type CreateSaleOrderPayload,
+  type SaleOrderEntity,
+} from "../../utils/api/orders";
+import {
+  getPoolStatus,
+  isAnyPrinterModuleAvailable,
+  openCashDrawer,
+  printToAllWithFormat,
 } from "../../utils/PrinterPoolManager";
 import { printImageToAll } from "../../utils/receiptImagePrint";
 import { formatReceiptText } from "../../utils/receiptTextFormat";
@@ -73,7 +80,13 @@ export default function AddProductsScreen() {
   const [showCashPaymentModal, setShowCashPaymentModal] = useState(false);
   const [showDiscountModal, setShowDiscountModal] = useState(false);
   const [showCustomerModal, setShowCustomerModal] = useState(false);
-  
+  const [selectedCustomerData, setSelectedCustomerData] = useState<QuickCustomerResult | null>(null);
+
+  // Sale Invoice modal
+  const [showInvoiceModal, setShowInvoiceModal] = useState(false);
+  const [invoiceOrder, setInvoiceOrder] = useState<SaleOrderEntity | null>(null);
+  const [placingOrder, setPlacingOrder] = useState(false);
+
   // Park Order modals
   const [showParkOrderModal, setShowParkOrderModal] = useState(false);
   const [showParkedOrdersModal, setShowParkedOrdersModal] = useState(false);
@@ -361,6 +374,135 @@ export default function AddProductsScreen() {
     setShowCashPaymentModal(true);
   };
 
+  // Place Order — call API and show Sale Invoice modal
+  const handlePlaceOrder = useCallback(async () => {
+    if (products.length === 0) {
+      Alert.alert("Error", "Please add products to cart first");
+      return;
+    }
+
+    Alert.alert(
+      "Confirm Order",
+      `Place order with ${products.length} product(s) for $${summary.total.toFixed(2)}?`,
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Place Order",
+          onPress: async () => {
+            setPlacingOrder(true);
+            try {
+              const now = new Date().toISOString();
+              const payload: CreateSaleOrderPayload = {
+                // TODO: product discount / discount_type should come from cart item
+                sale_order_details: products.map((p) => ({
+                  product_id: parseInt(p.productId, 10),
+                  qty: p.quantity,
+                  unit: 1, // TODO: Piece=1, should come from product unit
+                  unit_price: p.salePrice,
+                  discount: 0,
+                  discount_type: 1, // Fixed
+                })),
+                customer_id: order.customerId ? parseInt(order.customerId, 10) : null,
+                // TODO: order_type should be selectable (Walk-in=1 Phone=2 Online=3 Offsite=4 Other=5)
+                order_type: 1, // Walk-in
+                // TODO: sale_type should be selectable (Order=1 Return=2)
+                sale_type: 1, // Sale Order
+                // TODO: shipping_type should be selectable (Pickup=1 Delivery=2 DropOff=3)
+                shipping_type: 1, // Pickup
+                // TODO: channel_id should come from app config / user settings
+                channel_id: 1,
+                order_date: now,
+                dispatch_date: now,
+                due_date: now,
+                // TODO: discount / discount_type should come from order-level additional discount
+                discount: order.additionalDiscount || 0,
+                discount_type: 1,
+                delivery_charges: order.shippingCharges || 0,
+                // TODO: payment_detail should support multiple payment types, not just hardcoded Cash
+                payment_detail: {
+                  payments: [
+                    {
+                      payment_type: 1, // TODO: Cash=1, should be selectable
+                      amount: summary.total,
+                      category: 1, // SALE_RECEIPT
+                    },
+                  ],
+                  collected_by_id: user?.id ? parseInt(user.id, 10) : 1,
+                  payment_date: now,
+                },
+              };
+
+              console.log("[PlaceOrder] Sending payload:", JSON.stringify(payload, null, 2));
+              const res = await createSaleOrder(payload);
+              const entity = res.data.entity;
+              console.log("[PlaceOrder] Created — Order No:", entity.no, "peculiar_no:", entity.peculiar_no, "Status:", entity.status);
+
+              // The POST response only returns basic order info.
+              // Fetch the full order (with sale_order_details, invoice, customer, etc.)
+              let fullOrder: SaleOrderEntity = entity;
+              if (entity.id) {
+                try {
+                  const detailRes = await getSaleOrderById(entity.id);
+                  fullOrder = detailRes.data.entity;
+                  console.log("[PlaceOrder] Fetched full order — products:", fullOrder.sale_order_details?.length, "invoice:", !!fullOrder.invoice);
+                } catch (fetchErr: any) {
+                  console.warn("[PlaceOrder] Could not fetch full order, building from cart:", fetchErr?.message);
+                  // Fallback: build sale_order_details from cart so modal has content
+                  fullOrder = {
+                    ...entity,
+                    sale_order_details: products.map((p, idx) => ({
+                      id: idx,
+                      sale_order_id: entity.id,
+                      product_id: parseInt(p.productId, 10),
+                      product: { id: parseInt(p.productId, 10), name: p.name, sku: p.sku },
+                      qty: p.quantity,
+                      unit: 1,
+                      unit_price: p.salePrice,
+                      price: p.salePrice,
+                      discount: 0,
+                      discount_type: 1,
+                      total_price: p.salePrice * p.quantity,
+                    })),
+                    customer: selectedCustomerData ? {
+                      id: parseInt(order.customerId || "0", 10),
+                      business_name: selectedCustomerData.business_name || "",
+                      email: selectedCustomerData.email || undefined,
+                      business_phone_no: selectedCustomerData.business_phone_no || undefined,
+                    } : undefined,
+                  } as SaleOrderEntity;
+                }
+              }
+
+              // Show the invoice modal with full order data
+              setInvoiceOrder(fullOrder);
+              setShowInvoiceModal(true);
+            } catch (err: any) {
+              console.error("[PlaceOrder] Error message:", err?.message);
+              console.error("[PlaceOrder] Error status:", err?.response?.status);
+              console.error("[PlaceOrder] Error data:", JSON.stringify(err?.response?.data));
+              console.error("[PlaceOrder] Full error:", JSON.stringify(err, Object.getOwnPropertyNames(err)));
+              const errors = err?.response?.data?.errors;
+              const msg = Array.isArray(errors)
+                ? errors.join("\n")
+                : err?.response?.data?.message || err?.message || "Failed to place order";
+              Alert.alert("Order Error", msg);
+            } finally {
+              setPlacingOrder(false);
+            }
+          },
+        },
+      ]
+    );
+  }, [products, order, summary]);
+
+  // After invoice modal — "New Order" resets everything
+  const handleInvoiceNewOrder = useCallback(() => {
+    setShowInvoiceModal(false);
+    setInvoiceOrder(null);
+    clearOrder();
+    setSelectedCustomerData(null);
+  }, [clearOrder]);
+
 
   return (
     <View className="flex-1 flex-row bg-gray-100">
@@ -512,16 +654,59 @@ export default function AddProductsScreen() {
         {/* Bottom Section */}
         <View className="flex-row p-3 gap-3 bg-white border-t border-gray-200">
           {/* Customer Card */}
-          <View className="bg-white border border-gray-200 rounded-lg p-3" style={{ width: 180 }}>
-            <Text className="text-red-500 text-xs mb-1">Current Status:</Text>
-            <Text className="text-gray-800 font-semibold mb-2">Guest Customer</Text>
-            <TouchableOpacity
-              onPress={() => setShowCustomerModal(true)}
-              className="bg-red-500 rounded-lg py-2 px-3 flex-row items-center justify-center gap-1"
-            >
-              <Ionicons name="add" size={16} color="white" />
-              <Text className="text-white font-medium text-sm">Add Quick Customer</Text>
-            </TouchableOpacity>
+          <View className="bg-white border border-gray-200 rounded-lg p-3" style={{ width: 220 }}>
+            {selectedCustomerData ? (
+              <>
+                <Text className="text-gray-800 font-semibold text-sm mb-1">
+                  {selectedCustomerData.business_name}
+                </Text>
+                <View style={{ gap: 2, marginBottom: 6 }}>
+                  <View className="flex-row">
+                    <Text className="text-gray-500 text-xs" style={{ width: 50 }}>Phone:</Text>
+                    <Text className="text-gray-800 text-xs flex-1">{selectedCustomerData.business_phone_no || "N/A"}</Text>
+                  </View>
+                  <View className="flex-row">
+                    <Text className="text-gray-500 text-xs" style={{ width: 50 }}>Email:</Text>
+                    <Text className="text-gray-800 text-xs flex-1" numberOfLines={1}>{selectedCustomerData.email || "N/A"}</Text>
+                  </View>
+                  <View className="flex-row">
+                    <Text className="text-gray-500 text-xs" style={{ width: 50 }}>Type:</Text>
+                    <Text className="text-gray-800 text-xs flex-1">
+                      {selectedCustomerData.customer_type === 1 ? "Walk In" : selectedCustomerData.customer_type === 2 ? "Online" : "N/A"}
+                    </Text>
+                  </View>
+                </View>
+                <View className="flex-row gap-2">
+                  <TouchableOpacity
+                    onPress={() => setShowCustomerModal(true)}
+                    className="flex-1 bg-red-500 rounded py-1.5 items-center"
+                  >
+                    <Text className="text-white text-xs font-medium">Change</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    onPress={() => {
+                      setSelectedCustomerData(null);
+                      updateOrder({ customerName: "Guest Customer", customerId: null });
+                    }}
+                    className="flex-1 border border-red-500 rounded py-1.5 items-center"
+                  >
+                    <Text className="text-red-500 text-xs font-medium">Remove</Text>
+                  </TouchableOpacity>
+                </View>
+              </>
+            ) : (
+              <>
+                <Text className="text-red-500 text-xs mb-1">Current Status:</Text>
+                <Text className="text-gray-800 font-semibold mb-2">Guest Customer</Text>
+                <TouchableOpacity
+                  onPress={() => setShowCustomerModal(true)}
+                  className="bg-red-500 rounded-lg py-2 px-3 flex-row items-center justify-center gap-1"
+                >
+                  <Ionicons name="add" size={16} color="white" />
+                  <Text className="text-white font-medium text-sm">Add Quick Customer</Text>
+                </TouchableOpacity>
+              </>
+            )}
           </View>
 
           {/* Order Summary */}
@@ -627,9 +812,9 @@ export default function AddProductsScreen() {
           {/* Row 4 */}
           <View className="flex-row gap-2">
             <SidebarButton
-              title="Payment Method"
-              onPress={() => Alert.alert("Payment Method 3", "Feature coming soon")}
-              icon={<MaterialIcons name="payment" size={20} color="#EC1A52" />}
+              title={placingOrder ? "Placing..." : "Place Order"}
+              onPress={handlePlaceOrder}
+              icon={<Ionicons name="checkmark-circle-outline" size={20} color="#EC1A52" />}
               fullWidth={false}
             />
             <SidebarButton
@@ -730,7 +915,11 @@ export default function AddProductsScreen() {
         visible={showCustomerModal}
         onClose={() => setShowCustomerModal(false)}
         onSave={(customer) => {
-          Alert.alert("Customer Added", `Customer: ${customer.businessName}`);
+          setSelectedCustomerData(customer);
+          updateOrder({
+            customerName: customer.business_name,
+            customerId: String(customer.id),
+          });
           setShowCustomerModal(false);
         }}
       />
@@ -804,6 +993,18 @@ export default function AddProductsScreen() {
           setShowProductSettingsModal(false);
         }}
         product={selectedProduct}
+      />
+
+      {/* Sale Invoice Modal — shown after placing an order */}
+      <SaleInvoiceModal
+        visible={showInvoiceModal}
+        onClose={() => {
+          setShowInvoiceModal(false);
+          setInvoiceOrder(null);
+        }}
+        onNewOrder={handleInvoiceNewOrder}
+        onPrint={handleTextPrint}
+        order={invoiceOrder}
       />
 
       {/* Hidden receipt template for capture */}

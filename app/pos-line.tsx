@@ -70,7 +70,7 @@ const SAMPLE_PRODUCTS: ProductItem[] = [
 export default function POSLineScreen() {
   const { width, height } = useWindowDimensions();
   const router = useRouter();
-  const pathname = usePathname();
+  const pathname = String(usePathname() || "/");
   const { selectedPosLine } = useClock();
 
   const isLandscape = width > height;
