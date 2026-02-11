@@ -1022,6 +1022,78 @@ export const printToAll = async (data: string): Promise<{
   };
 };
 
+/**
+ * Print to all enabled printers with per-printer formatting
+ * Each printer gets text formatted for its specific printWidth
+ * @param formatFn Function that takes printWidth and returns formatted text
+ */
+export const printToAllWithFormat = async (
+  formatFn: (printWidth: number) => string
+): Promise<{
+  success: boolean;
+  results: Array<{ printer: string; success: boolean; error?: string }>
+}> => {
+  await ensurePrintersLoaded();
+  const enabledPrinters = printerPool.getPrinters().filter(p => p.enabled && p.ip);
+
+  if (enabledPrinters.length === 0) {
+    log.warn('printToAllWithFormat: No enabled ethernet printers available');
+    return { success: false, results: [] };
+  }
+
+  log.info(`========== 🚀 PARALLEL PRINT (formatted): ${enabledPrinters.length} printers ==========`);
+
+  // Create independent print task for each printer (non-blocking)
+  const createPrintTask = (printer: typeof enabledPrinters[0]) => {
+    const printWidth = printer.printWidth || 576; // Default to 80mm
+    const formattedText = formatFn(printWidth);
+    const escPosData = convertToEscPos(formattedText);
+
+    log.info(`[${printer.name}] Using printWidth=${printWidth} (${printWidth <= 384 ? '58mm' : '80mm'})`);
+
+    return printViaTcpOnce(printer.ip!, printer.port || 9100, escPosData, printer.name)
+      .then(() => {
+        printer.jobsCompleted++;
+        printer.lastActiveAt = Date.now();
+        return { printer: printer.name, success: true as const };
+      })
+      .catch((err) => {
+        const errorMsg = err instanceof Error ? err.message : String(err);
+        return { printer: printer.name, success: false as const, error: errorMsg };
+      });
+  };
+
+  // Start all print tasks simultaneously
+  log.info(`⏳ Starting ${enabledPrinters.length} parallel connections...`);
+  const startTime = Date.now();
+
+  const settledResults = await Promise.allSettled(
+    enabledPrinters.map(printer => createPrintTask(printer))
+  );
+
+  // Convert results
+  const results = settledResults.map((result, index) => {
+    if (result.status === 'fulfilled') {
+      return result.value;
+    } else {
+      return {
+        printer: enabledPrinters[index].name,
+        success: false as const,
+        error: result.reason?.message || 'Unknown error'
+      };
+    }
+  });
+
+  const elapsed = Date.now() - startTime;
+  const successCount = results.filter(r => r.success).length;
+  log.info(`========== DONE in ${elapsed}ms: ${successCount}/${results.length} succeeded ==========`);
+
+  return {
+    success: successCount > 0,
+    results
+  };
+};
+
 /** Clear queue */
 export const clearQueue = () => printerPool.clearQueue();
 

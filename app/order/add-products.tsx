@@ -24,7 +24,7 @@ import {
     getPoolStatus,
     isAnyPrinterModuleAvailable,
     openCashDrawer,
-    printToAll,
+    printToAllWithFormat,
 } from "../../utils/PrinterPoolManager";
 import { printImageToAll } from "../../utils/receiptImagePrint";
 import { formatReceiptText } from "../../utils/receiptTextFormat";
@@ -171,8 +171,10 @@ export default function AddProductsScreen() {
     setSendingToPrinter(true);
     try {
       const receiptData = buildReceiptData();
-      const receiptText = formatReceiptText(receiptData);
-      const result = await printToAll(receiptText);
+      // Use printToAllWithFormat to format text per printer's printWidth
+      const result = await printToAllWithFormat((printWidth) =>
+        formatReceiptText(receiptData, printWidth)
+      );
       if (result.success) {
         const successCount = result.results.filter(r => r.success).length;
         Alert.alert("Printed", `Receipt sent to ${successCount} printer(s)`);
