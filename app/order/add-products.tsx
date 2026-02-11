@@ -24,8 +24,10 @@ import {
     getPoolStatus,
     isAnyPrinterModuleAvailable,
     openCashDrawer,
+    printToAll,
 } from "../../utils/PrinterPoolManager";
 import { printImageToAll } from "../../utils/receiptImagePrint";
+import { formatReceiptText } from "../../utils/receiptTextFormat";
 
 // Action button width
 const SIDEBAR_WIDTH = 260;
@@ -159,6 +161,30 @@ export default function AddProductsScreen() {
       setGeneratingReceipt(false);
     }
   }, [products]);
+
+  // Text-based printing: format receipt as text → ESC/POS commands → TCP
+  const handleTextPrint = useCallback(async () => {
+    if (products.length === 0) {
+      Alert.alert("No Products", "Add products before printing receipt.");
+      return;
+    }
+    setSendingToPrinter(true);
+    try {
+      const receiptData = buildReceiptData();
+      const receiptText = formatReceiptText(receiptData);
+      const result = await printToAll(receiptText);
+      if (result.success) {
+        const successCount = result.results.filter(r => r.success).length;
+        Alert.alert("Printed", `Receipt sent to ${successCount} printer(s)`);
+      } else {
+        Alert.alert("Print Failed", "Could not reach any printer. Check printer settings.");
+      }
+    } catch (err: any) {
+      Alert.alert("Print Error", err?.message || String(err));
+    } finally {
+      setSendingToPrinter(false);
+    }
+  }, [products, buildReceiptData]);
 
   // Image-based printing: screenshot PNG → ESC/POS raster bitmap → TCP
   const handleImagePrint = useCallback(async () => {
@@ -605,8 +631,8 @@ export default function AddProductsScreen() {
               fullWidth={false}
             />
             <SidebarButton
-              title={generatingReceipt ? "Printing..." : "Print Receipt"}
-              onPress={handlePrintReceipt}
+              title={sendingToPrinter ? "Printing..." : "Print Receipt"}
+              onPress={handleTextPrint}
               icon={<Ionicons name="print-outline" size={20} color="#EC1A52" />}
               fullWidth={false}
             />
