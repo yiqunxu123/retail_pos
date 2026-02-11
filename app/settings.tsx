@@ -37,6 +37,7 @@ export default function SettingsScreen() {
   const [formVendorId, setFormVendorId] = useState("");
   const [formProductId, setFormProductId] = useState("");
   const [formMacAddress, setFormMacAddress] = useState("");
+  const [formPrintWidth, setFormPrintWidth] = useState("576");
 
   // Load printers on mount
   useEffect(() => {
@@ -73,6 +74,7 @@ export default function SettingsScreen() {
         productId: p.productId,
         macAddress: p.macAddress,
         enabled: p.enabled,
+        printWidth: p.printWidth,
       }));
       const jsonData = JSON.stringify(configs);
       console.log("🖨️ [Settings] Saving printers:", jsonData);
@@ -103,6 +105,7 @@ export default function SettingsScreen() {
     setFormVendorId(printer.vendorId ? String(printer.vendorId) : "");
     setFormProductId(printer.productId ? String(printer.productId) : "");
     setFormMacAddress(printer.macAddress || "");
+    setFormPrintWidth(String(printer.printWidth || 576));
     setIsModalVisible(true);
   };
 
@@ -115,6 +118,7 @@ export default function SettingsScreen() {
     setFormVendorId("");
     setFormProductId("");
     setFormMacAddress("");
+    setFormPrintWidth("576");
   };
 
   // Validate form
@@ -153,6 +157,7 @@ export default function SettingsScreen() {
       name: formName.trim(),
       type: formType,
       enabled: editingPrinter?.enabled ?? true,
+      printWidth: parseInt(formPrintWidth, 10) || 576,
     };
 
     if (formType === "ethernet") {
@@ -460,6 +465,22 @@ export default function SettingsScreen() {
                 </View>
               </>
             )}
+
+            {/* Print Width (dots) — applies to all printer types */}
+            <View className="mb-5">
+              <Text className="text-gray-700 font-medium mb-2">Print Width (dots)</Text>
+              <TextInput
+                className="bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-base"
+                placeholder="576"
+                placeholderTextColor="#9ca3af"
+                value={formPrintWidth}
+                onChangeText={setFormPrintWidth}
+                keyboardType="number-pad"
+              />
+              <Text className="text-gray-400 text-xs mt-1">
+                58mm paper ≈ 384, 80mm paper ≈ 576. Check printer self-test page for exact value.
+              </Text>
+            </View>
           </ScrollView>
 
           {/* Modal Footer */}

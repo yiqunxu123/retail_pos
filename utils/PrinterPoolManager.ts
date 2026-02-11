@@ -3,11 +3,12 @@
  * Single printer pool management system - Multi-printer load balancing
  */
 
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import TcpSocket from "react-native-tcp-socket";
 import {
-    BLEPrinter,
-    NetPrinter,
-    USBPrinter,
+  BLEPrinter,
+  NetPrinter,
+  USBPrinter,
 } from "react-native-thermal-receipt-printer";
 
 // ============ Mutex for Printer Access ============
@@ -55,14 +56,17 @@ export interface PrinterConfig {
   productId?: number;
   macAddress?: string;
   enabled?: boolean;
+  /** Print head width in dots (e.g. 384 for 58mm, 576 for 80mm). Defaults to 576. */
+  printWidth?: number;
 }
 
-export interface PrinterState extends Required<Omit<PrinterConfig, 'ip' | 'port' | 'vendorId' | 'productId' | 'macAddress'>> {
+export interface PrinterState extends Required<Omit<PrinterConfig, 'ip' | 'port' | 'vendorId' | 'productId' | 'macAddress' | 'printWidth'>> {
   ip?: string;
   port?: number;
   vendorId?: number;
   productId?: number;
   macAddress?: string;
+  printWidth?: number;
   status: PrinterStatus;
   jobsCompleted: number;
   lastError?: string;
@@ -706,6 +710,43 @@ export const getPrinters = () => printerPool.getPrinters();
 /** Get single printer */
 export const getPrinter = (printerId: string) => printerPool.getPrinter(printerId);
 
+/**
+ * Ensure printers are loaded from AsyncStorage into the pool.
+ * Safe to call multiple times — skips if printers already exist.
+ * Automatically called before printToAll / printToOne so that
+ * hot-reload doesn't leave the pool empty.
+ */
+let _loadPromise: Promise<void> | null = null;
+
+export const ensurePrintersLoaded = (): Promise<void> => {
+  if (printerPool.getPrinters().length > 0) return Promise.resolve();
+  if (_loadPromise) return _loadPromise;
+
+  _loadPromise = (async () => {
+    try {
+      const saved = await AsyncStorage.getItem("printer_pool_config");
+      if (!saved) {
+        log.warn('ensurePrintersLoaded: No saved printer config in AsyncStorage');
+        return;
+      }
+      const printers = JSON.parse(saved) as PrinterConfig[];
+      log.info(`ensurePrintersLoaded: Restoring ${printers.length} printer(s) from storage`);
+      printers.forEach(p => {
+        if (!printerPool.getPrinters().find(e => e.id === p.id)) {
+          printerPool.addPrinter(p);
+        }
+      });
+    } catch (e) {
+      log.error('ensurePrintersLoaded: Failed to restore printers', e);
+    } finally {
+      // Reset so future calls retry (e.g. after a failure or if the pool is cleared)
+      _loadPromise = null;
+    }
+  })();
+
+  return _loadPromise;
+};
+
 /** Add print job */
 export const print = (data: string, options?: { priority?: number; targetPrinterId?: string }) => 
   printerPool.addJob(data, options);
@@ -758,7 +799,7 @@ const convertToEscPos = (text: string): string => {
     let processedLine = line;
     let prefix = '';
     let suffix = '';
-    
+
     // Center bold large text <CB>...</CB>
     if (processedLine.includes('<CB>')) {
       prefix += ESCPOS.ALIGN_CENTER + ESCPOS.BOLD_ON + ESCPOS.DOUBLE_SIZE;
@@ -882,6 +923,7 @@ const printViaTcpOnce = (ip: string, port: number, escPosData: string, printerNa
  * Print to single printer (using TCP, non-blocking)
  */
 export const printToOne = async (printerId: string, data: string): Promise<{ success: boolean; error?: string }> => {
+  await ensurePrintersLoaded();
   const printer = printerPool.getPrinter(printerId);
   
   if (!printer) {
@@ -920,10 +962,11 @@ export const printToAll = async (data: string): Promise<{
   success: boolean; 
   results: Array<{ printer: string; success: boolean; error?: string }> 
 }> => {
+  await ensurePrintersLoaded();
   const enabledPrinters = printerPool.getPrinters().filter(p => p.enabled && p.ip);
   
   if (enabledPrinters.length === 0) {
-    log.error('printToAll: No enabled ethernet printers available');
+    log.warn('printToAll: No enabled ethernet printers available');
     return { success: false, results: [] };
   }
   

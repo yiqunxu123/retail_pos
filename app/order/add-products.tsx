@@ -1,7 +1,7 @@
 import { Ionicons, MaterialCommunityIcons, MaterialIcons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { useCallback, useEffect, useRef, useState } from "react";
-import { Alert, Image, Modal, Pressable, ScrollView, Text, TextInput, TouchableOpacity, View } from "react-native";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Alert, Dimensions, Image, Modal, Pressable, ScrollView, Text, TextInput, TouchableOpacity, View } from "react-native";
 import { captureRef } from "react-native-view-shot";
 import { AddDiscountModal } from "../../components/AddDiscountModal";
 import { AddQuickCustomerModal } from "../../components/AddQuickCustomerModal";
@@ -21,10 +21,11 @@ import { useAuth } from "../../contexts/AuthContext";
 import { OrderProduct, useOrder } from "../../contexts/OrderContext";
 import { useParkedOrders } from "../../contexts/ParkedOrderContext";
 import {
-  getPoolStatus,
-  isAnyPrinterModuleAvailable,
-  openCashDrawer
+    getPoolStatus,
+    isAnyPrinterModuleAvailable,
+    openCashDrawer,
 } from "../../utils/PrinterPoolManager";
+import { printImageToAll } from "../../utils/receiptImagePrint";
 
 // Action button width
 const SIDEBAR_WIDTH = 260;
@@ -93,9 +94,20 @@ export default function AddProductsScreen() {
   const [generatingReceipt, setGeneratingReceipt] = useState(false);
   const [receiptImageUri, setReceiptImageUri] = useState<string | null>(null);
   const [showReceiptPreview, setShowReceiptPreview] = useState(false);
+  const [sendingToPrinter, setSendingToPrinter] = useState(false);
+  const [receiptImageSize, setReceiptImageSize] = useState<{ w: number; h: number }>({ w: 384, h: 600 });
 
   const products = order.products;
   const summary = getOrderSummary();
+
+  // Preview card / image dimensions based on screen short edge (stable across renders)
+  const previewCardWidth = useMemo(() =>
+    Math.min(Dimensions.get('window').width, Dimensions.get('window').height) * 0.75
+  , []);
+  const previewImgWidth = previewCardWidth - 32;
+  const previewImgHeight = receiptImageSize.w > 0
+    ? previewImgWidth * (receiptImageSize.h / receiptImageSize.w)
+    : previewImgWidth * 1.5;
 
   // Build receipt data from current order
   const buildReceiptData = useCallback((): ReceiptData => {
@@ -134,8 +146,12 @@ export default function AddProductsScreen() {
         format: "png",
         quality: 1,
         result: "data-uri",
+        // No width override — template uses PRINTER_DOTS / PixelRatio.get()
+        // so native capture produces exactly 384px (= printer dots)
       });
       setReceiptImageUri(uri);
+      // Get actual image dimensions for correct aspect ratio in preview
+      Image.getSize(uri, (w, h) => setReceiptImageSize({ w, h }), () => {});
       setShowReceiptPreview(true);
     } catch (err: any) {
       Alert.alert("Receipt Error", err?.message || String(err));
@@ -143,7 +159,29 @@ export default function AddProductsScreen() {
       setGeneratingReceipt(false);
     }
   }, [products]);
-  
+
+  // Image-based printing: screenshot PNG → ESC/POS raster bitmap → TCP
+  const handleImagePrint = useCallback(async () => {
+    if (!receiptImageUri) {
+      Alert.alert("Error", "No receipt image. Please generate preview first.");
+      return;
+    }
+    setSendingToPrinter(true);
+    try {
+      const result = await printImageToAll(receiptImageUri);
+      if (result.success) {
+        const successCount = result.results.filter(r => r.success).length;
+        Alert.alert("Printed", `Image sent to ${successCount} printer(s)`);
+      } else {
+        Alert.alert("Print Failed", "Could not reach any printer. Check printer settings.");
+      }
+    } catch (err: any) {
+      Alert.alert("Print Error", err?.message || String(err));
+    } finally {
+      setSendingToPrinter(false);
+    }
+  }, [receiptImageUri]);
+
   // Mock cash summary - in real app this would come from backend
   const cashSummary = {
     openingBalance: 200.00,
@@ -749,7 +787,7 @@ export default function AddProductsScreen() {
         <ReceiptTemplate ref={receiptRef} data={buildReceiptData()} />
       </View>
 
-      {/* Receipt Image Preview Modal */}
+      {/* Receipt Image Preview Modal — popup card */}
       <Modal
         visible={showReceiptPreview}
         transparent
@@ -757,28 +795,61 @@ export default function AddProductsScreen() {
         onRequestClose={() => setShowReceiptPreview(false)}
       >
         <Pressable
-          style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.85)", justifyContent: "center", alignItems: "center" }}
+          style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'center', alignItems: 'center' }}
           onPress={() => setShowReceiptPreview(false)}
         >
           <Pressable
-            style={{ backgroundColor: "#FFF", borderRadius: 12, padding: 16, maxWidth: "90%", maxHeight: "85%", alignItems: "center" }}
-            onPress={() => {}}
+            style={{
+              backgroundColor: '#FFF',
+              borderRadius: 12,
+              padding: 16,
+              width: previewCardWidth,
+              maxHeight: '85%',
+            }}
+            onPress={() => {/* prevent close */}}
           >
-            <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", width: "100%", marginBottom: 12 }}>
-              <Text style={{ fontSize: 16, fontWeight: "700", color: "#111" }}>Print Preview</Text>
-              <TouchableOpacity onPress={() => setShowReceiptPreview(false)}>
-                <Ionicons name="close-circle" size={24} color="#9CA3AF" />
+            {/* Header */}
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+              <Text style={{ fontSize: 16, fontWeight: '700', color: '#111' }}>Print Preview</Text>
+              <TouchableOpacity onPress={() => setShowReceiptPreview(false)} hitSlop={12}>
+                <Ionicons name="close-circle" size={26} color="#9CA3AF" />
               </TouchableOpacity>
             </View>
-            {receiptImageUri && (
-              <ScrollView style={{ maxHeight: 500 }} showsVerticalScrollIndicator>
+
+            {/* Scrollable image */}
+            <ScrollView showsVerticalScrollIndicator style={{ marginBottom: 12 }}>
+              {receiptImageUri ? (
                 <Image
                   source={{ uri: receiptImageUri }}
-                  style={{ width: 360, height: 450 }}
+                  style={{ width: previewImgWidth, height: previewImgHeight }}
                   resizeMode="contain"
                 />
-              </ScrollView>
-            )}
+              ) : (
+                <View style={{ height: 120, justifyContent: 'center', alignItems: 'center' }}>
+                  <Text style={{ color: '#9CA3AF' }}>No image preview available</Text>
+                </View>
+              )}
+            </ScrollView>
+
+            {/* Print button */}
+            <TouchableOpacity
+              onPress={handleImagePrint}
+              disabled={sendingToPrinter}
+              style={{
+                backgroundColor: sendingToPrinter ? '#9CA3AF' : '#EC1A52',
+                paddingVertical: 12,
+                borderRadius: 8,
+                flexDirection: 'row',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 6,
+              }}
+            >
+              <Ionicons name="print" size={16} color="#FFF" />
+              <Text style={{ color: '#FFF', fontWeight: '700', fontSize: 14 }}>
+                {sendingToPrinter ? 'Sending...' : 'Print'}
+              </Text>
+            </TouchableOpacity>
           </Pressable>
         </Pressable>
       </Modal>

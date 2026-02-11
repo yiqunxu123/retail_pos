@@ -1,7 +1,7 @@
 /**
  * ReceiptTemplate - Receipt layout component for thermal printer image generation.
  *
- * Renders order data as a fixed-width View (576px for 80mm paper at 203 DPI).
+ * Renders order data as a fixed-width View (384px for 58mm paper at 203 DPI).
  * Designed to be captured as a bitmap image via react-native-view-shot
  * and sent to thermal printers.
  *
@@ -11,7 +11,8 @@
  *   // then: captureRef(receiptRef, { format: 'png', result: 'base64' })
  */
 
-import { forwardRef } from "react";
+import QRCodeCore from "qrcode/lib/core/qrcode";
+import { forwardRef, useMemo } from "react";
 import { StyleSheet, Text, View } from "react-native";
 
 // ---------------------------------------------------------------------------
@@ -48,14 +49,85 @@ export interface ReceiptData {
 // Constants
 // ---------------------------------------------------------------------------
 
-/** Width in pixels – 800px matches ~10cm (100mm) thermal paper at 203 DPI */
-const RECEIPT_WIDTH = 800;
+/**
+ * Receipt template width in dp.
+ * A high-res value produces a crisp screenshot; the actual scaling to
+ * each printer's dot width (e.g. 384 or 576) happens in receiptImagePrint.ts
+ * at print time, based on each printer's configured `printWidth`.
+ */
+const RECEIPT_WIDTH = 576;
+
+/** Scale factor — all design values are authored for a 384dp baseline */
+const S = RECEIPT_WIDTH / 384;
+
+/** Derived layout constants (all module-level, computed once) */
+const CONTENT_WIDTH = RECEIPT_WIDTH - 8 * S * 2;
+const QR_MARGIN = 4 * S;
+const QR_PADDING = 6 * S;
+const BARCODE_HEIGHT = 60 * S;
 
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
 
 const fmt = (n: number): string => `$${n.toFixed(2)}`;
+
+// ---------------------------------------------------------------------------
+// Code 128-B barcode encoder (module-level, allocated once)
+// ---------------------------------------------------------------------------
+
+const CODE128_START_B = 104;
+const CODE128_STOP = 106;
+
+/** Code 128 bar patterns — each symbol = 6 bars: b w b w b w */
+const CODE128_PATTERNS: number[][] = [
+  [2,1,2,2,2,2],[2,2,2,1,2,2],[2,2,2,2,2,1],[1,2,1,2,2,3],[1,2,1,3,2,2],
+  [1,3,1,2,2,2],[1,2,2,2,1,3],[1,2,2,3,1,2],[1,3,2,2,1,2],[2,2,1,2,1,3],
+  [2,2,1,3,1,2],[2,3,1,2,1,2],[1,1,2,2,3,2],[1,2,2,1,3,2],[1,2,2,2,3,1],
+  [1,1,3,2,2,2],[1,2,3,1,2,2],[1,2,3,2,2,1],[2,2,3,2,1,1],[2,2,1,1,3,2],
+  [2,2,1,2,3,1],[2,1,3,2,1,2],[2,2,3,1,1,2],[3,1,2,1,3,1],[3,1,1,2,2,2],
+  [3,2,1,1,2,2],[3,2,1,2,2,1],[3,1,2,2,1,2],[3,2,2,1,1,2],[3,2,2,2,1,1],
+  [2,1,2,1,2,3],[2,1,2,3,2,1],[2,3,2,1,2,1],[1,1,1,3,2,3],[1,3,1,1,2,3],
+  [1,3,1,3,2,1],[1,1,2,3,1,3],[1,3,2,1,1,3],[1,3,2,3,1,1],[2,1,1,3,1,3],
+  [2,3,1,1,1,3],[2,3,1,3,1,1],[1,1,2,1,3,3],[1,1,2,3,3,1],[1,3,2,1,3,1],
+  [1,1,3,1,2,3],[1,1,3,3,2,1],[1,3,3,1,2,1],[3,1,3,1,2,1],[2,1,1,3,3,1],
+  [2,3,1,1,3,1],[2,1,3,1,1,3],[2,1,3,3,1,1],[2,1,3,1,3,1],[3,1,1,1,2,3],
+  [3,1,1,3,2,1],[3,3,1,1,2,1],[3,1,2,1,1,3],[3,1,2,3,1,1],[3,3,2,1,1,1],
+  [3,1,4,1,1,1],[2,2,1,4,1,1],[4,3,1,1,1,1],[1,1,1,2,2,4],[1,1,1,4,2,2],
+  [1,2,1,1,2,4],[1,2,1,4,2,1],[1,4,1,1,2,2],[1,4,1,2,2,1],[1,1,2,2,1,4],
+  [1,1,2,4,1,2],[1,2,2,1,1,4],[1,2,2,4,1,1],[1,4,2,1,1,2],[1,4,2,2,1,1],
+  [2,4,1,2,1,1],[2,2,1,1,1,4],[4,1,3,1,1,1],[2,4,1,1,1,2],[1,3,4,1,1,1],
+  [1,1,1,2,4,2],[1,2,1,1,4,2],[1,2,1,2,4,1],[1,1,4,2,1,2],[1,2,4,1,1,2],
+  [1,2,4,2,1,1],[4,1,1,2,1,2],[4,2,1,1,1,2],[4,2,1,2,1,1],[2,1,2,1,4,1],
+  [2,1,4,1,2,1],[4,1,2,1,2,1],[1,1,1,1,4,3],[1,1,1,3,4,1],[1,3,1,1,4,1],
+  [1,1,4,1,1,3],[1,1,4,3,1,1],[4,1,1,1,1,3],[4,1,1,3,1,1],[1,1,3,1,4,1],
+  [1,1,4,1,3,1],[3,1,1,1,4,1],[4,1,1,1,3,1],[2,1,1,4,1,2],[2,1,1,2,1,4],
+  [2,1,1,2,3,2],[2,3,3,1,1,1,2],
+];
+
+/**
+ * Encode text as Code 128-B bar widths.
+ * Returns positive = black bar, negative = white space.
+ */
+function encodeCode128B(text: string): number[] {
+  const values: number[] = [CODE128_START_B];
+  for (let i = 0; i < text.length; i++) {
+    values.push(text.charCodeAt(i) - 32);
+  }
+  let sum = values[0];
+  for (let i = 1; i < values.length; i++) sum += values[i] * i;
+  values.push(sum % 103);
+  values.push(CODE128_STOP);
+
+  const bars: number[] = [];
+  for (const v of values) {
+    const p = CODE128_PATTERNS[v];
+    for (let j = 0; j < p.length; j++) {
+      bars.push(j % 2 === 0 ? p[j] : -p[j]);
+    }
+  }
+  return bars;
+}
 
 // ---------------------------------------------------------------------------
 // Component
@@ -65,11 +137,103 @@ export const ReceiptTemplate = forwardRef<View, { data: ReceiptData }>(
   ({ data }, ref) => {
     const { orderNo, dateTime, items, subtotal, discount, taxLabel, tax, total } = data;
 
+    // Generate QR code matrix from order number
+    const qrModules = useMemo(() => {
+      try {
+        const qr = QRCodeCore.create(orderNo, { errorCorrectionLevel: "L" });
+        return qr.modules;
+      } catch {
+        return null;
+      }
+    }, [orderNo]);
+
+    // Generate barcode bars from order number (only printable ASCII chars)
+    const barcodeBars = useMemo(() => {
+      try {
+        // Filter to printable ASCII for Code128B
+        const safe = orderNo.replace(/[^ -~]/g, '');
+        if (safe.length === 0) return null;
+        return encodeCode128B(safe);
+      } catch {
+        return null;
+      }
+    }, [orderNo]);
+
+    // Dynamically calculate QR cell size so it fills the available width
+    const qrCellSize = qrModules
+      ? Math.floor((CONTENT_WIDTH - QR_MARGIN * 2 - QR_PADDING * 2) / qrModules.size)
+      : 10 * S;
+
+    const renderQrCode = () => {
+      if (!qrModules) return null;
+      const size = qrModules.size;
+      const rows = [];
+      for (let r = 0; r < size; r++) {
+        const cells = [];
+        for (let c = 0; c < size; c++) {
+          cells.push(
+            <View
+              key={c}
+              style={{
+                width: qrCellSize,
+                height: qrCellSize,
+                backgroundColor: qrModules.get(r, c) ? "#000" : "#FFF",
+              }}
+            />,
+          );
+        }
+        rows.push(
+          <View key={r} style={{ flexDirection: "row" }}>
+            {cells}
+          </View>,
+        );
+      }
+      return (
+        <View style={{ alignItems: "center", marginTop: 10 * S, marginBottom: 6 * S, marginHorizontal: QR_MARGIN }}>
+          <View style={{ padding: QR_PADDING, backgroundColor: "#FFF" }}>{rows}</View>
+          <Text style={{ fontSize: 11 * S, color: "#000", marginTop: 4 * S, fontWeight: "700" }}>
+            {orderNo}
+          </Text>
+        </View>
+      );
+    };
+
+    // Dynamically calculate barcode unit so it fills the available width
+    const barcodeTotalUnits = barcodeBars
+      ? barcodeBars.reduce((sum, w) => sum + Math.abs(w), 0)
+      : 1;
+    const barcodeUnit = barcodeBars
+      ? Math.floor((CONTENT_WIDTH - QR_MARGIN * 2) / barcodeTotalUnits)
+      : 3 * S;
+
+    const renderBarcode = () => {
+      if (!barcodeBars) return null;
+      return (
+        <View style={{ alignItems: "center", marginTop: 10 * S, marginBottom: 8 * S, marginHorizontal: QR_MARGIN }}>
+          <View style={{ flexDirection: "row", height: BARCODE_HEIGHT }}>
+            {barcodeBars.map((w, i) => (
+              <View
+                key={i}
+                style={{
+                  width: Math.abs(w) * barcodeUnit,
+                  height: BARCODE_HEIGHT,
+                  backgroundColor: w > 0 ? "#000" : "#FFF",
+                }}
+              />
+            ))}
+          </View>
+          <Text style={{ fontSize: 11 * S, color: "#000", marginTop: 4 * S, fontWeight: "700", letterSpacing: 2 * S }}>
+            {orderNo}
+          </Text>
+        </View>
+      );
+    };
+
     return (
       <View ref={ref} style={styles.container} collapsable={false}>
         {/* ── Dashed top border ── */}
         <View style={styles.dashedLine}>
-          {Array.from({ length: 20 }).map((_, i) => (
+          {Array.from({ length: 18 }).map((_, i) => (
             <View key={i} style={styles.dash} />
           ))}
         </View>
@@ -119,8 +283,14 @@ export const ReceiptTemplate = forwardRef<View, { data: ReceiptData }>(
           <Text style={[styles.totalValue, styles.bold]}>{fmt(total)}</Text>
         </View>
 
+        {/* ── QR Code ── */}
+        {renderQrCode()}
+
+        {/* ── Barcode ── */}
+        {renderBarcode()}
+
         {/* ── Bottom padding for paper cut ── */}
-        <View style={{ height: 24 }} />
+        <View style={{ height: 10 * S }} />
       </View>
     );
   },
@@ -136,8 +306,8 @@ const styles = StyleSheet.create({
   container: {
     width: RECEIPT_WIDTH,
     backgroundColor: "#FFFFFF",
-    paddingHorizontal: 24,
-    paddingVertical: 16,
+    paddingHorizontal: 8 * S,
+    paddingVertical: 6 * S,
   },
 
   // ── Dashed line ──
@@ -145,19 +315,19 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 12,
+    marginBottom: 5 * S,
   },
   dash: {
-    width: 24,
-    height: 3,
+    width: 10 * S,
+    height: 2 * S,
     backgroundColor: "#000000",
   },
 
   // ── Solid line ──
   solidLine: {
-    borderBottomWidth: 2,
+    borderBottomWidth: 1 * S,
     borderBottomColor: "#000000",
-    marginVertical: 12,
+    marginVertical: 5 * S,
   },
 
   // ── Header ──
@@ -167,7 +337,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   headerText: {
-    fontSize: 28,
+    fontSize: 13 * S,
     fontWeight: "700",
     color: "#000000",
   },
@@ -177,17 +347,17 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "flex-start",
-    paddingVertical: 6,
+    paddingVertical: 3 * S,
   },
   itemName: {
     flex: 1,
-    fontSize: 24,
+    fontSize: 11 * S,
     fontWeight: "600",
     color: "#000000",
-    marginRight: 16,
+    marginRight: 8 * S,
   },
   itemPrice: {
-    fontSize: 24,
+    fontSize: 11 * S,
     fontWeight: "600",
     color: "#000000",
   },
@@ -197,15 +367,15 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    paddingVertical: 4,
+    paddingVertical: 2 * S,
   },
   totalLabel: {
-    fontSize: 24,
+    fontSize: 11 * S,
     fontWeight: "600",
     color: "#000000",
   },
   totalValue: {
-    fontSize: 24,
+    fontSize: 11 * S,
     fontWeight: "600",
     color: "#000000",
   },
@@ -213,6 +383,6 @@ const styles = StyleSheet.create({
   // ── Modifiers ──
   bold: {
     fontWeight: "900",
-    fontSize: 26,
+    fontSize: 13 * S,
   },
 });
