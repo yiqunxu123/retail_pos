@@ -82,16 +82,16 @@ export function AddDiscountModal({
       onRequestClose={onClose}
     >
       <Pressable
-        className="flex-1 bg-black/50 justify-center items-center"
+        className="flex-1 bg-black/45 justify-center items-center"
         onPress={onClose}
       >
         <Pressable
           className="bg-white rounded-xl overflow-hidden"
-          style={{ width: 480 }}
+          style={{ width: 700 }}
           onPress={(e) => e.stopPropagation()}
         >
           {/* Header */}
-          <View className="flex-row justify-between items-center px-6 py-4 border-b border-gray-200">
+          <View className="flex-row justify-between items-center px-5 py-3 border-b border-gray-200">
             <View className="flex-row items-center gap-4">
               <Text className="text-xl font-semibold text-gray-800">
                 Add Discount
@@ -100,9 +100,9 @@ export function AddDiscountModal({
               <View className="relative">
                 <Pressable
                   onPress={() => setShowTypeDropdown(!showTypeDropdown)}
-                  className="flex-row items-center bg-gray-100 px-3 py-2 rounded-lg gap-2"
+                  className="flex-row items-center bg-white border border-[#D4D7DE] px-3 py-1.5 rounded-md gap-2"
                 >
-                  <Text className="text-gray-700">
+                  <Text className="text-[#EC1A52]">
                     {discountType === "percentage" ? "Percentage (%)" : "Fixed ($)"}
                   </Text>
                   <Ionicons name="chevron-down" size={16} color="#6b7280" />
@@ -142,13 +142,13 @@ export function AddDiscountModal({
           </View>
 
           {/* Amount Display */}
-          <View className="px-6 py-4">
-            <View className="flex-row gap-4 mb-6">
+          <View className="px-4 py-3">
+            <View className="flex-row gap-3 mb-3">
               {/* Sub Total */}
               <View className="flex-1">
-                <Text className="text-gray-600 text-sm mb-2">Sub Total</Text>
-                <View className="border-2 border-gray-300 rounded-lg p-4 items-center">
-                  <Text className="text-red-500 text-3xl font-bold">
+                <Text className="text-[#111827] text-base font-semibold mb-2">Sub Total</Text>
+                <View className="rounded-lg bg-[#F6F7F9] px-4 py-4 border border-[#E4E7EC] justify-center" style={{ shadowColor: "#000", shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.12, shadowRadius: 6, elevation: 4, minHeight: 112 }}>
+                  <Text className="text-[#E33163] text-[46px] leading-[52px] font-bold text-right w-full">
                     {subTotal.toFixed(0)}
                   </Text>
                 </View>
@@ -156,9 +156,9 @@ export function AddDiscountModal({
 
               {/* Discount Amount */}
               <View className="flex-1">
-                <Text className="text-gray-600 text-sm mb-2">Discount Amount</Text>
-                <View className="border-2 border-green-500 rounded-lg p-4 items-center bg-green-50">
-                  <Text className="text-green-600 text-3xl font-bold">
+                <Text className="text-[#111827] text-base font-semibold mb-2">Discount Amount</Text>
+                <View className="rounded-lg bg-[#F6F7F9] px-4 py-4 border border-[#E4E7EC] justify-center" style={{ shadowColor: "#000", shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.12, shadowRadius: 6, elevation: 4, minHeight: 112 }}>
+                  <Text className="text-[#16A085] text-[46px] leading-[52px] font-bold text-right w-full">
                     {discountType === "percentage"
                       ? `${discountValue || "0"}%`
                       : discountValue || "0"}
@@ -168,9 +168,9 @@ export function AddDiscountModal({
 
               {/* Total After Discount */}
               <View className="flex-1">
-                <Text className="text-gray-600 text-sm mb-2">Total After Discount</Text>
-                <View className="border-2 border-purple-500 rounded-lg p-4 items-center bg-purple-50">
-                  <Text className="text-purple-600 text-3xl font-bold">
+                <Text className="text-[#111827] text-base font-semibold mb-2">Total After Discount</Text>
+                <View className="rounded-lg bg-[#F6F7F9] px-4 py-4 border border-[#E4E7EC] justify-center" style={{ shadowColor: "#000", shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.12, shadowRadius: 6, elevation: 4, minHeight: 112 }}>
+                  <Text className="text-[#2A2FB2] text-[46px] leading-[52px] font-bold text-right w-full">
                     {totalAfterDiscount.toFixed(0)}
                   </Text>
                 </View>
@@ -178,7 +178,7 @@ export function AddDiscountModal({
             </View>
 
             {/* Number Pad */}
-            <View className="flex-row gap-3">
+            <View className="flex-row gap-3 items-stretch">
               {/* Numbers */}
               <View className="flex-1 gap-2">
                 {numberPad.map((row, rowIndex) => (
@@ -187,9 +187,9 @@ export function AddDiscountModal({
                       <Pressable
                         key={num}
                         onPress={() => handleNumberPress(num)}
-                        className="flex-1 bg-gray-100 py-4 rounded-lg items-center justify-center border border-gray-200"
+                        className="flex-1 bg-white h-16 rounded-lg items-center justify-center border border-gray-200"
                         style={({ pressed }) => ({
-                          backgroundColor: pressed ? "#d1d5db" : "#f3f4f6",
+                          backgroundColor: pressed ? "#E7EBF1" : "#FFFFFF",
                         })}
                       >
                         <Text className="text-xl font-semibold text-gray-800">
@@ -203,9 +203,9 @@ export function AddDiscountModal({
                 <View className="flex-row gap-2">
                   <Pressable
                     onPress={() => handleNumberPress("0")}
-                    className="flex-1 bg-gray-100 py-4 rounded-lg items-center justify-center border border-gray-200"
+                    className="flex-1 bg-white h-16 rounded-lg items-center justify-center border border-gray-200"
                     style={({ pressed }) => ({
-                      backgroundColor: pressed ? "#d1d5db" : "#f3f4f6",
+                      backgroundColor: pressed ? "#E7EBF1" : "#FFFFFF",
                     })}
                   >
                     <Text className="text-xl font-semibold text-gray-800">0</Text>
@@ -213,9 +213,9 @@ export function AddDiscountModal({
                   {discountType === "fixed" && (
                     <Pressable
                       onPress={() => handleNumberPress(".")}
-                      className="flex-1 bg-gray-100 py-4 rounded-lg items-center justify-center border border-gray-200"
+                      className="flex-1 bg-white h-16 rounded-lg items-center justify-center border border-gray-200"
                       style={({ pressed }) => ({
-                        backgroundColor: pressed ? "#d1d5db" : "#f3f4f6",
+                        backgroundColor: pressed ? "#E7EBF1" : "#FFFFFF",
                       })}
                     >
                       <Text className="text-xl font-semibold text-gray-800">.</Text>
@@ -225,27 +225,29 @@ export function AddDiscountModal({
               </View>
 
               {/* Action Buttons */}
-              <View className="w-32 gap-2">
+              <View className="w-56 gap-2 items-center">
                 <Pressable
                   onPress={handleCancel}
-                  className="bg-red-500 py-4 rounded-lg items-center justify-center flex-1"
+                  className="bg-[#F45A08] h-14 w-[95%] rounded-lg items-center justify-center flex-row gap-2"
                   style={({ pressed }) => ({ opacity: pressed ? 0.8 : 1 })}
                 >
-                  <Text className="text-white font-semibold">⊗ Cancel</Text>
+                  <Ionicons name="close-circle-outline" size={18} color="#FFFFFF" />
+                  <Text className="text-white text-[14px] font-semibold">Cancel</Text>
                 </Pressable>
                 <Pressable
                   onPress={handleCorrect}
-                  className="border-2 border-red-500 py-4 rounded-lg items-center justify-center flex-1"
+                  className="border border-[#D9C2CC] h-14 w-[95%] rounded-lg items-center justify-center bg-white flex-row gap-2"
                   style={({ pressed }) => ({ opacity: pressed ? 0.8 : 1 })}
                 >
-                  <Text className="text-red-500 font-semibold">⊗ Correct</Text>
+                  <Ionicons name="backspace-outline" size={18} color="#B85A7B" />
+                  <Text className="text-[#B85A7B] text-[14px] font-semibold">Correct</Text>
                 </Pressable>
                 <Pressable
                   onPress={handleConfirm}
-                  className="bg-green-500 py-4 rounded-lg items-center justify-center flex-1"
+                  className="bg-[#EC1A52] h-14 w-[95%] rounded-lg items-center justify-center border border-[#D51549]"
                   style={({ pressed }) => ({ opacity: pressed ? 0.8 : 1 })}
                 >
-                  <Text className="text-white font-semibold">Confirm</Text>
+                  <Text className="text-white text-[14px] font-semibold">Confirm</Text>
                 </Pressable>
               </View>
             </View>
