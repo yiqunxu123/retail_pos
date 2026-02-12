@@ -35,6 +35,7 @@ import {
 } from "../../utils/PrinterPoolManager";
 import { printImageToAll } from "../../utils/receiptImagePrint";
 import { formatReceiptText } from "../../utils/receiptTextFormat";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 // Action button width
 const SIDEBAR_WIDTH = 260;
@@ -86,6 +87,8 @@ export default function AddProductsScreen() {
   const [showInvoiceModal, setShowInvoiceModal] = useState(false);
   const [invoiceOrder, setInvoiceOrder] = useState<SaleOrderEntity | null>(null);
   const [placingOrder, setPlacingOrder] = useState(false);
+  // When a real order is placed, store its receipt data so the hidden template renders it
+  const [orderReceiptData, setOrderReceiptData] = useState<ReceiptData | null>(null);
 
   // Park Order modals
   const [showParkOrderModal, setShowParkOrderModal] = useState(false);
@@ -124,8 +127,8 @@ export default function AddProductsScreen() {
     ? previewImgWidth * (receiptImageSize.h / receiptImageSize.w)
     : previewImgWidth * 1.5;
 
-  // Build receipt data from current order
-  const buildReceiptData = useCallback((): ReceiptData => {
+  // Build receipt data from current cart (for live preview template)
+  const receiptData = useMemo((): ReceiptData => {
     const now = new Date();
     const dateStr = `${String(now.getMonth() + 1).padStart(2, "0")}/${String(now.getDate()).padStart(2, "0")}/${String(now.getFullYear()).slice(-2)} ${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`;
     return {
@@ -138,12 +141,56 @@ export default function AddProductsScreen() {
         totalPrice: p.total,
       })),
       subtotal: summary.subTotal,
-      discount: order.additionalDiscount,
+      discountAmount: products.reduce((sum, p) => sum + Math.max(0, p.salePrice * p.quantity - p.total), 0),
+      additionalDiscount: order.additionalDiscount,
+      additionalDiscountType: order.discountType,
       taxLabel: summary.tax > 0 ? undefined : "0%",
       tax: summary.tax,
       total: summary.total,
+      createdBy: user?.name || undefined,
+      customerName: selectedCustomerData?.business_name || undefined,
+      customerEmail: selectedCustomerData?.email || undefined,
+      customerPhone: selectedCustomerData?.business_phone_no || undefined,
     };
-  }, [order, products, summary]);
+  }, [order, products, summary, selectedCustomerData, user]);
+
+  // Build receipt data from a placed SaleOrderEntity (real server data)
+  const buildReceiptFromOrder = useCallback((so: SaleOrderEntity): ReceiptData => {
+    const details = so.sale_order_details || [];
+    const invoice = so.invoice;
+    const customer = so.customer;
+    const d = new Date(so.created_at);
+    const dateStr = `${String(d.getMonth() + 1).padStart(2, "0")}/${String(d.getDate()).padStart(2, "0")}/${String(d.getFullYear()).slice(-2)} ${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
+    const subTotal = invoice?.sub_total ?? details.reduce((sum, dt) => sum + dt.total_price, 0);
+    const totalDiscount = invoice?.total_discount ?? so.total_discount ?? 0;
+    const taxAmount = so.tax_amount ?? so.tax ?? 0;
+    const invoiceTotal = invoice?.total_amount ?? so.total_price ?? 0;
+    return {
+      orderNo: so.no || "--",
+      dateTime: dateStr,
+      items: details.map((dt) => ({
+        name: dt.product?.name || dt.name || "—",
+        qty: dt.qty ?? 0,
+        price: dt.unit_price ?? dt.price ?? 0,
+        totalPrice: dt.total_price ?? (dt.unit_price ?? 0) * (dt.qty ?? 0),
+      })),
+      subtotal: subTotal || 0,
+      discountAmount: totalDiscount || 0,
+      additionalDiscount: so.discount ?? 0,
+      additionalDiscountType: so.discount_type,
+      taxLabel: taxAmount > 0 ? undefined : "0%",
+      tax: taxAmount || 0,
+      total: invoiceTotal || 0,
+      createdBy: so.created_by
+        ? `${so.created_by.first_name} ${so.created_by.last_name}`
+        : undefined,
+      customerName: customer?.business_name || undefined,
+      customerContact: customer?.customer_billing_details?.name || undefined,
+      customerEmail: customer?.email || undefined,
+      customerPhone: customer?.business_phone_no || customer?.customer_billing_details?.telephone_num || undefined,
+      customerAddress: customer?.customer_billing_details?.address || undefined,
+    };
+  }, []);
 
   const handlePrintReceipt = useCallback(async () => {
     if (products.length === 0) {
@@ -183,7 +230,6 @@ export default function AddProductsScreen() {
     }
     setSendingToPrinter(true);
     try {
-      const receiptData = buildReceiptData();
       // Use printToAllWithFormat to format text per printer's printWidth
       const result = await printToAllWithFormat((printWidth) =>
         formatReceiptText(receiptData, printWidth)
@@ -199,7 +245,7 @@ export default function AddProductsScreen() {
     } finally {
       setSendingToPrinter(false);
     }
-  }, [products, buildReceiptData]);
+  }, [products, receiptData]);
 
   // Image-based printing: screenshot PNG → ESC/POS raster bitmap → TCP
   const handleImagePrint = useCallback(async () => {
@@ -253,8 +299,12 @@ export default function AddProductsScreen() {
   const handleQuantityChange = (id: string, delta: number) => {
     const product = products.find((p) => p.id === id);
     if (product) {
-      const newQty = Math.max(1, product.quantity + delta);
-      updateProductQuantity(id, newQty);
+      const newQty = product.quantity + delta;
+      if (newQty <= 0) {
+        removeProduct(id);
+      } else {
+        updateProductQuantity(id, newQty);
+      }
     }
   };
 
@@ -414,8 +464,13 @@ export default function AddProductsScreen() {
                 order_date: now,
                 dispatch_date: now,
                 due_date: now,
-                // TODO: discount / discount_type should come from order-level additional discount
-                discount: order.additionalDiscount || 0,
+                // API treats discount as a fixed dollar amount, so always convert & send type 1
+                discount: parseFloat(
+                  (order.discountType === 2
+                    ? (summary.subTotal * order.additionalDiscount) / 100
+                    : order.additionalDiscount
+                  ).toFixed(2)
+                ),
                 discount_type: 1,
                 delivery_charges: order.shippingCharges || 0,
                 // TODO: payment_detail should support multiple payment types, not just hardcoded Cash
@@ -423,7 +478,7 @@ export default function AddProductsScreen() {
                   payments: [
                     {
                       payment_type: 1, // TODO: Cash=1, should be selectable
-                      amount: summary.total,
+                      amount: parseFloat(summary.total.toFixed(2)),
                       category: 1, // SALE_RECEIPT
                     },
                   ],
@@ -473,9 +528,30 @@ export default function AddProductsScreen() {
                 }
               }
 
-              // Show the invoice modal with full order data
-              setInvoiceOrder(fullOrder);
-              setShowInvoiceModal(true);
+              // Check print format setting
+              const printFormat = await AsyncStorage.getItem("print_format").catch(() => null);
+
+              if (printFormat === "receipt") {
+                // Receipt mode → build receipt from real order and print directly
+                const rd = buildReceiptFromOrder(fullOrder);
+                console.log("🧾 [PlaceOrder] Receipt mode — printing", fullOrder.no);
+                try {
+                  const printResult = await printToAllWithFormat((printWidth) =>
+                    formatReceiptText(rd, printWidth)
+                  );
+                  const ok = printResult.results.filter(r => r.success).length;
+                  Alert.alert("Order Placed", `Order ${fullOrder.no} — receipt sent to ${ok} printer(s).`);
+                } catch (printErr) {
+                  console.warn("[PlaceOrder] Print error:", printErr);
+                  Alert.alert("Order Placed", `Order ${fullOrder.no} created. Print failed.`);
+                }
+                clearOrder();
+                setSelectedCustomerData(null);
+              } else {
+                // A4 mode (default) → show SaleInvoiceModal
+                setInvoiceOrder(fullOrder);
+                setShowInvoiceModal(true);
+              }
             } catch (err: any) {
               console.error("[PlaceOrder] Error message:", err?.message);
               console.error("[PlaceOrder] Error status:", err?.response?.status);
@@ -493,7 +569,7 @@ export default function AddProductsScreen() {
         },
       ]
     );
-  }, [products, order, summary]);
+  }, [products, order, summary, buildReceiptFromOrder, clearOrder]);
 
   // After invoice modal — "New Order" resets everything
   const handleInvoiceNewOrder = useCallback(() => {
@@ -728,7 +804,11 @@ export default function AddProductsScreen() {
             <View className="flex-1 px-4">
               <View className="flex-row justify-between py-1">
                 <Text className="text-gray-600 text-sm">Additional Discount</Text>
-                <Text className="text-gray-800 font-medium">$0.00</Text>
+                <Text className="text-gray-800 font-medium">
+                  {order.discountType === 2
+                    ? `${order.additionalDiscount}%`
+                    : `$${order.additionalDiscount.toFixed(2)}`}
+                </Text>
               </View>
               <View className="flex-row justify-between py-1">
                 <Text className="text-gray-600 text-sm">Delivery Charges</Text>
@@ -906,6 +986,9 @@ export default function AddProductsScreen() {
         onClose={() => setShowDiscountModal(false)}
         subTotal={summary.subTotal}
         onConfirm={(discount, type) => {
+          const dt = type === "percentage" ? 2 : 1;
+          console.log("🏷️ [Discount] Saving →", { additionalDiscount: discount, discountType: dt });
+          updateOrder({ additionalDiscount: discount, discountType: dt as 1 | 2 });
           Alert.alert("Discount Applied", `Discount: ${type === 'percentage' ? `${discount}%` : `$${discount.toFixed(2)}`}`);
           setShowDiscountModal(false);
         }}
@@ -1013,7 +1096,7 @@ export default function AddProductsScreen() {
         pointerEvents="none"
         collapsable={false}
       >
-        <ReceiptTemplate ref={receiptRef} data={buildReceiptData()} />
+        <ReceiptTemplate ref={receiptRef} data={orderReceiptData ?? receiptData} />
       </View>
 
       {/* Receipt Image Preview Modal — popup card */}
@@ -1021,11 +1104,28 @@ export default function AddProductsScreen() {
         visible={showReceiptPreview}
         transparent
         animationType="fade"
-        onRequestClose={() => setShowReceiptPreview(false)}
+        onRequestClose={() => {
+          setShowReceiptPreview(false);
+          if (orderReceiptData) {
+            // Was a post-order preview → clean up
+            setOrderReceiptData(null);
+            clearOrder();
+            setSelectedCustomerData(null);
+            setInvoiceOrder(null);
+          }
+        }}
       >
         <Pressable
           style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'center', alignItems: 'center' }}
-          onPress={() => setShowReceiptPreview(false)}
+          onPress={() => {
+            setShowReceiptPreview(false);
+            if (orderReceiptData) {
+              setOrderReceiptData(null);
+              clearOrder();
+              setSelectedCustomerData(null);
+              setInvoiceOrder(null);
+            }
+          }}
         >
           <Pressable
             style={{
@@ -1040,7 +1140,18 @@ export default function AddProductsScreen() {
             {/* Header */}
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
               <Text style={{ fontSize: 16, fontWeight: '700', color: '#111' }}>Print Preview</Text>
-              <TouchableOpacity onPress={() => setShowReceiptPreview(false)} hitSlop={12}>
+              <TouchableOpacity
+                onPress={() => {
+                  setShowReceiptPreview(false);
+                  if (orderReceiptData) {
+                    setOrderReceiptData(null);
+                    clearOrder();
+                    setSelectedCustomerData(null);
+                    setInvoiceOrder(null);
+                  }
+                }}
+                hitSlop={12}
+              >
                 <Ionicons name="close-circle" size={26} color="#9CA3AF" />
               </TouchableOpacity>
             </View>
@@ -1060,25 +1171,52 @@ export default function AddProductsScreen() {
               )}
             </ScrollView>
 
-            {/* Print button */}
-            <TouchableOpacity
-              onPress={handleImagePrint}
-              disabled={sendingToPrinter}
-              style={{
-                backgroundColor: sendingToPrinter ? '#9CA3AF' : '#EC1A52',
-                paddingVertical: 12,
-                borderRadius: 8,
-                flexDirection: 'row',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: 6,
-              }}
-            >
-              <Ionicons name="print" size={16} color="#FFF" />
-              <Text style={{ color: '#FFF', fontWeight: '700', fontSize: 14 }}>
-                {sendingToPrinter ? 'Sending...' : 'Print'}
-              </Text>
-            </TouchableOpacity>
+            {/* Action buttons */}
+            <View style={{ flexDirection: 'row', gap: 10 }}>
+              <TouchableOpacity
+                onPress={handleImagePrint}
+                disabled={sendingToPrinter}
+                style={{
+                  flex: 1,
+                  backgroundColor: sendingToPrinter ? '#9CA3AF' : '#EC1A52',
+                  paddingVertical: 12,
+                  borderRadius: 8,
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: 6,
+                }}
+              >
+                <Ionicons name="print" size={16} color="#FFF" />
+                <Text style={{ color: '#FFF', fontWeight: '700', fontSize: 14 }}>
+                  {sendingToPrinter ? 'Sending...' : 'Print'}
+                </Text>
+              </TouchableOpacity>
+              {orderReceiptData && (
+                <TouchableOpacity
+                  onPress={() => {
+                    setShowReceiptPreview(false);
+                    setOrderReceiptData(null);
+                    clearOrder();
+                    setSelectedCustomerData(null);
+                    setInvoiceOrder(null);
+                  }}
+                  style={{
+                    flex: 1,
+                    backgroundColor: '#3b82f6',
+                    paddingVertical: 12,
+                    borderRadius: 8,
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: 6,
+                  }}
+                >
+                  <Ionicons name="add-circle-outline" size={16} color="#FFF" />
+                  <Text style={{ color: '#FFF', fontWeight: '700', fontSize: 14 }}>New Order</Text>
+                </TouchableOpacity>
+              )}
+            </View>
           </Pressable>
         </Pressable>
       </Modal>

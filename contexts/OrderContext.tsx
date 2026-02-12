@@ -34,6 +34,8 @@ export interface OrderState {
   dispatchDate: string;
   salesRep: string;
   additionalDiscount: number;
+  /** 1 = Fixed ($), 2 = Percentage (%) — mirrors API discount_type */
+  discountType: 1 | 2;
   shippingCharges: number;
 }
 
@@ -70,6 +72,7 @@ const initialOrder: OrderState = {
   dispatchDate: "DD/MM/YYYY",
   salesRep: "",
   additionalDiscount: 0,
+  discountType: 1,
   shippingCharges: 0,
 };
 
@@ -112,7 +115,13 @@ export function OrderProvider({ children }: { children: ReactNode }) {
     const totalQuantity = order.products.reduce((sum, p) => sum + p.quantity, 0);
     const subTotal = order.products.reduce((sum, p) => sum + p.total, 0);
     const tax = order.products.reduce((sum, p) => sum + p.tnVaporTax + p.ncVaporTax, 0);
-    const total = subTotal + tax + order.shippingCharges - order.additionalDiscount;
+    const discountAmt = parseFloat(
+      (order.discountType === 2
+        ? (subTotal * order.additionalDiscount) / 100
+        : order.additionalDiscount
+      ).toFixed(2)
+    );
+    const total = parseFloat((subTotal + tax + order.shippingCharges - discountAmt).toFixed(2));
     return { totalProducts, totalQuantity, subTotal, tax, total };
   };
 

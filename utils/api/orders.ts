@@ -124,6 +124,7 @@ export interface SaleOrderEntity {
   tax: number;
   tax_amount?: number;
   discount: number;
+  discount_type?: number; // 1=Fixed, 2=Percentage
   total_discount?: number;
   delivery_charges: number;
   order_date: string;

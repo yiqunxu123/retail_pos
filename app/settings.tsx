@@ -48,9 +48,14 @@ export default function SettingsScreen() {
   const { timezone: selectedTimezone, timezoneLabel, setTimezone } = useTimezone();
   const [showTimezonePicker, setShowTimezonePicker] = useState(false);
 
-  // Load printers on mount
+  // Print format setting: "receipt" (小票) or "a4" (A4)
+  const [printFormat, setPrintFormat] = useState<"receipt" | "a4">("receipt");
+  const [showPrintFormatPicker, setShowPrintFormatPicker] = useState(false);
+
+  // Load printers and print format on mount
   useEffect(() => {
     loadPrinters();
+    loadPrintFormat();
   }, []);
 
   // Load printers from storage and register to pool
@@ -249,6 +254,29 @@ export default function SettingsScreen() {
     }
   };
 
+  // Load print format from storage
+  const loadPrintFormat = async () => {
+    try {
+      const stored = await AsyncStorage.getItem("print_format");
+      if (stored === "a4" || stored === "receipt") {
+        setPrintFormat(stored);
+      }
+    } catch (e) {
+      console.log("Failed to load print format:", e);
+    }
+  };
+
+  // Save print format to storage
+  const savePrintFormat = async (format: "receipt" | "a4") => {
+    try {
+      setPrintFormat(format);
+      await AsyncStorage.setItem("print_format", format);
+      console.log("🖨️ [Settings] Print format saved:", format);
+    } catch (e) {
+      console.log("Failed to save print format:", e);
+    }
+  };
+
   // Handle timezone selection
   const handleTimezoneSelect = async (tz: TimezoneOption) => {
     setShowTimezonePicker(false);
@@ -307,6 +335,88 @@ export default function SettingsScreen() {
                   </Text>
                   {isSelected && (
                     <Ionicons name="checkmark-circle" size={22} color="#6366f1" />
+                  )}
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+        </View>
+      </TouchableOpacity>
+    </Modal>
+  );
+
+  // Render print format picker modal
+  const PRINT_FORMAT_OPTIONS: { value: "receipt" | "a4"; label: string; desc: string; icon: string }[] = [
+    { value: "receipt", label: "Receipt", desc: "Thermal printer receipt format, for 58mm/80mm paper", icon: "receipt-outline" },
+    { value: "a4", label: "A4 Invoice", desc: "A4 paper invoice format, for standard printers", icon: "document-text-outline" },
+  ];
+
+  const renderPrintFormatPicker = () => (
+    <Modal
+      visible={showPrintFormatPicker}
+      transparent
+      animationType="fade"
+      onRequestClose={() => setShowPrintFormatPicker(false)}
+    >
+      <TouchableOpacity
+        className="flex-1 bg-black/50 justify-center items-center"
+        activeOpacity={1}
+        onPress={() => setShowPrintFormatPicker(false)}
+      >
+        <View
+          className="bg-white rounded-2xl overflow-hidden"
+          style={{ width: 400 }}
+          onStartShouldSetResponder={() => true}
+        >
+          {/* Header */}
+          <View className="flex-row justify-between items-center px-6 py-4 border-b border-gray-200 bg-gray-50">
+            <View className="flex-row items-center gap-3">
+              <View className="w-10 h-10 bg-blue-100 rounded-full items-center justify-center">
+                <Ionicons name="print-outline" size={24} color="#3b82f6" />
+              </View>
+              <Text className="text-xl font-semibold text-gray-800">Print Format</Text>
+            </View>
+            <TouchableOpacity onPress={() => setShowPrintFormatPicker(false)}>
+              <Ionicons name="close" size={24} color="#6b7280" />
+            </TouchableOpacity>
+          </View>
+
+          {/* Options */}
+          <View className="p-4">
+            {PRINT_FORMAT_OPTIONS.map((opt) => {
+              const isSelected = opt.value === printFormat;
+              return (
+                <TouchableOpacity
+                  key={opt.value}
+                  onPress={() => {
+                    savePrintFormat(opt.value);
+                    setShowPrintFormatPicker(false);
+                  }}
+                  className={`flex-row items-center px-4 py-4 rounded-xl mb-2 ${
+                    isSelected ? 'bg-blue-50 border-2 border-blue-500' : 'bg-white border-2 border-gray-200'
+                  }`}
+                >
+                  <View className={`w-12 h-12 rounded-xl items-center justify-center mr-4 ${
+                    isSelected ? 'bg-blue-100' : 'bg-gray-100'
+                  }`}>
+                    <Ionicons
+                      name={opt.icon as any}
+                      size={24}
+                      color={isSelected ? "#3b82f6" : "#6b7280"}
+                    />
+                  </View>
+                  <View className="flex-1">
+                    <Text
+                      className={`text-base font-semibold ${
+                        isSelected ? 'text-blue-700' : 'text-gray-700'
+                      }`}
+                    >
+                      {opt.label}
+                    </Text>
+                    <Text className="text-gray-400 text-xs mt-0.5">{opt.desc}</Text>
+                  </View>
+                  {isSelected && (
+                    <Ionicons name="checkmark-circle" size={22} color="#3b82f6" />
                   )}
                 </TouchableOpacity>
               );
@@ -687,6 +797,26 @@ export default function SettingsScreen() {
               </View>
             </TouchableOpacity>
 
+            {/* Print Format Setting */}
+            <TouchableOpacity
+              onPress={() => setShowPrintFormatPicker(true)}
+              className="flex-row items-center justify-between py-4 border-b border-gray-100"
+            >
+              <View className="flex-row items-center gap-3">
+                <Ionicons name="print-outline" size={24} color="#3b82f6" />
+                <View>
+                  <Text className="text-gray-700 text-base">Print Format</Text>
+                  <Text className="text-gray-400 text-xs mt-0.5">Select A4 Invoice or Receipt format</Text>
+                </View>
+              </View>
+              <View className="flex-row items-center gap-2">
+                <Text className="text-blue-600 text-sm font-medium">
+                  {printFormat === "a4" ? "A4 Invoice" : "Receipt"}
+                </Text>
+                <Ionicons name="chevron-forward" size={18} color="#9ca3af" />
+              </View>
+            </TouchableOpacity>
+
             <View className="flex-row items-center justify-between py-4 border-b border-gray-100">
               <View className="flex-row items-center gap-3">
                 <Ionicons name="information-circle-outline" size={24} color="#6b7280" />
@@ -708,6 +838,7 @@ export default function SettingsScreen() {
 
       {renderModal()}
       {renderTimezonePicker()}
+      {renderPrintFormatPicker()}
     </View>
   );
 }

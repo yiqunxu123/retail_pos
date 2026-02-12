@@ -36,6 +36,19 @@ export const formatReceiptText = (data: ReceiptData, printWidth: number = 576): 
   const headerSpacing = charWidth - orderNoStr.length - dateTimeStr.length;
   lines.push(`<L>${orderNoStr}${' '.repeat(Math.max(1, headerSpacing))}${dateTimeStr}</L>`);
 
+  // Order info (mirrors SaleInvoiceModal header)
+  if (data.createdBy) lines.push(`<L>Created by: ${data.createdBy}</L>`);
+
+  // Bill To (mirrors SaleInvoiceModal customer block)
+  if (data.customerName || data.customerContact || data.customerEmail || data.customerPhone || data.customerAddress) {
+    lines.push('<L>' + separator + '</L>');
+    if (data.customerName) lines.push(`<L>Customer: ${data.customerName}</L>`);
+    if (data.customerContact) lines.push(`<L>Contact: ${data.customerContact}</L>`);
+    if (data.customerEmail) lines.push(`<L>Email: ${data.customerEmail}</L>`);
+    if (data.customerPhone) lines.push(`<L>Phone: ${data.customerPhone}</L>`);
+    if (data.customerAddress) lines.push(`<L>Address: ${data.customerAddress}</L>`);
+  }
+
   // Solid line
   lines.push('<L>' + separator + '</L>');
 
@@ -65,8 +78,14 @@ export const formatReceiptText = (data: ReceiptData, printWidth: number = 576): 
 
   lines.push(formatTotalLine('Subtotal:', `$${data.subtotal.toFixed(2)}`));
 
-  if (data.discount > 0) {
-    lines.push(formatTotalLine('Discount:', `-$${data.discount.toFixed(2)}`));
+  if (data.discountAmount > 0) {
+    lines.push(formatTotalLine('Discount Amount:', `$${data.discountAmount.toFixed(2)}`));
+  }
+  if (data.additionalDiscount > 0) {
+    const adVal = data.additionalDiscountType === 2
+      ? `${parseFloat(data.additionalDiscount.toFixed(2))}%`
+      : `$${data.additionalDiscount.toFixed(2)}`;
+    lines.push(formatTotalLine('Additional Discount:', adVal));
   }
 
   const taxLabel = data.taxLabel || '0%';

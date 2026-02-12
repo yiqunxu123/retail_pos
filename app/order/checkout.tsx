@@ -121,7 +121,14 @@ export default function CheckoutScreen() {
             <SummaryRow label="Total Products" value={summary.totalProducts.toString().padStart(2, "0")} />
             <SummaryRow label="Total Quantity" value={summary.totalQuantity.toString()} />
             <SummaryRow label="Sub Total" value={`$${summary.subTotal.toFixed(2)}`} highlight />
-            <SummaryRow label="Additional Discount" value={`$${order.additionalDiscount.toFixed(2)}`} />
+            <SummaryRow
+              label="Additional Discount"
+              value={
+                order.discountType === 2
+                  ? `${order.additionalDiscount}%`
+                  : `$${order.additionalDiscount.toFixed(2)}`
+              }
+            />
             <SummaryRow label="Delivery Charges" value={`$${order.shippingCharges.toFixed(2)}`} />
             <SummaryRow label="Tax ⓘ" value={`$${summary.tax.toFixed(2)}`} />
 

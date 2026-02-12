@@ -35,14 +35,34 @@ export interface ReceiptData {
   items: ReceiptItem[];
   /** Subtotal before discount/tax */
   subtotal: number;
-  /** Discount amount (positive number) */
-  discount: number;
+  /** Total discount amount (sum of item-level discounts) — maps to SaleInvoiceModal "Discount Amount" */
+  discountAmount: number;
+  /** Additional (order-level) discount raw value — maps to SaleInvoiceModal "Additional Discount" */
+  additionalDiscount: number;
+  /** Additional discount type: 1=Fixed($), 2=Percentage(%) */
+  additionalDiscountType?: number;
   /** Tax rate label (e.g. "0%") */
   taxLabel?: string;
   /** Tax amount */
   tax: number;
   /** Grand total */
   total: number;
+
+  // ── From SaleInvoiceModal order info ──
+  /** Created by (e.g. "John Smith") */
+  createdBy?: string;
+
+  // ── From SaleInvoiceModal Bill To ──
+  /** Customer business name */
+  customerName?: string;
+  /** Customer contact name (billing details) */
+  customerContact?: string;
+  /** Customer email */
+  customerEmail?: string;
+  /** Customer phone */
+  customerPhone?: string;
+  /** Customer address */
+  customerAddress?: string;
 }
 
 // ---------------------------------------------------------------------------
@@ -135,7 +155,14 @@ function encodeCode128B(text: string): number[] {
 
 export const ReceiptTemplate = forwardRef<View, { data: ReceiptData }>(
   ({ data }, ref) => {
-    const { orderNo, dateTime, items, subtotal, discount, taxLabel, tax, total } = data;
+    const {
+      orderNo, dateTime, items, subtotal,
+      discountAmount, additionalDiscount, additionalDiscountType,
+      taxLabel, tax, total,
+      createdBy,
+      customerName, customerContact, customerEmail, customerPhone, customerAddress,
+    } = data;
+    const hasCustomerInfo = customerName || customerContact || customerEmail || customerPhone || customerAddress;
 
     // Generate QR code matrix from order number
     const qrModules = useMemo(() => {
@@ -244,6 +271,25 @@ export const ReceiptTemplate = forwardRef<View, { data: ReceiptData }>(
           <Text style={styles.headerText}>{dateTime}</Text>
         </View>
 
+        {/* ── Order Info ── */}
+        {createdBy && (
+          <View style={{ paddingVertical: 2 * S }}>
+            <Text style={styles.infoText}>Created by: {createdBy}</Text>
+          </View>
+        )}
+
+        {/* ── Bill To ── */}
+        {hasCustomerInfo && (
+          <>
+            <View style={styles.solidLine} />
+            {customerName && <Text style={styles.infoText}>Customer: {customerName}</Text>}
+            {customerContact && <Text style={styles.infoText}>Contact: {customerContact}</Text>}
+            {customerEmail && <Text style={styles.infoText}>Email: {customerEmail}</Text>}
+            {customerPhone && <Text style={styles.infoText}>Phone: {customerPhone}</Text>}
+            {customerAddress && <Text style={styles.infoText}>Address: {customerAddress}</Text>}
+          </>
+        )}
+
         {/* ── Solid line ── */}
         <View style={styles.solidLine} />
 
@@ -266,10 +312,20 @@ export const ReceiptTemplate = forwardRef<View, { data: ReceiptData }>(
           <Text style={styles.totalValue}>{fmt(subtotal)}</Text>
         </View>
 
-        {discount > 0 && (
+        {discountAmount > 0 && (
           <View style={styles.totalRow}>
-            <Text style={styles.totalLabel}>Discount:</Text>
-            <Text style={styles.totalValue}>-{fmt(discount)}</Text>
+            <Text style={styles.totalLabel}>Discount Amount:</Text>
+            <Text style={styles.totalValue}>{fmt(discountAmount)}</Text>
+          </View>
+        )}
+        {additionalDiscount > 0 && (
+          <View style={styles.totalRow}>
+            <Text style={styles.totalLabel}>Additional Discount:</Text>
+            <Text style={styles.totalValue}>
+              {additionalDiscountType === 2
+                ? `${parseFloat(additionalDiscount.toFixed(2))}%`
+                : fmt(additionalDiscount)}
+            </Text>
           </View>
         )}
 
@@ -380,6 +436,13 @@ const styles = StyleSheet.create({
     color: "#000000",
   },
 
+  // ── Info text ──
+  infoText: {
+    fontSize: 10 * S,
+    fontWeight: "500",
+    color: "#000000",
+    paddingVertical: 1 * S,
+  },
   // ── Modifiers ──
   bold: {
     fontWeight: "900",
