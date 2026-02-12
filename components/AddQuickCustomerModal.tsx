@@ -314,27 +314,24 @@ export function AddQuickCustomerModal({
       animationType="fade"
       onRequestClose={handleClose}
     >
-      <Pressable
-        className="flex-1 bg-black/50 justify-center items-center"
-        onPress={handleClose}
-      >
+      <View className="flex-1 flex-row bg-black/45">
         {/* Modal Content */}
         <Pressable
-          className="bg-white rounded-xl overflow-hidden"
-          style={{ width: 500, maxHeight: "90%" }}
-          onPress={(e) => e.stopPropagation()}
+          className="bg-[#F7F7F8] border border-[#E4E7EC] rounded-xl overflow-hidden"
+          style={{ width: "43%", height: "94%", marginTop: 20, marginLeft: 20 }}
+          onPress={() => {}}
         >
           {/* Header */}
-          <View className="flex-row justify-between items-center px-6 py-4 border-b border-gray-200">
-            <Text className="text-xl font-semibold text-gray-800">
-              {isEditMode ? "Edit Customer" : "Add Quick Customer"}
+          <View className="flex-row justify-between items-center px-6 py-5 border-b border-[#ECEFF3] bg-[#F7F7F8]">
+            <Text className="text-[34px] leading-[36px] font-semibold text-[#EC1A52]">
+              {isEditMode ? "Edit Customer" : "Add Customer"}
             </Text>
             <Pressable
               onPress={handleClose}
-              className="p-1"
+              className="w-7 h-7 rounded-full bg-[#F01655] items-center justify-center"
               style={({ pressed }) => ({ opacity: pressed ? 0.5 : 1 })}
             >
-              <Ionicons name="close" size={24} color="#6b7280" />
+              <Ionicons name="close" size={14} color="#fff" />
             </Pressable>
           </View>
 
@@ -357,15 +354,15 @@ export function AddQuickCustomerModal({
           )}
 
           {/* Form Content */}
-          <ScrollView className="px-6 py-4">
+          <ScrollView className="flex-1 px-6 py-4" contentContainerStyle={{ paddingBottom: 12 }}>
             {/* Row 1: Business Name & Email */}
-            <View className="flex-row gap-4 mb-4">
-              <View className="flex-1">
+            <View className="mb-3">
+              <View>
                 <Text className="text-gray-700 text-sm mb-1.5">
                   Business Name <Text className="text-red-500">*</Text>
                 </Text>
                 <TextInput
-                  className={`bg-white border rounded-lg px-3 py-2.5 text-gray-800 ${
+                className={`bg-[#F4F4F5] border rounded-lg px-3 py-2.5 text-gray-800 ${
                     errors.business_name ? "border-red-400" : "border-gray-200"
                   }`}
                   placeholder="Business Name"
@@ -382,10 +379,10 @@ export function AddQuickCustomerModal({
                 )}
 
               </View>
-              <View className="flex-1">
+              <View className="mt-3">
                 <Text className="text-gray-700 text-sm mb-1.5">Email</Text>
                 <TextInput
-                  className={`bg-white border rounded-lg px-3 py-2.5 text-gray-800 ${
+                className={`bg-[#F4F4F5] border rounded-lg px-3 py-2.5 text-gray-800 ${
                     errors.email ? "border-red-400" : "border-gray-200"
                   }`}
                   placeholder="Email"
@@ -406,13 +403,13 @@ export function AddQuickCustomerModal({
             </View>
 
             {/* Row 2: Phone & Class of Trades */}
-            <View className="flex-row gap-4 mb-4">
-              <View className="flex-1">
+            <View className="mb-3">
+              <View>
                 <Text className="text-gray-700 text-sm mb-1.5">
                   Business Phone Number
                 </Text>
                 <TextInput
-                  className={`bg-white border rounded-lg px-3 py-2.5 text-gray-800 ${
+                className={`bg-[#F4F4F5] border rounded-lg px-3 py-2.5 text-gray-800 ${
                     errors.business_phone_no
                       ? "border-red-400"
                       : "border-gray-200"
@@ -431,7 +428,7 @@ export function AddQuickCustomerModal({
                   </Text>
                 )}
               </View>
-              <View className="flex-1">
+              <View className="mt-3">
                 <Dropdown
                   label="Class of Trades *"
                   options={CLASS_OF_TRADES_OPTIONS}
@@ -447,8 +444,8 @@ export function AddQuickCustomerModal({
             </View>
 
             {/* Row 3: Customer Type & Sales Rep */}
-            <View className="flex-row gap-4 mb-6">
-              <View className="flex-1">
+            <View className="mb-6">
+              <View>
                 <Dropdown
                   label="Customer Type"
                   options={CUSTOMER_TYPE_OPTIONS}
@@ -458,7 +455,7 @@ export function AddQuickCustomerModal({
                   }
                 />
               </View>
-              <View className="flex-1">
+              <View className="mt-3">
                 <Dropdown
                   label="Sales Rep"
                   options={salesRepOptions}
@@ -488,13 +485,13 @@ export function AddQuickCustomerModal({
             <View
               style={{
                 position: "absolute",
-                top: 130,
-                left: 24,
-                right: 24,
+                top: 126,
+                left: 20,
+                right: 20,
                 maxHeight: 240,
                 backgroundColor: "#fff",
                 borderWidth: 1,
-                borderColor: "#d1d5db",
+                borderColor: "#e5e7eb",
                 borderRadius: 10,
                 zIndex: 100,
                 elevation: 20,
@@ -576,7 +573,8 @@ export function AddQuickCustomerModal({
             </Pressable>
           </View>
         </Pressable>
-      </Pressable>
+        <Pressable className="flex-1" onPress={handleClose} />
+      </View>
     </Modal>
   );
 }
