@@ -14,6 +14,7 @@ export const STAFF_SIDEBAR_WIDTH = 260;
 interface StaffSidebarProps {
   isLandscape: boolean;
   onClockInPress: () => void;
+  onClockInLongPress?: () => void;
   onClockOutPress: () => void;
 }
 
@@ -24,6 +25,7 @@ interface StaffSidebarProps {
 export function StaffSidebar({
   isLandscape,
   onClockInPress,
+  onClockInLongPress,
   onClockOutPress,
 }: StaffSidebarProps) {
   const { navigateTo, pathname } = useAppNavigation();
@@ -85,6 +87,7 @@ export function StaffSidebar({
             title="Time Clock"
             icon={<Ionicons name="time-outline" size={24} color={isClockedIn ? "#848484" : "#EC1A52"} />}
             onPress={onClockInPress}
+            onLongPress={onClockInLongPress}
             isActive={!isClockedIn}
             fullWidth={false}
           />

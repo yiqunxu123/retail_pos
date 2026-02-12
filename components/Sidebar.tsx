@@ -22,6 +22,7 @@ export const SIDEBAR_WIDTH = 260;
 interface SidebarProps {
   isLandscape: boolean;
   onClockInPress: () => void;
+  onClockInLongPress?: () => void;
   onClockOutPress: () => void;
   onExitProgram?: () => void;
 }
@@ -36,6 +37,7 @@ interface SidebarProps {
 export function Sidebar({
   isLandscape,
   onClockInPress,
+  onClockInLongPress,
   onClockOutPress,
 }: SidebarProps) {
   const { navigateTo, pathname } = useAppNavigation();
@@ -88,6 +90,7 @@ export function Sidebar({
             title="Time Clock"
             icon={<Ionicons name="time-outline" size={24} color={isClockedIn ? "#848484" : "#EC1A52"} />}
             onPress={onClockInPress}
+            onLongPress={onClockInLongPress}
             isActive={!isClockedIn}
             fullWidth={false}
           />

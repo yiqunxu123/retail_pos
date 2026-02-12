@@ -85,6 +85,14 @@ function LayoutContent() {
     setShowClockInModal(true);
   };
 
+  // DEV ONLY: Long press Time Clock → auto clock-in (skip PIN modal)
+  const handleClockInLongPress = __DEV__ ? () => {
+    if (!isClockedIn) {
+      clockIn("dev", selectedPosLine || 1);
+      console.log("⚡ [DEV] Auto clock-in via long press");
+    }
+  } : undefined;
+
   // Handle Clock In submission
   const handleClockIn = (employeeId: string) => {
     clockIn(employeeId, selectedPosLine || 1);
@@ -120,12 +128,14 @@ function LayoutContent() {
             <StaffSidebar
               isLandscape={isLandscape}
               onClockInPress={handleClockInPress}
+              onClockInLongPress={handleClockInLongPress}
               onClockOutPress={() => setShowClockOutModal(true)}
             />
           ) : (
             <Sidebar
               isLandscape={isLandscape}
               onClockInPress={handleClockInPress}
+              onClockInLongPress={handleClockInLongPress}
               onClockOutPress={() => setShowClockOutModal(true)}
             />
           )

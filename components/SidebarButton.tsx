@@ -5,6 +5,7 @@ interface SidebarButtonProps {
   title: string;
   icon?: ReactNode;
   onPress?: () => void;
+  onLongPress?: () => void;
   isActive?: boolean;
   fullWidth?: boolean;
 }
@@ -23,6 +24,7 @@ export function SidebarButton({
   title,
   icon,
   onPress,
+  onLongPress,
   isActive = true,
   fullWidth = true,
 }: SidebarButtonProps) {
@@ -52,6 +54,7 @@ export function SidebarButton({
   return (
     <TouchableOpacity
       onPress={onPress}
+      onLongPress={onLongPress}
       className={`${fullWidth ? "w-full" : "flex-1"} rounded-lg justify-center items-center py-3`}
       style={{
         backgroundColor: "#FFFFFF",
