@@ -6,6 +6,7 @@
  */
 
 import { Ionicons } from "@expo/vector-icons";
+import { useRouter } from "expo-router";
 import { useMemo, useState } from "react";
 import {
   ActivityIndicator,
@@ -70,6 +71,7 @@ const formatCurrency = (value: number) =>
 // ============================================================================
 
 export default function ProductsScreen() {
+  const router = useRouter();
   // Data from PowerSync
   const { products, isLoading, isStreaming, refresh, count } = useProducts();
   const [refreshing, setRefreshing] = useState(false);
@@ -205,6 +207,13 @@ export default function ProductsScreen() {
           <Pressable className="bg-gray-100 px-4 py-2 rounded-lg flex-row items-center gap-2">
             <Ionicons name="grid" size={16} color="#374151" />
             <Text className="text-gray-700">Columns</Text>
+          </Pressable>
+          <Pressable
+            onPress={() => router.push("/catalog/add-product")}
+            className="bg-blue-500 px-4 py-2 rounded-lg flex-row items-center gap-2"
+          >
+            <Ionicons name="add" size={16} color="white" />
+            <Text className="text-white font-medium">Add Product</Text>
           </Pressable>
           {isStreaming && (
             <View className="flex-row items-center gap-1 ml-2">
