@@ -36,6 +36,7 @@ import {
 import { printImageToAll } from "../../utils/receiptImagePrint";
 import { formatReceiptText } from "../../utils/receiptTextFormat";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 // Action button width
 const SIDEBAR_WIDTH = 260;
@@ -45,6 +46,7 @@ const SIDEBAR_WIDTH = 260;
  */
 export default function AddProductsScreen() {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const { order, updateOrder, addProduct, updateProductQuantity, removeProduct, clearOrder, getOrderSummary } = useOrder();
   const { parkedOrders, parkOrder, resumeOrder, deleteParkedOrder } = useParkedOrders();
   const { user } = useAuth();
@@ -169,7 +171,7 @@ export default function AddProductsScreen() {
       orderNo: so.no || "--",
       dateTime: dateStr,
       items: details.map((dt) => ({
-        name: dt.product?.name || dt.name || "—",
+        name: dt.product?.name || dt.name || "ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â",
         qty: dt.qty ?? 0,
         price: dt.unit_price ?? dt.price ?? 0,
         totalPrice: dt.total_price ?? (dt.unit_price ?? 0) * (dt.qty ?? 0),
@@ -208,7 +210,7 @@ export default function AddProductsScreen() {
         format: "png",
         quality: 1,
         result: "data-uri",
-        // No width override — template uses PRINTER_DOTS / PixelRatio.get()
+        // No width override ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â template uses PRINTER_DOTS / PixelRatio.get()
         // so native capture produces exactly 384px (= printer dots)
       });
       setReceiptImageUri(uri);
@@ -222,7 +224,7 @@ export default function AddProductsScreen() {
     }
   }, [products]);
 
-  // Text-based printing: format receipt as text → ESC/POS commands → TCP
+  // Text-based printing: format receipt as text ÃƒÂ¢Ã¢â‚¬Â Ã¢â‚¬â„¢ ESC/POS commands ÃƒÂ¢Ã¢â‚¬Â Ã¢â‚¬â„¢ TCP
   const handleTextPrint = useCallback(async () => {
     if (products.length === 0) {
       Alert.alert("No Products", "Add products before printing receipt.");
@@ -247,7 +249,7 @@ export default function AddProductsScreen() {
     }
   }, [products, receiptData]);
 
-  // Image-based printing: screenshot PNG → ESC/POS raster bitmap → TCP
+  // Image-based printing: screenshot PNG ÃƒÂ¢Ã¢â‚¬Â Ã¢â‚¬â„¢ ESC/POS raster bitmap ÃƒÂ¢Ã¢â‚¬Â Ã¢â‚¬â„¢ TCP
   const handleImagePrint = useCallback(async () => {
     if (!receiptImageUri) {
       Alert.alert("Error", "No receipt image. Please generate preview first.");
@@ -424,7 +426,7 @@ export default function AddProductsScreen() {
     setShowCashPaymentModal(true);
   };
 
-  // Place Order — call API and show Sale Invoice modal
+  // Place Order ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â call API and show Sale Invoice modal
   const handlePlaceOrder = useCallback(async () => {
     if (products.length === 0) {
       Alert.alert("Error", "Please add products to cart first");
@@ -490,7 +492,7 @@ export default function AddProductsScreen() {
               console.log("[PlaceOrder] Sending payload:", JSON.stringify(payload, null, 2));
               const res = await createSaleOrder(payload);
               const entity = res.data.entity;
-              console.log("[PlaceOrder] Created — Order No:", entity.no, "peculiar_no:", entity.peculiar_no, "Status:", entity.status);
+              console.log("[PlaceOrder] Created ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â Order No:", entity.no, "peculiar_no:", entity.peculiar_no, "Status:", entity.status);
 
               // The POST response only returns basic order info.
               // Fetch the full order (with sale_order_details, invoice, customer, etc.)
@@ -499,7 +501,7 @@ export default function AddProductsScreen() {
                 try {
                   const detailRes = await getSaleOrderById(entity.id);
                   fullOrder = detailRes.data.entity;
-                  console.log("[PlaceOrder] Fetched full order — products:", fullOrder.sale_order_details?.length, "invoice:", !!fullOrder.invoice);
+                  console.log("[PlaceOrder] Fetched full order ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â products:", fullOrder.sale_order_details?.length, "invoice:", !!fullOrder.invoice);
                 } catch (fetchErr: any) {
                   console.warn("[PlaceOrder] Could not fetch full order, building from cart:", fetchErr?.message);
                   // Fallback: build sale_order_details from cart so modal has content
@@ -532,15 +534,15 @@ export default function AddProductsScreen() {
               const printFormat = await AsyncStorage.getItem("print_format").catch(() => null);
 
               if (printFormat === "receipt") {
-                // Receipt mode → build receipt from real order and print directly
+                // Receipt mode ÃƒÂ¢Ã¢â‚¬Â Ã¢â‚¬â„¢ build receipt from real order and print directly
                 const rd = buildReceiptFromOrder(fullOrder);
-                console.log("🧾 [PlaceOrder] Receipt mode — printing", fullOrder.no);
+                console.log("ÃƒÂ°Ã…Â¸Ã‚Â§Ã‚Â¾ [PlaceOrder] Receipt mode ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â printing", fullOrder.no);
                 try {
                   const printResult = await printToAllWithFormat((printWidth) =>
                     formatReceiptText(rd, printWidth)
                   );
                   const ok = printResult.results.filter(r => r.success).length;
-                  Alert.alert("Order Placed", `Order ${fullOrder.no} — receipt sent to ${ok} printer(s).`);
+                  Alert.alert("Order Placed", `Order ${fullOrder.no} ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â receipt sent to ${ok} printer(s).`);
                 } catch (printErr) {
                   console.warn("[PlaceOrder] Print error:", printErr);
                   Alert.alert("Order Placed", `Order ${fullOrder.no} created. Print failed.`);
@@ -548,7 +550,7 @@ export default function AddProductsScreen() {
                 clearOrder();
                 setSelectedCustomerData(null);
               } else {
-                // A4 mode (default) → show SaleInvoiceModal
+                // A4 mode (default) ÃƒÂ¢Ã¢â‚¬Â Ã¢â‚¬â„¢ show SaleInvoiceModal
                 setInvoiceOrder(fullOrder);
                 setShowInvoiceModal(true);
               }
@@ -571,7 +573,7 @@ export default function AddProductsScreen() {
     );
   }, [products, order, summary, buildReceiptFromOrder, clearOrder]);
 
-  // After invoice modal — "New Order" resets everything
+  // After invoice modal ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â "New Order" resets everything
   const handleInvoiceNewOrder = useCallback(() => {
     setShowInvoiceModal(false);
     setInvoiceOrder(null);
@@ -581,27 +583,31 @@ export default function AddProductsScreen() {
 
 
   return (
-    <View className="flex-1 flex-row bg-gray-100">
+    <View className="flex-1 flex-row bg-[#F7F7F9]" style={{ marginTop: -insets.top }}>
       {/* Main Content Area */}
       <View className="flex-1">
         {/* Top Bar */}
-        <View className="flex-row items-center gap-3 p-3 bg-white border-b border-gray-200">
-          <Text className="text-gray-600 text-sm">Add product by Name, SKU, UPC</Text>
-          
-          {/* Search Input */}
-          <TouchableOpacity
-            onPress={() => setShowSearchModal(true)}
-            className="flex-1 flex-row items-center bg-gray-50 border border-gray-200 rounded-lg px-3 py-2"
-          >
-            <Ionicons name="search" size={18} color="#9ca3af" />
-            <Text className="flex-1 ml-2 text-gray-400">Search Products</Text>
-          </TouchableOpacity>
+        <View
+          className="flex-row items-end gap-3 bg-white border-b border-gray-200"
+          style={{ paddingTop: insets.top + 10, paddingHorizontal: 16, paddingBottom: 10 }}
+        >
+          {/* Search group: label on top, search bar below */}
+          <View className="flex-1">
+            <Text className="text-[#5A5F66] text-sm mb-1">Add product by Name, SKU, UPC</Text>
+            <TouchableOpacity
+              onPress={() => setShowSearchModal(true)}
+              className="flex-row items-center bg-white border border-gray-300 rounded-xl px-3 py-2.5"
+            >
+              <Ionicons name="search" size={18} color="#9ca3af" />
+              <Text className="flex-1 ml-2 text-gray-400">Search Products</Text>
+            </TouchableOpacity>
+          </View>
 
-          {/* Scan Qty */}
-          <View className="flex-row items-center gap-2">
-            <Text className="text-gray-600 text-sm">Scan Qty</Text>
+          {/* Scan Qty group: label on top, input below */}
+          <View>
+            <Text className="text-[#5A5F66] text-sm mb-1">Scan Qty</Text>
             <TextInput
-              className="w-14 bg-gray-50 border border-gray-200 rounded-lg px-2 py-2 text-center text-gray-800"
+              className="w-16 bg-white border border-gray-300 rounded-xl px-2 py-2.5 text-center text-gray-800"
               keyboardType="numeric"
               value={scanQty}
               onChangeText={setScanQty}
@@ -609,26 +615,27 @@ export default function AddProductsScreen() {
           </View>
 
           {/* Refresh Button */}
-          <TouchableOpacity className="bg-red-500 px-4 py-2 rounded-lg flex-row items-center gap-1">
+          <TouchableOpacity
+            className="h-11 px-6 rounded-xl flex-row items-center justify-center gap-1"
+            style={{ backgroundColor: '#EC1A52' }}
+          >
             <Ionicons name="refresh" size={16} color="white" />
             <Text className="text-white font-medium">Refresh</Text>
           </TouchableOpacity>
 
           {/* Scan Logs Button */}
-          <TouchableOpacity className="border border-red-500 px-4 py-2 rounded-lg">
+          <TouchableOpacity className="h-11 border border-red-500 px-6 rounded-xl items-center justify-center">
             <Text className="text-red-500 font-medium">Scan Logs</Text>
           </TouchableOpacity>
 
-          {/* Settings Button - Opens Product Settings Modal */}
+          {/* Settings Button */}
           <TouchableOpacity 
-            className="bg-gray-800 p-2 rounded-lg"
+            className="bg-[#20232A] p-3 rounded-xl"
             onPress={() => {
               if (products.length === 0) {
                 Alert.alert("No Product", "Please add a product first");
                 return;
               }
-              
-              // Use selected product or first product
               const productToEdit = selectedProduct || products[0];
               setSelectedProduct(productToEdit);
               setShowProductSettingsModal(true);
@@ -639,18 +646,30 @@ export default function AddProductsScreen() {
         </View>
 
         {/* Products Table */}
-        <ScrollView className="flex-1" contentContainerStyle={{ padding: 12 }}>
-          <View className="bg-white rounded-lg overflow-hidden">
+        <ScrollView className="flex-1" contentContainerStyle={{ paddingHorizontal: 12, paddingTop: 12, paddingBottom: 10 }}>
+          <View className="bg-white border border-gray-200 rounded-xl overflow-hidden">
             {/* Table Header */}
-            <View className="flex-row bg-gray-50 border-b border-gray-200 px-3 py-2">
-              <Text className="w-28 text-gray-600 text-xs font-semibold">SKU/UPC</Text>
-              <Text className="flex-1 text-gray-600 text-xs font-semibold">Product Name</Text>
-              <Text className="w-20 text-gray-600 text-xs font-semibold">Sale Price</Text>
-              <Text className="w-16 text-gray-600 text-xs font-semibold">Unit</Text>
-              <Text className="w-20 text-gray-600 text-xs font-semibold">Quantity</Text>
-              <Text className="w-20 text-gray-600 text-xs font-semibold">TN Vapor Tax</Text>
-              <Text className="w-20 text-gray-600 text-xs font-semibold">NC Vapor Tax</Text>
-              <Text className="w-20 text-gray-600 text-xs font-semibold">Total</Text>
+            <View className="flex-row bg-[#F7F7FA] border-b border-gray-200 px-3 py-2.5">
+              <View className="w-28 flex-row items-center">
+                <Text className="text-[#5A5F66] text-xs font-semibold">SKU/UPC</Text>
+                <Ionicons name="chevron-expand" size={12} color="#9ca3af" style={{ marginLeft: 4 }} />
+              </View>
+              <View className="flex-1 flex-row items-center">
+                <Text className="text-[#5A5F66] text-xs font-semibold">Product Name</Text>
+                <Ionicons name="chevron-expand" size={12} color="#9ca3af" style={{ marginLeft: 4 }} />
+              </View>
+              <View className="w-20 flex-row items-center">
+                <Text className="text-[#5A5F66] text-xs font-semibold">Sale Price</Text>
+                <Ionicons name="chevron-expand" size={12} color="#9ca3af" style={{ marginLeft: 4 }} />
+              </View>
+              <Text className="w-16 text-[#5A5F66] text-xs font-semibold">Unit</Text>
+              <View className="w-20 flex-row items-center">
+                <Text className="text-[#5A5F66] text-xs font-semibold">Quantity</Text>
+                <Ionicons name="chevron-expand" size={12} color="#9ca3af" style={{ marginLeft: 4 }} />
+              </View>
+              <Text className="w-20 text-[#5A5F66] text-xs font-semibold">TN Vapor Tax</Text>
+              <Text className="w-20 text-[#5A5F66] text-xs font-semibold">NC Vapor Tax</Text>
+              <Text className="w-20 text-[#5A5F66] text-xs font-semibold">Total</Text>
             </View>
 
             {/* Empty State */}
@@ -678,49 +697,49 @@ export default function AddProductsScreen() {
                 <Pressable
                   key={product.id}
                   onPress={() => setSelectedProduct(product)}
-                  className={`flex-row items-center px-3 py-2 ${
+                  className={`flex-row items-center px-3 py-2.5 border-b border-[#F0F1F4] ${
                     isSelected 
-                      ? 'bg-red-50 border-l-4 border-red-500' 
-                      : index % 2 === 0 ? 'bg-white' : 'bg-gray-50'
+                      ? 'bg-[#FFF6F8] border-l-2 border-[#EC1A52]' 
+                      : 'bg-white'
                   }`}
                 >
-                  <Text className="w-28 text-gray-800 text-xs">{product.sku}</Text>
+                  <Text className="w-28 text-[#2E3136] text-xs font-medium">{product.sku}</Text>
                   <View className="flex-1 pr-2">
-                    <Text className="text-gray-800 text-xs" numberOfLines={2}>
+                    <Text className="text-[#3A3D42] text-xs" numberOfLines={2}>
                       {product.name}
                     </Text>
                     {index === 0 && (
-                      <View className="bg-yellow-400 px-2 py-0.5 rounded mt-1 self-start">
-                        <Text className="text-xs font-medium">PROMO</Text>
+                      <View className="bg-[#FDCB6E] px-2 py-0.5 rounded-full mt-1 self-start">
+                        <Text className="text-[10px] font-semibold text-[#6B4F1D]">PROMO</Text>
                       </View>
                     )}
                   </View>
-                  <Text className="w-20 text-gray-800 text-xs">{product.salePrice}</Text>
+                  <Text className="w-20 text-[#6A6F77] text-xs">{product.salePrice}</Text>
                   <View className="w-16">
-                    <View className="flex-row items-center bg-gray-100 rounded px-1 py-1">
-                      <Text className="text-gray-700 text-xs flex-1">{product.unit}</Text>
+                    <View className="flex-row items-center rounded px-1 py-1">
+                      <Text className="text-[#6A6F77] text-xs flex-1">{product.unit}</Text>
                       <Ionicons name="chevron-down" size={10} color="#6b7280" />
                     </View>
                   </View>
                   {/* Quantity Controls */}
-                  <View className="w-20 flex-row items-center justify-center gap-1">
+                  <View className="w-20 flex-row items-center justify-center gap-1.5">
                     <TouchableOpacity
                       onPress={() => handleQuantityChange(product.id, -1)}
-                      className="w-5 h-5 bg-red-500 rounded items-center justify-center"
+                      className="w-5 h-5 bg-[#EC1A52] rounded items-center justify-center"
                     >
                       <Ionicons name="remove" size={12} color="white" />
                     </TouchableOpacity>
-                    <Text className="w-5 text-center text-gray-800 text-xs">{product.quantity}</Text>
+                    <Text className="w-5 text-center text-[#2E3136] text-xs font-medium">{product.quantity}</Text>
                     <TouchableOpacity
                       onPress={() => handleQuantityChange(product.id, 1)}
-                      className="w-5 h-5 bg-green-500 rounded items-center justify-center"
+                      className="w-5 h-5 bg-[#EC1A52] rounded items-center justify-center"
                     >
                       <Ionicons name="add" size={12} color="white" />
                     </TouchableOpacity>
                   </View>
-                  <Text className="w-20 text-gray-800 text-xs">${product.tnVaporTax.toFixed(4)}</Text>
-                  <Text className="w-20 text-gray-800 text-xs">${product.ncVaporTax.toFixed(4)}</Text>
-                  <Text className="w-20 text-red-500 text-xs font-medium">${product.total.toFixed(2)}</Text>
+                  <Text className="w-20 text-[#3A3D42] text-xs">${product.tnVaporTax.toFixed(4)}</Text>
+                  <Text className="w-20 text-[#3A3D42] text-xs">${product.ncVaporTax.toFixed(4)}</Text>
+                  <Text className="w-20 text-[#2E3136] text-xs font-bold">${product.total.toFixed(2)}</Text>
                 </Pressable>
               );})
             )}
@@ -728,103 +747,112 @@ export default function AddProductsScreen() {
         </ScrollView>
 
         {/* Bottom Section */}
-        <View className="flex-row p-3 gap-3 bg-white border-t border-gray-200">
+        <View className="flex-row p-3 gap-3 bg-[#F8F8FA] border-t border-gray-200">
           {/* Customer Card */}
-          <View className="bg-white border border-gray-200 rounded-lg p-3" style={{ width: 220 }}>
+          <View className="bg-[#FFF7F8] border border-gray-200 rounded-xl p-3" style={{ width: 220 }}>
             {selectedCustomerData ? (
               <>
-                <Text className="text-gray-800 font-semibold text-sm mb-1">
+                {/* Customer Name Label */}
+                <Text className="text-red-400 text-xs mb-1">Customer Name:</Text>
+                {/* Customer Name */}
+                <Text className="text-gray-900 font-bold text-lg mb-2">
                   {selectedCustomerData.business_name}
                 </Text>
-                <View style={{ gap: 2, marginBottom: 6 }}>
-                  <View className="flex-row">
-                    <Text className="text-gray-500 text-xs" style={{ width: 50 }}>Phone:</Text>
-                    <Text className="text-gray-800 text-xs flex-1">{selectedCustomerData.business_phone_no || "N/A"}</Text>
-                  </View>
-                  <View className="flex-row">
-                    <Text className="text-gray-500 text-xs" style={{ width: 50 }}>Email:</Text>
-                    <Text className="text-gray-800 text-xs flex-1" numberOfLines={1}>{selectedCustomerData.email || "N/A"}</Text>
-                  </View>
-                  <View className="flex-row">
-                    <Text className="text-gray-500 text-xs" style={{ width: 50 }}>Type:</Text>
-                    <Text className="text-gray-800 text-xs flex-1">
-                      {selectedCustomerData.customer_type === 1 ? "Walk In" : selectedCustomerData.customer_type === 2 ? "Online" : "N/A"}
-                    </Text>
-                  </View>
+                {/* Loyalty Member Badge */}
+                <View className="border border-red-500 rounded-full px-3 py-1 self-start mb-2">
+                  <Text className="text-red-500 text-xs font-medium">Loyalty Member</Text>
                 </View>
+                {/* Loyalty Points Balance Badge */}
+                <View className="bg-gray-800 rounded-full px-3 py-1 self-start mb-3">
+                  <Text className="text-white text-xs">Loyalty Points Balance: 760</Text>
+                </View>
+                {/* Action Buttons */}
                 <View className="flex-row gap-2">
                   <TouchableOpacity
                     onPress={() => setShowCustomerModal(true)}
-                    className="flex-1 bg-red-500 rounded py-1.5 items-center"
+                    className="flex-1 bg-red-500 rounded-lg py-2.5 items-center"
                   >
-                    <Text className="text-white text-xs font-medium">Change</Text>
+                    <Text className="text-white text-xs font-medium">Change{'\n'}Customer</Text>
                   </TouchableOpacity>
                   <TouchableOpacity
                     onPress={() => {
                       setSelectedCustomerData(null);
                       updateOrder({ customerName: "Guest Customer", customerId: null });
                     }}
-                    className="flex-1 border border-red-500 rounded py-1.5 items-center"
+                    className="flex-1 bg-red-500 rounded-lg py-2.5 items-center"
                   >
-                    <Text className="text-red-500 text-xs font-medium">Remove</Text>
+                    <Text className="text-white text-xs font-medium">Remove{'\n'}Customer</Text>
                   </TouchableOpacity>
                 </View>
               </>
             ) : (
               <>
-                <Text className="text-red-500 text-xs mb-1">Current Status:</Text>
-                <Text className="text-gray-800 font-semibold mb-2">Guest Customer</Text>
-                <TouchableOpacity
-                  onPress={() => setShowCustomerModal(true)}
-                  className="bg-red-500 rounded-lg py-2 px-3 flex-row items-center justify-center gap-1"
-                >
-                  <Ionicons name="add" size={16} color="white" />
-                  <Text className="text-white font-medium text-sm">Add Quick Customer</Text>
-                </TouchableOpacity>
+                <View className="items-center">
+                  <Text className="text-[#C88A98] text-sm mb-1">Current Status:</Text>
+                  <Text className="text-gray-900 font-semibold text-[18px] mb-3">Guest Customer</Text>
+                  <TouchableOpacity
+                    onPress={() => setShowCustomerModal(true)}
+                    className="w-full bg-[#C9154A] rounded-xl py-3 items-center justify-center"
+                  >
+                    <Ionicons name="add" size={34} color="white" />
+                    <Text className="text-white font-medium text-[15px] mt-1">Add Quick Customer</Text>
+                  </TouchableOpacity>
+                </View>
               </>
             )}
           </View>
 
-          {/* Order Summary */}
-          <View className="flex-1 flex-row">
-            <View className="flex-1 px-4">
-              <View className="flex-row justify-between py-1">
-                <Text className="text-gray-600 text-sm">Total Products</Text>
-                <Text className="text-gray-800 font-medium">{String(products.length).padStart(2, '0')}</Text>
+          {/* Order Summary + Total */}
+          <View className="flex-1 bg-white border border-gray-200 rounded-xl overflow-hidden">
+            {/* Summary Rows */}
+            <View className="flex-row px-4 py-3">
+              <View className="flex-1 pr-4 border-r border-[#EEF0F3]">
+                <View className="flex-row justify-between py-1.5">
+                  <Text className="text-gray-600 text-sm">Total Products</Text>
+                  <Text className="text-gray-800 font-medium">{String(products.length).padStart(2, '0')}</Text>
+                </View>
+                <View className="flex-row justify-between py-1.5">
+                  <Text className="text-gray-600 text-sm">Total Quantity</Text>
+                  <Text className="text-gray-800 font-medium">{String(summary.totalQuantity).padStart(2, '0')}</Text>
+                </View>
+                <View className="flex-row justify-between py-1.5">
+                  <Text className="text-gray-600 text-sm">Loyalty Credit</Text>
+                  <Text className="text-gray-800 font-medium">-$10.00</Text>
+                </View>
+                <View className="flex-row justify-between py-1.5">
+                  <Text className="text-gray-600 text-sm">Sub Total</Text>
+                  <Text className="text-gray-800 font-semibold">${summary.subTotal.toFixed(2)}</Text>
+                </View>
               </View>
-              <View className="flex-row justify-between py-1">
-                <Text className="text-gray-600 text-sm">Total Quantity</Text>
-                <Text className="text-gray-800 font-medium">{String(summary.totalQuantity).padStart(2, '0')}</Text>
-              </View>
-              <View className="flex-row justify-between py-1">
-                <Text className="text-gray-600 text-sm">Sub Total</Text>
-                <Text className="text-gray-800 font-medium">${summary.subTotal.toFixed(2)}</Text>
+              <View className="flex-1 pl-4">
+                <View className="flex-row justify-between py-1.5">
+                  <Text className="text-gray-600 text-sm">Additional Discount</Text>
+                  <Text className="text-gray-800 font-medium">
+                    {order.discountType === 2
+                      ? `${order.additionalDiscount}%`
+                      : `$${order.additionalDiscount.toFixed(2)}`}
+                  </Text>
+                </View>
+                <View className="flex-row justify-between py-1.5">
+                  <Text className="text-gray-600 text-sm">Delivery Charges</Text>
+                  <Text className="text-gray-800 font-medium">$0.00</Text>
+                </View>
+                <View className="flex-row justify-between py-1.5">
+                  <Text className="text-gray-600 text-sm">Loyalty Points Earned</Text>
+                  <Text className="text-gray-800 font-medium">120</Text>
+                </View>
+                <View className="flex-row justify-between py-1.5">
+                  <Text className="text-gray-600 text-sm">Tax</Text>
+                  <Text className="text-gray-800 font-medium">${summary.tax.toFixed(2)}</Text>
+                </View>
               </View>
             </View>
-            <View className="flex-1 px-4">
-              <View className="flex-row justify-between py-1">
-                <Text className="text-gray-600 text-sm">Additional Discount</Text>
-                <Text className="text-gray-800 font-medium">
-                  {order.discountType === 2
-                    ? `${order.additionalDiscount}%`
-                    : `$${order.additionalDiscount.toFixed(2)}`}
-                </Text>
-              </View>
-              <View className="flex-row justify-between py-1">
-                <Text className="text-gray-600 text-sm">Delivery Charges</Text>
-                <Text className="text-gray-800 font-medium">$0.00</Text>
-              </View>
-              <View className="flex-row justify-between py-1">
-                <Text className="text-gray-600 text-sm">Tax</Text>
-                <Text className="text-gray-800 font-medium">${summary.tax.toFixed(2)}</Text>
-              </View>
-            </View>
-          </View>
 
-          {/* Total */}
-          <View className="items-end justify-center px-4">
-            <Text className="text-red-500 text-sm">Total</Text>
-            <Text className="text-red-500 text-2xl font-bold">${summary.total.toFixed(2)}</Text>
+            {/* Total Bar */}
+            <View className="flex-row justify-between items-center bg-[#FFF0F3] border-t border-red-100 px-4 py-2.5">
+              <Text className="text-red-500 text-[24px] font-bold">Total</Text>
+              <Text className="text-red-500 text-[32px] font-bold">${summary.total.toFixed(2)}</Text>
+            </View>
           </View>
         </View>
       </View>
@@ -987,7 +1015,7 @@ export default function AddProductsScreen() {
         subTotal={summary.subTotal}
         onConfirm={(discount, type) => {
           const dt = type === "percentage" ? 2 : 1;
-          console.log("🏷️ [Discount] Saving →", { additionalDiscount: discount, discountType: dt });
+          console.log("ÃƒÂ°Ã…Â¸Ã‚ÂÃ‚Â·ÃƒÂ¯Ã‚Â¸Ã‚Â [Discount] Saving ÃƒÂ¢Ã¢â‚¬Â Ã¢â‚¬â„¢", { additionalDiscount: discount, discountType: dt });
           updateOrder({ additionalDiscount: discount, discountType: dt as 1 | 2 });
           Alert.alert("Discount Applied", `Discount: ${type === 'percentage' ? `${discount}%` : `$${discount.toFixed(2)}`}`);
           setShowDiscountModal(false);
@@ -1078,7 +1106,7 @@ export default function AddProductsScreen() {
         product={selectedProduct}
       />
 
-      {/* Sale Invoice Modal — shown after placing an order */}
+      {/* Sale Invoice Modal ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â shown after placing an order */}
       <SaleInvoiceModal
         visible={showInvoiceModal}
         onClose={() => {
@@ -1099,7 +1127,7 @@ export default function AddProductsScreen() {
         <ReceiptTemplate ref={receiptRef} data={orderReceiptData ?? receiptData} />
       </View>
 
-      {/* Receipt Image Preview Modal — popup card */}
+      {/* Receipt Image Preview Modal ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â popup card */}
       <Modal
         visible={showReceiptPreview}
         transparent
@@ -1107,7 +1135,7 @@ export default function AddProductsScreen() {
         onRequestClose={() => {
           setShowReceiptPreview(false);
           if (orderReceiptData) {
-            // Was a post-order preview → clean up
+            // Was a post-order preview ÃƒÂ¢Ã¢â‚¬Â Ã¢â‚¬â„¢ clean up
             setOrderReceiptData(null);
             clearOrder();
             setSelectedCustomerData(null);
@@ -1223,3 +1251,4 @@ export default function AddProductsScreen() {
     </View>
   );
 }
+
