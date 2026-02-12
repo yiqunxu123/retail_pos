@@ -20,6 +20,10 @@
 import {
     SaleOrderStatus,
 } from '../constants';
+import {
+    getSqliteTimezoneOffset,
+    getTodayInTimezone,
+} from '../timezone';
 
 // ============================================================================
 // Date Helpers
@@ -43,14 +47,14 @@ export function nextDay(dateStr: string): string {
 }
 
 /**
- * Today's date as YYYY-MM-DD in the device's local timezone.
+ * Today's date as YYYY-MM-DD in the **configured** timezone.
+ *
+ * When the user has selected a specific timezone in Settings,
+ * returns today's date in that timezone. Otherwise falls back to the
+ * device's local timezone.
  */
 export function getLocalToday(): string {
-  const d = new Date();
-  const y = d.getFullYear();
-  const m = String(d.getMonth() + 1).padStart(2, '0');
-  const day = String(d.getDate()).padStart(2, '0');
-  return `${y}-${m}-${day}`;
+  return getTodayInTimezone();
 }
 
 // ============================================================================
@@ -80,19 +84,21 @@ export function dateRangeLocal(
  * Date range for **UTC** columns **with** timezone conversion.
  *
  * For columns like `invoices.created_at` that are stored in UTC.
- * Converts to device local time before extracting DATE.
+ * Converts to the **configured** timezone before extracting DATE.
  *
  * K Web equivalent:
  *   `date(convert_timezone_for_client(col::TIMESTAMPTZ, '{tz}'))`
  * SQLite equivalent:
- *   `DATE(datetime(col, 'localtime'))`
+ *   `DATE(datetime(col, '<offset>'))` where <offset> comes from the
+ *   user's timezone setting (e.g. '+08:00', 'localtime').
  */
 export function dateRangeUTCConverted(
   column: string,
   startDate: string,
   endDate: string,
 ): string {
-  const expr = `DATE(datetime(${column}, 'localtime'))`;
+  const tzModifier = getSqliteTimezoneOffset();
+  const expr = `DATE(datetime(${column}, '${tzModifier}'))`;
   return `${expr} >= '${startDate}' AND ${expr} <= '${endDate}'`;
 }
 
@@ -113,11 +119,14 @@ export function dateRangeUTCRaw(
 /**
  * "Today" filter for **local-time** columns.
  *
- * Uses SQLite's `DATE('now', 'localtime')` so the comparison is against
- * the device's current local date, not UTC.
+ * Uses the **configured** timezone so the comparison is against the
+ * business's local date, not necessarily the device timezone.
+ *
+ * SQLite: `DATE('now', '<offset>')` where <offset> is e.g. '+08:00' or 'localtime'.
  */
 export function dateTodayLocal(column: string): string {
-  return `DATE(${column}) = DATE('now', 'localtime')`;
+  const tzModifier = getSqliteTimezoneOffset();
+  return `DATE(${column}) = DATE('now', '${tzModifier}')`;
 }
 
 // ============================================================================

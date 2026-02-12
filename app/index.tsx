@@ -17,6 +17,7 @@ import { STAFF_SIDEBAR_WIDTH } from "../components/StaffSidebar";
 import { useAuth } from "../contexts/AuthContext";
 import { useClock } from "../contexts/ClockContext";
 import { useParkedOrders } from "../contexts/ParkedOrderContext";
+import { useTimezone } from "../contexts/TimezoneContext";
 import { useViewMode } from "../contexts/ViewModeContext";
 import type { DashboardFilters } from "../utils/powersync/hooks";
 import { useCashManagement, useChannels, useDashboardStats } from "../utils/powersync/hooks";
@@ -63,6 +64,7 @@ export default function Dashboard() {
   const { isClockedIn, selectedPosLine, selectPosLine, clockIn, getClockInTimeString, getElapsedTime } = useClock();
   const { viewMode, setViewMode, isStaffMode } = useViewMode();
   const { clearAndResync, isConnected, isSyncing } = usePowerSync();
+  const { timezone } = useTimezone();
 
   // Dashboard filters - default to "Today"
   const [datePresetIndex, setDatePresetIndex] = useState<number | null>(0);
@@ -71,6 +73,15 @@ export default function Dashboard() {
   const [selectedChannelIds, setSelectedChannelIds] = useState<number[]>([]);
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [showChannelPicker, setShowChannelPicker] = useState(false);
+
+  // When timezone changes, reset date filters to "Today" in the new timezone.
+  // This ensures the dashboard queries pick up the new timezone immediately.
+  useEffect(() => {
+    const today = getToday();
+    setStartDate(today);
+    setEndDate(today);
+    setDatePresetIndex(0);
+  }, [timezone]);
 
   // Get channels
   const { channels, primaryChannel } = useChannels();

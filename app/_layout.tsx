@@ -10,6 +10,7 @@ import { StaffSidebar } from "../components/StaffSidebar";
 import { AuthProvider, useAuth } from "../contexts/AuthContext";
 import { ClockProvider, useClock } from "../contexts/ClockContext";
 import { ParkedOrderProvider } from "../contexts/ParkedOrderContext";
+import { TimezoneProvider } from "../contexts/TimezoneContext";
 import { ViewModeProvider, useViewMode } from "../contexts/ViewModeContext";
 import "../global.css";
 import { PowerSyncProvider } from "../utils/powersync/PowerSyncProvider";
@@ -232,16 +233,18 @@ function DevToolsFab() {
  */
 export default function RootLayout() {
   return (
-    <PowerSyncProvider>
-      <AuthProvider>
-        <ClockProvider>
-          <ViewModeProvider>
-            <ParkedOrderProvider>
-              <LayoutContent />
-            </ParkedOrderProvider>
-          </ViewModeProvider>
-        </ClockProvider>
-      </AuthProvider>
-    </PowerSyncProvider>
+    <TimezoneProvider>
+      <PowerSyncProvider>
+        <AuthProvider>
+          <ClockProvider>
+            <ViewModeProvider>
+              <ParkedOrderProvider>
+                <LayoutContent />
+              </ParkedOrderProvider>
+            </ViewModeProvider>
+          </ClockProvider>
+        </AuthProvider>
+      </PowerSyncProvider>
+    </TimezoneProvider>
   );
 }
