@@ -1,72 +1,75 @@
-import { Modal, View, Text, Pressable } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { Modal, Pressable, Text, View } from "react-native";
 
 interface ClockOutModalProps {
   visible: boolean;
   onClose: () => void;
+  onDeclareCash: () => void;
   onClockOut: () => void;
 }
 
 /**
- * ClockOutModal - Confirmation dialog for clocking out
- * Shows warning message and confirm/cancel buttons
+ * ClockOutModal - Clock out confirmation aligned to staff dashboard visual.
  */
-export function ClockOutModal({ visible, onClose, onClockOut }: ClockOutModalProps) {
+export function ClockOutModal({
+  visible,
+  onClose,
+  onDeclareCash,
+  onClockOut,
+}: ClockOutModalProps) {
   return (
-    <Modal
-      visible={visible}
-      transparent
-      animationType="fade"
-      onRequestClose={onClose}
-    >
-      <Pressable
-        className="flex-1 bg-black/50 justify-center items-center"
-        onPress={onClose}
-      >
-        {/* Modal content */}
+    <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
+      <Pressable className="flex-1 bg-black/45 justify-center items-center px-4" onPress={onClose}>
         <Pressable
-          className="bg-white rounded-xl w-[380px] overflow-hidden"
+          className="bg-white rounded-xl overflow-hidden border border-[#E5E7EB]"
+          style={{
+            width: "92%",
+            maxWidth: 680,
+            shadowColor: "#000",
+            shadowOffset: { width: 0, height: 8 },
+            shadowOpacity: 0.2,
+            shadowRadius: 20,
+            elevation: 8,
+          }}
           onPress={(e) => e.stopPropagation()}
         >
-          {/* Header */}
-          <View className="flex-row justify-between items-center px-4 py-3 border-b border-gray-200">
-            <Text className="text-lg font-semibold text-gray-800">
-              Clock Out
-            </Text>
-            <Pressable
-              onPress={onClose}
-              className="p-1"
-              style={({ pressed }) => ({ opacity: pressed ? 0.5 : 1 })}
-            >
-              <Ionicons name="close" size={24} color="#6b7280" />
+          <View className="flex-row justify-between items-center px-5 py-3 border-b border-[#E5E7EB]">
+            <Text className="text-2xl font-semibold text-[#111827]">Clock Out</Text>
+            <Pressable onPress={onClose} style={({ pressed }) => ({ opacity: pressed ? 0.55 : 1 })}>
+              <Ionicons name="close" size={26} color="#1F2937" />
             </Pressable>
           </View>
 
-          {/* Content */}
-          <View className="px-6 py-6">
-            <Text className="text-gray-700 text-center text-base leading-6">
-              Are you sure you want to clock out?
+          <View className="px-8 pt-14 pb-12">
+            <Text className="text-center text-[#4B5563] text-[17px] leading-7 font-medium">
+              If you have not declared cash for this shift, you must complete cash declaration before clocking out.
             </Text>
-            <Text className="text-gray-500 text-center text-sm mt-2 leading-5">
-              Any active work session will be ended, and you will be logged out of the system.
+            <Text className="text-center text-[#4B5563] text-[17px] leading-7 font-medium mt-2">
+              If cash has already been declared, you may proceed to clock out.
             </Text>
           </View>
 
-          {/* Actions */}
-          <View className="flex-row gap-3 px-6 pb-6">
+          <View className="flex-row gap-4 px-5 pb-5">
             <Pressable
               onPress={onClose}
-              className="flex-1 border border-orange-500 py-3 rounded-lg items-center"
+              className="flex-1 py-4 rounded-lg items-center justify-center bg-[#F7E8EA]"
               style={({ pressed }) => ({ opacity: pressed ? 0.7 : 1 })}
             >
-              <Text className="text-orange-500 font-semibold">⊗ Cancel</Text>
+              <Text className="text-[#D93E66] text-[17px] font-medium">Cancel</Text>
+            </Pressable>
+            <Pressable
+              onPress={onDeclareCash}
+              className="flex-1 py-4 rounded-lg items-center justify-center bg-[#4C47B8]"
+              style={({ pressed }) => ({ opacity: pressed ? 0.8 : 1 })}
+            >
+              <Text className="text-white text-[17px] font-medium">Declare Cash</Text>
             </Pressable>
             <Pressable
               onPress={onClockOut}
-              className="flex-1 bg-red-500 py-3 rounded-lg items-center"
+              className="flex-1 py-4 rounded-lg items-center justify-center bg-[#EC1A52]"
               style={({ pressed }) => ({ opacity: pressed ? 0.8 : 1 })}
             >
-              <Text className="text-white font-semibold">Clock Out</Text>
+              <Text className="text-white text-[17px] font-medium">Clock Out</Text>
             </Pressable>
           </View>
         </Pressable>

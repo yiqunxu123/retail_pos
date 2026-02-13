@@ -111,6 +111,14 @@ function LayoutContent() {
     setShowClockOutModal(false);
   };
 
+  const handleDeclareCash = () => {
+    setShowClockOutModal(false);
+    router.push({
+      pathname: "/",
+      params: { openDeclareCash: `${Date.now()}` },
+    });
+  };
+
   return (
     <View
       className="flex-1 bg-gray-100"
@@ -158,6 +166,7 @@ function LayoutContent() {
       <ClockOutModal
         visible={showClockOutModal}
         onClose={() => setShowClockOutModal(false)}
+        onDeclareCash={handleDeclareCash}
         onClockOut={handleClockOut}
       />
 

@@ -1,6 +1,6 @@
 import { FontAwesome5, Ionicons, MaterialCommunityIcons, MaterialIcons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { useRouter } from "expo-router";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Alert, Modal, Pressable, ScrollView, Text, ToastAndroid, TouchableOpacity, useWindowDimensions, View } from "react-native";
 import {
@@ -60,6 +60,7 @@ function formatDateDisplay(dateStr: string): string {
 export default function Dashboard() {
   const { width, height } = useWindowDimensions();
   const router = useRouter();
+  const { openDeclareCash } = useLocalSearchParams<{ openDeclareCash?: string | string[] }>();
   const { user, isAdmin } = useAuth();
   const { isClockedIn, selectedPosLine, selectPosLine, clockIn, getClockInTimeString, getElapsedTime } = useClock();
   const { viewMode, setViewMode, isStaffMode } = useViewMode();
@@ -156,12 +157,22 @@ export default function Dashboard() {
   const [showCashEntryModal, setShowCashEntryModal] = useState(false);
   const [showCashResultModal, setShowCashResultModal] = useState(false);
   const [cashResult, setCashResult] = useState({ isMatched: true, actualCash: 0 });
+  const [lastHandledDeclareCashToken, setLastHandledDeclareCashToken] = useState<string | null>(null);
   
   // Check if user is admin
   const showAdminStats = isAdmin();
   
   // Determine layout orientation
   const isLandscape = width > height;
+
+  useEffect(() => {
+    const openParam = Array.isArray(openDeclareCash) ? openDeclareCash[0] : openDeclareCash;
+    if (!openParam) return;
+    if (openParam === lastHandledDeclareCashToken) return;
+
+    setShowDeclareCashModal(true);
+    setLastHandledDeclareCashToken(openParam);
+  }, [openDeclareCash, lastHandledDeclareCashToken]);
   
   // Calculate available content width
   const sidebarWidth = isStaffMode ? STAFF_SIDEBAR_WIDTH : SIDEBAR_WIDTH;
@@ -1035,4 +1046,3 @@ Cookies               x3    $6.00
     </View>
   );
 }
-
