@@ -38,12 +38,17 @@ function LayoutContent() {
   const isPosLineScreen = pathname === "/pos-line";
   // Only add-products has its own action sidebar; other order pages get the global sidebar
   const isOrderAddProductsScreen = pathname === "/order/add-products";
+  const isOrderAddCustomerScreen = pathname === "/order/add-customer";
   
   // Only /sale/reports actually uses StaffPageLayout with its own sidebar
   const isStaffPageLayoutScreen = pathname === "/sale/reports";
   
   // Hide global sidebar ONLY for pages that provide their own sidebar/action panel
-  const hideSidebar = isPosLineScreen || isOrderAddProductsScreen || isStaffPageLayoutScreen;
+  const hideSidebar =
+    isPosLineScreen ||
+    isOrderAddProductsScreen ||
+    isOrderAddCustomerScreen ||
+    isStaffPageLayoutScreen;
 
   // Show loading screen while checking stored authentication
   if (isLoading) {

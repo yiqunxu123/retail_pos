@@ -1,4 +1,4 @@
-import { Slot } from "expo-router";
+import { Stack } from "expo-router";
 import { View } from "react-native";
 import { OrderProvider } from "../../contexts/OrderContext";
 
@@ -9,7 +9,18 @@ export default function OrderLayout() {
   return (
     <OrderProvider>
       <View className="flex-1 bg-gray-100">
-        <Slot />
+        <Stack screenOptions={{ headerShown: false }}>
+          <Stack.Screen
+            name="add-customer"
+            options={{
+              presentation: "transparentModal",
+              animation: "fade",
+              contentStyle: { backgroundColor: "transparent" },
+            }}
+          />
+          <Stack.Screen name="add-products" />
+          <Stack.Screen name="checkout" />
+        </Stack>
       </View>
     </OrderProvider>
   );
