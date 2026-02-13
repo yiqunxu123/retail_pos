@@ -16,13 +16,15 @@ interface AmountPadModalProps {
   visible: boolean;
   onClose: () => void;
   title: string;
-  typeLabel: string;
-  typeOptions: AmountPadOption[];
-  showTypeDropdown: boolean;
-  onToggleTypeDropdown: () => void;
-  onSelectType: (value: string) => void;
+  showTypeSelector?: boolean;
+  typeLabel?: string;
+  typeOptions?: AmountPadOption[];
+  showTypeDropdown?: boolean;
+  onToggleTypeDropdown?: () => void;
+  onSelectType?: (value: string) => void;
   summaryCards: [AmountPadSummaryCard, AmountPadSummaryCard, AmountPadSummaryCard];
   onNumberPress: (num: string) => void;
+  showZeroKey?: boolean;
   showDecimalKey?: boolean;
   onDecimalPress?: () => void;
   onCancelAction: () => void;
@@ -45,13 +47,15 @@ export function AmountPadModal({
   visible,
   onClose,
   title,
+  showTypeSelector = true,
   typeLabel,
-  typeOptions,
-  showTypeDropdown,
+  typeOptions = [],
+  showTypeDropdown = false,
   onToggleTypeDropdown,
   onSelectType,
   summaryCards,
   onNumberPress,
+  showZeroKey = true,
   showDecimalKey = false,
   onDecimalPress,
   onCancelAction,
@@ -68,42 +72,44 @@ export function AmountPadModal({
           style={{ width: modalWidth }}
           onPress={(e) => e.stopPropagation()}
         >
-          <View className="flex-row justify-between items-center px-5 py-2.5 border-b border-[#E5E7EB]">
+          <View className="flex-row justify-between items-center px-5 py-3.5 border-b border-[#E5E7EB]">
             <View className="flex-row items-center gap-4">
-              <Text className="text-2xl font-semibold text-gray-800">{title}</Text>
-              <View className="relative">
-                <Pressable
-                  onPress={onToggleTypeDropdown}
-                  className="flex-row items-center bg-white border border-[#D9B8C6] px-3 py-1.5 rounded-md gap-2"
-                >
-                  <Text className="text-[#D53A66] text-[15px] font-medium">{typeLabel}</Text>
-                  <Ionicons name="chevron-down" size={16} color="#9CA3AF" />
-                </Pressable>
-                {showTypeDropdown && (
-                  <View className="absolute top-10 left-0 bg-white border border-gray-200 rounded-lg shadow-lg z-10 min-w-[190px]">
-                    {typeOptions.map((option, idx) => (
-                      <Pressable
-                        key={option.value}
-                        onPress={() => onSelectType(option.value)}
-                        className={`px-4 py-2 ${idx < typeOptions.length - 1 ? "border-b border-gray-100" : ""}`}
-                      >
-                        <Text className="text-gray-700">{option.label}</Text>
-                      </Pressable>
-                    ))}
-                  </View>
-                )}
-              </View>
+              <Text className="text-2xl font-semibold text-gray-800 flex-shrink">{title}</Text>
+              {showTypeSelector && typeLabel && (
+                <View className="relative">
+                  <Pressable
+                    onPress={onToggleTypeDropdown}
+                    className="flex-row items-center bg-white border border-[#D9B8C6] px-3 py-1.5 rounded-md gap-2"
+                  >
+                    <Text className="text-[#D53A66] text-[15px] font-medium">{typeLabel}</Text>
+                    <Ionicons name="chevron-down" size={16} color="#9CA3AF" />
+                  </Pressable>
+                  {showTypeDropdown && (
+                    <View className="absolute top-10 left-0 bg-white border border-gray-200 rounded-lg shadow-lg z-10 min-w-[190px]">
+                      {typeOptions.map((option, idx) => (
+                        <Pressable
+                          key={option.value}
+                          onPress={() => onSelectType?.(option.value)}
+                          className={`px-4 py-2 ${idx < typeOptions.length - 1 ? "border-b border-gray-100" : ""}`}
+                        >
+                          <Text className="text-gray-700">{option.label}</Text>
+                        </Pressable>
+                      ))}
+                    </View>
+                  )}
+                </View>
+              )}
             </View>
             <Pressable onPress={onClose} style={({ pressed }) => ({ opacity: pressed ? 0.5 : 1 })}>
               <Ionicons name="close" size={26} color="#1f2937" />
             </Pressable>
           </View>
 
-          <View className="px-4 pt-2.5 pb-3">
-            <View className="flex-row gap-3 mb-2.5">
+          <View className="px-4 pt-4 pb-5">
+            <View className="flex-row gap-3 mb-3">
               {summaryCards.map((card) => (
                 <View key={card.label} className="flex-1">
-                  <Text className="text-[#111827] text-[17px] font-semibold mb-1.5">{card.label}</Text>
+                  <Text className="text-[#111827] text-[17px] font-semibold mb-2">{card.label}</Text>
                   <View
                     className="rounded-lg bg-[#F6F7F9] px-4 py-4 border border-[#E4E7EC] justify-center"
                     style={{
@@ -141,28 +147,32 @@ export function AmountPadModal({
                     ))}
                   </View>
                 ))}
-                <View className="flex-row gap-2">
-                  <Pressable
-                    onPress={() => onNumberPress("0")}
-                    className="flex-1 bg-white h-16 rounded-xl items-center justify-center border border-gray-200"
-                    style={({ pressed }) => ({
-                      backgroundColor: pressed ? "#E7EBF1" : "#FFFFFF",
-                    })}
-                  >
-                    <Text className="text-[30px] leading-[34px] font-semibold text-gray-800">0</Text>
-                  </Pressable>
-                  {showDecimalKey && (
-                    <Pressable
-                      onPress={onDecimalPress}
-                      className="flex-1 bg-white h-16 rounded-xl items-center justify-center border border-gray-200"
-                      style={({ pressed }) => ({
-                        backgroundColor: pressed ? "#E7EBF1" : "#FFFFFF",
-                      })}
-                    >
-                      <Text className="text-[30px] leading-[34px] font-semibold text-gray-800">.</Text>
-                    </Pressable>
-                  )}
-                </View>
+                {(showZeroKey || showDecimalKey) && (
+                  <View className="flex-row gap-2">
+                    {showZeroKey && (
+                      <Pressable
+                        onPress={() => onNumberPress("0")}
+                        className="flex-1 bg-white h-16 rounded-xl items-center justify-center border border-gray-200"
+                        style={({ pressed }) => ({
+                          backgroundColor: pressed ? "#E7EBF1" : "#FFFFFF",
+                        })}
+                      >
+                        <Text className="text-[30px] leading-[34px] font-semibold text-gray-800">0</Text>
+                      </Pressable>
+                    )}
+                    {showDecimalKey && (
+                      <Pressable
+                        onPress={onDecimalPress}
+                        className="flex-1 bg-white h-16 rounded-xl items-center justify-center border border-gray-200"
+                        style={({ pressed }) => ({
+                          backgroundColor: pressed ? "#E7EBF1" : "#FFFFFF",
+                        })}
+                      >
+                        <Text className="text-[30px] leading-[34px] font-semibold text-gray-800">.</Text>
+                      </Pressable>
+                    )}
+                  </View>
+                )}
               </View>
 
               <View className="w-52 gap-2">
