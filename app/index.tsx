@@ -156,11 +156,8 @@ export default function Dashboard() {
     setShowChannelPicker(false);
   }, []);
 
-  // Get display label for current date range
-  const PRESET_LABELS = ['Today', 'Yesterday', 'Last 7 Days', 'Last 14 Days', 'Last 30 Days', 'This Month', 'This Year', 'Last 1 Year'];
-  const dateLabel = datePresetIndex !== null
-    ? PRESET_LABELS[datePresetIndex] || `${formatDateDisplay(startDate)} ~ ${formatDateDisplay(endDate)}`
-    : `${formatDateDisplay(startDate)} ~ ${formatDateDisplay(endDate)}`;
+  // Always display explicit range (same visual mental model as K Web RangePicker).
+  const dateRangeLabel = `${formatDateDisplay(startDate)} ~ ${formatDateDisplay(endDate)}`;
   
   // Get display label for current channel selection
   const channelLabel = selectedChannelIds.length === 0 
@@ -771,28 +768,34 @@ Cookies               x3    $6.00
 
         {/* ===== DASHBOARD FILTERS ===== */}
         {showAdminStats && (
-          <View className="flex-row justify-end gap-3 mb-4">
+          <View className="mb-4 gap-3">
             {/* Date Range Selector */}
-            <TouchableOpacity
-              onPress={() => setShowDatePicker(true)}
-              className="flex-row items-center rounded-lg px-4 py-3 gap-2"
-              style={{ backgroundColor: '#fff', borderWidth: 1, borderColor: '#E5E7EB' }}
-            >
-              <Ionicons name="calendar-outline" size={18} color="#4B5563" />
-              <Text style={{ fontSize: 14, color: '#1F2937', fontWeight: '500' }}>{dateLabel}</Text>
-              <Ionicons name="chevron-down" size={14} color="#9CA3AF" />
-            </TouchableOpacity>
+            <View className="flex-row justify-end gap-3" style={{ flexWrap: "wrap" }}>
+              <TouchableOpacity
+                onPress={() => setShowDatePicker(true)}
+                className="rounded-lg px-4 py-3"
+                style={{ backgroundColor: '#fff', borderWidth: 1, borderColor: '#E5E7EB', minWidth: 260, flexShrink: 1 }}
+              >
+                <View className="flex-row items-center justify-between">
+                  <View className="flex-row items-center gap-2">
+                    <Ionicons name="calendar-outline" size={18} color="#4B5563" />
+                    <Text style={{ fontSize: 14, color: '#1F2937', fontWeight: '600' }}>{dateRangeLabel}</Text>
+                  </View>
+                  <Ionicons name="chevron-down" size={14} color="#9CA3AF" />
+                </View>
+              </TouchableOpacity>
 
-            {/* Channel Selector */}
-            <TouchableOpacity
-              onPress={() => setShowChannelPicker(true)}
-              className="flex-row items-center rounded-lg px-4 py-3 gap-2"
-              style={{ backgroundColor: '#fff', borderWidth: 1, borderColor: '#E5E7EB' }}
-            >
-              <Ionicons name="storefront-outline" size={18} color="#4B5563" />
-              <Text style={{ fontSize: 14, color: '#1F2937', fontWeight: '500' }}>{channelLabel}</Text>
-              <Ionicons name="chevron-down" size={14} color="#9CA3AF" />
-            </TouchableOpacity>
+              {/* Channel Selector */}
+              <TouchableOpacity
+                onPress={() => setShowChannelPicker(true)}
+                className="flex-row items-center rounded-lg px-4 py-3 gap-2"
+                style={{ backgroundColor: '#fff', borderWidth: 1, borderColor: '#E5E7EB' }}
+              >
+                <Ionicons name="storefront-outline" size={18} color="#4B5563" />
+                <Text style={{ fontSize: 14, color: '#1F2937', fontWeight: '500' }}>{channelLabel}</Text>
+                <Ionicons name="chevron-down" size={14} color="#9CA3AF" />
+              </TouchableOpacity>
+            </View>
           </View>
         )}
 
@@ -978,6 +981,8 @@ Cookies               x3    $6.00
         onClose={() => setShowDatePicker(false)}
         onApply={handleDateApply}
         activePresetIndex={datePresetIndex}
+        startDate={startDate}
+        endDate={endDate}
       />
 
       {/* ===== CHANNEL PICKER MODAL ===== */}

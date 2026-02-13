@@ -6,7 +6,7 @@ export { CashPaymentModal } from "./CashPaymentModal";
 export { CustomerCard } from "./CustomerCard";
 export { DataTable } from "./DataTable";
 export type { ColumnDefinition, DataTableProps, FilterDefinition, FilterOption } from "./DataTable";
-export { DateRangePickerModal } from "./DateRangePickerModal";
+export { DATE_RANGE_PRESETS, DateRangePickerModal } from "./DateRangePickerModal";
 export { CATEGORIES_TABLE, DevDataOverlay, PRODUCTS_TABLE } from "./DevDataOverlay";
 export type { DevTableConfig } from "./DevDataOverlay";
 export { Dropdown } from "./Dropdown";
@@ -28,4 +28,3 @@ export { STAFF_SIDEBAR_WIDTH, StaffSidebar } from "./StaffSidebar";
 export { StatCard } from "./StatCard";
 export { StatCardHorizontal } from "./StatCardHorizontal";
 export { StepNavigation } from "./StepNavigation";
-

@@ -6,12 +6,15 @@
  */
 
 import { Ionicons } from "@expo/vector-icons";
-import React, { useCallback } from "react";
+import React, { useCallback, useEffect, useState } from "react";
+import { Calendar, DateData } from "react-native-calendars";
 import {
     Modal,
     Pressable,
+    ScrollView,
     Text,
-    TouchableOpacity
+    TouchableOpacity,
+    View,
 } from "react-native";
 import { getLocalToday } from "../utils/powersync/sqlFilters";
 
@@ -22,6 +25,13 @@ interface DateRangePickerModalProps {
   onClose: () => void;
   onApply: (startDate: string, endDate: string, presetIndex: number | null) => void;
   activePresetIndex: number | null;
+  startDate: string;
+  endDate: string;
+}
+
+export interface DateRangePreset {
+  label: string;
+  getRange: () => { start: string; end: string };
 }
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
@@ -49,31 +59,34 @@ function getDateOffset(days: number): string {
   return toDateStr(d);
 }
 
-function getYearAgoToday(): string {
-  const [y, m, day] = parseDateStr(getToday());
-  const d = new Date(Date.UTC(y - 1, m - 1, day));
-  return toDateStr(d);
+function buildMarkedDates(
+  startDate: string,
+  endDate: string,
+  activeTarget: "start" | "end" | null
+): Record<string, any> {
+  const marks: Record<string, any> = {};
+  if (startDate) {
+    marks[startDate] = {
+      selected: true,
+      selectedColor: activeTarget === "start" ? "#EC1A52" : "#9CA3AF",
+    };
+  }
+  if (endDate) {
+    marks[endDate] = {
+      selected: true,
+      selectedColor: activeTarget === "end" ? "#EC1A52" : "#2563EB",
+    };
+  }
+  return marks;
 }
 
-function getThisMonthStart(): string {
-  const [y, m] = parseDateStr(getToday());
-  return `${y}-${String(m).padStart(2, "0")}-01`;
-}
-
-function getThisYearStart(): string {
-  const [y] = parseDateStr(getToday());
-  return `${y}-01-01`;
-}
-
-const PRESETS = [
+export const DATE_RANGE_PRESETS: DateRangePreset[] = [
   { label: "Today", getRange: () => ({ start: getToday(), end: getToday() }) },
   { label: "Yesterday", getRange: () => ({ start: getDateOffset(1), end: getDateOffset(1) }) },
-  { label: "Last 7 Days", getRange: () => ({ start: getDateOffset(6), end: getToday() }) },
-  { label: "Last 14 Days", getRange: () => ({ start: getDateOffset(13), end: getToday() }) },
-  { label: "Last 30 Days", getRange: () => ({ start: getDateOffset(29), end: getToday() }) },
-  { label: "This Month", getRange: () => ({ start: getThisMonthStart(), end: getToday() }) },
-  { label: "This Year", getRange: () => ({ start: getThisYearStart(), end: getToday() }) },
-  { label: "Last 1 Year", getRange: () => ({ start: getYearAgoToday(), end: getToday() }) },
+  // Keep offsets aligned with K Web RangePicker presets.
+  { label: "Last 7 Days", getRange: () => ({ start: getDateOffset(7), end: getToday() }) },
+  { label: "Last 14 Days", getRange: () => ({ start: getDateOffset(14), end: getToday() }) },
+  { label: "Last 30 Days", getRange: () => ({ start: getDateOffset(30), end: getToday() }) },
 ];
 
 // ── Component ────────────────────────────────────────────────────────────────
@@ -83,14 +96,49 @@ export function DateRangePickerModal({
   onClose,
   onApply,
   activePresetIndex,
+  startDate,
+  endDate,
 }: DateRangePickerModalProps) {
+  const [customStartDate, setCustomStartDate] = useState(startDate);
+  const [customEndDate, setCustomEndDate] = useState(endDate);
+  const [pickerTarget, setPickerTarget] = useState<"start" | "end" | null>(null);
+
+  useEffect(() => {
+    if (!visible) return;
+    setCustomStartDate(startDate);
+    setCustomEndDate(endDate);
+    setPickerTarget(null);
+  }, [visible, startDate, endDate]);
+
   const handlePreset = useCallback(
     (index: number) => {
-      const { start, end } = PRESETS[index].getRange();
+      const { start, end } = DATE_RANGE_PRESETS[index].getRange();
       onApply(start, end, index);
     },
     [onApply]
   );
+
+  const openPicker = useCallback((target: "start" | "end") => {
+    setPickerTarget(target);
+  }, []);
+
+  const handleDayPress = useCallback((day: DateData) => {
+    const selected = day.dateString;
+    if (pickerTarget === "start") {
+      setCustomStartDate(selected);
+      if (selected > customEndDate) setCustomEndDate(selected);
+    } else if (pickerTarget === "end") {
+      setCustomEndDate(selected);
+      if (selected < customStartDate) setCustomStartDate(selected);
+    }
+    setPickerTarget(null);
+  }, [pickerTarget, customStartDate, customEndDate]);
+
+  const applyCustomRange = useCallback(() => {
+    const normalizedStart = customStartDate <= customEndDate ? customStartDate : customEndDate;
+    const normalizedEnd = customStartDate <= customEndDate ? customEndDate : customStartDate;
+    onApply(normalizedStart, normalizedEnd, null);
+  }, [customStartDate, customEndDate, onApply]);
 
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
@@ -109,73 +157,186 @@ export function DateRangePickerModal({
             borderRadius: 16,
             paddingVertical: 20,
             paddingHorizontal: 16,
-            width: 280,
+            width: 360,
             maxWidth: "90%",
+            maxHeight: "88%",
           }}
           onPress={() => {}}
         >
-          <Text
-            style={{
-              fontSize: 16,
-              fontWeight: "700",
-              color: "#1F2937",
-              marginBottom: 16,
-              paddingHorizontal: 4,
-            }}
-          >
-            Select Date Range
-          </Text>
+          <ScrollView showsVerticalScrollIndicator={false} bounces={false}>
+            <Text
+              style={{
+                fontSize: 16,
+                fontWeight: "700",
+                color: "#1F2937",
+                marginBottom: 16,
+                paddingHorizontal: 4,
+              }}
+            >
+              Select Date Range
+            </Text>
 
-          {PRESETS.map((preset, index) => {
-            const isActive = activePresetIndex === index;
-            return (
+            <Text
+              style={{
+                fontSize: 13,
+                fontWeight: "700",
+                color: "#374151",
+                marginBottom: 8,
+                paddingHorizontal: 4,
+              }}
+            >
+              Custom Range
+            </Text>
+
+            <View style={{ flexDirection: "row", gap: 8 }}>
               <TouchableOpacity
-                key={preset.label}
-                onPress={() => handlePreset(index)}
+                onPress={() => openPicker("start")}
                 style={{
+                  flex: 1,
                   flexDirection: "row",
                   alignItems: "center",
-                  paddingVertical: 12,
-                  paddingHorizontal: 14,
+                  justifyContent: "space-between",
+                  borderWidth: 1,
+                  borderColor: pickerTarget === "start" ? "#EC1A52" : "#E5E7EB",
                   borderRadius: 10,
-                  marginBottom: 4,
-                  backgroundColor: isActive ? "#EC1A52" : "transparent",
+                  paddingHorizontal: 12,
+                  paddingVertical: 10,
+                  backgroundColor: "#fff",
                 }}
-                activeOpacity={0.7}
+                activeOpacity={0.8}
               >
-                <Ionicons
-                  name={isActive ? "checkmark-circle" : "ellipse-outline"}
-                  size={18}
-                  color={isActive ? "#fff" : "#9CA3AF"}
-                  style={{ marginRight: 10 }}
-                />
+                <View>
+                  <Text style={{ fontSize: 11, color: "#6B7280", marginBottom: 2 }}>Start Date</Text>
+                  <Text style={{ fontSize: 14, color: "#111827", fontWeight: "600" }}>{customStartDate}</Text>
+                </View>
+                <Ionicons name="calendar-outline" size={18} color="#6B7280" />
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                onPress={() => openPicker("end")}
+                style={{
+                  flex: 1,
+                  flexDirection: "row",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  borderWidth: 1,
+                  borderColor: pickerTarget === "end" ? "#EC1A52" : "#E5E7EB",
+                  borderRadius: 10,
+                  paddingHorizontal: 12,
+                  paddingVertical: 10,
+                  backgroundColor: "#fff",
+                }}
+                activeOpacity={0.8}
+              >
+                <View>
+                  <Text style={{ fontSize: 11, color: "#6B7280", marginBottom: 2 }}>End Date</Text>
+                  <Text style={{ fontSize: 14, color: "#111827", fontWeight: "600" }}>{customEndDate}</Text>
+                </View>
+                <Ionicons name="calendar-outline" size={18} color="#6B7280" />
+              </TouchableOpacity>
+            </View>
+
+            {pickerTarget && (
+              <View
+                style={{
+                  marginTop: 10,
+                  borderWidth: 1,
+                  borderColor: "#E5E7EB",
+                  borderRadius: 10,
+                  overflow: "hidden",
+                }}
+              >
                 <Text
                   style={{
-                    flex: 1,
-                    fontSize: 15,
-                    fontWeight: isActive ? "600" : "400",
-                    color: isActive ? "#fff" : "#374151",
+                    paddingHorizontal: 12,
+                    paddingTop: 10,
+                    fontSize: 12,
+                    color: "#6B7280",
+                    fontWeight: "600",
                   }}
                 >
-                  {preset.label}
+                  {pickerTarget === "start" ? "Select Start Date" : "Select End Date"}
                 </Text>
-                {isActive && (
-                  <Ionicons name="checkmark" size={16} color="#fff" />
-                )}
-              </TouchableOpacity>
-            );
-          })}
+                <Calendar
+                  current={pickerTarget === "start" ? customStartDate : customEndDate}
+                  onDayPress={handleDayPress}
+                  markedDates={buildMarkedDates(customStartDate, customEndDate, pickerTarget)}
+                  theme={{
+                    todayTextColor: "#EC1A52",
+                    arrowColor: "#EC1A52",
+                    textMonthFontWeight: "700",
+                    textDayHeaderFontWeight: "600",
+                  }}
+                />
+              </View>
+            )}
 
-          <TouchableOpacity
-            onPress={onClose}
-            style={{
-              marginTop: 12,
-              paddingVertical: 10,
-              alignItems: "center",
-            }}
-          >
-            <Text style={{ fontSize: 14, color: "#6B7280", fontWeight: "500" }}>Cancel</Text>
-          </TouchableOpacity>
+            <TouchableOpacity
+              onPress={applyCustomRange}
+              style={{
+                marginTop: 12,
+                borderRadius: 10,
+                paddingVertical: 11,
+                alignItems: "center",
+                backgroundColor: "#EC1A52",
+              }}
+              activeOpacity={0.85}
+            >
+              <Text style={{ color: "#fff", fontSize: 14, fontWeight: "700" }}>Apply Range</Text>
+            </TouchableOpacity>
+
+            <View
+              style={{
+                height: 1,
+                backgroundColor: "#E5E7EB",
+                marginVertical: 12,
+              }}
+            />
+
+            <Text
+              style={{
+                fontSize: 13,
+                fontWeight: "700",
+                color: "#374151",
+                marginBottom: 10,
+                paddingHorizontal: 4,
+              }}
+            >
+              Quick Ranges
+            </Text>
+
+            <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
+              {DATE_RANGE_PRESETS.map((preset, index) => {
+                const isActive = activePresetIndex === index;
+                return (
+                  <TouchableOpacity
+                    key={preset.label}
+                    onPress={() => handlePreset(index)}
+                    style={{
+                      paddingVertical: 8,
+                      paddingHorizontal: 12,
+                      borderRadius: 999,
+                      borderWidth: 1,
+                      borderColor: isActive ? "#EC1A52" : "#E5E7EB",
+                      backgroundColor: isActive ? "#FDE8EE" : "#fff",
+                    }}
+                    activeOpacity={0.8}
+                  >
+                    <Text
+                      style={{
+                        fontSize: 13,
+                        fontWeight: isActive ? "700" : "500",
+                        color: isActive ? "#EC1A52" : "#4B5563",
+                      }}
+                    >
+                      {preset.label}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+
+          </ScrollView>
         </Pressable>
       </Pressable>
     </Modal>

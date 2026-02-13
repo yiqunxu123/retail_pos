@@ -13,11 +13,6 @@ import {
     setPrinterEnabled,
     updatePrinter
 } from "../utils/PrinterPoolManager";
-import { useTimezone } from "../contexts/TimezoneContext";
-import {
-    TIMEZONE_LIST,
-    TimezoneOption,
-} from "../utils/timezone";
 
 // Storage key for printers
 const PRINTERS_STORAGE_KEY = "printer_pool_config";
@@ -43,10 +38,6 @@ export default function SettingsScreen() {
   const [formProductId, setFormProductId] = useState("");
   const [formMacAddress, setFormMacAddress] = useState("");
   const [formPrintWidth, setFormPrintWidth] = useState("576");
-
-  // Timezone from context (changes propagate to all subscribers like Dashboard)
-  const { timezone: selectedTimezone, timezoneLabel, setTimezone } = useTimezone();
-  const [showTimezonePicker, setShowTimezonePicker] = useState(false);
 
   // Print format setting: "receipt" or "a4"
   const [printFormat, setPrintFormat] = useState<"receipt" | "a4">("receipt");
@@ -276,74 +267,6 @@ export default function SettingsScreen() {
       console.log("Failed to save print format:", e);
     }
   };
-
-  // Handle timezone selection
-  const handleTimezoneSelect = async (tz: TimezoneOption) => {
-    setShowTimezonePicker(false);
-    await setTimezone(tz.value);
-  };
-
-  // Render timezone picker modal
-  const renderTimezonePicker = () => (
-    <Modal
-      visible={showTimezonePicker}
-      transparent
-      animationType="fade"
-      onRequestClose={() => setShowTimezonePicker(false)}
-    >
-      <TouchableOpacity
-        className="flex-1 bg-black/50 justify-center items-center"
-        activeOpacity={1}
-        onPress={() => setShowTimezonePicker(false)}
-      >
-        <View
-          className="bg-white rounded-2xl overflow-hidden"
-          style={{ width: 400 }}
-          onStartShouldSetResponder={() => true}
-        >
-          {/* Header */}
-          <View className="flex-row justify-between items-center px-6 py-4 border-b border-gray-200 bg-gray-50">
-            <View className="flex-row items-center gap-3">
-              <View className="w-10 h-10 bg-indigo-100 rounded-full items-center justify-center">
-                <Ionicons name="globe-outline" size={24} color="#6366f1" />
-              </View>
-              <Text className="text-xl font-semibold text-gray-800">Select Timezone</Text>
-            </View>
-            <TouchableOpacity onPress={() => setShowTimezonePicker(false)}>
-              <Ionicons name="close" size={24} color="#6b7280" />
-            </TouchableOpacity>
-          </View>
-
-          {/* Timezone list */}
-          <View className="p-4">
-            {TIMEZONE_LIST.map((tz) => {
-              const isSelected = tz.value === selectedTimezone;
-              return (
-                <TouchableOpacity
-                  key={tz.value}
-                  onPress={() => handleTimezoneSelect(tz)}
-                  className={`flex-row items-center justify-between px-4 py-3.5 rounded-xl mb-1 ${
-                    isSelected ? 'bg-indigo-50' : 'bg-white'
-                  }`}
-                >
-                  <Text
-                    className={`text-base flex-1 ${
-                      isSelected ? 'text-indigo-700 font-semibold' : 'text-gray-700'
-                    }`}
-                  >
-                    {tz.label}
-                  </Text>
-                  {isSelected && (
-                    <Ionicons name="checkmark-circle" size={22} color="#6366f1" />
-                  )}
-                </TouchableOpacity>
-              );
-            })}
-          </View>
-        </View>
-      </TouchableOpacity>
-    </Modal>
-  );
 
   // Render print format picker modal
   const PRINT_FORMAT_OPTIONS: { value: "receipt" | "a4"; label: string; desc: string; icon: string }[] = [
@@ -647,7 +570,7 @@ export default function SettingsScreen() {
                 <View className="bg-blue-50 rounded-xl p-4 mb-5 flex-row items-start gap-3">
                   <Ionicons name="information-circle" size={20} color="#3b82f6" />
                   <Text className="text-blue-700 text-sm flex-1">
-                    Please pair the Bluetooth printer in system settings first, then enter the printer's MAC address.
+                    Please pair the Bluetooth printer in system settings first, then enter the printer MAC address.
                   </Text>
                 </View>
               </>
@@ -777,26 +700,6 @@ export default function SettingsScreen() {
           </View>
 
           <View className="p-5">
-            {/* Timezone Setting */}
-            <TouchableOpacity
-              onPress={() => setShowTimezonePicker(true)}
-              className="flex-row items-center justify-between py-4 border-b border-gray-100"
-            >
-              <View className="flex-row items-center gap-3">
-                <Ionicons name="globe-outline" size={24} color="#6366f1" />
-                <View>
-                  <Text className="text-gray-700 text-base">Timezone</Text>
-                  <Text className="text-gray-400 text-xs mt-0.5">Used for date filters and queries</Text>
-                </View>
-              </View>
-              <View className="flex-row items-center gap-2">
-                <Text className="text-indigo-600 text-sm font-medium" numberOfLines={1} style={{ maxWidth: 200 }}>
-                  {timezoneLabel}
-                </Text>
-                <Ionicons name="chevron-forward" size={18} color="#9ca3af" />
-              </View>
-            </TouchableOpacity>
-
             {/* Print Format Setting */}
             <TouchableOpacity
               onPress={() => setShowPrintFormatPicker(true)}
@@ -837,7 +740,6 @@ export default function SettingsScreen() {
       </ScrollView>
 
       {renderModal()}
-      {renderTimezonePicker()}
       {renderPrintFormatPicker()}
     </View>
   );
