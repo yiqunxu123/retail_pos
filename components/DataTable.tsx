@@ -13,7 +13,7 @@
  */
 
 import { Ionicons } from "@expo/vector-icons";
-import { ReactNode, useCallback, useMemo, useState } from "react";
+import { ReactElement, ReactNode, useCallback, useEffect, useMemo, useState } from "react";
 import {
     ActivityIndicator,
     FlatList,
@@ -104,6 +104,14 @@ export interface DataTableProps<T = any> {
   columnSelector?: boolean;
   /** Whether to show bulk action buttons */
   bulkActions?: boolean;
+  /** Bulk action button text */
+  bulkActionText?: string;
+  /** Bulk action handler */
+  onBulkActionPress?: (selectedRows: T[]) => void;
+  /** Controlled selected row keys */
+  selectedRowKeys?: string[];
+  /** Selection change callback */
+  onSelectionChange?: (selectedKeys: string[], selectedRows: T[]) => void;
   /** Whether to show add button */
   addButton?: boolean;
   /** Add button text */
@@ -141,7 +149,7 @@ export interface DataTableProps<T = any> {
   
   // Row rendering
   /** Custom row rendering */
-  renderRow?: (item: T, columns: ColumnDefinition<T>[], visibleColumns: Record<string, boolean>) => ReactNode;
+  renderRow?: (item: T, columns: ColumnDefinition<T>[], visibleColumns: Record<string, boolean>) => ReactElement | null;
   /** Row click handler */
   onRowPress?: (item: T) => void;
 }
@@ -150,8 +158,29 @@ export interface DataTableProps<T = any> {
 // Helper Components
 // ============================================================================
 
-function TableCheckbox() {
-  return <View className="w-5 h-5 border border-gray-300 rounded" />;
+function TableCheckbox({
+  checked = false,
+  indeterminate = false,
+  onPress,
+  disabled = false,
+}: {
+  checked?: boolean;
+  indeterminate?: boolean;
+  onPress?: () => void;
+  disabled?: boolean;
+}) {
+  return (
+    <Pressable
+      onPress={onPress}
+      disabled={disabled}
+      className={`w-5 h-5 border rounded items-center justify-center ${
+        checked || indeterminate ? "bg-red-500 border-red-500" : "border-gray-300"
+      } ${disabled ? "opacity-50" : ""}`}
+    >
+      {checked && <Ionicons name="checkmark" size={14} color="white" />}
+      {!checked && indeterminate && <Ionicons name="remove" size={14} color="white" />}
+    </Pressable>
+  );
 }
 
 // ============================================================================
@@ -160,7 +189,6 @@ function TableCheckbox() {
 
 export function DataTable<T = any>(props: DataTableProps<T>) {
   const {
-    title,
     data,
     columns,
     keyExtractor,
@@ -174,6 +202,10 @@ export function DataTable<T = any>(props: DataTableProps<T>) {
     onSort,
     columnSelector = true,
     bulkActions = false,
+    bulkActionText = "Bulk Actions",
+    onBulkActionPress,
+    selectedRowKeys: controlledSelectedRowKeys,
+    onSelectionChange,
     addButton = false,
     addButtonText = "Add New",
     onAddPress,
@@ -197,6 +229,7 @@ export function DataTable<T = any>(props: DataTableProps<T>) {
   const [sortBy, setSortBy] = useState<string | null>(null);
   const [showColumnsModal, setShowColumnsModal] = useState(false);
   const [internalRefreshing, setInternalRefreshing] = useState(false);
+  const [internalSelectedRowKeys, setInternalSelectedRowKeys] = useState<string[]>([]);
   
   // Internal refresh state, supports external or auto-managed
   const isRefreshing = refreshing || internalRefreshing;
@@ -225,6 +258,44 @@ export function DataTable<T = any>(props: DataTableProps<T>) {
     setVisibleColumns(prev => ({ ...prev, [key]: !prev[key] }));
   };
 
+  const keyToRow = useMemo(() => {
+    const map = new Map<string, T>();
+    data.forEach((row) => {
+      map.set(keyExtractor(row), row);
+    });
+    return map;
+  }, [data, keyExtractor]);
+
+  const selectedRowKeys = controlledSelectedRowKeys ?? internalSelectedRowKeys;
+  const selectedRowKeySet = useMemo(() => new Set(selectedRowKeys), [selectedRowKeys]);
+  const selectedRows = useMemo(
+    () => selectedRowKeys.map((k) => keyToRow.get(k)).filter(Boolean) as T[],
+    [selectedRowKeys, keyToRow]
+  );
+
+  const setSelectedKeys = useCallback(
+    (keys: string[]) => {
+      const deduped = Array.from(new Set(keys));
+      if (controlledSelectedRowKeys === undefined) {
+        setInternalSelectedRowKeys(deduped);
+      }
+      onSelectionChange?.(
+        deduped,
+        deduped.map((k) => keyToRow.get(k)).filter(Boolean) as T[]
+      );
+    },
+    [controlledSelectedRowKeys, keyToRow, onSelectionChange]
+  );
+
+  // Keep selection valid when data source changes
+  useEffect(() => {
+    if (!bulkActions || selectedRowKeys.length === 0) return;
+    const validKeys = selectedRowKeys.filter((k) => keyToRow.has(k));
+    if (validKeys.length !== selectedRowKeys.length) {
+      setSelectedKeys(validKeys);
+    }
+  }, [bulkActions, selectedRowKeys, keyToRow, setSelectedKeys]);
+
   // Filter handler
   const handleFilterChange = (filterKey: string, value: string | null) => {
     setActiveFilters(prev => ({ ...prev, [filterKey]: value }));
@@ -252,15 +323,53 @@ export function DataTable<T = any>(props: DataTableProps<T>) {
     return result;
   }, [data, searchQuery, activeFilters, sortBy, onSearch, onFilter, onSort]);
 
+  const filteredKeys = useMemo(
+    () => filteredData.map((item) => keyExtractor(item)),
+    [filteredData, keyExtractor]
+  );
+  const allFilteredSelected =
+    filteredKeys.length > 0 && filteredKeys.every((k) => selectedRowKeySet.has(k));
+  const someFilteredSelected =
+    filteredKeys.length > 0 && filteredKeys.some((k) => selectedRowKeySet.has(k));
+
+  const toggleRowSelection = useCallback(
+    (key: string) => {
+      if (selectedRowKeySet.has(key)) {
+        setSelectedKeys(selectedRowKeys.filter((k) => k !== key));
+      } else {
+        setSelectedKeys([...selectedRowKeys, key]);
+      }
+    },
+    [selectedRowKeySet, selectedRowKeys, setSelectedKeys]
+  );
+
+  const toggleSelectAllFiltered = useCallback(() => {
+    if (allFilteredSelected) {
+      const filteredSet = new Set(filteredKeys);
+      setSelectedKeys(selectedRowKeys.filter((k) => !filteredSet.has(k)));
+      return;
+    }
+    setSelectedKeys([...selectedRowKeys, ...filteredKeys]);
+  }, [allFilteredSelected, filteredKeys, selectedRowKeys, setSelectedKeys]);
+
   // Render default row
   const renderDefaultRow = (item: T) => (
     <Pressable 
       className="flex-row items-center py-3 px-5 border-b border-gray-100 bg-white"
-      onPress={() => onRowPress?.(item)}
+      onPress={() => {
+        if (bulkActions && !onRowPress) {
+          toggleRowSelection(keyExtractor(item));
+          return;
+        }
+        onRowPress?.(item);
+      }}
     >
       {bulkActions && (
         <View className="w-8 mr-4">
-          <TableCheckbox />
+          <TableCheckbox
+            checked={selectedRowKeySet.has(keyExtractor(item))}
+            onPress={() => toggleRowSelection(keyExtractor(item))}
+          />
         </View>
       )}
       {columns.map((col) => {
@@ -287,7 +396,11 @@ export function DataTable<T = any>(props: DataTableProps<T>) {
     <View className="flex-row bg-gray-50 py-3 px-5 border-b border-gray-200">
       {bulkActions && (
         <View className="w-8 mr-4">
-          <TableCheckbox />
+          <TableCheckbox
+            checked={allFilteredSelected}
+            indeterminate={!allFilteredSelected && someFilteredSelected}
+            onPress={toggleSelectAllFiltered}
+          />
         </View>
       )}
       {columns.map((col) => {
@@ -331,9 +444,18 @@ export function DataTable<T = any>(props: DataTableProps<T>) {
         {/* Action Buttons */}
         <View className="flex-row items-center gap-3 mb-4">
           {bulkActions && (
-            <Pressable className="bg-red-500 px-4 py-2 rounded-lg flex-row items-center gap-2">
-              <Text className="text-white font-medium">Bulk Actions</Text>
-              <Ionicons name="chevron-down" size={16} color="white" />
+            <Pressable
+              className={`px-4 py-2 rounded-lg flex-row items-center gap-2 ${
+                onBulkActionPress && selectedRows.length === 0 ? "bg-red-300" : "bg-red-500"
+              }`}
+              onPress={() => onBulkActionPress?.(selectedRows)}
+              disabled={!!onBulkActionPress && selectedRows.length === 0}
+            >
+              <Text className="text-white font-medium">
+                {bulkActionText}
+                {selectedRows.length > 0 ? ` (${selectedRows.length})` : ""}
+              </Text>
+              {!onBulkActionPress && <Ionicons name="chevron-down" size={16} color="white" />}
             </Pressable>
           )}
           {columnSelector && (
