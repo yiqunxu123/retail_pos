@@ -154,6 +154,9 @@ cd powersync && docker-compose logs -f powersync
 # Run app on Android
 npx expo run:android
 
+# Start Metro for Android Dev Client with localhost + adb reverse
+npm run start:android-local
+
 # Build APK
 cd android && ./gradlew assembleRelease
 ```
@@ -173,6 +176,10 @@ cd android && ./gradlew assembleRelease
 - Check PowerSync logs: `docker-compose logs -f powersync`
 - Verify tables are in `sync_rules.yaml`
 - Ensure schema matches between PowerSync and app
+
+### Android emulator stuck on Metro loading
+- Run `npm run start:android-local` to force localhost mode with adb reverse
+- This avoids stale LAN IPs (for example `192.168.x.x`) cached by Dev Client
 
 ### Data not persisting after restart
 - Use `docker-compose down` (NOT `docker-compose down -v`)
