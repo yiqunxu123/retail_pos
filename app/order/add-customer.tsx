@@ -1,29 +1,48 @@
 import { Ionicons } from "@expo/vector-icons";
-import { useCallback, useRef, useState } from "react";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import {
-    ActivityIndicator,
-    Pressable,
-    ScrollView,
-    Switch,
-    Text,
-    TextInput,
-    View,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ComponentProps,
+} from "react";
+import {
+  ActivityIndicator,
+  Alert,
+  Pressable,
+  ScrollView,
+  Switch,
+  Text,
+  TextInput,
+  View,
 } from "react-native";
 import {
-    AddQuickCustomerModal,
-    type QuickCustomerResult,
+  AddQuickCustomerModal,
+  type QuickCustomerResult,
 } from "../../components/AddQuickCustomerModal";
 import { Dropdown } from "../../components/Dropdown";
-import { StepNavigation } from "../../components/StepNavigation";
 import { useOrder } from "../../contexts/OrderContext";
 import {
-    searchCustomers,
-    type CustomerEntity,
+  getCustomerById,
+  searchCustomers,
+  type CustomerEntity,
 } from "../../utils/api/customers";
 
-// ---------------------------------------------------------------------------
-// Constants
-// ---------------------------------------------------------------------------
+type SearchFieldKey =
+  | "searchbyNameBusinessName"
+  | "searchbyIdNumber"
+  | "searchbyEmailAddressPhone";
+
+type SearchInputState = Record<SearchFieldKey, string>;
+type IoniconName = ComponentProps<typeof Ionicons>["name"];
+
+const EMPTY_SEARCH_INPUTS: SearchInputState = {
+  searchbyNameBusinessName: "",
+  searchbyIdNumber: "",
+  searchbyEmailAddressPhone: "",
+};
 
 const PAYMENT_TERMS_OPTIONS = [
   { value: "due_immediately", label: "Due Immediately" },
@@ -44,12 +63,22 @@ const CUSTOMER_TYPE_LABELS: Record<number, string> = {
   2: "Online",
 };
 
-// ---------------------------------------------------------------------------
-// Helpers
-// ---------------------------------------------------------------------------
+const TERM_DAY_MAP: Record<string, number> = {
+  due_immediately: 0,
+  net_15: 15,
+  net_30: 30,
+  net_45: 45,
+  net_60: 60,
+};
 
 function formatBillingAddress(
-  billing?: { address?: string; city?: string; county?: string; state?: string; country?: string } | null
+  billing?: {
+    address?: string;
+    city?: string;
+    county?: string;
+    state?: string;
+    country?: string;
+  } | null
 ): string {
   if (!billing) return "";
   return [billing.address, billing.city, billing.county, billing.state, billing.country]
@@ -57,421 +86,661 @@ function formatBillingAddress(
     .join(", ");
 }
 
-// ---------------------------------------------------------------------------
-// Search result row
-// ---------------------------------------------------------------------------
+function formatDueDate(value: Date): string {
+  const day = String(value.getDate()).padStart(2, "0");
+  const month = String(value.getMonth() + 1).padStart(2, "0");
+  const year = value.getFullYear();
+  return `${day}/${month}/${year}`;
+}
 
-function CustomerSearchRow({
+function calculateDueDate(paymentTerm: string): string {
+  const days = TERM_DAY_MAP[paymentTerm] ?? 0;
+  const base = new Date();
+  const result = new Date(base);
+  result.setDate(base.getDate() + days);
+  return formatDueDate(result);
+}
+
+function normalizePaymentTerm(value: string): string {
+  const lower = (value || "").trim().toLowerCase();
+  if (!lower || lower === "due immediately") return "due_immediately";
+  if (lower.includes("15")) return "net_15";
+  if (lower.includes("30")) return "net_30";
+  if (lower.includes("45")) return "net_45";
+  if (lower.includes("60")) return "net_60";
+  if (TERM_DAY_MAP[lower] != null) return lower;
+  return "due_immediately";
+}
+
+function normalizeShippingType(value: string): string {
+  const lower = (value || "").trim().toLowerCase();
+  if (!lower || lower === "pick up") return "pickup";
+  if (lower === "pickup") return "pickup";
+  if (lower === "delivery") return "delivery";
+  if (lower === "shipping") return "shipping";
+  return "pickup";
+}
+
+function getCustomerTypeLabel(customerType: number | null | undefined): string {
+  if (!customerType) return "N/A";
+  return CUSTOMER_TYPE_LABELS[customerType] || "N/A";
+}
+
+function buildAutoOrderNumber(): string {
+  const now = new Date();
+  const yy = String(now.getFullYear()).slice(-2);
+  const mm = String(now.getMonth() + 1).padStart(2, "0");
+  const dd = String(now.getDate()).padStart(2, "0");
+  const hh = String(now.getHours()).padStart(2, "0");
+  const min = String(now.getMinutes()).padStart(2, "0");
+  return `SO-${yy}${mm}${dd}-${hh}${min}`;
+}
+
+function toQuickCustomerResult(customer: CustomerEntity): QuickCustomerResult {
+  return {
+    id: customer.id,
+    no: customer.no ?? undefined,
+    business_name: customer.business_name || "",
+    name: customer.name ?? undefined,
+    email: customer.email ?? null,
+    business_phone_no: customer.business_phone_no ?? null,
+    class_of_trades: customer.class_of_trades ?? "Retailer",
+    customer_type: customer.customer_type ?? null,
+    is_active: customer.is_active,
+    customer_billing_details: customer.customer_billing_details ?? null,
+    sale_agent_obj: {
+      label: customer.tenant_users
+        ? `${customer.tenant_users.first_name} ${customer.tenant_users.last_name}`
+        : "Please Select",
+      value: customer.tenant_users?.id ?? null,
+    },
+  };
+}
+
+function SearchResultCard({
   customer,
   onSelect,
 }: {
   customer: CustomerEntity;
-  onSelect: (c: CustomerEntity) => void;
+  onSelect: (customer: CustomerEntity) => void;
 }) {
   return (
     <Pressable
       onPress={() => onSelect(customer)}
-      className="border border-gray-200 rounded-lg p-3 mb-2"
+      className="border border-gray-200 rounded-lg px-3 py-2.5"
       style={({ pressed }) => ({
-        backgroundColor: pressed ? "#f3f4f6" : "#fff",
-        opacity: customer.is_active === false ? 0.5 : 1,
+        backgroundColor: pressed ? "#f4f5f6" : "#fff",
+        opacity: customer.is_active === false ? 0.55 : 1,
       })}
     >
-      <Text className="text-gray-900 font-semibold">
+      <Text className="text-gray-900 text-sm font-semibold">
         {customer.business_name}
         {customer.name ? `, ${customer.name}` : ""}
       </Text>
-      <Text className="text-gray-500 text-xs mt-1">
+      <Text className="text-gray-600 text-xs mt-1">
         Phone: {customer.business_phone_no || "N/A"}
       </Text>
-      <Text className="text-gray-500 text-xs">
-        Email: {customer.email || "N/A"}
-      </Text>
+      <Text className="text-gray-600 text-xs">Email: {customer.email || "N/A"}</Text>
       {formatBillingAddress(customer.customer_billing_details) !== "" && (
-        <Text className="text-gray-500 text-xs">
+        <Text className="text-gray-600 text-xs">
           Address: {formatBillingAddress(customer.customer_billing_details)}
         </Text>
       )}
-      <Text className="text-gray-500 text-xs">
-        Customer No: {customer.no || "N/A"}
-      </Text>
-      <Text className="text-gray-500 text-xs">
-        Customer Type:{" "}
-        {customer.customer_type
-          ? CUSTOMER_TYPE_LABELS[customer.customer_type] || "N/A"
-          : "N/A"}
+      <Text className="text-gray-600 text-xs">Customer No: {customer.no || "N/A"}</Text>
+      <Text className="text-gray-600 text-xs">
+        Customer Type: {getCustomerTypeLabel(customer.customer_type ?? null)}
       </Text>
       {customer.is_active === false && (
-        <Text className="text-red-500 text-xs font-medium mt-1">Inactive</Text>
+        <Text className="text-red-500 text-xs mt-0.5 font-medium">Inactive</Text>
       )}
     </Pressable>
   );
 }
 
-// ---------------------------------------------------------------------------
-// Main component
-// ---------------------------------------------------------------------------
-
 export default function AddCustomerScreen() {
+  const router = useRouter();
+  const { mode } = useLocalSearchParams<{ mode?: string | string[] }>();
   const { order, updateOrder } = useOrder();
+  const routeMode = Array.isArray(mode) ? mode[0] : mode;
+  const isChangeMode = routeMode === "change";
+
   const [showQuickCustomerModal, setShowQuickCustomerModal] = useState(false);
+  const [quickModalCustomerId, setQuickModalCustomerId] = useState<number | null>(
+    null
+  );
   const [autoGenerate, setAutoGenerate] = useState(true);
   const [skipMsaCheck, setSkipMsaCheck] = useState(false);
-  const [paymentTerms, setPaymentTerms] = useState("due_immediately");
-  const [shippingType, setShippingType] = useState("pickup");
+  const [selectedCustomerData, setSelectedCustomerData] =
+    useState<QuickCustomerResult | null>(null);
+  const [isCustomerDetailsLoading, setIsCustomerDetailsLoading] = useState(false);
+  const [customerDetailsError, setCustomerDetailsError] = useState<string | null>(null);
 
-  // --- Customer search state ---
+  const [searchInputs, setSearchInputs] =
+    useState<SearchInputState>(EMPTY_SEARCH_INPUTS);
   const [searchResults, setSearchResults] = useState<CustomerEntity[]>([]);
-  const [activeSearchField, setActiveSearchField] = useState<string | null>(null);
-  const [searchLoading, setSearchLoading] = useState<string | null>(null);
-  const debounceTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
-
-  // Debounced search – mirrors web's 500ms debounce
-  const handleSearch = useCallback(
-    (text: string, fieldKey: string) => {
-      // Clear previous timer for this field
-      if (debounceTimers.current[fieldKey]) {
-        clearTimeout(debounceTimers.current[fieldKey]);
-      }
-
-      if (!text.trim()) {
-        setSearchResults([]);
-        setActiveSearchField(null);
-        setSearchLoading(null);
-        return;
-      }
-
-      setActiveSearchField(fieldKey);
-      setSearchLoading(fieldKey);
-
-      debounceTimers.current[fieldKey] = setTimeout(async () => {
-        try {
-          const res = await searchCustomers({
-            [fieldKey]: text,
-            isActive: 1,
-          });
-          setSearchResults(res.data.entities || []);
-        } catch (err) {
-          console.warn("[CustomerSearch] API error:", err);
-          setSearchResults([]);
-        } finally {
-          setSearchLoading(null);
-        }
-      }, 500);
-    },
-    []
+  const [activeSearchField, setActiveSearchField] = useState<SearchFieldKey | null>(
+    null
   );
+  const [searchLoading, setSearchLoading] = useState<SearchFieldKey | null>(null);
+  const debounceTimers = useRef<
+    Partial<Record<SearchFieldKey, ReturnType<typeof setTimeout>>>
+  >({});
+  const modeInitRef = useRef(false);
+
+  const paymentTermValue = useMemo(
+    () => normalizePaymentTerm(order.paymentTerms),
+    [order.paymentTerms]
+  );
+  const shippingTypeValue = useMemo(
+    () => normalizeShippingType(order.shippingType),
+    [order.shippingType]
+  );
+
+  const activeCustomer = selectedCustomerData;
+
+  useEffect(() => {
+    if (modeInitRef.current) return;
+    modeInitRef.current = true;
+
+    if (!isChangeMode && (order.customerId || order.customerName !== "Guest Customer")) {
+      updateOrder({ customerName: "Guest Customer", customerId: null });
+      setSelectedCustomerData(null);
+      setIsCustomerDetailsLoading(false);
+      setCustomerDetailsError(null);
+    }
+  }, [isChangeMode, order.customerId, order.customerName, updateOrder]);
+
+  useEffect(() => {
+    const updates: Partial<typeof order> = {};
+    const normalizedTerm = normalizePaymentTerm(order.paymentTerms);
+    const normalizedShipping = normalizeShippingType(order.shippingType);
+
+    if (order.paymentTerms !== normalizedTerm) {
+      updates.paymentTerms = normalizedTerm;
+    }
+
+    if (order.shippingType !== normalizedShipping) {
+      updates.shippingType = normalizedShipping;
+    }
+
+    if (!order.invoiceDueDate || order.invoiceDueDate === "DD/MM/YYYY") {
+      updates.invoiceDueDate = calculateDueDate(normalizedTerm);
+    }
+
+    if (Object.keys(updates).length > 0) {
+      updateOrder(updates);
+    }
+  }, [order, updateOrder]);
+
+  useEffect(() => {
+    if (!autoGenerate || order.orderNumber) return;
+    updateOrder({ orderNumber: buildAutoOrderNumber() });
+  }, [autoGenerate, order.orderNumber, updateOrder]);
+
+  useEffect(() => {
+    if (!order.customerId) {
+      setSelectedCustomerData(null);
+      setIsCustomerDetailsLoading(false);
+      setCustomerDetailsError(null);
+      return;
+    }
+
+    if (!isChangeMode) {
+      setIsCustomerDetailsLoading(false);
+      setCustomerDetailsError(null);
+      return;
+    }
+
+    const customerId = Number(order.customerId);
+    if (Number.isNaN(customerId)) {
+      setSelectedCustomerData(null);
+      setIsCustomerDetailsLoading(false);
+      setCustomerDetailsError("Invalid customer ID");
+      return;
+    }
+    if (selectedCustomerData?.id === customerId) {
+      setIsCustomerDetailsLoading(false);
+      setCustomerDetailsError(null);
+      return;
+    }
+
+    let cancelled = false;
+    setSelectedCustomerData(null);
+    setIsCustomerDetailsLoading(true);
+    setCustomerDetailsError(null);
+
+    getCustomerById(customerId)
+      .then((res) => {
+        if (!cancelled) {
+          setSelectedCustomerData(toQuickCustomerResult(res.data.entity));
+          setIsCustomerDetailsLoading(false);
+          setCustomerDetailsError(null);
+        }
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setSelectedCustomerData(null);
+          setIsCustomerDetailsLoading(false);
+          setCustomerDetailsError("Unable to load customer details");
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [isChangeMode, order.customerId, selectedCustomerData?.id]);
+
+  useEffect(() => {
+    const timers = debounceTimers.current;
+    return () => {
+      Object.values(timers).forEach((timer) => {
+        if (timer) clearTimeout(timer);
+      });
+    };
+  }, []);
+
+  const handleSearch = useCallback((text: string, fieldKey: SearchFieldKey) => {
+    setSearchInputs((prev) => ({ ...prev, [fieldKey]: text }));
+
+    const existingTimer = debounceTimers.current[fieldKey];
+    if (existingTimer) clearTimeout(existingTimer);
+
+    const trimmed = text.trim();
+    if (!trimmed) {
+      setSearchResults([]);
+      setActiveSearchField(null);
+      setSearchLoading(null);
+      return;
+    }
+
+    setActiveSearchField(fieldKey);
+    setSearchLoading(fieldKey);
+
+    debounceTimers.current[fieldKey] = setTimeout(async () => {
+      try {
+        const res = await searchCustomers({
+          [fieldKey]: trimmed,
+          isActive: 1,
+          sort_by: "id:asc",
+        });
+        setSearchResults(res.data.entities || []);
+      } catch (error) {
+        console.warn("[AddCustomer] Search failed:", error);
+        setSearchResults([]);
+      } finally {
+        setSearchLoading((prev) => (prev === fieldKey ? null : prev));
+      }
+    }, 500);
+  }, []);
 
   const handleSelectCustomer = useCallback(
     (customer: CustomerEntity) => {
-      if (customer.is_active === false) return;
+      if (customer.is_active === false) {
+        Alert.alert(
+          "Inactive Customer",
+          "The customer is currently inactive. Please use an active customer."
+        );
+        return;
+      }
+
+      const mapped = toQuickCustomerResult(customer);
+      setSelectedCustomerData(mapped);
+      setIsCustomerDetailsLoading(false);
+      setCustomerDetailsError(null);
       updateOrder({
-        customerName: customer.business_name,
-        customerId: String(customer.id),
+        customerName: mapped.business_name,
+        customerId: String(mapped.id),
       });
       setSearchResults([]);
       setActiveSearchField(null);
+      setSearchLoading(null);
+      setSearchInputs(EMPTY_SEARCH_INPUTS);
     },
     [updateOrder]
   );
 
-  const handleSaveQuickCustomer = (customer: QuickCustomerResult) => {
-    updateOrder({
-      customerName: customer.business_name,
-      customerId: String(customer.id),
+  const handleSaveQuickCustomer = useCallback(
+    (customer: QuickCustomerResult) => {
+      setSelectedCustomerData(customer);
+      setIsCustomerDetailsLoading(false);
+      setCustomerDetailsError(null);
+      updateOrder({
+        customerName: customer.business_name,
+        customerId: String(customer.id),
+      });
+      setQuickModalCustomerId(null);
+      setShowQuickCustomerModal(false);
+    },
+    [updateOrder]
+  );
+
+  const handleRemoveCustomer = useCallback(() => {
+    setSelectedCustomerData(null);
+    setIsCustomerDetailsLoading(false);
+    setCustomerDetailsError(null);
+    updateOrder({ customerName: "Guest Customer", customerId: null });
+  }, [updateOrder]);
+
+  const handlePaymentTermChange = useCallback(
+    (value: string) => {
+      const normalized = normalizePaymentTerm(value);
+      updateOrder({
+        paymentTerms: normalized,
+        invoiceDueDate: calculateDueDate(normalized),
+      });
+    },
+    [updateOrder]
+  );
+
+  const handleShippingTypeChange = useCallback(
+    (value: string) => {
+      updateOrder({ shippingType: normalizeShippingType(value) });
+    },
+    [updateOrder]
+  );
+
+  const handleToggleAutoGenerate = useCallback(() => {
+    setAutoGenerate((prev) => {
+      const next = !prev;
+      if (next) {
+        updateOrder({ orderNumber: buildAutoOrderNumber() });
+      }
+      return next;
     });
-    setShowQuickCustomerModal(false);
-  };
+  }, [updateOrder]);
+
+  const searchFields: {
+    key: SearchFieldKey;
+    placeholder: string;
+    icon: IoniconName;
+    zIndex: number;
+  }[] = [
+    {
+      key: "searchbyNameBusinessName",
+      placeholder: "Customer Name/ Business Name",
+      icon: "person-outline",
+      zIndex: 30,
+    },
+    {
+      key: "searchbyIdNumber",
+      placeholder: "Customer Number ID/ Number",
+      icon: "id-card-outline",
+      zIndex: 20,
+    },
+    {
+      key: "searchbyEmailAddressPhone",
+      placeholder: "Customer Email Address/ Phone",
+      icon: "mail-outline",
+      zIndex: 10,
+    },
+  ];
 
   return (
-    <View className="flex-1">
-      <ScrollView className="flex-1" contentContainerClassName="p-5">
-        <View className="bg-white rounded-lg border border-red-200">
-          <View className="flex-row">
-            {/* Left Column - Customer Search & Form */}
-            <View className="flex-1 p-5 border-r border-gray-100">
-              {/* Search by Name */}
-              <View style={{ zIndex: 30, marginBottom: 12 }}>
-                <View className="flex-row items-center bg-gray-50 border border-gray-200 rounded-lg px-3 py-3">
-                  <Ionicons name="person-outline" size={20} color="#9ca3af" />
-                  <TextInput
-                    className="flex-1 ml-3 text-gray-800"
-                    placeholder="Search by Customer Name/ Business Name"
-                    placeholderTextColor="#9ca3af"
-                    onChangeText={(v) =>
-                      handleSearch(v, "searchbyNameBusinessName")
-                    }
-                  />
-                  {searchLoading === "searchbyNameBusinessName" && (
-                    <ActivityIndicator size="small" color="#9ca3af" />
-                  )}
-                </View>
-                {activeSearchField === "searchbyNameBusinessName" && (
-                  <View
-                    className="border border-gray-200 rounded-lg mt-1"
-                    style={{ maxHeight: 260, zIndex: 31, backgroundColor: "#fff" }}
-                  >
-                    {searchLoading === "searchbyNameBusinessName" ? (
-                      <View style={{ padding: 16, alignItems: "center" }}>
-                        <ActivityIndicator size="small" color="#ef4444" />
-                      </View>
-                    ) : searchResults.length > 0 ? (
-                      <ScrollView nestedScrollEnabled>
-                        {searchResults.map((c) => (
-                          <CustomerSearchRow
-                            key={c.id}
-                            customer={c}
-                            onSelect={handleSelectCustomer}
-                          />
-                        ))}
-                      </ScrollView>
-                    ) : (
-                      <Text style={{ padding: 12, color: "#9ca3af", fontStyle: "italic", textAlign: "center" }}>
-                        No Data Found
-                      </Text>
-                    )}
-                  </View>
-                )}
-              </View>
-
-              {/* Search by ID */}
-              <View style={{ zIndex: 20, marginBottom: 12 }}>
-                <View className="flex-row items-center bg-gray-50 border border-gray-200 rounded-lg px-3 py-3">
-                  <Ionicons name="id-card-outline" size={20} color="#9ca3af" />
-                  <TextInput
-                    className="flex-1 ml-3 text-gray-800"
-                    placeholder="Search by Customer Number ID/ Number"
-                    placeholderTextColor="#9ca3af"
-                    onChangeText={(v) =>
-                      handleSearch(v, "searchbyIdNumber")
-                    }
-                  />
-                  {searchLoading === "searchbyIdNumber" && (
-                    <ActivityIndicator size="small" color="#9ca3af" />
-                  )}
-                </View>
-                {activeSearchField === "searchbyIdNumber" && (
-                  <View
-                    className="border border-gray-200 rounded-lg mt-1"
-                    style={{ maxHeight: 260, zIndex: 21, backgroundColor: "#fff" }}
-                  >
-                    {searchLoading === "searchbyIdNumber" ? (
-                      <View style={{ padding: 16, alignItems: "center" }}>
-                        <ActivityIndicator size="small" color="#ef4444" />
-                      </View>
-                    ) : searchResults.length > 0 ? (
-                      <ScrollView nestedScrollEnabled>
-                        {searchResults.map((c) => (
-                          <CustomerSearchRow
-                            key={c.id}
-                            customer={c}
-                            onSelect={handleSelectCustomer}
-                          />
-                        ))}
-                      </ScrollView>
-                    ) : (
-                      <Text style={{ padding: 12, color: "#9ca3af", fontStyle: "italic", textAlign: "center" }}>
-                        No Data Found
-                      </Text>
-                    )}
-                  </View>
-                )}
-              </View>
-
-              {/* Search by Email */}
-              <View style={{ zIndex: 10, marginBottom: 16 }}>
-                <View className="flex-row items-center bg-gray-50 border border-gray-200 rounded-lg px-3 py-3">
-                  <Ionicons name="mail-outline" size={20} color="#9ca3af" />
-                  <TextInput
-                    className="flex-1 ml-3 text-gray-800"
-                    placeholder="Search by Customer Email Address"
-                    placeholderTextColor="#9ca3af"
-                    keyboardType="email-address"
-                    autoCapitalize="none"
-                    onChangeText={(v) =>
-                      handleSearch(v, "searchbyEmailAddressPhone")
-                    }
-                  />
-                  {searchLoading === "searchbyEmailAddressPhone" && (
-                    <ActivityIndicator size="small" color="#9ca3af" />
-                  )}
-                </View>
-                {activeSearchField === "searchbyEmailAddressPhone" && (
-                  <View
-                    className="border border-gray-200 rounded-lg mt-1"
-                    style={{ maxHeight: 260, zIndex: 11, backgroundColor: "#fff" }}
-                  >
-                    {searchLoading === "searchbyEmailAddressPhone" ? (
-                      <View style={{ padding: 16, alignItems: "center" }}>
-                        <ActivityIndicator size="small" color="#ef4444" />
-                      </View>
-                    ) : searchResults.length > 0 ? (
-                      <ScrollView nestedScrollEnabled>
-                        {searchResults.map((c) => (
-                          <CustomerSearchRow
-                            key={c.id}
-                            customer={c}
-                            onSelect={handleSelectCustomer}
-                          />
-                        ))}
-                      </ScrollView>
-                    ) : (
-                      <Text style={{ padding: 12, color: "#9ca3af", fontStyle: "italic", textAlign: "center" }}>
-                        No Data Found
-                      </Text>
-                    )}
-                  </View>
-                )}
-              </View>
-
-              {/* Payment Terms & Invoice Due Date */}
-              <View className="flex-row gap-4 mb-4">
-                <View className="flex-1">
-                  <Dropdown
-                    label="Payment Terms:"
-                    options={PAYMENT_TERMS_OPTIONS}
-                    value={paymentTerms}
-                    onChange={setPaymentTerms}
-                  />
-                </View>
-                <View className="flex-1">
-                  <Text className="text-gray-600 text-sm mb-1.5">
-                    Invoice Due Date
-                  </Text>
-                  <Pressable className="flex-row items-center justify-between bg-white border border-gray-200 rounded-lg px-3 py-2.5">
-                    <Text className="text-gray-400">
-                      {order.invoiceDueDate}
-                    </Text>
-                    <Ionicons
-                      name="calendar-outline"
-                      size={18}
-                      color="#9ca3af"
-                    />
-                  </Pressable>
-                </View>
-              </View>
-
-              {/* Order Number */}
-              <View className="mb-4">
-                <Text className="text-gray-600 text-sm mb-1.5">
-                  Order Number:
-                </Text>
-                <TextInput
-                  className="bg-gray-50 border border-gray-200 rounded-lg px-3 py-2.5 text-gray-800 mb-2"
-                  placeholder="Enter Order Number"
-                  placeholderTextColor="#9ca3af"
-                  value={order.orderNumber}
-                  onChangeText={(v) => updateOrder({ orderNumber: v })}
-                  editable={!autoGenerate}
-                />
-                <Pressable
-                  className="flex-row items-center gap-2"
-                  onPress={() => setAutoGenerate(!autoGenerate)}
-                >
-                  <View
-                    className={`w-5 h-5 rounded border-2 items-center justify-center ${
-                      autoGenerate
-                        ? "border-red-500 bg-red-500"
-                        : "border-gray-300"
-                    }`}
-                  >
-                    {autoGenerate && (
-                      <Ionicons name="checkmark" size={14} color="white" />
-                    )}
-                  </View>
-                  <Text className="text-gray-700">Auto Generate</Text>
-                </Pressable>
-              </View>
-
-              {/* Shipping Type */}
-              <View className="mb-4">
-                <Dropdown
-                  label="Shipping Type"
-                  options={SHIPPING_TYPE_OPTIONS}
-                  value={shippingType}
-                  onChange={setShippingType}
-                />
-              </View>
-
-              {/* Skip MSA Eligibility check */}
-              <View className="flex-row items-center gap-3 mb-4">
-                <Text className="text-gray-600 text-sm">
-                  Skip MSA Eligibility check
-                </Text>
-                <Switch
-                  value={skipMsaCheck}
-                  onValueChange={setSkipMsaCheck}
-                  trackColor={{ false: "#d1d5db", true: "#fca5a5" }}
-                  thumbColor={skipMsaCheck ? "#ef4444" : "#f4f4f5"}
-                />
-              </View>
-
-              {/* Notes */}
-              <View className="flex-row gap-4">
-                <View className="flex-1">
-                  <Text className="text-gray-600 text-sm mb-1.5">
-                    Notes (Internal)
-                  </Text>
-                  <TextInput
-                    className="bg-gray-50 border border-gray-200 rounded-lg px-3 py-2.5 text-gray-800 min-h-[80px]"
-                    placeholder="Notes"
-                    placeholderTextColor="#9ca3af"
-                    value={order.notesInternal}
-                    onChangeText={(v) => updateOrder({ notesInternal: v })}
-                    multiline
-                    textAlignVertical="top"
-                  />
-                </View>
-                <View className="flex-1">
-                  <Text className="text-gray-600 text-sm mb-1.5">
-                    Notes (Print on Invoice)
-                  </Text>
-                  <TextInput
-                    className="bg-gray-50 border border-gray-200 rounded-lg px-3 py-2.5 text-gray-800 min-h-[80px]"
-                    placeholder="Notes"
-                    placeholderTextColor="#9ca3af"
-                    value={order.notesInvoice}
-                    onChangeText={(v) => updateOrder({ notesInvoice: v })}
-                    multiline
-                    textAlignVertical="top"
-                  />
-                </View>
-              </View>
-            </View>
-
-            {/* Right Column - Selected Customer */}
-            <View className="w-72 p-5 bg-gray-50">
-              <Text className="text-gray-500 text-sm text-center mb-1">
-                Current Status:
-              </Text>
-              <Text className="text-gray-800 text-xl font-bold text-center mb-4">
-                {order.customerName}
-              </Text>
-
-              {/* Add Quick Customer Button */}
-              <Pressable
-                onPress={() => setShowQuickCustomerModal(true)}
-                className="bg-red-500 rounded-lg py-3 flex-row items-center justify-center gap-2"
-                style={({ pressed }) => ({ opacity: pressed ? 0.8 : 1 })}
-              >
-                <Ionicons name="add" size={20} color="white" />
-                <Text className="text-white font-semibold">
-                  Add Quick Customer
-                </Text>
-              </Pressable>
-            </View>
+    <View className="flex-1 bg-black/35 flex-row">
+      <Pressable
+        onPress={() => {}}
+        className="bg-white h-full border-r border-gray-200"
+        style={{ width: "50%" }}
+      >
+        <View className="px-5 pt-4 pb-3 border-b border-gray-200">
+          <View className="flex-row items-center justify-between">
+            <Text className="text-[#40444D] text-[20px] leading-[24px] font-semibold">
+              Search for Customer by:
+            </Text>
+            <Pressable
+              onPress={() => router.back()}
+              className="bg-[#D61F55] rounded-lg h-10 px-5 items-center justify-center"
+              style={({ pressed }) => ({ opacity: pressed ? 0.85 : 1 })}
+            >
+              <Text className="text-white text-base font-semibold">Save</Text>
+            </Pressable>
           </View>
         </View>
-      </ScrollView>
+        <ScrollView
+          className="flex-1"
+          contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 12, paddingBottom: 18 }}
+        >
+            {searchFields.map((field) => {
+              const isActive = activeSearchField === field.key;
+              const isLoading = searchLoading === field.key;
+              const showDropdown = isActive && !!searchInputs[field.key].trim();
 
-      {/* Bottom Navigation */}
-      <StepNavigation />
+              return (
+                <View key={field.key} style={{ zIndex: field.zIndex, marginBottom: 10 }}>
+                  <View className="flex-row items-center bg-[#F7F7F8] border border-[#E5E7EB] rounded-lg px-3 h-11">
+                    <Ionicons name={field.icon} size={18} color="#9CA3AF" />
+                    <TextInput
+                      className="flex-1 ml-2.5 text-gray-800"
+                      placeholder={field.placeholder}
+                      placeholderTextColor="#9CA3AF"
+                      value={searchInputs[field.key]}
+                      keyboardType="default"
+                      autoCapitalize="none"
+                      onFocus={() => {
+                        if (searchInputs[field.key].trim()) {
+                          setActiveSearchField(field.key);
+                        }
+                      }}
+                      onChangeText={(text) => handleSearch(text, field.key)}
+                    />
+                    {isLoading && <ActivityIndicator size="small" color="#9CA3AF" />}
+                  </View>
 
-      {/* Add Quick Customer Modal */}
+                  {showDropdown && (
+                    <View
+                      className="border border-[#E5E7EB] rounded-lg mt-1 bg-white overflow-hidden"
+                      style={{ maxHeight: 240 }}
+                    >
+                      {isLoading ? (
+                        <View style={{ paddingVertical: 16, alignItems: "center" }}>
+                          <ActivityIndicator size="small" color="#E11D48" />
+                        </View>
+                      ) : searchResults.length > 0 ? (
+                        <ScrollView nestedScrollEnabled>
+                          <View className="p-2 gap-2">
+                            {searchResults.map((customer) => (
+                              <SearchResultCard
+                                key={customer.id}
+                                customer={customer}
+                                onSelect={handleSelectCustomer}
+                              />
+                            ))}
+                          </View>
+                        </ScrollView>
+                      ) : (
+                        <Text
+                          style={{
+                            padding: 12,
+                            color: "#9CA3AF",
+                            fontStyle: "italic",
+                            textAlign: "center",
+                          }}
+                        >
+                          No Data Found
+                        </Text>
+                      )}
+                    </View>
+                  )}
+                </View>
+              );
+            })}
+
+            {!order.customerId && (
+              <Pressable
+                onPress={() => {
+                  setQuickModalCustomerId(null);
+                  setShowQuickCustomerModal(true);
+                }}
+                className="mb-4 bg-[#FBEAEC] border border-[#F6D4DA] rounded-lg h-11 items-center justify-center flex-row gap-1.5"
+                style={({ pressed }) => ({ opacity: pressed ? 0.8 : 1 })}
+              >
+                <Ionicons name="add" size={16} color="#C33A59" />
+                <Text className="text-[#C33A59] text-base font-medium">Add New Customer</Text>
+              </Pressable>
+            )}
+
+            <View className="bg-[#FFF8FA] border border-[#F5D4DF] rounded-xl px-4 py-3 mb-4">
+              <Text className="text-[#C88A98] text-sm mb-0.5">Current Status:</Text>
+              <Text className="text-[#1F2937] text-2xl font-bold mb-2">
+                {activeCustomer?.business_name ||
+                  (isCustomerDetailsLoading
+                    ? "Loading customer..."
+                    : isChangeMode && order.customerId
+                      ? "Customer not available"
+                      : "No customer selected")}
+              </Text>
+
+              {isCustomerDetailsLoading ? (
+                <View className="py-2">
+                  <ActivityIndicator size="small" color="#D71E55" />
+                </View>
+              ) : activeCustomer ? (
+                <>
+                  <Text className="text-[#4B5563] text-xs">
+                    Phone: {activeCustomer.business_phone_no || "N/A"}
+                  </Text>
+                  <Text className="text-[#4B5563] text-xs">
+                    Email: {activeCustomer.email || "N/A"}
+                  </Text>
+                  <Text className="text-[#4B5563] text-xs">
+                    Address: {formatBillingAddress(activeCustomer.customer_billing_details) || "N/A"}
+                  </Text>
+                  <Text className="text-[#4B5563] text-xs">
+                    Customer No: {activeCustomer.no || "N/A"}
+                  </Text>
+                  <Text className="text-[#4B5563] text-xs mb-3">
+                    Customer Type: {getCustomerTypeLabel(activeCustomer.customer_type)}
+                  </Text>
+
+                  <View className="flex-row gap-2">
+                    <Pressable
+                      onPress={() => {
+                        setQuickModalCustomerId(activeCustomer.id);
+                        setShowQuickCustomerModal(true);
+                      }}
+                      className="flex-1 bg-[#D71E55] rounded-lg h-11 items-center justify-center"
+                      style={({ pressed }) => ({ opacity: pressed ? 0.8 : 1 })}
+                    >
+                      <Text className="text-white font-medium">Change Customer</Text>
+                    </Pressable>
+                    <Pressable
+                      onPress={handleRemoveCustomer}
+                      className="flex-1 bg-[#D71E55] rounded-lg h-11 items-center justify-center"
+                      style={({ pressed }) => ({ opacity: pressed ? 0.8 : 1 })}
+                    >
+                      <Text className="text-white font-medium">Remove Customer</Text>
+                    </Pressable>
+                  </View>
+                </>
+              ) : customerDetailsError ? (
+                <Text className="text-red-500 text-sm">{customerDetailsError}</Text>
+              ) : (
+                <Text className="text-[#6B7280] text-sm">
+                  No customer selected.
+                </Text>
+              )}
+            </View>
+
+            <View className="mb-3">
+              <Dropdown
+                label="Payment Terms:"
+                options={PAYMENT_TERMS_OPTIONS}
+                value={paymentTermValue}
+                onChange={handlePaymentTermChange}
+              />
+            </View>
+
+            <View className="mb-3">
+              <Text className="text-[#4B5563] text-sm mb-1.5">Invoice Due Date</Text>
+              <View className="flex-row items-center justify-between bg-[#F7F7F8] border border-[#E5E7EB] rounded-lg px-3 h-11">
+                <Text className="text-[#9CA3AF]">{order.invoiceDueDate || "DD/MM/YYYY"}</Text>
+                <Ionicons name="calendar-outline" size={18} color="#9CA3AF" />
+              </View>
+            </View>
+
+            <View className="mb-3">
+              <Text className="text-[#4B5563] text-sm mb-1.5">Order Number:</Text>
+              <TextInput
+                className="bg-[#F7F7F8] border border-[#E5E7EB] rounded-lg px-3 h-11 text-gray-800 mb-2"
+                placeholder="Enter Order Number"
+                placeholderTextColor="#9CA3AF"
+                value={order.orderNumber}
+                editable={!autoGenerate}
+                onChangeText={(value) => updateOrder({ orderNumber: value })}
+              />
+              <Pressable
+                className="flex-row items-center gap-2"
+                onPress={handleToggleAutoGenerate}
+              >
+                <View
+                  className={`w-5 h-5 rounded border-2 items-center justify-center ${
+                    autoGenerate ? "border-red-500 bg-red-500" : "border-gray-300"
+                  }`}
+                >
+                  {autoGenerate && <Ionicons name="checkmark" size={14} color="white" />}
+                </View>
+                <Text className="text-gray-700">Auto Generate</Text>
+              </Pressable>
+            </View>
+
+            <View className="mb-3">
+              <Dropdown
+                label="Shipping Type"
+                options={SHIPPING_TYPE_OPTIONS}
+                value={shippingTypeValue}
+                onChange={handleShippingTypeChange}
+              />
+            </View>
+
+            <View className="flex-row items-center gap-2 mb-3">
+              <Text className="text-gray-700 text-sm">Skip MSA Eligibility check</Text>
+              <Switch
+                value={skipMsaCheck}
+                onValueChange={setSkipMsaCheck}
+                trackColor={{ false: "#d1d5db", true: "#fca5a5" }}
+                thumbColor={skipMsaCheck ? "#ef4444" : "#f4f4f5"}
+              />
+            </View>
+
+            <View className="mb-3">
+              <Text className="text-[#4B5563] text-sm mb-1.5">Notes (Internal)</Text>
+              <TextInput
+                className="bg-[#F7F7F8] border border-[#E5E7EB] rounded-lg px-3 py-2.5 text-gray-800 min-h-[76px]"
+                placeholder="Notes"
+                placeholderTextColor="#9CA3AF"
+                value={order.notesInternal}
+                onChangeText={(value) => updateOrder({ notesInternal: value })}
+                multiline
+                textAlignVertical="top"
+              />
+            </View>
+
+            <View className="mb-4">
+              <Text className="text-[#4B5563] text-sm mb-1.5">Notes (Print on Invoice)</Text>
+              <TextInput
+                className="bg-[#F7F7F8] border border-[#E5E7EB] rounded-lg px-3 py-2.5 text-gray-800 min-h-[76px]"
+                placeholder="Notes"
+                placeholderTextColor="#9CA3AF"
+                value={order.notesInvoice}
+                onChangeText={(value) => updateOrder({ notesInvoice: value })}
+                multiline
+                textAlignVertical="top"
+              />
+            </View>
+
+        </ScrollView>
+      </Pressable>
+
+      <Pressable className="flex-1" onPress={() => router.back()} />
+
       <AddQuickCustomerModal
         visible={showQuickCustomerModal}
-        onClose={() => setShowQuickCustomerModal(false)}
+        onClose={() => {
+          setQuickModalCustomerId(null);
+          setShowQuickCustomerModal(false);
+        }}
         onSave={handleSaveQuickCustomer}
+        customerId={quickModalCustomerId}
       />
     </View>
   );

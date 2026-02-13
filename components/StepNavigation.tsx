@@ -10,7 +10,7 @@ interface StepNavigationProps {
 }
 
 const steps: { key: Step; label: string; route: string }[] = [
-  { key: "customer", label: "Add Customer", route: "/order/add-customer" },
+  { key: "customer", label: "Add Customer", route: "/order/add-customer?mode=change" },
   { key: "products", label: "Add Products", route: "/order/add-products" },
   { key: "checkout", label: "Checkout", route: "/order/checkout" },
 ];

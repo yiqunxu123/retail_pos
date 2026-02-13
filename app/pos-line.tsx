@@ -167,7 +167,7 @@ export default function POSLineScreen() {
 
   // Navigate to full order flow
   const handleCheckout = useCallback(() => {
-    router.push("/order/add-customer");
+    router.push("/order/add-customer?mode=add");
   }, [router]);
 
   const handleAddProduct = useCallback(() => {

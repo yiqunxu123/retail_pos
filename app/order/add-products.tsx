@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Alert, Dimensions, Image, Modal, Pressable, ScrollView, Text, TextInput, TouchableOpacity, View } from "react-native";
 import { captureRef } from "react-native-view-shot";
 import { AddDiscountModal } from "../../components/AddDiscountModal";
-import { AddQuickCustomerModal, type QuickCustomerResult } from "../../components/AddQuickCustomerModal";
+import { type QuickCustomerResult } from "../../components/AddQuickCustomerModal";
 import { AddTaxModal } from "../../components/AddTaxModal";
 import { BrandingSection } from "../../components/BrandingSection";
 import { CashEntryModal } from "../../components/CashEntryModal";
@@ -41,6 +41,29 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 // Action button width
 const SIDEBAR_WIDTH = 260;
 
+function buildCustomerSnapshot(
+  customerId: string | null,
+  customerName: string
+): QuickCustomerResult | null {
+  if (!customerId || !customerName || customerName === "Guest Customer") return null;
+  const numericId = Number(customerId);
+  if (Number.isNaN(numericId)) return null;
+
+  return {
+    id: numericId,
+    no: undefined,
+    business_name: customerName,
+    name: undefined,
+    email: null,
+    business_phone_no: null,
+    class_of_trades: "Retailer",
+    customer_type: null,
+    is_active: true,
+    customer_billing_details: null,
+    sale_agent_obj: { label: "Please Select", value: null },
+  };
+}
+
 /**
  * Staff POS Sales Screen - Matches Figma design
  */
@@ -65,6 +88,11 @@ export default function AddProductsScreen() {
         parkedOrder.products.forEach((product) => {
           addProduct(product);
         });
+        const snapshot = buildCustomerSnapshot(
+          parkedOrder.customerId,
+          parkedOrder.customerName
+        );
+        setSelectedCustomerData(snapshot);
         updateOrder({
           customerName: parkedOrder.customerName,
           customerId: parkedOrder.customerId,
@@ -82,8 +110,15 @@ export default function AddProductsScreen() {
   const [showSearchModal, setShowSearchModal] = useState(false);
   const [showCashPaymentModal, setShowCashPaymentModal] = useState(false);
   const [showDiscountModal, setShowDiscountModal] = useState(false);
-  const [showCustomerModal, setShowCustomerModal] = useState(false);
   const [selectedCustomerData, setSelectedCustomerData] = useState<QuickCustomerResult | null>(null);
+
+  useEffect(() => {
+    if (selectedCustomerData) return;
+    const snapshot = buildCustomerSnapshot(order.customerId, order.customerName);
+    if (snapshot) {
+      setSelectedCustomerData(snapshot);
+    }
+  }, [order.customerId, order.customerName, selectedCustomerData]);
 
   // Sale Invoice modal
   const [showInvoiceModal, setShowInvoiceModal] = useState(false);
@@ -150,7 +185,9 @@ export default function AddProductsScreen() {
       tax: summary.tax,
       total: summary.total,
       createdBy: user?.name || undefined,
-      customerName: selectedCustomerData?.business_name || undefined,
+      customerName:
+        selectedCustomerData?.business_name ||
+        (order.customerName !== "Guest Customer" ? order.customerName : undefined),
       customerEmail: selectedCustomerData?.email || undefined,
       customerPhone: selectedCustomerData?.business_phone_no || undefined,
     };
@@ -337,6 +374,11 @@ export default function AddProductsScreen() {
       parkedOrder.products.forEach((product) => {
         addProduct(product);
       });
+      const snapshot = buildCustomerSnapshot(
+        parkedOrder.customerId,
+        parkedOrder.customerName
+      );
+      setSelectedCustomerData(snapshot);
       updateOrder({
         customerName: parkedOrder.customerName,
         customerId: parkedOrder.customerId,
@@ -522,9 +564,12 @@ export default function AddProductsScreen() {
                     })),
                     customer: selectedCustomerData ? {
                       id: parseInt(order.customerId || "0", 10),
+                      no: selectedCustomerData.no || undefined,
                       business_name: selectedCustomerData.business_name || "",
+                      name: selectedCustomerData.name || undefined,
                       email: selectedCustomerData.email || undefined,
                       business_phone_no: selectedCustomerData.business_phone_no || undefined,
+                      customer_billing_details: selectedCustomerData.customer_billing_details || undefined,
                     } : undefined,
                   } as SaleOrderEntity;
                 }
@@ -769,7 +814,7 @@ export default function AddProductsScreen() {
                 {/* Action Buttons */}
                 <View className="flex-row gap-2">
                   <TouchableOpacity
-                    onPress={() => setShowCustomerModal(true)}
+                    onPress={() => router.push("/order/add-customer?mode=change")}
                     className="flex-1 bg-red-500 rounded-lg py-2.5 items-center"
                   >
                     <Text className="text-white text-xs font-medium">Change{'\n'}Customer</Text>
@@ -791,7 +836,7 @@ export default function AddProductsScreen() {
                   <Text className="text-[#C88A98] text-sm mb-1">Current Status:</Text>
                   <Text className="text-gray-900 font-semibold text-[18px] mb-3">Guest Customer</Text>
                   <TouchableOpacity
-                    onPress={() => setShowCustomerModal(true)}
+                    onPress={() => router.push("/order/add-customer?mode=add")}
                     className="w-full bg-[#C9154A] rounded-xl py-3 items-center justify-center"
                   >
                     <Ionicons name="add" size={34} color="white" />
@@ -1022,19 +1067,6 @@ export default function AddProductsScreen() {
         }}
       />
 
-      <AddQuickCustomerModal
-        visible={showCustomerModal}
-        onClose={() => setShowCustomerModal(false)}
-        onSave={(customer) => {
-          setSelectedCustomerData(customer);
-          updateOrder({
-            customerName: customer.business_name,
-            customerId: String(customer.id),
-          });
-          setShowCustomerModal(false);
-        }}
-      />
-
       {/* Park Order Modals */}
       <ParkOrderModal
         visible={showParkOrderModal}
@@ -1251,4 +1283,3 @@ export default function AddProductsScreen() {
     </View>
   );
 }
-

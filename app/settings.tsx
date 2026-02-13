@@ -48,7 +48,7 @@ export default function SettingsScreen() {
   const { timezone: selectedTimezone, timezoneLabel, setTimezone } = useTimezone();
   const [showTimezonePicker, setShowTimezonePicker] = useState(false);
 
-  // Print format setting: "receipt" (小票) or "a4" (A4)
+  // Print format setting: "receipt" or "a4"
   const [printFormat, setPrintFormat] = useState<"receipt" | "a4">("receipt");
   const [showPrintFormatPicker, setShowPrintFormatPicker] = useState(false);
 
