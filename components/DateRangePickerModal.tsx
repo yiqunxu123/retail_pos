@@ -13,6 +13,7 @@ import {
     Text,
     TouchableOpacity
 } from "react-native";
+import { getLocalToday } from "../utils/powersync/sqlFilters";
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -26,36 +27,42 @@ interface DateRangePickerModalProps {
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
 function toDateStr(d: Date): string {
-  const y = d.getFullYear();
-  const m = String(d.getMonth() + 1).padStart(2, "0");
-  const day = String(d.getDate()).padStart(2, "0");
+  const y = d.getUTCFullYear();
+  const m = String(d.getUTCMonth() + 1).padStart(2, "0");
+  const day = String(d.getUTCDate()).padStart(2, "0");
   return `${y}-${m}-${day}`;
 }
 
 function getToday(): string {
-  return toDateStr(new Date());
+  return getLocalToday();
+}
+
+function parseDateStr(dateStr: string): [number, number, number] {
+  const [y, m, d] = dateStr.split("-").map(Number);
+  return [y, m, d];
 }
 
 function getDateOffset(days: number): string {
-  const d = new Date();
-  d.setDate(d.getDate() - days);
+  const [y, m, day] = parseDateStr(getToday());
+  const d = new Date(Date.UTC(y, m - 1, day));
+  d.setUTCDate(d.getUTCDate() - days);
   return toDateStr(d);
 }
 
 function getYearAgoToday(): string {
-  const d = new Date();
-  d.setFullYear(d.getFullYear() - 1);
+  const [y, m, day] = parseDateStr(getToday());
+  const d = new Date(Date.UTC(y - 1, m - 1, day));
   return toDateStr(d);
 }
 
 function getThisMonthStart(): string {
-  const d = new Date();
-  return toDateStr(new Date(d.getFullYear(), d.getMonth(), 1));
+  const [y, m] = parseDateStr(getToday());
+  return `${y}-${String(m).padStart(2, "0")}-01`;
 }
 
 function getThisYearStart(): string {
-  const d = new Date();
-  return toDateStr(new Date(d.getFullYear(), 0, 1));
+  const [y] = parseDateStr(getToday());
+  return `${y}-01-01`;
 }
 
 const PRESETS = [

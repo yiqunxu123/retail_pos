@@ -75,7 +75,11 @@ interface StockValueRow { total: number }
  *     AND order_date >= start AND order_date <= end
  */
 function useTotalRevenue(filters: DashboardFilters) {
-  const dateFilter = dateRangeLocal('order_date', filters.startDate, filters.endDate);
+  // K Web sends timezone-shifted start/end timestamps from frontend before
+  // filtering `order_date` on backend. In app we select plain YYYY-MM-DD, so
+  // we convert `order_date` (stored as UTC timestamp text) to configured local
+  // date first, which yields the same business-day window as K Web.
+  const dateFilter = dateRangeUTCConverted('sale_orders.order_date', filters.startDate, filters.endDate);
   const chFilter   = channelFilterDirect(filters.channelIds, 'sale_orders.channel_id');
 
   const { data } = useSyncStream<RevenueRow>(
@@ -86,7 +90,7 @@ function useTotalRevenue(filters: DashboardFilters) {
        AND ${dateFilter}${chFilter}`
   );
   const result = data[0]?.total || 0;
-  console.log('[Dashboard] Total Revenue:', result);
+  console.log('[Dashboard] Total Revenue:', { startDate: filters.startDate, endDate: filters.endDate, result });
   return result;
 }
 
@@ -193,19 +197,19 @@ function useExtendedStockValue() {
 
 // ---------------------------------------------------------------------------
 // Order counts by shipping type
-// K Web: shipping_type = X AND sale_type = ORDER AND status NOT IN (VOID, DISCARDED)
-// Source: resources.py line 108-116
+// K Web: shipping_type = X AND sale_type = ORDER
+//       date(convert_timezone_for_client(created_at, tz)) >= start / <= end
+// Source: resources.py -> SaleOrder.count_by_date_rq
 // ---------------------------------------------------------------------------
 
 function useShippingTypeCount(filters: DashboardFilters, shippingType: number) {
-  const dateFilter = dateRangeLocal('order_date', filters.startDate, filters.endDate);
+  const dateFilter = dateRangeUTCConverted('sale_orders.created_at', filters.startDate, filters.endDate);
   const chFilter   = channelFilterDirect(filters.channelIds, 'sale_orders.channel_id');
 
   const { data } = useSyncStream<CountRow>(
     `SELECT COUNT(*) as count FROM sale_orders
      WHERE shipping_type = ${shippingType}
        AND sale_type = ${SaleType.ORDER}
-       AND status NOT IN (${SaleOrderStatus.VOID}, ${SaleOrderStatus.DISCARDED})
        AND ${dateFilter}${chFilter}`
   );
   return data[0]?.count || 0;

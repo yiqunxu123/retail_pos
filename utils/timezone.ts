@@ -101,13 +101,43 @@ export function getTimezoneOffsetMinutes(): number {
     return -new Date().getTimezoneOffset();
   }
 
-  // Use Intl to compare UTC vs. target timezone
-  const now = new Date();
-  const utcStr = now.toLocaleString('en-US', { timeZone: 'UTC' });
-  const tzStr  = now.toLocaleString('en-US', { timeZone: _timezone });
-  const utcDate = new Date(utcStr);
-  const tzDate  = new Date(tzStr);
-  return Math.round((tzDate.getTime() - utcDate.getTime()) / (1000 * 60));
+  // Robust offset computation without parsing locale-dependent date strings.
+  // On some Android runtimes, `new Date(toLocaleString(...))` can return Invalid Date.
+  try {
+    const now = new Date();
+    const dtf = new Intl.DateTimeFormat('en-US', {
+      timeZone: _timezone,
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+      hour12: false,
+    });
+    const parts = dtf.formatToParts(now);
+    const map: Record<string, string> = {};
+    for (const p of parts) {
+      if (p.type !== 'literal') map[p.type] = p.value;
+    }
+    const y = Number(map.year);
+    const m = Number(map.month);
+    const d = Number(map.day);
+    const hh = Number(map.hour);
+    const mm = Number(map.minute);
+    const ss = Number(map.second);
+    if (![y, m, d, hh, mm, ss].every(Number.isFinite)) {
+      return -new Date().getTimezoneOffset();
+    }
+    const asUtcMs = Date.UTC(y, m - 1, d, hh, mm, ss);
+    const offsetMinutes = Math.round((asUtcMs - now.getTime()) / (1000 * 60));
+    if (!Number.isFinite(offsetMinutes)) {
+      return -new Date().getTimezoneOffset();
+    }
+    return offsetMinutes;
+  } catch {
+    return -new Date().getTimezoneOffset();
+  }
 }
 
 /**
@@ -124,6 +154,9 @@ export function getSqliteTimezoneOffset(): string {
   }
 
   const minutes = getTimezoneOffsetMinutes();
+  if (!Number.isFinite(minutes)) {
+    return 'localtime';
+  }
   const sign = minutes >= 0 ? '+' : '-';
   const abs  = Math.abs(minutes);
   const h = String(Math.floor(abs / 60)).padStart(2, '0');

@@ -23,6 +23,7 @@ import type { DashboardFilters } from "../utils/powersync/hooks";
 import { useCashManagement, useChannels, useDashboardStats } from "../utils/powersync/hooks";
 import { usePowerSync } from "../utils/powersync/PowerSyncProvider";
 import { getLocalToday } from "../utils/powersync/sqlFilters";
+import { useSyncStream } from "../utils/powersync/useSyncStream";
 import {
     addPrinter,
     addPrinterListener,
@@ -57,6 +58,20 @@ function formatDateDisplay(dateStr: string): string {
   return `${m}-${d}-${y}`; // MM-DD-YYYY like K Web
 }
 
+interface SettingRow {
+  value: unknown;
+}
+
+function extractTenantTimezone(value: unknown): string | null {
+  try {
+    const obj = typeof value === "string" ? JSON.parse(value) : value;
+    const tz = (obj as any)?.timezone?.value;
+    return typeof tz === "string" && tz.trim().length > 0 ? tz : null;
+  } catch {
+    return null;
+  }
+}
+
 export default function Dashboard() {
   const { width, height } = useWindowDimensions();
   const router = useRouter();
@@ -65,7 +80,20 @@ export default function Dashboard() {
   const { isClockedIn, selectedPosLine, selectPosLine, clockIn, getClockInTimeString, getElapsedTime } = useClock();
   const { viewMode, setViewMode, isStaffMode } = useViewMode();
   const { clearAndResync, isConnected, isSyncing } = usePowerSync();
-  const { timezone } = useTimezone();
+  const { timezone, setTimezone } = useTimezone();
+  const { data: settingsRows } = useSyncStream<SettingRow>(
+    "SELECT value FROM settings WHERE type = 'admin-panel' AND sub_type = 'basic' LIMIT 1"
+  );
+
+  // Align app timezone with tenant timezone so dashboard date filters match K Web.
+  useEffect(() => {
+    const tenantTimezone = extractTenantTimezone(settingsRows[0]?.value);
+    if (!tenantTimezone) return;
+    if (timezone !== tenantTimezone) {
+      console.log(`[Dashboard][TimezoneAlign] app=${timezone} tenant=${tenantTimezone}`);
+      void setTimezone(tenantTimezone);
+    }
+  }, [settingsRows, timezone, setTimezone]);
 
   // Dashboard filters - default to "Today"
   const [datePresetIndex, setDatePresetIndex] = useState<number | null>(0);
