@@ -5,7 +5,7 @@ streams:
   # Products stream
   products:
     auto_subscribe: true
-    query: "SELECT id, brand_id, name, weight, weight_unit, sku, upc, upc_2, upc_3, mlc, bin, description, is_online, status, unit_of_measurement, slug, sold_count, is_featured, main_category_id, images, created_at, updated_at FROM products"
+    query: "SELECT id, brand_id, name, weight, weight_unit, sku, upc, upc_2, upc_3, mlc, bin, description, is_online, status, unit_of_measurement, slug, sold_count, is_featured, main_category_id, images, deleted_at, created_at, updated_at FROM products"
 
   # Categories stream
   categories:

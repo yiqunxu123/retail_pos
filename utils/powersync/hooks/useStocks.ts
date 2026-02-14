@@ -24,6 +24,7 @@ interface StockJoinRow {
   product_id: number;
   qty: number;
   status: number;
+  deleted_at: string | null;
   product_name: string;
   sku: string;
   upc: string;
@@ -37,11 +38,44 @@ interface StockJoinRow {
   base_cost: number | null;  // base cost
 }
 
+function buildStocksQuery({ withSearch }: { withSearch: boolean }) {
+  const whereClause = withSearch ? 'WHERE p.name LIKE ? OR p.sku LIKE ? OR p.upc LIKE ?' : '';
+  const limitClause = withSearch ? 'LIMIT 50' : '';
+
+  return `SELECT
+      s.id,
+      s.channel_id,
+      s.product_id,
+      s.qty,
+      p.status as status,
+      p.deleted_at as deleted_at,
+      p.name as product_name,
+      p.sku,
+      p.upc,
+      p.bin,
+      ch.name as channel_name,
+      c.name as category_name,
+      b.name as brand_name,
+      up.price,
+      up.cost,
+      up.base_cost
+     FROM stocks s
+     LEFT JOIN products p ON s.product_id = p.id
+     LEFT JOIN channels ch ON s.channel_id = ch.id
+     LEFT JOIN categories c ON p.main_category_id = c.id
+     LEFT JOIN brands b ON p.brand_id = b.id
+     LEFT JOIN unit_prices up ON s.product_id = up.product_id AND s.channel_id = up.channel_id
+     ${whereClause}
+     ORDER BY p.name ASC
+     ${limitClause}`;
+}
+
 /** Stock data as displayed in the UI */
 export interface StockView {
   id: string;
   channelId: number;
   productId: number;
+  deletedAt: string | null;
   productName: string;
   sku: string;
   upc: string;
@@ -73,11 +107,13 @@ export interface StockView {
 function toStockView(db: StockJoinRow): StockView {
   const availableQty = db.qty || 0;
   const costPrice = db.cost || 0;
+  const productStatus = Number(db.status ?? 0);
 
   return {
     id: db.id,
     channelId: db.channel_id,
     productId: db.product_id,
+    deletedAt: db.deleted_at ?? null,
     productName: db.product_name || '',
     sku: db.sku || '',
     upc: db.upc || '',
@@ -98,7 +134,7 @@ function toStockView(db: StockJoinRow): StockView {
     salePrice: db.price || 0,
     costPrice,
     totalCost: availableQty * costPrice,
-    status: db.status,
+    status: Number.isNaN(productStatus) ? 0 : productStatus,
   };
 }
 
@@ -108,30 +144,11 @@ function toStockView(db: StockJoinRow): StockView {
 
 /** Get all stocks with product info and prices */
 export function useStocks() {
+  const stocksQuery = useMemo(() => buildStocksQuery({ withSearch: false }), []);
+
   const { data, isLoading, error, isStreaming, refresh } = useSyncStream<StockJoinRow>(
-    `SELECT 
-      s.id,
-      s.channel_id,
-      s.product_id,
-      s.qty,
-      s.status,
-      p.name as product_name,
-      p.sku,
-      p.upc,
-      p.bin,
-      ch.name as channel_name,
-      c.name as category_name,
-      b.name as brand_name,
-      up.price,
-      up.cost,
-      up.base_cost
-     FROM stocks s
-     LEFT JOIN products p ON s.product_id = p.id
-     LEFT JOIN channels ch ON s.channel_id = ch.id
-     LEFT JOIN categories c ON p.main_category_id = c.id
-     LEFT JOIN brands b ON p.brand_id = b.id
-     LEFT JOIN unit_prices up ON s.product_id = up.product_id AND s.channel_id = up.channel_id
-     ORDER BY p.name ASC`
+    stocksQuery,
+    []
   );
 
   const stocks = useMemo(() => data.map(toStockView), [data]);
@@ -161,34 +178,11 @@ export function useStockAlerts() {
 
 /** Search stocks by product name, SKU, or UPC */
 export function useStockSearch(query: string) {
+  const searchQuery = useMemo(() => buildStocksQuery({ withSearch: true }), []);
   const searchTerm = `%${query}%`;
   
   const { data, isLoading, error } = useSyncStream<StockJoinRow>(
-    `SELECT 
-      s.id,
-      s.channel_id,
-      s.product_id,
-      s.qty,
-      s.status,
-      p.name as product_name,
-      p.sku,
-      p.upc,
-      p.bin,
-      ch.name as channel_name,
-      c.name as category_name,
-      b.name as brand_name,
-      up.price,
-      up.cost,
-      up.base_cost
-     FROM stocks s
-     LEFT JOIN products p ON s.product_id = p.id
-     LEFT JOIN channels ch ON s.channel_id = ch.id
-     LEFT JOIN categories c ON p.main_category_id = c.id
-     LEFT JOIN brands b ON p.brand_id = b.id
-     LEFT JOIN unit_prices up ON s.product_id = up.product_id AND s.channel_id = up.channel_id
-     WHERE p.name LIKE ? OR p.sku LIKE ? OR p.upc LIKE ?
-     ORDER BY p.name ASC
-     LIMIT 50`,
+    searchQuery,
     [searchTerm, searchTerm, searchTerm],
     { enabled: query.length >= 2 }
   );

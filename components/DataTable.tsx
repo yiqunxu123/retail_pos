@@ -65,6 +65,10 @@ export interface FilterDefinition {
   options: FilterOption[];
   /** Filter width */
   width?: number;
+  /** Whether this filter supports multiple selected values */
+  multiple?: boolean;
+  /** Default selected value */
+  defaultValue?: string | string[] | null;
 }
 
 export interface DataTableProps<T = any> {
@@ -91,7 +95,9 @@ export interface DataTableProps<T = any> {
   /** Filter definitions */
   filters?: FilterDefinition[];
   /** Custom filter logic */
-  onFilter?: (item: T, filters: Record<string, string | null>) => boolean;
+  onFilter?: (item: T, filters: Record<string, string | string[] | null>) => boolean;
+  /** Whether to render filters in the top action row */
+  filtersInActionRow?: boolean;
   
   // Sort related
   /** Sort options */
@@ -198,6 +204,7 @@ export function DataTable<T = any>(props: DataTableProps<T>) {
     onSearch,
     filters = [],
     onFilter,
+    filtersInActionRow = false,
     sortOptions = [],
     onSort,
     columnSelector = true,
@@ -225,7 +232,15 @@ export function DataTable<T = any>(props: DataTableProps<T>) {
 
   // State
   const [searchQuery, setSearchQuery] = useState("");
-  const [activeFilters, setActiveFilters] = useState<Record<string, string | null>>({});
+  const [activeFilters, setActiveFilters] = useState<Record<string, string | string[] | null>>(
+    () =>
+      filters.reduce((acc, filter) => {
+        if (filter.defaultValue !== undefined) {
+          acc[filter.key] = filter.defaultValue;
+        }
+        return acc;
+      }, {} as Record<string, string | string[] | null>)
+  );
   const [sortBy, setSortBy] = useState<string | null>(null);
   const [showColumnsModal, setShowColumnsModal] = useState(false);
   const [internalRefreshing, setInternalRefreshing] = useState(false);
@@ -263,8 +278,8 @@ export function DataTable<T = any>(props: DataTableProps<T>) {
   );
   const allHideableColumnsSelected =
     hideableColumnKeys.length > 0 && hideableColumnKeys.every((key) => visibleColumns[key]);
-  const noneHideableColumnsSelected =
-    hideableColumnKeys.length > 0 && hideableColumnKeys.every((key) => !visibleColumns[key]);
+  const someHideableColumnsSelected =
+    hideableColumnKeys.length > 0 && hideableColumnKeys.some((key) => visibleColumns[key]);
   const setHideableColumnsVisibility = useCallback(
     (isVisible: boolean) => {
       setVisibleColumns((prev) => {
@@ -277,6 +292,9 @@ export function DataTable<T = any>(props: DataTableProps<T>) {
     },
     [hideableColumnKeys]
   );
+  const toggleSelectAllHideable = useCallback(() => {
+    setHideableColumnsVisibility(!allHideableColumnsSelected);
+  }, [allHideableColumnsSelected, setHideableColumnsVisibility]);
 
   const keyToRow = useMemo(() => {
     const map = new Map<string, T>();
@@ -317,7 +335,7 @@ export function DataTable<T = any>(props: DataTableProps<T>) {
   }, [bulkActions, selectedRowKeys, keyToRow, setSelectedKeys]);
 
   // Filter handler
-  const handleFilterChange = (filterKey: string, value: string | null) => {
+  const handleFilterChange = (filterKey: string, value: string | string[] | null) => {
     setActiveFilters(prev => ({ ...prev, [filterKey]: value }));
   };
 
@@ -462,7 +480,7 @@ export function DataTable<T = any>(props: DataTableProps<T>) {
       {/* Toolbar */}
       <View className="bg-white px-5 py-4 border-b border-gray-200">
         {/* Action Buttons */}
-        <View className="flex-row items-center gap-3 mb-4">
+        <View className="flex-row flex-wrap items-center gap-3 mb-4">
           {bulkActions && (
             <Pressable
               className={`px-4 py-2 rounded-lg flex-row items-center gap-2 ${
@@ -487,9 +505,22 @@ export function DataTable<T = any>(props: DataTableProps<T>) {
               <Text className="text-gray-700">Columns</Text>
             </Pressable>
           )}
+          {filtersInActionRow && filters.map((filter) => (
+            <FilterDropdown
+              key={filter.key}
+              label=""
+              value={activeFilters[filter.key] || null}
+              options={filter.options}
+              onChange={(value) => handleFilterChange(filter.key, value)}
+              placeholder={filter.placeholder}
+              width={filter.width}
+              multiple={filter.multiple}
+            />
+          ))}
           {isStreaming && (
             <View className="flex-row items-center gap-1 ml-2">
-              <Text className="text-green-600 text-xs">● Live</Text>
+              <Ionicons name="ellipse" size={8} color="#16a34a" />
+              <Text className="text-green-600 text-xs">Live</Text>
             </View>
           )}
           <View className="flex-1" />
@@ -505,14 +536,14 @@ export function DataTable<T = any>(props: DataTableProps<T>) {
         </View>
 
         {/* Search & Filters */}
-        {(searchable || filters.length > 0 || sortOptions.length > 0) && (
+        {(searchable || (!filtersInActionRow && filters.length > 0) || sortOptions.length > 0) && (
           <>
             {searchHint && (
               <Text className="text-gray-500 text-sm mb-2">{searchHint}</Text>
             )}
-            <View className="flex-row gap-4">
+            <View className="flex-row flex-wrap gap-3">
               {searchable && (
-                <View className="flex-1">
+                <View className="flex-1" style={{ minWidth: 220 }}>
                   <TextInput
                     className="bg-gray-50 border border-gray-200 rounded-lg px-4 py-2.5"
                     placeholder={searchPlaceholder}
@@ -522,7 +553,7 @@ export function DataTable<T = any>(props: DataTableProps<T>) {
                   />
                 </View>
               )}
-              {filters.map((filter) => (
+              {!filtersInActionRow && filters.map((filter) => (
                 <FilterDropdown
                   key={filter.key}
                   label=""
@@ -531,6 +562,7 @@ export function DataTable<T = any>(props: DataTableProps<T>) {
                   onChange={(value) => handleFilterChange(filter.key, value)}
                   placeholder={filter.placeholder}
                   width={filter.width}
+                  multiple={filter.multiple}
                 />
               ))}
               {sortOptions.length > 0 && (
@@ -593,26 +625,16 @@ export function DataTable<T = any>(props: DataTableProps<T>) {
                 </Pressable>
               </View>
 
-              <View className="flex-row items-center justify-end mb-4">
-                <Pressable
-                  className="py-1"
-                  onPress={() => setHideableColumnsVisibility(true)}
-                  disabled={hideableColumnKeys.length === 0 || allHideableColumnsSelected}
-                >
-                  <Text className={`${allHideableColumnsSelected ? "text-gray-300" : "text-gray-500"} text-xs font-medium`}>
-                    Select all
-                  </Text>
-                </Pressable>
-                <Text className="text-gray-300 text-xs px-2">|</Text>
-                <Pressable
-                  className="py-1"
-                  onPress={() => setHideableColumnsVisibility(false)}
-                  disabled={hideableColumnKeys.length === 0 || noneHideableColumnsSelected}
-                >
-                  <Text className={`${noneHideableColumnsSelected ? "text-gray-300" : "text-gray-500"} text-xs font-medium`}>
-                    Clear
-                  </Text>
-                </Pressable>
+              <View className="flex-row items-center py-2 mb-2 border-b border-gray-100">
+                <View className="mr-3">
+                  <TableCheckbox
+                    checked={allHideableColumnsSelected}
+                    indeterminate={!allHideableColumnsSelected && someHideableColumnsSelected}
+                    onPress={toggleSelectAllHideable}
+                    disabled={hideableColumnKeys.length === 0}
+                  />
+                </View>
+                <Text className="text-sm text-gray-700">Select all</Text>
               </View>
 
               {/* Column Options */}

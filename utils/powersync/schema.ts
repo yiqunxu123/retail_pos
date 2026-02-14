@@ -21,6 +21,7 @@ const products = new Table({
   is_featured: column.integer, // boolean
   main_category_id: column.integer,
   images: column.text, // JSON string
+  deleted_at: column.text,
   created_at: column.text,
   updated_at: column.text,
 })

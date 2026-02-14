@@ -13,13 +13,14 @@ export interface FilterOption {
 
 interface FilterDropdownProps {
   label: string;
-  value: string | null;
+  value: string | string[] | null;
   options: FilterOption[];
-  onChange: (value: string | null) => void;
+  onChange: (value: string | string[] | null) => void;
   placeholder?: string;
   allowClear?: boolean;
   width?: number;
   variant?: "default" | "primary" | "danger";
+  multiple?: boolean;
 }
 
 // ============================================================================
@@ -35,19 +36,50 @@ export function FilterDropdown({
   allowClear = true,
   width,
   variant = "default",
+  multiple = false,
 }: FilterDropdownProps) {
   const [isOpen, setIsOpen] = useState(false);
 
-  const selectedOption = options.find((opt) => opt.value === value);
-  const displayText = selectedOption?.label || placeholder;
+  const selectedValues = multiple
+    ? (Array.isArray(value) ? value : [])
+    : (typeof value === "string" && value ? [value] : []);
+  const selectedOptions = options.filter((opt) => selectedValues.includes(opt.value));
+  const displayText = multiple
+    ? (selectedOptions.length === 0
+      ? placeholder
+      : selectedOptions.map((option) => option.label).join(", "))
+    : (options.find((opt) => opt.value === value)?.label || placeholder);
+  const hasValue = selectedValues.length > 0;
 
   const handleSelect = (optionValue: string) => {
+    if (multiple) {
+      const hasAllOption = options.some((opt) => opt.value === "all");
+      const exists = selectedValues.includes(optionValue);
+      let nextValues: string[];
+
+      if (hasAllOption) {
+        if (optionValue === "all") {
+          nextValues = exists ? [] : ["all"];
+        } else if (exists) {
+          nextValues = selectedValues.filter((v) => v !== optionValue);
+        } else {
+          nextValues = [...selectedValues.filter((v) => v !== "all"), optionValue];
+        }
+      } else {
+        nextValues = exists
+          ? selectedValues.filter((v) => v !== optionValue)
+          : [...selectedValues, optionValue];
+      }
+
+      onChange(nextValues.length > 0 ? nextValues : null);
+      return;
+    }
     onChange(optionValue);
     setIsOpen(false);
   };
 
   const handleClear = () => {
-    onChange(null);
+    onChange(multiple ? [] : null);
   };
 
   // Variant styles
@@ -80,7 +112,7 @@ export function FilterDropdown({
         <Text className={`${textStyles[variant]} flex-1`} numberOfLines={1}>
           {displayText}
         </Text>
-        {allowClear && value && variant === "default" ? (
+        {allowClear && hasValue && variant === "default" ? (
           <Pressable onPress={handleClear} hitSlop={8}>
             <Ionicons name="close" size={14} color={iconColor[variant]} />
           </Pressable>
@@ -120,7 +152,7 @@ export function FilterDropdown({
                 </Pressable>
               )}
               {options.map((option) => {
-                const isSelected = option.value === value;
+                const isSelected = selectedValues.includes(option.value);
                 return (
                   <Pressable
                     key={option.value}
