@@ -257,6 +257,26 @@ export function DataTable<T = any>(props: DataTableProps<T>) {
   const toggleColumn = (key: string) => {
     setVisibleColumns(prev => ({ ...prev, [key]: !prev[key] }));
   };
+  const hideableColumnKeys = useMemo(
+    () => columns.filter((col) => col.hideable !== false).map((col) => col.key),
+    [columns]
+  );
+  const allHideableColumnsSelected =
+    hideableColumnKeys.length > 0 && hideableColumnKeys.every((key) => visibleColumns[key]);
+  const noneHideableColumnsSelected =
+    hideableColumnKeys.length > 0 && hideableColumnKeys.every((key) => !visibleColumns[key]);
+  const setHideableColumnsVisibility = useCallback(
+    (isVisible: boolean) => {
+      setVisibleColumns((prev) => {
+        const next = { ...prev };
+        hideableColumnKeys.forEach((key) => {
+          next[key] = isVisible;
+        });
+        return next;
+      });
+    },
+    [hideableColumnKeys]
+  );
 
   const keyToRow = useMemo(() => {
     const map = new Map<string, T>();
@@ -566,10 +586,32 @@ export function DataTable<T = any>(props: DataTableProps<T>) {
           <View className="flex-1 bg-black/50 justify-center items-center">
             <View className="bg-white rounded-xl w-80 max-w-[90%] p-6">
               {/* Header */}
-              <View className="flex-row items-center justify-between mb-6">
+              <View className="flex-row items-center justify-between mb-2">
                 <Text className="text-xl font-semibold text-gray-800">Select Columns</Text>
                 <Pressable onPress={() => setShowColumnsModal(false)}>
                   <Ionicons name="close" size={24} color="#9CA3AF" />
+                </Pressable>
+              </View>
+
+              <View className="flex-row items-center justify-end mb-4">
+                <Pressable
+                  className="py-1"
+                  onPress={() => setHideableColumnsVisibility(true)}
+                  disabled={hideableColumnKeys.length === 0 || allHideableColumnsSelected}
+                >
+                  <Text className={`${allHideableColumnsSelected ? "text-gray-300" : "text-gray-500"} text-xs font-medium`}>
+                    Select all
+                  </Text>
+                </Pressable>
+                <Text className="text-gray-300 text-xs px-2">|</Text>
+                <Pressable
+                  className="py-1"
+                  onPress={() => setHideableColumnsVisibility(false)}
+                  disabled={hideableColumnKeys.length === 0 || noneHideableColumnsSelected}
+                >
+                  <Text className={`${noneHideableColumnsSelected ? "text-gray-300" : "text-gray-500"} text-xs font-medium`}>
+                    Clear
+                  </Text>
                 </Pressable>
               </View>
 

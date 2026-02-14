@@ -478,9 +478,9 @@ export default function StocksScreen() {
 
             <ScrollView style={{ maxHeight: "65%" }} showsVerticalScrollIndicator={false}>
               <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-                <View style={{ minWidth: 1240 }}>
+                <View style={{ minWidth: 1200 }}>
                   <View className="flex-row pb-2 border-b border-gray-200">
-                    <View style={{ width: 260, paddingRight: 8 }}>
+                    <View style={{ width: 220, paddingRight: 8 }}>
                       <Text className="text-xs text-gray-500">Products</Text>
                     </View>
                     <View style={{ width: 170, paddingRight: 8 }}>
@@ -498,7 +498,7 @@ export default function StocksScreen() {
                     <View style={{ width: 190, paddingRight: 8 }}>
                       <Text className="text-xs text-gray-500">Delivered Without Stock</Text>
                     </View>
-                    <View style={{ width: 110 }}>
+                    <View style={{ width: 150 }}>
                       <Text className="text-xs text-gray-500">Channel Name</Text>
                     </View>
                   </View>
@@ -520,7 +520,7 @@ export default function StocksScreen() {
                         style={index < bulkRows.length - 1 ? { borderBottomWidth: 1, borderBottomColor: "#f3f4f6" } : undefined}
                       >
                         <View className="flex-row items-start">
-                          <View style={{ width: 260, paddingRight: 8 }}>
+                          <View style={{ width: 220, paddingRight: 8 }}>
                             <Text className="text-sm font-medium text-gray-800" numberOfLines={2}>
                               {row.productName || "-"}
                             </Text>
@@ -606,8 +606,10 @@ export default function StocksScreen() {
                             ) : null}
                           </View>
 
-                          <View style={{ width: 110 }}>
-                            <Text className="text-sm text-gray-600 pt-2">{row.channelName || "-"}</Text>
+                          <View style={{ width: 150 }}>
+                            <Text className="text-sm text-gray-600 pt-2" numberOfLines={2}>
+                              {row.channelName || "-"}
+                            </Text>
                           </View>
                         </View>
                       </View>
