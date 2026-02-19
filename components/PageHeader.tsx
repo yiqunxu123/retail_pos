@@ -1,6 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
 import { type ReactNode } from "react";
-import { Text, TouchableOpacity, View } from "react-native";
+import { Pressable, Text, TouchableOpacity, View } from "react-native";
 import { useAppNavigation } from "../hooks/useAppNavigation";
 
 interface PageHeaderProps {
@@ -53,14 +53,14 @@ export function PageHeader({
           disabled={!onLongPress}
         >
           <Text
-            className="text-white font-semibold"
+            className="text-white font-semibold font-Montserrat"
             style={{ fontSize: 28, letterSpacing: -0.5 }}
           >
             {title}
           </Text>
           {subtitle && (
             <Text
-              className="text-white font-medium mt-1"
+              className="text-white font-medium font-Montserrat mt-1"
               style={{ fontSize: 16 }}
             >
               {subtitle}
@@ -75,18 +75,14 @@ export function PageHeader({
 
   // Default variant
   return (
-    <View className="bg-white px-5 py-4 border-b border-gray-200 flex-row items-center">
-      <View className="flex-row items-center flex-1 min-w-0">
+    <View className="bg-[#F7F7F9] px-5 py-4 border-b border-gray-200 flex-row items-center justify-between">
+      <View className="flex-row items-center gap-4">
         {showBack && (
-          <TouchableOpacity
-            onPress={() => safeGoBack()}
-            className="mr-4 p-1"
-            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-          >
+          <Pressable onPress={() => safeGoBack()} className="p-1">
             <Ionicons name="arrow-back" size={24} color="#374151" />
-          </TouchableOpacity>
+          </Pressable>
         )}
-        <Text className="text-2xl font-bold text-gray-800 flex-shrink" numberOfLines={1}>
+        <Text className="text-2xl font-bold text-gray-800 font-Montserrat flex-shrink" numberOfLines={1}>
           {title}
         </Text>
       </View>

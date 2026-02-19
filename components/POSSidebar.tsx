@@ -1,10 +1,11 @@
-import { Ionicons } from "@expo/vector-icons";
+import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
+import React from "react";
 import { ScrollView, View } from "react-native";
 import { BrandingSection } from "./BrandingSection";
 import { SidebarButton } from "./SidebarButton";
 
-// POS Sidebar width - matches unified sidebar width
-export const POS_SIDEBAR_WIDTH = 260;
+// POS Sidebar width
+export const POS_SIDEBAR_WIDTH = 440;
 
 interface POSSidebarProps {
   isLandscape: boolean;
@@ -12,183 +13,137 @@ interface POSSidebarProps {
   onCashPayment?: () => void;
   onCardPayment?: () => void;
   onDeleteProduct?: () => void;
-  onVoidPayment?: () => void;
   onEmptyCart?: () => void;
-  onParkOrder?: () => void;
+  onPayLater?: () => void;
   onGoToMenu?: () => void;
-  onCheckout?: () => void;
-  onAddDiscount?: () => void;
-  onAddNotes?: () => void;
-  onMiscItem?: () => void;
-  onPrintReceipt?: () => void;
-  /** Hide checkout and go to menu buttons when in order flow */
+  onPaymentMethod1?: () => void;
+  onPaymentMethod2?: () => void;
+  onPaymentMethod3?: () => void;
+  /** Hide checkout buttons when in order flow */
   hideNavButtons?: boolean;
 }
 
 /**
- * POSSidebar - Action sidebar for POS sales screen
- * Contains payment methods, product actions, and cart controls
+ * POSSidebar - Matches the buttons in the reference image
  */
 export function POSSidebar({
   isLandscape,
   onAddProduct,
   onCashPayment,
-  onCardPayment,
   onDeleteProduct,
-  onVoidPayment,
   onEmptyCart,
-  onParkOrder,
+  onPayLater,
   onGoToMenu,
-  onCheckout,
-  onAddDiscount,
-  onAddNotes,
-  onMiscItem,
-  onPrintReceipt,
+  onPaymentMethod1,
+  onPaymentMethod3,
   hideNavButtons = false,
-}: POSSidebarProps) {
+}: POSSidebarProps & { onPaymentMethod1?: () => void; onPaymentMethod3?: () => void }) {
   return (
     <View
-      className={`
-        bg-gray-50 p-2
-        ${isLandscape ? "border-l border-gray-200" : "border-t border-gray-200"}
-      `}
+      className="bg-[#F7F7F9]"
       style={{
         width: isLandscape ? POS_SIDEBAR_WIDTH : "100%",
       }}
     >
       <ScrollView
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ gap: 8 }}
+        contentContainerStyle={{ gap: 12, padding: 16 }}
       >
         {/* Branding Section */}
-        <BrandingSection />
-
-        {
-          !hideNavButtons && (
-            <SidebarButton
-              title="Go to Menu"
-              icon={<Ionicons name="grid-outline" size={18} color="#EC1A52" />}
-              onPress={onGoToMenu}
-            />
-          )
-        }
-        {/* TEST: Print Receipt Button - Prominent for testing */}
-        <SidebarButton
-          title="🖨 PRINT RECEIPT (TEST)"
-          icon={<Ionicons name="print-outline" size={20} color="#EC1A52" />}
-          onPress={onPrintReceipt}
-        />
-
-        {/* Add Product Row */}
-        <View>
-         
-          <SidebarButton
-            title="Add Misc Item"
-            fullWidth={true}
-            onPress={onMiscItem}
-          />
+        <View className="mb-2">
+           <BrandingSection />
         </View>
 
-        {/* Payment Methods */}
-        <View className="flex-row gap-2">
+        {/* Column 1: Add New Product (Full Width Primary) */}
+        <SidebarButton
+          title="Add New Product"
+          variant="primary"
+          onPress={onAddProduct}
+        />
+
+        {/* Row: Cash Payment | (Something else) */}
+        <View className="flex-row gap-3">
           <SidebarButton
             title="Cash Payment"
+            variant="outline"
             fullWidth={false}
             onPress={onCashPayment}
           />
           <SidebarButton
             title="Card Payment"
-            fullWidth={false}
-            onPress={onCardPayment}
-          />
-        </View>
-
-        <View className="flex-row gap-2">
-          <SidebarButton
-            title="Bank 1 Machine"
-            fullWidth={false}
-          />
-          <SidebarButton
-            title="Bank 2 Machine"
+            variant="outline"
             fullWidth={false}
           />
         </View>
 
-        <View className="flex-row gap-2">
+        {/* Row: Payment Method 1 | Payment Method 2? (Actually image shows Method 1 and Method 3?) */}
+        <View className="flex-row gap-3">
           <SidebarButton
-            title="Bank 3 Machine"
+            title="Payment Method 1"
+            variant="outline"
             fullWidth={false}
+            onPress={onPaymentMethod1}
           />
           <SidebarButton
-            title="Bank 4 Machine"
-            fullWidth={false}
-          />
-        </View>
-
-        {/* Online Transfer / Add Tax */}
-        <View className="flex-row gap-2">
-          <SidebarButton
-            title="Online Transfer"
-            fullWidth={false}
-          />
-          <SidebarButton
-            title="⊕ Add Tax"
+            title="Payment Method 2"
+            variant="outline"
             fullWidth={false}
           />
         </View>
 
-        {/* Delete / Void */}
-        <View className="flex-row gap-2">
+        <View className="flex-row gap-3">
           <SidebarButton
-            title="Delete Product"
+            title="Payment Method 3"
+            variant="outline"
             fullWidth={false}
-            onPress={onDeleteProduct}
+            onPress={onPaymentMethod3}
           />
           <SidebarButton
-            title="Void Payment"
+            title="Payment Method 4"
+            variant="outline"
             fullWidth={false}
-            onPress={onVoidPayment}
-          />
-        </View>
-
-        {/* Add Notes / Add Discount */}
-        <View className="flex-row gap-2">
-          <SidebarButton
-            title="Add Notes"
-            fullWidth={false}
-            onPress={onAddNotes}
-          />
-          <SidebarButton
-            title="Add Discount"
-            fullWidth={false}
-            onPress={onAddDiscount}
           />
         </View>
 
-        {/* Empty Cart / Park Order */}
-        <View className="flex-row gap-2">
+        {/* Row: Pay Later | (Something else) */}
+        <View className="flex-row gap-3">
           <SidebarButton
-            title="🗑 Empty Cart"
+            title="Pay Later"
+            variant="outline"
+            fullWidth={false}
+            onPress={onPayLater}
+          />
+          <SidebarButton
+            title="Add Misc Item"
+            variant="outline"
+            fullWidth={false}
+          />
+        </View>
+
+        {/* Row: Delete Product (Solid Orange/Brown) */}
+        <SidebarButton
+          title="Delete Product"
+          variant="danger" // We can keep danger or adjust color
+          onPress={onDeleteProduct}
+        />
+
+        {/* Row: Go to Menu | Empty Cart */}
+        <View className="flex-row gap-3">
+          <SidebarButton
+            title="Go to Menu"
+            variant="outline"
+            icon={<Ionicons name="apps-outline" size={24} color="#EC1A52" />}
+            fullWidth={false}
+            onPress={onGoToMenu}
+          />
+          <SidebarButton
+            title="Empty Cart"
+            variant="outline"
+            icon={<Ionicons name="trash-outline" size={24} color="#EC1A52" />}
             fullWidth={false}
             onPress={onEmptyCart}
           />
-          <SidebarButton
-            title="⏱ Park Order"
-            fullWidth={false}
-            onPress={onParkOrder}
-          />
         </View>
-
-        {/* Checkout & Go to Menu - Hidden when in order flow */}
-        {!hideNavButtons && (
-
-            <SidebarButton
-              title="Checkout"
-              icon={<Ionicons name="cart-outline" size={18} color="#EC1A52" />}
-              onPress={onCheckout}
-            />
-
-        )}
       </ScrollView>
     </View>
   );

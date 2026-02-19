@@ -8,7 +8,7 @@
  */
 
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons'
-import { useLocalSearchParams } from 'expo-router'
+import { useRouter, useLocalSearchParams } from 'expo-router'
 import { useCallback, useEffect, useState } from 'react'
 import {
     ActivityIndicator,
@@ -18,11 +18,19 @@ import {
     ScrollView,
     Text,
     TextInput,
+    ToastAndroid,
     TouchableOpacity,
     View,
 } from 'react-native'
 import { PageHeader } from '../components'
-import { powerSyncDb } from '../utils/powersync/PowerSyncProvider'
+import { useClock } from '../contexts/ClockContext'
+import { usePowerSync, powerSyncDb } from '../utils/powersync/PowerSyncProvider'
+import {
+  addPrinterListener,
+  getPrinters,
+  printToAll,
+  printToOne
+} from '../utils/PrinterPoolManager'
 import {
     DEFAULT_DATASET_COUNTS,
     FullDatasetCounts,
@@ -36,7 +44,7 @@ import {
 // Types
 // ============================================================================
 
-type TabKey = 'generate' | 'browse' | 'quick'
+type TabKey = 'generate' | 'browse' | 'quick' | 'system'
 
 interface RowData {
   [key: string]: any
@@ -47,7 +55,7 @@ interface RowData {
 // ============================================================================
 
 function resolveTab(input?: string, hasTable?: boolean): TabKey {
-  if (input === 'generate' || input === 'browse' || input === 'quick') return input
+  if (input === 'generate' || input === 'browse' || input === 'quick' || input === 'system') return input as TabKey
   return hasTable ? 'browse' : 'generate'
 }
 
@@ -69,19 +77,19 @@ export default function DevToolsScreen() {
   // Production guard: prevent access even via direct URL
   if (!__DEV__) {
     return (
-      <View className="flex-1 bg-gray-50 items-center justify-center">
-        <PageHeader title="Not Available" />
+      <View className="flex-1 bg-[#F7F7F9] items-center justify-center">
+        <PageHeader title="Not Available" showBack={false} />
         <Text className="text-gray-400 text-lg">This page is only available in development mode.</Text>
       </View>
     )
   }
 
   return (
-    <View className="flex-1 bg-gray-50">
-      <PageHeader title="Dev Tools" />
+    <View className="flex-1 bg-[#F7F7F9]">
+      <PageHeader title="Dev Tools" showBack={false} />
 
       {/* Tab Bar */}
-      <View className="flex-row bg-white border-b border-gray-200">
+      <View className="flex-row bg-[#F7F7F9] border-b border-gray-200">
         <TabButton
           title="Generate"
           icon="add-circle-outline"
@@ -100,12 +108,19 @@ export default function DevToolsScreen() {
           isActive={activeTab === 'quick'}
           onPress={() => setActiveTab('quick')}
         />
+        <TabButton
+          title="System"
+          icon="settings-outline"
+          isActive={activeTab === 'system'}
+          onPress={() => setActiveTab('system')}
+        />
       </View>
 
       {/* Tab Content */}
       {activeTab === 'generate' && <GenerateTab initialTable={resolvedTable} />}
       {activeTab === 'browse' && <BrowseTab initialTable={resolvedTable} />}
       {activeTab === 'quick' && <QuickActionsTab />}
+      {activeTab === 'system' && <SystemTab />}
     </View>
   )
 }
@@ -1039,6 +1054,191 @@ function QuickActionsTab() {
       )}
 
       {/* Bottom padding */}
+      <View className="h-20" />
+    </ScrollView>
+  )
+}
+
+// ============================================================================
+// System Tab
+// ============================================================================
+
+function SystemTab() {
+  const router = useRouter()
+  const { clearAndResync, isConnected, isSyncing } = usePowerSync()
+  const { isClockedIn, clockIn, selectedPosLine } = useClock()
+  const [printerList, setPrinterList] = useState<{ id: string; name: string }[]>([])
+
+  // Sync printer list
+  useEffect(() => {
+    const updatePrinters = () => {
+      const currentPrinters = getPrinters().filter(p => p.enabled)
+      setPrinterList(currentPrinters.map(p => ({ id: p.id, name: p.name })))
+    }
+    
+    updatePrinters()
+    const unsubscribe = addPrinterListener((event) => {
+      if (['printer_added', 'printer_removed', 'printer_status_changed'].includes(event.type)) {
+        updatePrinters()
+      }
+      if (event.type === 'job_failed') {
+        Alert.alert("Print Error", `Failed to print: ${event.data?.error || 'Unknown error'}`)
+      }
+    })
+    return () => unsubscribe()
+  }, [])
+
+  const buildTestReceipt = (): string => {
+    const now = new Date().toLocaleString()
+    return `
+      <C>K-HUB POS TEST</C>
+      <C>--------------------------------</C>
+      <L>Date: ${now}</L>
+      <L>Mode: Development</L>
+      <L>Status: Online</L>
+      <C>--------------------------------</C>
+      <L>Item 1             $10.00</L>
+      <L>Item 2             $20.00</L>
+      <C>--------------------------------</C>
+      <R>TOTAL: $30.00</R>
+      <C>--------------------------------</C>
+      <C>THANK YOU</C>
+      <BR/><BR/><CUT/>
+    `
+  }
+
+  const handleTestPrint = async (printerIndex?: number | 'all') => {
+    try {
+      if (!isClockedIn) {
+        clockIn("TEST-001", selectedPosLine || 1)
+      }
+
+      if (printerList.length === 0) {
+        ToastAndroid.show(`❌ No available printers`, ToastAndroid.LONG)
+        return
+      }
+
+      const receipt = buildTestReceipt()
+
+      if (printerIndex === 'all') {
+        ToastAndroid.show(`⏳ Printing to all...`, ToastAndroid.SHORT)
+        const result = await printToAll(receipt)
+        if (result.success) {
+          ToastAndroid.show(`✅ All successful`, ToastAndroid.LONG)
+        } else {
+          ToastAndroid.show(`❌ Some prints failed`, ToastAndroid.LONG)
+        }
+      } else if (typeof printerIndex === 'number') {
+        const targetPrinter = printerList[printerIndex]
+        if (!targetPrinter) return
+        
+        ToastAndroid.show(`⏳ Printing to ${targetPrinter.name}...`, ToastAndroid.SHORT)
+        const result = await printToOne(targetPrinter.id, receipt)
+        if (result.success) {
+          ToastAndroid.show(`✅ ${targetPrinter.name} success`, ToastAndroid.LONG)
+        } else {
+          ToastAndroid.show(`❌ ${targetPrinter.name} failed`, ToastAndroid.LONG)
+        }
+      }
+    } catch (e) {
+      console.error(e)
+    }
+  }
+
+  return (
+    <ScrollView className="flex-1 p-4">
+      {/* PowerSync Section */}
+      <View className="bg-white rounded-xl border border-gray-200 overflow-hidden mb-4">
+        <View className="bg-gray-50 px-4 py-3 border-b border-gray-200 flex-row items-center gap-2">
+          <Ionicons name="sync" size={18} color="#6b7280" />
+          <Text className="text-gray-700 font-semibold">Data Sync & PowerSync</Text>
+        </View>
+        
+        <View className="p-4 gap-4">
+          <View className="flex-row items-center justify-between bg-gray-50 p-3 rounded-lg">
+            <View>
+              <Text className="text-gray-700 font-medium">Sync Status</Text>
+              <Text className={isConnected ? "text-green-600 text-xs" : "text-red-600 text-xs"}>
+                {isConnected ? "Connected (Online)" : "Disconnected (Offline)"}
+              </Text>
+            </View>
+            {isSyncing && <ActivityIndicator size="small" color="#3b82f6" />}
+          </View>
+
+          <TouchableOpacity
+            onPress={() => router.push("/test-sync")}
+            className="flex-row items-center justify-center gap-2 bg-blue-500 p-4 rounded-xl"
+          >
+            <Ionicons name="analytics" size={20} color="white" />
+            <Text className="text-white font-bold">Open Sync Monitor (Test Sync)</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            onPress={() => {
+              Alert.alert(
+                "🔄 Reset & Resync",
+                "This will clear the local database and re-download everything. Continue?",
+                [
+                  { text: "Cancel", style: "cancel" },
+                  { text: "Reset", style: "destructive", onPress: clearAndResync }
+                ]
+              )
+            }}
+            className="flex-row items-center justify-center gap-2 bg-red-50 border border-red-200 p-3 rounded-xl"
+          >
+            <Ionicons name="refresh" size={18} color="#ef4444" />
+            <Text className="text-red-600 font-medium">Force Clear & Resync Database</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+
+      {/* Printer Section */}
+      <View className="bg-white rounded-xl border border-gray-200 overflow-hidden mb-4">
+        <View className="bg-gray-50 px-4 py-3 border-b border-gray-200 flex-row items-center gap-2">
+          <Ionicons name="print" size={18} color="#6b7280" />
+          <Text className="text-gray-700 font-semibold">Printer Testing</Text>
+        </View>
+        
+        <View className="p-4 gap-3">
+          {printerList.length === 0 ? (
+            <View className="items-center py-4">
+              <Text className="text-gray-400 italic">No printers configured</Text>
+              <TouchableOpacity 
+                onPress={() => router.push("/settings")}
+                className="mt-2"
+              >
+                <Text className="text-blue-500 font-medium">Go to Settings</Text>
+              </TouchableOpacity>
+            </View>
+          ) : (
+            <>
+              <View className="flex-row flex-wrap gap-2">
+                {printerList.map((printer, index) => (
+                  <TouchableOpacity
+                    key={printer.id}
+                    onPress={() => handleTestPrint(index)}
+                    className="flex-1 min-w-[45%] bg-purple-50 border border-purple-100 p-3 rounded-lg flex-row items-center gap-2"
+                  >
+                    <Ionicons name="print" size={16} color="#8b5cf6" />
+                    <Text className="text-purple-700 font-medium" numberOfLines={1}>
+                      {printer.name}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+
+              <TouchableOpacity
+                onPress={() => handleTestPrint('all')}
+                className="flex-row items-center justify-center gap-2 bg-purple-500 p-3 rounded-lg mt-1"
+              >
+                <Ionicons name="copy" size={18} color="white" />
+                <Text className="text-white font-bold">Test All Printers (Parallel)</Text>
+              </TouchableOpacity>
+            </>
+          )}
+        </View>
+      </View>
+
       <View className="h-20" />
     </ScrollView>
   )

@@ -1,23 +1,47 @@
-import { Text, View } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
+import { Image, Pressable, View } from "react-native";
+import { useAppNavigation } from "../hooks/useAppNavigation";
+import { SidebarButton } from "./SidebarButton";
+
+interface BrandingSectionProps {
+  showGoBack?: boolean;
+}
 
 /**
  * BrandingSection - Unified branding placeholder component
- * Used across sidebars to display consistent branding area
+ * Displays the K-HUB logo and an optional "Go Back Menu" button
  */
-export function BrandingSection() {
+export function BrandingSection({ showGoBack = true }: BrandingSectionProps) {
+  const { navigateTo, pathname } = useAppNavigation();
+
+  // Check if we are NOT on the home page
+  const isNotHomePage = pathname !== "/" && pathname !== "/index";
+
   return (
-    <View
-      className="rounded-lg py-2 px-3 items-center justify-center"
-      style={{
-        backgroundColor: "#D9D9D9",
-        borderWidth: 1,
-        borderColor: "#1A1A1A",
-        borderStyle: "dashed",
-      }}
-    >
-      <Text style={{ fontSize: 12, color: "#1A1A1A", fontWeight: "500" }}>
-        Branding
-      </Text>
+    <View style={{ gap: 12 }}>
+      <Pressable
+        onPress={() => navigateTo("/")}
+        className="rounded-lg px-3 items-center justify-center active:opacity-70"
+        style={{
+          height: 122,
+          backgroundColor: "#1A1A1A", // Dark background to match design/logo
+        }}
+      >
+        <Image 
+          source={require("../assets/images/khub-white-logo.png")}
+          style={{ width: "80%", height: 60 }}
+          resizeMode="contain"
+        />
+      </Pressable>
+
+      {isNotHomePage && showGoBack && (
+        <SidebarButton
+          title="Go to Menu"
+          icon={<Ionicons name="menu" size={32} />}
+          onPress={() => navigateTo("/")}
+          variant="outline"
+        />
+      )}
     </View>
   );
 }

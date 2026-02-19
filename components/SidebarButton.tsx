@@ -1,4 +1,4 @@
-import { ReactNode } from "react";
+import React, { ReactNode } from "react";
 import { Text, TouchableOpacity, View } from "react-native";
 
 interface SidebarButtonProps {
@@ -6,71 +6,124 @@ interface SidebarButtonProps {
   icon?: ReactNode;
   onPress?: () => void;
   onLongPress?: () => void;
-  isActive?: boolean;
+  variant?: "primary" | "secondary" | "outline" | "danger" | "ghost" | "purple-outline" | "purple" | "yellow";
   fullWidth?: boolean;
+  disabled?: boolean;
 }
 
 // Consistent text style for all button states
 const TEXT_STYLE = {
-  fontSize: 14,
-  fontWeight: "500" as const,
+  fontSize: 18,
+  fontWeight: "600" as const,
+  fontFamily: "Montserrat",
 };
 
 /**
  * SidebarButton - Unified button component for all sidebars
- * Matches the StaffButton design with active/inactive states
+ * Supports multiple variants to match design specifications
  */
 export function SidebarButton({
   title,
   icon,
   onPress,
   onLongPress,
-  isActive = true,
+  variant = "outline",
   fullWidth = true,
+  disabled = false,
 }: SidebarButtonProps) {
-  const textColor = isActive ? "#EC1A52" : "#848484";
+  // Styles based on variant
+  const getStyles = () => {
+    switch (variant) {
+      case "primary":
+        return {
+          container: { backgroundColor: "#EC1A52", borderWidth: 0 },
+          text: { color: "#FFFFFF" },
+          iconColor: "#FFFFFF",
+        };
+      case "danger":
+        return {
+          container: { backgroundColor: "#E64A19", borderWidth: 0 },
+          text: { color: "#FFFFFF" },
+          iconColor: "#FFFFFF",
+        };
+      case "yellow":
+        return {
+          container: { backgroundColor: "#FFD54F", borderWidth: 0 },
+          text: { color: "#212121" },
+          iconColor: "#212121",
+        };
+      case "secondary":
+        return {
+          container: { backgroundColor: "#EEEEEE", borderWidth: 1, borderColor: "#BDBDBD" },
+          text: { color: "#757575" },
+          iconColor: "#757575",
+        };
+      case "ghost":
+        return {
+          container: { backgroundColor: "#F7F7F9", borderWidth: 1, borderColor: "#848484" },
+          text: { color: "#848484" },
+          iconColor: "#848484",
+        };
+      case "purple-outline":
+        return {
+          container: { backgroundColor: "#F7F7F9", borderWidth: 1, borderColor: "#5F4BB6" },
+          text: { color: "#5F4BB6" },
+          iconColor: "#5F4BB6",
+        };
+      case "purple":
+        return {
+          container: { backgroundColor: "#5F4BB6", borderWidth: 0 },
+          text: { color: "#FFFFFF" },
+          iconColor: "#FFFFFF",
+        };
+      case "outline":
+      default:
+        return {
+          container: { backgroundColor: "#FFFFFF", borderWidth: 1, borderColor: "#EC1A52" },
+          text: { color: "#EC1A52" },
+          iconColor: "#EC1A52",
+        };
+    }
+  };
 
-  // Inactive style (gray bg, gray border, gray text, disabled look)
-  if (!isActive) {
+  const styles = getStyles();
+  const iconWithColor = icon ? (
+    typeof icon === "object" && "props" in icon ? (
+      // If it's a vector icon, we try to clone it with the correct color
+      React.cloneElement(icon as any, { color: styles.iconColor })
+    ) : (
+      icon
+    )
+  ) : null;
+
+  const content = (
+    <>
+      {iconWithColor}
+      <Text style={{ ...TEXT_STYLE, ...styles.text, textAlign: "center", marginTop: 4, marginHorizontal: 4 }}>
+        {title}
+      </Text>
+    </>
+  );
+
+  if (disabled || (!onPress && !onLongPress)) {
     return (
       <View
-        className={`${fullWidth ? "w-full" : "flex-1"} rounded-lg justify-center items-center py-3`}
-        style={{
-          backgroundColor: "#F2F2F2",
-          borderWidth: 1,
-          borderColor: "#848484",
-          opacity: 0.5,
-        }}
+        className={`${fullWidth ? "w-full" : "flex-1"} rounded-lg justify-center items-center`}
+        style={{ height: 100, ...styles.container, opacity: disabled ? 0.6 : 1 }}
       >
-        {icon}
-        <Text style={{ ...TEXT_STYLE, color: textColor, textAlign: "center", marginTop: 4 }}>
-          {title}
-        </Text>
+        {content}
       </View>
     );
   }
 
-  // Active style (white bg, red border, red text)
   return (
     <TouchableOpacity
       onPress={onPress}
       onLongPress={onLongPress}
-      className={`${fullWidth ? "w-full" : "flex-1"} rounded-lg justify-center items-center py-3`}
-      style={{
-        backgroundColor: "#FFFFFF",
-        borderWidth: 1,
-        borderColor: "#EC1A52",
-        shadowColor: "#000",
-        shadowOffset: { width: 1, height: 1 },
-        shadowOpacity: 0.25,
-        shadowRadius: 4,
-        elevation: 2,
-      }}
+      className={`${fullWidth ? "w-full" : "flex-1"} rounded-lg justify-center items-center`}
+      style={{ height: 100, ...styles.container }}
     >
-      {icon}
-      <Text style={{ ...TEXT_STYLE, color: textColor, textAlign: "center", marginTop: 4, marginHorizontal: 4 }} >
-        {title}
-      </Text>
+      {content}
     </TouchableOpacity>
   );
 }

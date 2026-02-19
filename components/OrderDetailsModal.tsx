@@ -98,7 +98,7 @@ export function OrderDetailsModal({
     bgColor?: string;
   }) => (
     <View 
-      className="flex-1 border border-gray-200 rounded-lg p-3 min-w-[120px]"
+      className="flex-1 border border-gray-200 rounded-lg p-3 min-w-[120px] bg-[#F7F7F9] shadow-sm"
       style={bgColor ? { backgroundColor: bgColor } : undefined}
     >
       <Text className="text-gray-600 text-xs mb-1">{label}</Text>
@@ -204,7 +204,7 @@ export function OrderDetailsModal({
                     ${order.total.toFixed(2)}
                   </Text>
                 </View>
-                <View className="flex-1 border border-gray-200 rounded-lg p-3 min-w-[120px]">
+                <View className="flex-1 border border-gray-200 rounded-lg p-3 min-w-[120px] bg-[#F7F7F9] shadow-sm">
                   <Text className="text-gray-600 text-xs mb-1">Invoice Status</Text>
                   <InvoiceStatusBadge status={order.invoiceStatus || "Paid"} />
                 </View>
@@ -247,7 +247,7 @@ export function OrderDetailsModal({
               {activeTab === "Order Details" && (
                 <>
                   {order.items.length === 0 ? (
-                    <View className="bg-gray-50 rounded-lg p-8 items-center">
+                    <View className="bg-[#F7F7F9] rounded-lg p-8 items-center shadow-sm">
                       <Ionicons name="cube-outline" size={48} color="#9ca3af" />
                       <Text className="text-gray-500 mt-3 text-lg">No items in this order</Text>
                       <Text className="text-gray-400 text-sm mt-1">
@@ -257,7 +257,7 @@ export function OrderDetailsModal({
                   ) : (
                     <>
                       {/* Table Header */}
-                      <View className="flex-row bg-gray-50 px-3 py-3 rounded-t-lg border border-gray-200">
+                      <View className="flex-row bg-[#F7F7F9] px-3 py-3 rounded-t-lg border border-gray-200 shadow-sm">
                         <Text className="w-12 text-gray-600 text-xs font-semibold">Sr No</Text>
                         <Text className="flex-1 text-gray-600 text-xs font-semibold">Product Name</Text>
                         <Text className="w-24 text-gray-600 text-xs font-semibold">SKU/UPC</Text>
@@ -296,7 +296,7 @@ export function OrderDetailsModal({
               )}
 
               {activeTab === "Shipments" && (
-                <View className="bg-gray-50 rounded-lg p-8 items-center">
+                <View className="bg-[#F7F7F9] rounded-lg p-8 items-center shadow-sm">
                   <MaterialCommunityIcons name="truck-delivery-outline" size={48} color="#9ca3af" />
                   <Text className="text-gray-500 mt-3 text-lg">No shipment records</Text>
                   <Text className="text-gray-400 text-sm mt-1">Shipment details will appear here</Text>
@@ -306,7 +306,7 @@ export function OrderDetailsModal({
               {activeTab === "Payment History" && (
                 <>
                   {order.payments.length === 0 ? (
-                    <View className="bg-gray-50 rounded-lg p-8 items-center">
+                    <View className="bg-[#F7F7F9] rounded-lg p-8 items-center shadow-sm">
                       <MaterialCommunityIcons name="cash-multiple" size={48} color="#9ca3af" />
                       <Text className="text-gray-500 mt-3 text-lg">No payment records</Text>
                       <Text className="text-gray-400 text-sm mt-1">Payment history will appear here</Text>
@@ -316,7 +316,7 @@ export function OrderDetailsModal({
                       {order.payments.map((payment) => (
                         <View
                           key={payment.id}
-                          className="flex-row items-center bg-gray-50 rounded-lg px-4 py-3"
+                          className="flex-row items-center bg-[#F7F7F9] rounded-lg px-4 py-3 shadow-sm"
                         >
                           <View className="w-10 h-10 bg-green-100 rounded-full items-center justify-center mr-3">
                             <MaterialCommunityIcons
@@ -342,7 +342,7 @@ export function OrderDetailsModal({
               )}
 
               {activeTab === "Invoice Activity" && (
-                <View className="bg-gray-50 rounded-lg p-8 items-center">
+                <View className="bg-[#F7F7F9] rounded-lg p-8 items-center shadow-sm">
                   <Ionicons name="document-text-outline" size={48} color="#9ca3af" />
                   <Text className="text-gray-500 mt-3 text-lg">No invoice activity</Text>
                   <Text className="text-gray-400 text-sm mt-1">Invoice activity will appear here</Text>
@@ -356,7 +356,7 @@ export function OrderDetailsModal({
                       <Text className="text-gray-700">{order.note}</Text>
                     </View>
                   ) : (
-                    <View className="bg-gray-50 rounded-lg p-8 items-center">
+                    <View className="bg-[#F7F7F9] rounded-lg p-8 items-center shadow-sm">
                       <Ionicons name="chatbubble-outline" size={48} color="#9ca3af" />
                       <Text className="text-gray-500 mt-3 text-lg">No notes</Text>
                       <Text className="text-gray-400 text-sm mt-1">Order notes will appear here</Text>

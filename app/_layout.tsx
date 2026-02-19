@@ -1,19 +1,22 @@
 import { Ionicons } from "@expo/vector-icons";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import * as NavigationBar from "expo-navigation-bar";
 import { Slot, usePathname, useRouter } from "expo-router";
-import { useRef, useState } from "react";
-import { ActivityIndicator, Animated, PanResponder, Pressable, Text, View, useWindowDimensions } from "react-native";
+import { useEffect, useRef, useState } from "react";
+import { ActivityIndicator, Animated, PanResponder, Platform, Pressable, Text, View, useWindowDimensions } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { Sidebar } from "../components";
 import { ClockInModal } from "../components/ClockInModal";
 import { ClockOutModal } from "../components/ClockOutModal";
-import { StaffSidebar } from "../components/StaffSidebar";
+import { DashboardSidebar } from "../components/DashboardSidebar";
+import { SubPageSidebar } from "../components/SubPageSidebar";
 import { AuthProvider, useAuth } from "../contexts/AuthContext";
 import { ClockProvider, useClock } from "../contexts/ClockContext";
 import { ParkedOrderProvider } from "../contexts/ParkedOrderContext";
 import { TimezoneProvider } from "../contexts/TimezoneContext";
-import { ViewModeProvider, useViewMode } from "../contexts/ViewModeContext";
+import { ViewModeProvider } from "../contexts/ViewModeContext";
 import "../global.css";
 import { PowerSyncProvider } from "../utils/powersync/PowerSyncProvider";
+import { addPrinter, getPrinters } from "../utils/PrinterPoolManager";
 import LoginScreen from "./login";
 
 /**
@@ -26,7 +29,47 @@ function LayoutContent() {
   const router = useRouter();
   const { isAuthenticated, isLoading, user, logout } = useAuth();
   const { isClockedIn, selectedPosLine, clockIn, clockOut, selectPosLine } = useClock();
-  const { isStaffMode } = useViewMode();
+  // ViewMode is now handled internally by DashboardSidebar
+
+  // Hide Android navigation bar (the white bar at the bottom)
+  useEffect(() => {
+    if (Platform.OS === "android") {
+      const hideNavBar = async () => {
+        try {
+          await NavigationBar.setVisibilityAsync("hidden");
+          await NavigationBar.setBehaviorAsync("sticky-immersive");
+          // Set background to transparent to avoid white flash/bar
+          await NavigationBar.setBackgroundColorAsync("#00000000");
+        } catch (e) {
+          console.warn("Failed to hide navigation bar:", e);
+        }
+      };
+      hideNavBar();
+    }
+  }, []);
+
+  // Initialize printer pool globally
+  useEffect(() => {
+    const initPrinterPool = async () => {
+      if (getPrinters().length > 0) return;
+      
+      try {
+        const savedConfig = await AsyncStorage.getItem("printer_pool_config");
+        if (savedConfig) {
+          const printers = JSON.parse(savedConfig);
+          printers.forEach((p: any) => {
+            if (!getPrinters().find(existing => existing.id === p.id)) {
+              addPrinter(p);
+            }
+          });
+          console.log(`🖨️ [Layout] Initialized ${printers.length} printers`);
+        }
+      } catch (e) {
+        console.warn("🖨️ [Layout] Failed to init printer pool:", e);
+      }
+    };
+    initPrinterPool();
+  }, []);
 
   const [showClockInModal, setShowClockInModal] = useState(false);
   const [showClockOutModal, setShowClockOutModal] = useState(false);
@@ -34,27 +77,26 @@ function LayoutContent() {
   // Determine layout orientation
   const isLandscape = width > height;
 
+  // Check if we're on the dashboard
+  const isDashboard = pathname === "/" || pathname === "/index";
+
   // Check if we're on screens that have their OWN sidebar (hide global sidebar)
   const isPosLineScreen = pathname === "/pos-line";
   // Only add-products has its own action sidebar; other order pages get the global sidebar
   const isOrderAddProductsScreen = pathname === "/order/add-products";
   const isOrderAddCustomerScreen = pathname === "/order/add-customer";
   
-  // Only /sale/reports actually uses StaffPageLayout with its own sidebar
-  const isStaffPageLayoutScreen = pathname === "/sale/reports";
-  
   // Hide global sidebar ONLY for pages that provide their own sidebar/action panel
   const hideSidebar =
     isPosLineScreen ||
     isOrderAddProductsScreen ||
-    isOrderAddCustomerScreen ||
-    isStaffPageLayoutScreen;
+    isOrderAddCustomerScreen;
 
   // Show loading screen while checking stored authentication
   if (isLoading) {
     return (
       <View
-        className="flex-1 bg-gray-100 justify-center items-center"
+        className="flex-1 bg-[#F7F7F9] justify-center items-center"
         style={{
           paddingTop: insets.top,
           paddingBottom: insets.bottom,
@@ -72,7 +114,7 @@ function LayoutContent() {
   if (!isAuthenticated) {
     return (
       <View
-        className="flex-1 bg-gray-100"
+        className="flex-1 bg-[#F7F7F9]"
         style={{
           paddingTop: insets.top,
           paddingBottom: insets.bottom,
@@ -121,7 +163,7 @@ function LayoutContent() {
 
   return (
     <View
-      className="flex-1 bg-gray-100"
+      className="flex-1 bg-[#F7F7F9]"
       style={{
         paddingTop: insets.top,
         paddingLeft: insets.left,
@@ -135,17 +177,17 @@ function LayoutContent() {
           <Slot />
         </View>
 
-        {/* Sidebar - switches between Admin and Staff mode */}
+        {/* Sidebar - Dashboard gets full sidebar, sub-pages get simplified sidebar */}
         {!hideSidebar && (
-          isStaffMode ? (
-            <StaffSidebar
+          isDashboard ? (
+            <DashboardSidebar
               isLandscape={isLandscape}
               onClockInPress={handleClockInPress}
               onClockInLongPress={handleClockInLongPress}
               onClockOutPress={() => setShowClockOutModal(true)}
             />
           ) : (
-            <Sidebar
+            <SubPageSidebar
               isLandscape={isLandscape}
               onClockInPress={handleClockInPress}
               onClockInLongPress={handleClockInLongPress}

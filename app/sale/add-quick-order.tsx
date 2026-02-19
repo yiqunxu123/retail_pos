@@ -104,10 +104,10 @@ export default function AddQuickOrderScreen() {
   // Dropdown component
   const Dropdown = ({ label, value, options }: { label: string; value: string; options: string[] }) => (
     <View className="mb-4">
-      <Text className="text-gray-600 text-sm mb-1.5">{label}</Text>
-      <Pressable className="flex-row items-center bg-gray-50 border border-gray-200 rounded-lg px-3 py-3">
-        <Text className="flex-1 text-gray-800">{value}</Text>
-        <Ionicons name="chevron-down" size={16} color="#9ca3af" />
+      <Text className="text-[#5A5F66] text-[18px] mb-1.5" style={{ fontFamily: 'Montserrat' }}>{label}</Text>
+      <Pressable className="flex-row items-center bg-white border border-gray-200 rounded-xl px-3 py-3 shadow-sm">
+        <Text className="flex-1 text-gray-800 text-[18px]" style={{ fontFamily: 'Montserrat' }}>{value}</Text>
+        <Ionicons name="chevron-down" size={20} color="#9ca3af" />
       </Pressable>
     </View>
   );
@@ -115,9 +115,10 @@ export default function AddQuickOrderScreen() {
   // Input component
   const FormInput = ({ label, value, onChangeText, placeholder, keyboardType = "default" }: any) => (
     <View className="mb-4">
-      <Text className="text-gray-600 text-sm mb-1.5">{label}</Text>
+      <Text className="text-[#5A5F66] text-[18px] mb-1.5" style={{ fontFamily: 'Montserrat' }}>{label}</Text>
       <TextInput
-        className="bg-gray-50 border border-gray-200 rounded-lg px-3 py-3 text-gray-800"
+        className="bg-white border border-gray-200 rounded-xl px-3 py-3 text-gray-800 text-[18px] shadow-sm"
+        style={{ fontFamily: 'Montserrat' }}
         placeholder={placeholder}
         placeholderTextColor="#9ca3af"
         value={value}
@@ -128,12 +129,12 @@ export default function AddQuickOrderScreen() {
   );
 
   return (
-    <View className="flex-1 bg-gray-100">
+    <View className="flex-1 bg-[#F7F7F9]">
       {/* Header */}
-      <View className="bg-white px-5 py-4 border-b border-gray-200 flex-row items-center justify-between">
+      <View className="bg-[#F7F7F9] px-5 py-4 border-b border-gray-200 flex-row items-center justify-between">
         <View className="flex-row items-center gap-4">
           <Pressable onPress={() => router.push("/")} className="p-2">
-            <Ionicons name="arrow-back" size={24} color="#374151" />
+            <Ionicons name="menu" size={24} color="#374151" />
           </Pressable>
           <Text className="text-xl font-bold text-gray-800">Add Quick Order</Text>
         </View>
@@ -149,13 +150,13 @@ export default function AddQuickOrderScreen() {
         <View className={`${isWideScreen ? "flex-row gap-4" : "gap-4"}`}>
           
           {/* LEFT PANEL - Customer Selection */}
-          <View className={`bg-white rounded-xl p-5 ${isWideScreen ? "w-80" : ""}`}>
+          <View className={`bg-white border border-gray-200 rounded-xl p-5 shadow-sm ${isWideScreen ? "w-80" : ""}`}>
             <Text className="text-lg font-bold text-gray-800 mb-4">Customer</Text>
             
             {/* Search Inputs */}
             <View className="mb-4">
-              <View className="flex-row items-center bg-blue-50 border border-blue-200 rounded-lg px-3 py-3 mb-2">
-                <Ionicons name="person-outline" size={18} color="#3b82f6" />
+              <View className="flex-row items-center bg-white border border-blue-200 rounded-lg px-3 py-3 mb-2 shadow-sm">
+                <Ionicons name="person-outline" size={18} color="#EC1A52" />
                 <TextInput
                   className="flex-1 ml-2 text-gray-800"
                   placeholder="Search by Customer Name/Business"
@@ -164,7 +165,7 @@ export default function AddQuickOrderScreen() {
                   onChangeText={setCustomerSearch}
                 />
               </View>
-              <View className="flex-row items-center bg-gray-50 border border-gray-200 rounded-lg px-3 py-3 mb-2">
+              <View className="flex-row items-center bg-white border border-gray-200 rounded-lg px-3 py-3 mb-2 shadow-sm">
                 <Ionicons name="key-outline" size={18} color="#6b7280" />
                 <TextInput
                   className="flex-1 ml-2 text-gray-800"
@@ -172,7 +173,7 @@ export default function AddQuickOrderScreen() {
                   placeholderTextColor="#9ca3af"
                 />
               </View>
-              <View className="flex-row items-center bg-gray-50 border border-gray-200 rounded-lg px-3 py-3">
+              <View className="flex-row items-center bg-white border border-gray-200 rounded-lg px-3 py-3 shadow-sm">
                 <Ionicons name="mail-outline" size={18} color="#6b7280" />
                 <TextInput
                   className="flex-1 ml-2 text-gray-800"
@@ -183,7 +184,7 @@ export default function AddQuickOrderScreen() {
             </View>
 
             {/* Selected Customer Card */}
-            <View className="bg-gray-50 rounded-lg p-4 mb-4">
+            <View className="bg-white border border-gray-100 rounded-lg p-4 mb-4 shadow-sm">
               <Text className="text-gray-800 font-semibold text-lg">
                 {selectedCustomer?.name || "Guest Customer"}
               </Text>
@@ -200,7 +201,7 @@ export default function AddQuickOrderScreen() {
 
             {/* MSA Check Toggle */}
             <View className="flex-row items-center justify-between mb-4">
-              <Text className="text-gray-600 text-sm">Skip MSA Eligibility Check</Text>
+              <Text className="text-[#5A5F66] text-[18px]" style={{ fontFamily: 'Montserrat' }}>Skip MSA Eligibility Check</Text>
               <Switch
                 value={skipMSA}
                 onValueChange={setSkipMSA}
@@ -211,10 +212,11 @@ export default function AddQuickOrderScreen() {
 
             {/* Notes Section */}
             <View>
-              <Text className="text-blue-500 font-medium mb-2">Notes</Text>
-              <Text className="text-gray-600 text-sm mb-1.5">Notes (Internal)</Text>
+              <Text className="text-blue-500 font-medium mb-2 text-[18px]" style={{ fontFamily: 'Montserrat' }}>Notes</Text>
+              <Text className="text-[#5A5F66] text-[18px] mb-1.5" style={{ fontFamily: 'Montserrat' }}>Notes (Internal)</Text>
               <TextInput
-                className="bg-gray-50 border border-gray-200 rounded-lg px-3 py-3 text-gray-800 h-24"
+                className="bg-white border border-gray-200 rounded-xl px-3 py-3 text-gray-800 text-[18px] h-24 shadow-sm"
+                style={{ fontFamily: 'Montserrat' }}
                 placeholder="Enter notes..."
                 placeholderTextColor="#9ca3af"
                 value={notes}
@@ -222,21 +224,21 @@ export default function AddQuickOrderScreen() {
                 multiline
                 textAlignVertical="top"
               />
-              <Text className="text-gray-400 text-xs mt-1">{500 - notes.length} Character(s) out of 500 remaining</Text>
+              <Text className="text-gray-400 text-[14px] mt-1" style={{ fontFamily: 'Montserrat' }}>{500 - notes.length} Character(s) out of 500 remaining</Text>
             </View>
           </View>
 
           {/* MIDDLE PANEL - Products */}
-          <View className={`bg-white rounded-xl p-4 ${isWideScreen ? "flex-1" : ""}`}>
+            <View className={`bg-white border border-gray-200 rounded-xl p-4 shadow-sm ${isWideScreen ? "flex-1" : ""}`}>
             <Text className="text-lg font-bold text-gray-800 mb-4">Products</Text>
             
             {/* Store Channel & Search */}
             <View className="flex-row items-end gap-3 mb-4">
               <View className="flex-1">
-                <Text className="text-gray-600 text-sm mb-1.5">Please select the Store Channel*</Text>
-                <Pressable className="flex-row items-center bg-gray-50 border border-gray-200 rounded-lg px-3 py-3">
-                  <Text className="flex-1 text-gray-800">{storeChannel}</Text>
-                  <Ionicons name="chevron-down" size={16} color="#9ca3af" />
+                <Text className="text-[#5A5F66] text-[18px] mb-1.5" style={{ fontFamily: 'Montserrat' }}>Please select the Store Channel*</Text>
+                <Pressable className="flex-row items-center bg-white border border-gray-200 rounded-xl px-3 py-3 shadow-sm">
+                  <Text className="flex-1 text-gray-800 text-[18px]" style={{ fontFamily: 'Montserrat' }}>{storeChannel}</Text>
+                  <Ionicons name="chevron-down" size={20} color="#9ca3af" />
                 </Pressable>
               </View>
               <Pressable className="bg-blue-500 px-4 py-3 rounded-lg">
@@ -247,19 +249,20 @@ export default function AddQuickOrderScreen() {
             {/* Product Search Bar */}
             <View className="flex-row items-end gap-3 mb-4">
               <View className="flex-1">
-                <Text className="text-gray-600 text-sm mb-1.5">Add product by Name, SKU, UPC</Text>
+                <Text className="text-[#5A5F66] text-[18px] mb-1.5" style={{ fontFamily: 'Montserrat' }}>Add product by Name, SKU, UPC</Text>
                 <Pressable 
                   onPress={() => setShowSearchModal(true)}
-                  className="flex-row items-center bg-gray-50 border border-gray-200 rounded-lg px-3 py-3"
+                  className="flex-row items-center bg-white border border-gray-200 rounded-lg px-3 py-3 shadow-sm"
                 >
-                  <Ionicons name="search" size={18} color="#9ca3af" />
-                  <Text className="flex-1 ml-2 text-gray-400">Search Products</Text>
+                  <Ionicons name="search" size={20} color="#9ca3af" />
+                  <Text className="flex-1 ml-2 text-gray-400 text-[18px]" style={{ fontFamily: 'Montserrat' }}>Search Products</Text>
                 </Pressable>
               </View>
               <View>
-                <Text className="text-gray-600 text-sm mb-1.5 text-center">Scan Qty</Text>
+                <Text className="text-[#5A5F66] text-[18px] mb-1.5 text-center" style={{ fontFamily: 'Montserrat' }}>Scan Qty</Text>
                 <TextInput
-                  className="w-16 bg-gray-50 border border-gray-200 rounded-lg px-3 py-3 text-center text-gray-800"
+                  className="w-20 bg-white border border-gray-200 rounded-lg px-3 py-3 text-center text-gray-800 text-[18px] shadow-sm"
+                  style={{ fontFamily: 'Montserrat' }}
                   keyboardType="numeric"
                   value={scanQty}
                   onChangeText={setScanQty}
@@ -277,7 +280,7 @@ export default function AddQuickOrderScreen() {
             {/* Products Table */}
             <View className="border border-gray-200 rounded-lg overflow-hidden">
               {/* Table Header */}
-              <View className="flex-row bg-gray-50 px-4 py-3 border-b border-gray-200">
+              <View className="flex-row bg-[#F7F7F9] px-4 py-3 border-b border-gray-200">
                 <Text className="w-24 text-gray-500 text-xs font-semibold uppercase">SKU</Text>
                 <Text className="flex-1 text-gray-500 text-xs font-semibold uppercase">Product Name</Text>
                 <Text className="w-20 text-gray-500 text-xs font-semibold uppercase text-center">Price</Text>
@@ -337,23 +340,23 @@ export default function AddQuickOrderScreen() {
           </View>
 
           {/* RIGHT PANEL - Order Summary */}
-          <View className={`bg-white rounded-xl p-4 ${isWideScreen ? "w-72" : ""}`}>
+            <View className={`bg-white border border-gray-200 rounded-xl p-4 shadow-sm ${isWideScreen ? "w-72" : ""}`}>
             <Text className="text-lg font-bold text-gray-800 mb-4">Order Summary</Text>
 
             {/* Order Type & Date */}
             <View className="flex-row gap-3 mb-4">
               <View className="flex-1">
-                <Text className="text-gray-600 text-sm mb-1.5">Order Type</Text>
-                <Pressable className="flex-row items-center bg-gray-50 border border-gray-200 rounded-lg px-3 py-2.5">
-                  <Text className="flex-1 text-gray-800 text-sm">{orderType}</Text>
-                  <Ionicons name="chevron-down" size={14} color="#9ca3af" />
+                <Text className="text-[#5A5F66] text-[18px] mb-1.5" style={{ fontFamily: 'Montserrat' }}>Order Type</Text>
+                <Pressable className="flex-row items-center bg-white border border-gray-200 rounded-xl px-3 py-3 shadow-sm">
+                  <Text className="flex-1 text-gray-800 text-[18px]" style={{ fontFamily: 'Montserrat' }}>{orderType}</Text>
+                  <Ionicons name="chevron-down" size={20} color="#9ca3af" />
                 </Pressable>
               </View>
               <View className="flex-1">
-                <Text className="text-gray-600 text-sm mb-1.5">Order Date</Text>
-                <View className="flex-row items-center bg-gray-50 border border-gray-200 rounded-lg px-3 py-2.5">
-                  <Text className="flex-1 text-gray-800 text-sm">{orderDate}</Text>
-                  <Ionicons name="calendar-outline" size={14} color="#9ca3af" />
+                <Text className="text-[#5A5F66] text-[18px] mb-1.5" style={{ fontFamily: 'Montserrat' }}>Order Date</Text>
+                <View className="flex-row items-center bg-white border border-gray-200 rounded-xl px-3 py-3 shadow-sm">
+                  <Text className="flex-1 text-gray-800 text-[18px]" style={{ fontFamily: 'Montserrat' }}>{orderDate}</Text>
+                  <Ionicons name="calendar-outline" size={20} color="#9ca3af" />
                 </View>
               </View>
             </View>
@@ -362,14 +365,14 @@ export default function AddQuickOrderScreen() {
             <View className="gap-2 mb-4">
               <Pressable 
                 onPress={emptyCart}
-                className="bg-blue-100 py-3 rounded-lg flex-row items-center justify-center gap-2"
+                className="bg-red-50 py-3 rounded-lg flex-row items-center justify-center gap-2"
               >
-                <Ionicons name="trash-outline" size={18} color="#3b82f6" />
-                <Text className="text-blue-600 font-medium">Empty Cart</Text>
+                <Ionicons name="trash-outline" size={18} color="#EC1A52" />
+                <Text className="text-[#EC1A52] font-medium">Empty Cart</Text>
               </Pressable>
-              <Pressable className="bg-blue-100 py-3 rounded-lg flex-row items-center justify-center gap-2">
-                <Ionicons name="bookmark-outline" size={18} color="#3b82f6" />
-                <Text className="text-blue-600 font-medium">Park Order</Text>
+              <Pressable className="bg-red-50 py-3 rounded-lg flex-row items-center justify-center gap-2">
+                <Ionicons name="bookmark-outline" size={18} color="#EC1A52" />
+                <Text className="text-[#EC1A52] font-medium">Park Order</Text>
               </Pressable>
             </View>
 
@@ -379,8 +382,8 @@ export default function AddQuickOrderScreen() {
                 onPress={() => setIsSaleOrder(true)}
                 className="flex-row items-center gap-2"
               >
-                <View className={`w-5 h-5 rounded-full border-2 items-center justify-center ${isSaleOrder ? "border-blue-500" : "border-gray-300"}`}>
-                  {isSaleOrder && <View className="w-2.5 h-2.5 rounded-full bg-blue-500" />}
+                <View className={`w-5 h-5 rounded-full border-2 items-center justify-center ${isSaleOrder ? "border-[#EC1A52]" : "border-gray-300"}`}>
+                  {isSaleOrder && <View className="w-2.5 h-2.5 rounded-full bg-[#EC1A52]" />}
                 </View>
                 <Text className="text-gray-700">Sale Order</Text>
               </Pressable>
@@ -388,8 +391,8 @@ export default function AddQuickOrderScreen() {
                 onPress={() => setIsSaleOrder(false)}
                 className="flex-row items-center gap-2"
               >
-                <View className={`w-5 h-5 rounded-full border-2 items-center justify-center ${!isSaleOrder ? "border-blue-500" : "border-gray-300"}`}>
-                  {!isSaleOrder && <View className="w-2.5 h-2.5 rounded-full bg-blue-500" />}
+                <View className={`w-5 h-5 rounded-full border-2 items-center justify-center ${!isSaleOrder ? "border-[#EC1A52]" : "border-gray-300"}`}>
+                  {!isSaleOrder && <View className="w-2.5 h-2.5 rounded-full bg-[#EC1A52]" />}
                 </View>
                 <Text className="text-gray-700">Sale Return</Text>
               </Pressable>
@@ -397,44 +400,46 @@ export default function AddQuickOrderScreen() {
 
             {/* Dispatch Date */}
             <View className="mb-4">
-              <Text className="text-gray-600 text-sm mb-1.5">Dispatch Date</Text>
-              <View className="flex-row items-center bg-gray-50 border border-gray-200 rounded-lg px-3 py-3">
-                <Text className="flex-1 text-gray-800">{dispatchDate}</Text>
-                <Ionicons name="calendar-outline" size={16} color="#9ca3af" />
+              <Text className="text-[#5A5F66] text-[18px] mb-1.5" style={{ fontFamily: 'Montserrat' }}>Dispatch Date</Text>
+              <View className="flex-row items-center bg-white border border-gray-200 rounded-xl px-3 py-3 shadow-sm">
+                <Text className="flex-1 text-gray-800 text-[18px]" style={{ fontFamily: 'Montserrat' }}>{dispatchDate}</Text>
+                <Ionicons name="calendar-outline" size={20} color="#9ca3af" />
               </View>
             </View>
 
             {/* Sales Rep */}
             <View className="mb-4">
-              <Text className="text-gray-600 text-sm mb-1.5">Please select the Sales Rep</Text>
-              <Pressable className="flex-row items-center bg-gray-50 border border-gray-200 rounded-lg px-3 py-3">
-                <Text className="flex-1 text-gray-400">Please Select</Text>
-                <Ionicons name="chevron-down" size={16} color="#9ca3af" />
+              <Text className="text-[#5A5F66] text-[18px] mb-1.5" style={{ fontFamily: 'Montserrat' }}>Please select the Sales Rep</Text>
+              <Pressable className="flex-row items-center bg-white border border-gray-200 rounded-xl px-3 py-3 shadow-sm">
+                <Text className="flex-1 text-gray-400 text-[18px]" style={{ fontFamily: 'Montserrat' }}>Please Select</Text>
+                <Ionicons name="chevron-down" size={20} color="#9ca3af" />
               </Pressable>
             </View>
 
             {/* Additional Discount */}
             <View className="mb-4">
-              <Text className="text-gray-600 text-sm mb-1.5">Additional Discount</Text>
+              <Text className="text-[#5A5F66] text-[18px] mb-1.5" style={{ fontFamily: 'Montserrat' }}>Additional Discount</Text>
               <View className="flex-row gap-2">
                 <TextInput
-                  className="flex-1 bg-gray-50 border border-gray-200 rounded-lg px-3 py-3 text-gray-800"
+                  className="flex-1 bg-white border border-gray-200 rounded-xl px-3 py-3 text-gray-800 text-[18px] shadow-sm"
+                  style={{ fontFamily: 'Montserrat' }}
                   keyboardType="numeric"
                   value={additionalDiscount}
                   onChangeText={setAdditionalDiscount}
                 />
-                <Pressable className="flex-row items-center bg-gray-50 border border-gray-200 rounded-lg px-3 py-3">
-                  <Text className="text-gray-800">{discountType}</Text>
-                  <Ionicons name="chevron-down" size={14} color="#9ca3af" />
+                <Pressable className="flex-row items-center bg-white border border-gray-200 rounded-xl px-3 py-3 shadow-sm">
+                  <Text className="text-gray-800 text-[18px]" style={{ fontFamily: 'Montserrat' }}>{discountType}</Text>
+                  <Ionicons name="chevron-down" size={20} color="#9ca3af" />
                 </Pressable>
               </View>
             </View>
 
             {/* Delivery Charges */}
             <View className="mb-4">
-              <Text className="text-gray-600 text-sm mb-1.5">Delivery Charges</Text>
+              <Text className="text-[#5A5F66] text-[18px] mb-1.5" style={{ fontFamily: 'Montserrat' }}>Delivery Charges</Text>
               <TextInput
-                className="bg-gray-50 border border-gray-200 rounded-lg px-3 py-3 text-gray-800"
+                className="bg-white border border-gray-200 rounded-xl px-3 py-3 text-gray-800 text-[18px] shadow-sm"
+                style={{ fontFamily: 'Montserrat' }}
                 placeholder="Enter Amount"
                 placeholderTextColor="#9ca3af"
                 keyboardType="numeric"
@@ -459,7 +464,7 @@ export default function AddQuickOrderScreen() {
               </View>
               <View className="flex-row justify-between">
                 <Text className="text-gray-600">Additional Discount</Text>
-                <Text className="text-red-500 font-medium">-${discount.toFixed(2)}</Text>
+                <Text className="text-[#EC1A52] font-medium">-${discount.toFixed(2)}</Text>
               </View>
               <View className="flex-row justify-between">
                 <Text className="text-gray-600">Charges</Text>
@@ -467,7 +472,7 @@ export default function AddQuickOrderScreen() {
               </View>
               <View className="flex-row justify-between pt-2 border-t border-gray-200 mt-2">
                 <Text className="text-gray-800 font-bold text-lg">Grand Total</Text>
-                <Text className="text-blue-600 font-bold text-lg">${grandTotal.toFixed(2)}</Text>
+                <Text className="text-[#EC1A52] font-bold text-lg">${grandTotal.toFixed(2)}</Text>
               </View>
             </View>
 

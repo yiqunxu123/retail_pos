@@ -92,7 +92,7 @@ export function ParkedOrdersModal({
           ) : (
             <ScrollView className="max-h-96">
               {/* Table Header */}
-              <View className="flex-row bg-gray-50 px-4 py-3 border-b border-gray-200">
+              <View className="flex-row bg-[#F7F7F9] px-4 py-3 border-b border-gray-200">
                 <Text className="w-24 text-gray-600 text-xs font-semibold">Order ID</Text>
                 <Text className="flex-1 text-gray-600 text-xs font-semibold">Customer</Text>
                 <Text className="w-16 text-gray-600 text-xs font-semibold text-center">Items</Text>
@@ -106,7 +106,7 @@ export function ParkedOrdersModal({
                 <View
                   key={order.id}
                   className={`flex-row items-center px-4 py-3 border-b border-gray-100 ${
-                    index % 2 === 0 ? "bg-white" : "bg-gray-50"
+                    index % 2 === 0 ? "bg-[#F7F7F9]" : "bg-white"
                   }`}
                 >
                   <View className="w-24">

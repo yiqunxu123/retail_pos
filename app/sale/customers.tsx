@@ -6,7 +6,7 @@
  */
 
 import { Ionicons } from "@expo/vector-icons";
-import { useState } from "react";
+import React, { useCallback, useMemo, useState } from "react";
 import { Alert, Pressable, Text, View } from "react-native";
 import { ColumnDefinition, DataTable, PageHeader } from "../../components";
 import { NewCustomerModal } from "../../components/NewCustomerModal";
@@ -16,44 +16,44 @@ import { CustomerView, useCustomers } from "../../utils/powersync/hooks";
 // Helper Components
 // ============================================================================
 
-function formatCurrency(value: number): string {
+const formatCurrency = (value: number): string => {
   return `$${value.toFixed(2)}`;
-}
+};
 
-function EcomStatusBadge({ allowed }: { allowed: boolean }) {
+const EcomStatusBadge = React.memo(({ allowed }: { allowed: boolean }) => {
   return (
-    <Text style={{ color: allowed ? "#22C55E" : "#EC1A52", fontWeight: "600", fontSize: 14 }}>
+    <Text style={{ color: allowed ? "#22C55E" : "#EC1A52", fontWeight: "600", fontSize: 18, fontFamily: "Montserrat" }}>
       {allowed ? "Allowed" : "Not Allowed"}
     </Text>
   );
-}
+});
 
-function StatusBadge({ isActive }: { isActive: boolean }) {
+const StatusBadge = React.memo(({ isActive }: { isActive: boolean }) => {
   return (
     <View 
-      className="px-3 py-1 rounded-md"
+      className="px-3 py-1 rounded-full self-start"
       style={{ backgroundColor: isActive ? "#22C55E" : "#F59E0B" }}
     >
-      <Text className="text-white text-xs font-semibold">
+      <Text className="text-white text-[14px] font-Montserrat font-semibold">
         {isActive ? "Active" : "InActive"}
       </Text>
     </View>
   );
-}
+});
 
-function ActionButton({
+const ActionButton = React.memo(({
   icon,
   onPress,
 }: {
   icon: keyof typeof Ionicons.glyphMap;
   onPress?: () => void;
-}) {
+}) => {
   return (
     <Pressable className="bg-red-50 p-2 rounded-lg" onPress={onPress}>
       <Ionicons name={icon} size={16} color="#EC1A52" />
     </Pressable>
   );
-}
+});
 
 // ============================================================================
 // Main Component
@@ -66,20 +66,20 @@ export default function CustomersScreen() {
   const [showAddCustomerModal, setShowAddCustomerModal] = useState(false);
   const [selectedCustomer, setSelectedCustomer] = useState<CustomerView | null>(null);
 
-  const handleViewCustomer = (customer: CustomerView) => {
+  const handleViewCustomer = useCallback((customer: CustomerView) => {
     setSelectedCustomer(customer);
     Alert.alert(
       "Customer Details",
       `Business: ${customer.businessName || "-"}\nName: ${customer.name || "-"}\nID: ${customer.id.slice(0, 8)}`
     );
-  };
+  }, []);
 
-  const handlePrintCustomer = (customer: CustomerView) => {
+  const handlePrintCustomer = useCallback((customer: CustomerView) => {
     Alert.alert("Print", `Printing invoice for ${customer.businessName || customer.name}...`);
-  };
+  }, []);
 
   // Column config
-  const columns: ColumnDefinition<CustomerView>[] = [
+  const columns = useMemo<ColumnDefinition<CustomerView>[]>(() => [
     {
       key: "businessName",
       title: "Business Name",
@@ -87,7 +87,7 @@ export default function CustomersScreen() {
       visible: true,
       hideable: false,
       render: (item) => (
-        <Text className="text-blue-600 text-sm font-medium pr-4" numberOfLines={1}>
+        <Text className="text-blue-600 text-[18px] font-Montserrat font-medium pr-4" numberOfLines={1}>
           {item.businessName || item.name || "-"}
         </Text>
       ),
@@ -95,7 +95,7 @@ export default function CustomersScreen() {
     {
       key: "ecomStatus",
       title: "Ecom Status",
-      width: 120,
+      width: 150,
       visible: true,
       render: (item) => <EcomStatusBadge allowed={item.allowEcom} />,
     },
@@ -105,7 +105,7 @@ export default function CustomersScreen() {
       width: "flex",
       visible: true,
       render: (item) => (
-        <Text className="text-blue-600 text-sm pr-4" numberOfLines={1}>
+        <Text className="text-blue-600 text-[18px] font-Montserrat pr-4" numberOfLines={1}>
           {item.name || "-"}
         </Text>
       ),
@@ -113,19 +113,19 @@ export default function CustomersScreen() {
     {
       key: "customerId",
       title: "Customer ID",
-      width: 100,
+      width: 120,
       visible: true,
       render: (item) => (
-        <Text className="text-gray-600 text-sm">{item.id.slice(0, 8)}</Text>
+        <Text className="text-gray-600 text-[18px] font-Montserrat">{item.id.slice(0, 8)}</Text>
       ),
     },
     {
       key: "balance",
       title: "Balance",
-      width: 100,
+      width: 120,
       visible: true,
       render: (item) => (
-        <Text className="text-red-600 text-sm font-bold">
+        <Text className="text-red-600 text-[18px] font-Montserrat font-bold">
           {formatCurrency(item.balance)}
         </Text>
       ),
@@ -133,7 +133,7 @@ export default function CustomersScreen() {
     {
       key: "status",
       title: "Status",
-      width: 100,
+      width: 120,
       align: "center",
       visible: true,
       render: (item) => <StatusBadge isActive={item.isActive} />,
@@ -141,7 +141,7 @@ export default function CustomersScreen() {
     {
       key: "actions",
       title: "Actions",
-      width: 100,
+      width: 120,
       align: "center",
       visible: true,
       render: (item) => (
@@ -157,21 +157,21 @@ export default function CustomersScreen() {
         </View>
       ),
     },
-  ];
+  ], [handlePrintCustomer, handleViewCustomer]);
 
   // Search logic
-  const handleSearch = (item: CustomerView, query: string) => {
+  const handleSearch = useCallback((item: CustomerView, query: string) => {
     const q = query.toLowerCase();
     return (
       (item.businessName?.toLowerCase().includes(q) || false) ||
       (item.name?.toLowerCase().includes(q) || false) ||
       item.id.includes(q)
     );
-  };
+  }, []);
 
   return (
-    <View className="flex-1 bg-gray-50">
-      <PageHeader title="Customers" />
+    <View className="flex-1 bg-[#F7F7F9]">
+      <PageHeader title="Customers" showBack={false} />
 
       <DataTable<CustomerView>
         data={customers}

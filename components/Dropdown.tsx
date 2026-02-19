@@ -50,7 +50,7 @@ export function Dropdown({
     <View>
       {/* Label */}
       {label && (
-        <Text className="text-gray-600 text-sm mb-1.5">{label}</Text>
+        <Text className="text-[#5A5F66] text-[18px] mb-1.5" style={{ fontFamily: 'Montserrat' }}>{label}</Text>
       )}
 
       {/* Trigger Button */}
@@ -58,20 +58,21 @@ export function Dropdown({
         ref={buttonRef}
         onPress={measureButton}
         disabled={disabled}
-        className={`flex-row items-center justify-between bg-white border border-gray-200 rounded-lg px-3 py-2.5 ${
+        className={`flex-row items-center justify-between bg-white border border-gray-200 rounded-xl px-3 py-3 shadow-sm ${
           disabled ? "opacity-50" : ""
         }`}
         style={({ pressed }) => ({ opacity: disabled ? 0.5 : pressed ? 0.7 : 1 })}
       >
         <Text
-          className={selectedOption ? "text-gray-800" : "text-gray-400"}
+          className={`text-[18px] ${selectedOption ? "text-gray-800" : "text-gray-400"}`}
+          style={{ fontFamily: 'Montserrat' }}
           numberOfLines={1}
         >
           {selectedOption?.label || placeholder}
         </Text>
         <Ionicons
           name={isOpen ? "chevron-up" : "chevron-down"}
-          size={18}
+          size={20}
           color="#9ca3af"
         />
       </Pressable>
@@ -112,14 +113,15 @@ export function Dropdown({
                   >
                     <View className="flex-row items-center justify-between">
                       <Text
-                        className={`${
+                        className={`text-[18px] ${
                           option.value === value ? "text-red-500 font-medium" : "text-gray-700"
                         }`}
+                        style={{ fontFamily: 'Montserrat' }}
                       >
                         {option.label}
                       </Text>
                       {option.value === value && (
-                        <Ionicons name="checkmark" size={18} color="#ef4444" />
+                        <Ionicons name="checkmark" size={20} color="#ef4444" />
                       )}
                     </View>
                   </Pressable>

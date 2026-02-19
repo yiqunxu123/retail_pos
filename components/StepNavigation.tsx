@@ -38,14 +38,14 @@ export function StepNavigation({ onConfirm, showConfirm }: StepNavigationProps) 
   };
 
   return (
-    <View className="flex-row items-center justify-between bg-white border-t border-gray-200 px-4 py-3">
+    <View className="flex-row items-center justify-between bg-[#F7F7F9] border-t border-gray-200 px-4 py-3">
       {/* Back Button */}
       <Pressable
         onPress={handleBack}
-        className="bg-red-500 px-6 py-3 rounded-lg flex-row items-center gap-2"
+        className="bg-[#EC1A52] px-6 py-3 rounded-lg flex-row items-center gap-2 shadow-sm"
         style={({ pressed }) => ({ opacity: pressed ? 0.8 : 1 })}
       >
-        <Ionicons name="arrow-back" size={18} color="white" />
+        <Ionicons name="menu" size={18} color="white" />
         <Text className="text-white font-semibold">Back</Text>
       </Pressable>
 

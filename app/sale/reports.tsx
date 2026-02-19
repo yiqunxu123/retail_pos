@@ -1,7 +1,7 @@
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import { Pressable, ScrollView, Text, View } from "react-native";
-import StaffPageLayout from "../../components/StaffPageLayout";
+import { PageHeader } from "../../components";
 
 // Report category configuration
 const REPORT_CATEGORIES = [
@@ -80,67 +80,60 @@ function ReportCard({
 }
 
 export default function ReportsScreen() {
-  
-  // Reports page has no specific middle buttons, just navigation
-  const sidebarButtons = null;
-
   return (
-    <StaffPageLayout 
-      title="View Reports"
-      sidebarCustomButtons={sidebarButtons}
-    >
-      <View className="flex-1 bg-white">
-        {/* Report Categories Grid */}
-        <ScrollView className="flex-1 px-6">
-          {/* Row 1 */}
-          <View className="flex-row gap-4 mb-4">
-            <ReportCard
-              title={REPORT_CATEGORIES[0].title}
-              icon={REPORT_CATEGORIES[0].icon}
-              color={REPORT_CATEGORIES[0].color}
-              onPress={() => router.push(REPORT_CATEGORIES[0].route as any)}
-            />
-            <ReportCard
-              title={REPORT_CATEGORIES[1].title}
-              icon={REPORT_CATEGORIES[1].icon}
-              color={REPORT_CATEGORIES[1].color}
-              onPress={() => router.push(REPORT_CATEGORIES[1].route as any)}
-            />
-          </View>
+    <View className="flex-1 bg-[#F7F7F9]">
+      <PageHeader title="View Reports" showBack={false} />
 
-          {/* Row 2 */}
-          <View className="flex-row gap-4 mb-4">
-            <ReportCard
-              title={REPORT_CATEGORIES[2].title}
-              icon={REPORT_CATEGORIES[2].icon}
-              color={REPORT_CATEGORIES[2].color}
-              onPress={() => router.push(REPORT_CATEGORIES[2].route as any)}
-            />
-            <ReportCard
-              title={REPORT_CATEGORIES[3].title}
-              icon={REPORT_CATEGORIES[3].icon}
-              color={REPORT_CATEGORIES[3].color}
-              onPress={() => router.push(REPORT_CATEGORIES[3].route as any)}
-            />
-          </View>
+      {/* Report Categories Grid */}
+      <ScrollView className="flex-1 px-6" contentContainerStyle={{ paddingVertical: 16 }}>
+        {/* Row 1 */}
+        <View className="flex-row gap-4 mb-4">
+          <ReportCard
+            title={REPORT_CATEGORIES[0].title}
+            icon={REPORT_CATEGORIES[0].icon}
+            color={REPORT_CATEGORIES[0].color}
+            onPress={() => router.push(REPORT_CATEGORIES[0].route as any)}
+          />
+          <ReportCard
+            title={REPORT_CATEGORIES[1].title}
+            icon={REPORT_CATEGORIES[1].icon}
+            color={REPORT_CATEGORIES[1].color}
+            onPress={() => router.push(REPORT_CATEGORIES[1].route as any)}
+          />
+        </View>
 
-          {/* Row 3 */}
-          <View className="flex-row gap-4 mb-4">
-            <ReportCard
-              title={REPORT_CATEGORIES[4].title}
-              icon={REPORT_CATEGORIES[4].icon}
-              color={REPORT_CATEGORIES[4].color}
-              onPress={() => router.push(REPORT_CATEGORIES[4].route as any)}
-            />
-            <ReportCard
-              title={REPORT_CATEGORIES[5].title}
-              icon={REPORT_CATEGORIES[5].icon}
-              color={REPORT_CATEGORIES[5].color}
-              onPress={() => router.push(REPORT_CATEGORIES[5].route as any)}
-            />
-          </View>
-        </ScrollView>
-      </View>
-    </StaffPageLayout>
+        {/* Row 2 */}
+        <View className="flex-row gap-4 mb-4">
+          <ReportCard
+            title={REPORT_CATEGORIES[2].title}
+            icon={REPORT_CATEGORIES[2].icon}
+            color={REPORT_CATEGORIES[2].color}
+            onPress={() => router.push(REPORT_CATEGORIES[2].route as any)}
+          />
+          <ReportCard
+            title={REPORT_CATEGORIES[3].title}
+            icon={REPORT_CATEGORIES[3].icon}
+            color={REPORT_CATEGORIES[3].color}
+            onPress={() => router.push(REPORT_CATEGORIES[3].route as any)}
+          />
+        </View>
+
+        {/* Row 3 */}
+        <View className="flex-row gap-4 mb-4">
+          <ReportCard
+            title={REPORT_CATEGORIES[4].title}
+            icon={REPORT_CATEGORIES[4].icon}
+            color={REPORT_CATEGORIES[4].color}
+            onPress={() => router.push(REPORT_CATEGORIES[4].route as any)}
+          />
+          <ReportCard
+            title={REPORT_CATEGORIES[5].title}
+            icon={REPORT_CATEGORIES[5].icon}
+            color={REPORT_CATEGORIES[5].color}
+            onPress={() => router.push(REPORT_CATEGORIES[5].route as any)}
+          />
+        </View>
+      </ScrollView>
+    </View>
   );
 }

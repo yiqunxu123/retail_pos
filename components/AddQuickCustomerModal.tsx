@@ -372,13 +372,14 @@ export function AddQuickCustomerModal({
           >
             <View className="flex-row gap-3 mb-3">
               <View className="flex-1">
-                <Text className="text-gray-700 text-sm mb-1.5">
+                <Text className="text-[#5A5F66] text-[18px] mb-1.5" style={{ fontFamily: 'Montserrat' }}>
                   Business Name <Text className="text-red-500">*</Text>
                 </Text>
                 <TextInput
-                  className={`bg-[#F6F7F8] border rounded-lg px-3 h-11 text-gray-800 ${
+                  className={`bg-white border rounded-xl px-3 py-3 text-gray-800 text-[18px] shadow-sm ${
                     errors.business_name ? "border-red-400" : "border-gray-200"
                   }`}
+                  style={{ fontFamily: 'Montserrat' }}
                   placeholder="Business Name"
                   placeholderTextColor="#9CA3AF"
                   value={data.business_name}
@@ -387,16 +388,17 @@ export function AddQuickCustomerModal({
                   maxLength={100}
                 />
                 {errors.business_name && (
-                  <Text className="text-red-500 text-xs mt-1">{errors.business_name}</Text>
+                  <Text className="text-red-500 text-[14px] mt-1" style={{ fontFamily: 'Montserrat' }}>{errors.business_name}</Text>
                 )}
               </View>
 
               <View className="flex-1">
-                <Text className="text-gray-700 text-sm mb-1.5">Email Address</Text>
+                <Text className="text-[#5A5F66] text-[18px] mb-1.5" style={{ fontFamily: 'Montserrat' }}>Email Address</Text>
                 <TextInput
-                  className={`bg-[#F6F7F8] border rounded-lg px-3 h-11 text-gray-800 ${
+                  className={`bg-white border rounded-xl px-3 py-3 text-gray-800 text-[18px] shadow-sm ${
                     errors.email ? "border-red-400" : "border-gray-200"
                   }`}
+                  style={{ fontFamily: 'Montserrat' }}
                   placeholder="Email"
                   placeholderTextColor="#9CA3AF"
                   keyboardType="email-address"
@@ -404,7 +406,7 @@ export function AddQuickCustomerModal({
                   value={data.email || ""}
                   onChangeText={(value) => updateField("email", value || null)}
                 />
-                {errors.email && <Text className="text-red-500 text-xs mt-1">{errors.email}</Text>}
+                {errors.email && <Text className="text-red-500 text-[14px] mt-1" style={{ fontFamily: 'Montserrat' }}>{errors.email}</Text>}
               </View>
             </View>
 
@@ -454,11 +456,12 @@ export function AddQuickCustomerModal({
 
             <View className="flex-row gap-3 mb-3">
               <View className="flex-1">
-                <Text className="text-gray-700 text-sm mb-1.5">Business Phone Number</Text>
+                <Text className="text-[#5A5F66] text-[18px] mb-1.5" style={{ fontFamily: 'Montserrat' }}>Business Phone Number</Text>
                 <TextInput
-                  className={`bg-[#F6F7F8] border rounded-lg px-3 h-11 text-gray-800 ${
+                  className={`bg-white border rounded-xl px-3 py-3 text-gray-800 text-[18px] shadow-sm ${
                     errors.business_phone_no ? "border-red-400" : "border-gray-200"
                   }`}
+                  style={{ fontFamily: 'Montserrat' }}
                   placeholder="+123 456 789"
                   placeholderTextColor="#9CA3AF"
                   keyboardType="phone-pad"
@@ -466,7 +469,7 @@ export function AddQuickCustomerModal({
                   onChangeText={(value) => updateField("business_phone_no", value || null)}
                 />
                 {errors.business_phone_no && (
-                  <Text className="text-red-500 text-xs mt-1">{errors.business_phone_no}</Text>
+                  <Text className="text-red-500 text-[14px] mt-1" style={{ fontFamily: 'Montserrat' }}>{errors.business_phone_no}</Text>
                 )}
               </View>
               <View className="flex-1">
@@ -477,7 +480,7 @@ export function AddQuickCustomerModal({
                   onChange={(value) => updateField("class_of_trades", value)}
                 />
                 {errors.class_of_trades && (
-                  <Text className="text-red-500 text-xs mt-1">{errors.class_of_trades}</Text>
+                  <Text className="text-red-500 text-[14px] mt-1" style={{ fontFamily: 'Montserrat' }}>{errors.class_of_trades}</Text>
                 )}
               </View>
             </View>
@@ -525,11 +528,11 @@ export function AddQuickCustomerModal({
               onPress={handleSave}
               disabled={!canSave}
               className={`flex-1 rounded-lg h-12 items-center justify-center ${
-                canSave ? "bg-[#DF2E58]" : "bg-gray-300"
+                canSave ? "bg-[#DF2E58]" : "bg-[#DF2E58]"
               }`}
               style={({ pressed }) => ({ opacity: pressed && canSave ? 0.82 : 1 })}
             >
-              <Text className={canSave ? "text-white text-xl font-semibold" : "text-gray-500 text-xl font-semibold"}>
+              <Text className={canSave ? "text-white text-xl font-semibold" : "text-white font-semibold"}>
                 Save
               </Text>
             </Pressable>

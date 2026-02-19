@@ -12,6 +12,8 @@ const products = new Table({
   upc_3: column.text,
   mlc: column.text,
   bin: column.text,
+  zone: column.text,
+  aisle: column.text,
   description: column.text,
   is_online: column.integer, // boolean
   status: column.integer,
@@ -84,6 +86,20 @@ const customer_groups = new Table({
 const customer_groups_customer = new Table({
   customer_group_id: column.integer,
   customer_id: column.integer,
+})
+
+// Product-supplier relation (many-to-many)
+// NOTE: id is a synthetic composite key (product_id-supplier_id)
+const products_suppliers = new Table({
+  product_id: column.integer,
+  supplier_id: column.integer,
+})
+
+// Product-category relation (many-to-many)
+// NOTE: id is a synthetic composite key (category_id-product_id)
+const categories_products = new Table({
+  category_id: column.integer,
+  product_id: column.integer,
 })
 
 // Stocks table
@@ -306,6 +322,8 @@ export const AppSchema = new Schema({
   customers,
   customer_groups,
   customer_groups_customer,
+  products_suppliers,
+  categories_products,
   stocks,
   unit_prices,
   taxes,
@@ -331,6 +349,8 @@ export type Category = Database['categories']
 export type Brand = Database['brands']
 export type Customer = Database['customers']
 export type CustomerGroup = Database['customer_groups']
+export type ProductSupplier = Database['products_suppliers']
+export type CategoryProduct = Database['categories_products']
 export type Stock = Database['stocks']
 export type UnitPrice = Database['unit_prices']
 export type Tax = Database['taxes']

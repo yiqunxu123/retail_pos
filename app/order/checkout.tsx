@@ -30,11 +30,11 @@ export default function CheckoutScreen() {
   };
 
   return (
-    <View className="flex-1">
+    <View className="flex-1 bg-[#F7F7F9]">
       <ScrollView className="flex-1" contentContainerClassName="p-5">
         <View className="flex-row gap-4">
           {/* Left Column - Order Details */}
-          <View className="flex-1 bg-white rounded-lg p-5">
+          <View className="flex-1 bg-[#F7F7F9] rounded-lg p-5">
             <View className="flex-row gap-4">
               {/* Order Type */}
               <View className="flex-1">
@@ -81,14 +81,15 @@ export default function CheckoutScreen() {
             <View className="flex-row gap-4">
               {/* Additional Discount */}
               <View className="flex-1">
-                <Text className="text-gray-600 text-sm mb-1.5">Additional Discount</Text>
+                <Text className="text-[#5A5F66] text-[18px] mb-1.5" style={{ fontFamily: 'Montserrat' }}>Additional Discount</Text>
                 <View className="flex-row items-center gap-2">
-                  <View className="flex-row items-center bg-white border border-gray-200 rounded-lg overflow-hidden">
-                    <Pressable className="bg-red-500 px-3 py-2.5">
-                      <Text className="text-white font-medium">$</Text>
+                  <View className="flex-row items-center bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm">
+                    <Pressable className="bg-red-500 px-3 py-3">
+                      <Text className="text-white font-medium text-[18px]" style={{ fontFamily: 'Montserrat' }}>$</Text>
                     </Pressable>
                     <TextInput
-                      className="flex-1 px-3 py-2.5 text-gray-800"
+                      className="flex-1 px-3 py-3 text-gray-800 text-[18px]"
+                      style={{ fontFamily: 'Montserrat' }}
                       keyboardType="numeric"
                       value={order.additionalDiscount.toString()}
                       onChangeText={(v) => updateOrder({ additionalDiscount: parseFloat(v) || 0 })}
@@ -98,14 +99,15 @@ export default function CheckoutScreen() {
               </View>
               {/* Shipping Charges */}
               <View className="flex-1">
-                <Text className="text-gray-600 text-sm mb-1.5">Shipping Charges</Text>
+                <Text className="text-[#5A5F66] text-[18px] mb-1.5" style={{ fontFamily: 'Montserrat' }}>Shipping Charges</Text>
                 <View className="flex-row items-center gap-2">
-                  <View className="flex-row items-center bg-white border border-gray-200 rounded-lg overflow-hidden">
-                    <Pressable className="bg-red-500 px-3 py-2.5">
-                      <Text className="text-white font-medium">$</Text>
+                  <View className="flex-row items-center bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm">
+                    <Pressable className="bg-red-500 px-3 py-3">
+                      <Text className="text-white font-medium text-[18px]" style={{ fontFamily: 'Montserrat' }}>$</Text>
                     </Pressable>
                     <TextInput
-                      className="flex-1 px-3 py-2.5 text-gray-800"
+                      className="flex-1 px-3 py-3 text-gray-800 text-[18px]"
+                      style={{ fontFamily: 'Montserrat' }}
                       keyboardType="numeric"
                       value={order.shippingCharges.toString()}
                       onChangeText={(v) => updateOrder({ shippingCharges: parseFloat(v) || 0 })}
@@ -117,7 +119,7 @@ export default function CheckoutScreen() {
           </View>
 
           {/* Right Column - Order Summary */}
-          <View className="w-80 bg-white rounded-lg p-4">
+          <View className="w-80 bg-white border border-gray-200 rounded-xl p-4 shadow-sm">
             <SummaryRow label="Total Products" value={summary.totalProducts.toString().padStart(2, "0")} />
             <SummaryRow label="Total Quantity" value={summary.totalQuantity.toString()} />
             <SummaryRow label="Sub Total" value={`$${summary.subTotal.toFixed(2)}`} highlight />

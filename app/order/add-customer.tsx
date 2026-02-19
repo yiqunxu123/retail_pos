@@ -1,33 +1,33 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import {
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-  type ComponentProps,
+    useCallback,
+    useEffect,
+    useMemo,
+    useRef,
+    useState,
+    type ComponentProps,
 } from "react";
 import {
-  ActivityIndicator,
-  Alert,
-  Pressable,
-  ScrollView,
-  Switch,
-  Text,
-  TextInput,
-  View,
+    ActivityIndicator,
+    Alert,
+    Pressable,
+    ScrollView,
+    Switch,
+    Text,
+    TextInput,
+    View,
 } from "react-native";
 import {
-  AddQuickCustomerModal,
-  type QuickCustomerResult,
+    AddQuickCustomerModal,
+    type QuickCustomerResult,
 } from "../../components/AddQuickCustomerModal";
 import { Dropdown } from "../../components/Dropdown";
 import { useOrder } from "../../contexts/OrderContext";
 import {
-  getCustomerById,
-  searchCustomers,
-  type CustomerEntity,
+    getCustomerById,
+    searchCustomers,
+    type CustomerEntity,
 } from "../../utils/api/customers";
 
 type SearchFieldKey =
@@ -169,7 +169,7 @@ function SearchResultCard({
       onPress={() => onSelect(customer)}
       className="border border-gray-200 rounded-lg px-3 py-2.5"
       style={({ pressed }) => ({
-        backgroundColor: pressed ? "#f4f5f6" : "#fff",
+        backgroundColor: pressed ? "#f4f5f6" : "#F7F7F9",
         opacity: customer.is_active === false ? 0.55 : 1,
       })}
     >
@@ -476,10 +476,10 @@ export default function AddCustomerScreen() {
   ];
 
   return (
-    <View className="flex-1 bg-black/35 flex-row">
+    <View className="flex-1 bg-[#F7F7F9] flex-row">
       <Pressable
         onPress={() => {}}
-        className="bg-white h-full border-r border-gray-200"
+        className="bg-[#F7F7F9] h-full border-r border-gray-200"
         style={{ width: "50%" }}
       >
         <View className="px-5 pt-4 pb-3 border-b border-gray-200">
@@ -528,7 +528,7 @@ export default function AddCustomerScreen() {
 
                   {showDropdown && (
                     <View
-                      className="border border-[#E5E7EB] rounded-lg mt-1 bg-white overflow-hidden"
+                      className="border border-[#E5E7EB] rounded-lg mt-1 bg-[#F7F7F9] overflow-hidden"
                       style={{ maxHeight: 240 }}
                     >
                       {isLoading ? (

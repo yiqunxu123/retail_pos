@@ -11,37 +11,50 @@ export interface FilterOption {
   value: string;
 }
 
-interface FilterDropdownProps {
+interface FilterDropdownBaseProps {
   label: string;
-  value: string | string[] | null;
-  options: FilterOption[];
-  onChange: (value: string | string[] | null) => void;
   placeholder?: string;
   allowClear?: boolean;
   width?: number;
   variant?: "default" | "primary" | "danger";
-  multiple?: boolean;
+  options: FilterOption[];
+}
+
+type FilterDropdownProps =
+  | (FilterDropdownBaseProps & {
+      multiple?: false;
+      value: string | null;
+      onChange: (value: string | null) => void;
+    })
+  | (FilterDropdownBaseProps & {
+      multiple: true;
+      value: string[] | null;
+      onChange: (value: string[] | null) => void;
+    });
+
+function hasAllOption(options: FilterOption[]) {
+  return options.some((opt) => opt.value === "all");
 }
 
 // ============================================================================
 // Component
 // ============================================================================
 
-export function FilterDropdown({
-  label,
-  value,
-  options,
-  onChange,
-  placeholder = "Select...",
-  allowClear = true,
-  width,
-  variant = "default",
-  multiple = false,
-}: FilterDropdownProps) {
+export function FilterDropdown(props: FilterDropdownProps) {
+  const {
+    label,
+    value,
+    options,
+    placeholder = "Select...",
+    allowClear = true,
+    width,
+    variant = "default",
+  } = props;
+  const multiple = props.multiple === true;
   const [isOpen, setIsOpen] = useState(false);
 
   const selectedValues = multiple
-    ? (Array.isArray(value) ? value : [])
+    ? (Array.isArray(value) ? value : ([] as string[]))
     : (typeof value === "string" && value ? [value] : []);
   const selectedOptions = options.filter((opt) => selectedValues.includes(opt.value));
   const displayText = multiple
@@ -53,11 +66,11 @@ export function FilterDropdown({
 
   const handleSelect = (optionValue: string) => {
     if (multiple) {
-      const hasAllOption = options.some((opt) => opt.value === "all");
+      const hasAll = hasAllOption(options);
       const exists = selectedValues.includes(optionValue);
       let nextValues: string[];
 
-      if (hasAllOption) {
+      if (hasAll) {
         if (optionValue === "all") {
           nextValues = exists ? [] : ["all"];
         } else if (exists) {
@@ -71,26 +84,30 @@ export function FilterDropdown({
           : [...selectedValues, optionValue];
       }
 
-      onChange(nextValues.length > 0 ? nextValues : null);
+      props.onChange(nextValues.length > 0 ? nextValues : null);
       return;
     }
-    onChange(optionValue);
+    props.onChange(optionValue);
     setIsOpen(false);
   };
 
   const handleClear = () => {
-    onChange(multiple ? [] : null);
+    if (multiple) {
+      props.onChange(null);
+      return;
+    }
+    props.onChange(null);
   };
 
   // Variant styles
   const containerStyles = {
-    default: "bg-gray-50 border border-gray-200",
+    default: "bg-[#F7F7F9] border border-gray-200 shadow-sm",
     primary: "bg-blue-500",
     danger: "bg-red-500",
   };
 
   const textStyles = {
-    default: value ? "text-gray-800" : "text-gray-400",
+    default: hasValue ? "text-gray-800" : "text-gray-400",
     primary: "text-white",
     danger: "text-white",
   };
@@ -103,13 +120,13 @@ export function FilterDropdown({
 
   return (
     <View style={width ? { width } : undefined} className={!width ? "flex-1" : ""}>
-      {label && <Text className="text-gray-500 text-xs mb-1">{label}</Text>}
+      {label && <Text className="text-[#5A5F66] text-[16px] mb-1" style={{ fontFamily: 'Montserrat' }}>{label}</Text>}
       
       <Pressable
         onPress={() => setIsOpen(true)}
-        className={`${containerStyles[variant]} rounded-lg px-3 py-2 flex-row items-center justify-between`}
+        className={`${containerStyles[variant]} rounded-xl px-3 py-2.5 flex-row items-center justify-between`}
       >
-        <Text className={`${textStyles[variant]} flex-1`} numberOfLines={1}>
+        <Text className={`${textStyles[variant]} flex-1 text-[16px]`} style={{ fontFamily: 'Montserrat' }} numberOfLines={1}>
           {displayText}
         </Text>
         {allowClear && hasValue && variant === "default" ? (
@@ -143,7 +160,7 @@ export function FilterDropdown({
               {allowClear && (
                 <Pressable
                   onPress={() => {
-                    onChange(null);
+                    handleClear();
                     setIsOpen(false);
                   }}
                   className="px-4 py-3 border-b border-gray-100 flex-row items-center"

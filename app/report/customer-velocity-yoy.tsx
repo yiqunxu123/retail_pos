@@ -1,16 +1,11 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import {
-  ActivityIndicator,
-  FlatList,
-  ScrollView,
-  Text,
-  TextInput,
-  TouchableOpacity,
   View,
+  Text,
 } from "react-native";
-import { FilterDropdown } from "../../components";
+import { DataTable, ColumnDefinition, PageHeader } from "../../components";
 import { useCustomerVelocityReport, CustomerVelocityView } from "../../utils/powersync/hooks";
 
 // ============================================================================
@@ -68,8 +63,8 @@ function getMarginColorClasses(percentage: number): { bg: string; text: string }
 function MarginBadge({ percentage }: { percentage: number }) {
   const colors = getMarginColorClasses(percentage);
   return (
-    <View className={`px-2 py-1 rounded ${colors.bg}`}>
-      <Text className={`text-sm font-medium ${colors.text}`}>
+    <View className={`px-3 py-1 rounded ${colors.bg}`}>
+      <Text className={`font-Montserrat font-bold text-[16px] ${colors.text}`}>
         {percentage.toFixed(1)}%
       </Text>
     </View>
@@ -84,7 +79,7 @@ export default function CustomerVelocityScreen() {
   const router = useRouter();
   
   // Data from PowerSync
-  const { reports, isLoading, isStreaming } = useCustomerVelocityReport();
+  const { reports, isLoading, isStreaming, refresh } = useCustomerVelocityReport();
 
   // Search & Filter State
   const [searchQuery, setSearchQuery] = useState("");
@@ -125,30 +120,14 @@ export default function CustomerVelocityScreen() {
     // Sort
     if (sortBy) {
       switch (sortBy) {
-        case "revenue_desc":
-          result.sort((a, b) => b.salesRevenue - a.salesRevenue);
-          break;
-        case "revenue_asc":
-          result.sort((a, b) => a.salesRevenue - b.salesRevenue);
-          break;
-        case "qty_desc":
-          result.sort((a, b) => b.qtySold - a.qtySold);
-          break;
-        case "qty_asc":
-          result.sort((a, b) => a.qtySold - b.qtySold);
-          break;
-        case "margin_desc":
-          result.sort((a, b) => b.marginPercentage - a.marginPercentage);
-          break;
-        case "margin_asc":
-          result.sort((a, b) => a.marginPercentage - b.marginPercentage);
-          break;
-        case "customer_asc":
-          result.sort((a, b) => a.customerName.localeCompare(b.customerName));
-          break;
-        case "business_asc":
-          result.sort((a, b) => a.businessName.localeCompare(b.businessName));
-          break;
+        case "revenue_desc": result.sort((a, b) => b.salesRevenue - a.salesRevenue); break;
+        case "revenue_asc": result.sort((a, b) => a.salesRevenue - b.salesRevenue); break;
+        case "qty_desc": result.sort((a, b) => b.qtySold - a.qtySold); break;
+        case "qty_asc": result.sort((a, b) => a.qtySold - b.qtySold); break;
+        case "margin_desc": result.sort((a, b) => b.marginPercentage - a.marginPercentage); break;
+        case "margin_asc": result.sort((a, b) => a.marginPercentage - b.marginPercentage); break;
+        case "customer_asc": result.sort((a, b) => a.customerName.localeCompare(b.customerName)); break;
+        case "business_asc": result.sort((a, b) => a.businessName.localeCompare(b.businessName)); break;
       }
     }
 
@@ -170,145 +149,156 @@ export default function CustomerVelocityScreen() {
     ? (totals.margin / totals.revenue) * 100
     : 0;
 
-  // Loading state
-  if (isLoading && reports.length === 0) {
+  const handleSearch = useCallback((item: CustomerVelocityView, query: string) => {
+    const q = query.toLowerCase();
     return (
-      <View className="flex-1 bg-gray-50">
-        <View className="bg-white px-5 py-4 border-b border-gray-200 flex-row items-center">
-          <TouchableOpacity onPress={() => router.push("/")} className="mr-4 p-1">
-            <Ionicons name="arrow-back" size={24} color="#374151" />
-          </TouchableOpacity>
-          <Text className="text-2xl font-bold text-gray-800">Customer Velocity Report</Text>
-        </View>
-        <View className="flex-1 justify-center items-center">
-          <ActivityIndicator size="large" color="#3B82F6" />
-          <Text className="mt-4 text-gray-600">Loading report...</Text>
-        </View>
-      </View>
+      item.customerName.toLowerCase().includes(q) ||
+      item.businessName.toLowerCase().includes(q) ||
+      item.customerId.includes(q) ||
+      item.customerNo.toLowerCase().includes(q)
     );
-  }
+  }, []);
 
-  const renderRow = ({ item }: { item: CustomerVelocityView }) => (
-    <View className="flex-row items-center py-3 px-5 border-b border-gray-100 bg-white">
-      <Text className="w-24 text-gray-600 text-sm">{item.customerNo || '-'}</Text>
-      <Text className="w-20 text-blue-600 text-sm font-medium">{item.customerId}</Text>
-      <Text className="w-36 text-gray-800 text-sm" numberOfLines={1}>{item.customerName || '-'}</Text>
-      <Text className="w-56 text-blue-600 text-sm" numberOfLines={1}>{item.businessName || '-'}</Text>
-      <Text className="w-24 text-gray-800 text-sm text-center">{item.qtySold}</Text>
-      <Text className="w-32 text-gray-800 text-sm text-center">{formatCurrency(item.salesRevenue)}</Text>
-      <Text className="w-32 text-gray-800 text-sm text-center">{formatCurrency(item.cost)}</Text>
-      <Text className="w-28 text-green-600 text-sm text-center font-medium">{formatCurrency(item.margin)}</Text>
-      <View className="w-24 items-center">
-        <MarginBadge percentage={item.marginPercentage} />
-      </View>
-    </View>
-  );
+  const handleFiltersChange = useCallback((f: Record<string, unknown>) => {
+    setMarginFilter(f.margin as string);
+  }, []);
+
+  const handleSort = useCallback((data: CustomerVelocityView[], sortBy: string | null) => {
+    if (!sortBy) return data;
+    const result = [...data];
+    switch (sortBy) {
+      case "revenue_desc": result.sort((a, b) => b.salesRevenue - a.salesRevenue); break;
+      case "revenue_asc": result.sort((a, b) => a.salesRevenue - b.salesRevenue); break;
+      case "qty_desc": result.sort((a, b) => b.qtySold - a.qtySold); break;
+      case "qty_asc": result.sort((a, b) => a.qtySold - b.qtySold); break;
+      case "margin_desc": result.sort((a, b) => b.marginPercentage - a.marginPercentage); break;
+      case "margin_asc": result.sort((a, b) => a.marginPercentage - b.marginPercentage); break;
+      case "customer_asc": result.sort((a, b) => a.customerName.localeCompare(b.customerName)); break;
+      case "business_asc": result.sort((a, b) => a.businessName.localeCompare(b.businessName)); break;
+    }
+    return result;
+  }, []);
+
+  // Column definitions
+  const columns = useMemo<ColumnDefinition<CustomerVelocityView>[]>(() => [
+    {
+      key: "customerNo",
+      title: "No",
+      width: 120,
+      render: (item) => (
+        <Text className="text-gray-600 text-[18px] font-Montserrat">{item.customerNo || '-'}</Text>
+      ),
+    },
+    {
+      key: "customerName",
+      title: "Customer",
+      width: 250,
+      render: (item) => (
+        <View>
+          <Text className="text-[#1A1A1A] text-[18px] font-Montserrat font-medium" numberOfLines={1}>{item.customerName || '-'}</Text>
+          <Text className="text-blue-600 text-[14px] font-Montserrat" numberOfLines={1}>{item.businessName || '-'}</Text>
+        </View>
+      ),
+    },
+    {
+      key: "qtySold",
+      title: "Qty",
+      width: 100,
+      align: "center",
+      render: (item) => (
+        <Text className="text-[#1A1A1A] text-[18px] font-Montserrat text-center">{item.qtySold}</Text>
+      ),
+    },
+    {
+      key: "salesRevenue",
+      title: "Revenue",
+      width: 150,
+      align: "right",
+      render: (item) => (
+        <Text className="text-[#1A1A1A] text-[18px] font-Montserrat text-right">{formatCurrency(item.salesRevenue)}</Text>
+      ),
+    },
+    {
+      key: "cost",
+      title: "Cost",
+      width: 150,
+      align: "right",
+      render: (item) => (
+        <Text className="text-[#1A1A1A] text-[18px] font-Montserrat text-right">{formatCurrency(item.cost)}</Text>
+      ),
+    },
+    {
+      key: "margin",
+      title: "Margin",
+      width: 150,
+      align: "right",
+      render: (item) => (
+        <Text className="text-green-600 text-[18px] font-Montserrat font-bold text-right">{formatCurrency(item.margin)}</Text>
+      ),
+    },
+    {
+      key: "marginPercentage",
+      title: "Margin %",
+      width: 120,
+      align: "center",
+      render: (item) => (
+        <View className="items-center">
+          <MarginBadge percentage={item.marginPercentage} />
+        </View>
+      ),
+    },
+  ], []);
 
   const renderTableFooter = () => (
-    <View className="flex-row items-center py-3 px-5 bg-gray-100 border-t-2 border-gray-300">
-      <Text className="w-24 text-gray-800 font-bold">TOTAL</Text>
-      <Text className="w-20 text-gray-600"></Text>
-      <Text className="w-36 text-gray-600"></Text>
-      <Text className="w-56 text-gray-800 font-bold">{filteredData.length} customers</Text>
-      <Text className="w-24 text-gray-800 text-center font-bold">{totals.qtySold}</Text>
-      <Text className="w-32 text-gray-800 text-center font-bold">{formatCurrency(totals.revenue)}</Text>
-      <Text className="w-32 text-gray-800 text-center font-bold">{formatCurrency(totals.cost)}</Text>
-      <Text className="w-28 text-green-600 text-center font-bold">{formatCurrency(totals.margin)}</Text>
-      <Text className="w-24 text-blue-600 text-center font-bold">{avgMarginPercentage.toFixed(1)}%</Text>
+    <View className="flex-row items-center py-4 px-5 bg-gray-100 border-t-2 border-gray-300">
+      <View className="w-[120px]">
+        <Text className="text-[#1A1A1A] text-[18px] font-Montserrat font-bold">TOTAL</Text>
+      </View>
+      <View className="w-[250px]">
+        <Text className="text-[#1A1A1A] text-[18px] font-Montserrat font-bold">{filteredData.length} customers</Text>
+      </View>
+      <View className="w-[100px]">
+        <Text className="text-[#1A1A1A] text-[18px] font-Montserrat font-bold text-center">{totals.qtySold}</Text>
+      </View>
+      <View className="w-[150px]">
+        <Text className="text-[#1A1A1A] text-[18px] font-Montserrat font-bold text-right">{formatCurrency(totals.revenue)}</Text>
+      </View>
+      <View className="w-[150px]">
+        <Text className="text-[#1A1A1A] text-[18px] font-Montserrat font-bold text-right">{formatCurrency(totals.cost)}</Text>
+      </View>
+      <View className="w-[150px]">
+        <Text className="text-green-600 text-[18px] font-Montserrat font-bold text-right">{formatCurrency(totals.margin)}</Text>
+      </View>
+      <View className="w-[120px]">
+        <Text className="text-blue-600 text-[18px] font-Montserrat font-bold text-center">{avgMarginPercentage.toFixed(1)}%</Text>
+      </View>
     </View>
   );
 
   return (
-    <View className="flex-1 bg-gray-50">
-      {/* Page Header */}
-      <View className="bg-white px-5 py-4 border-b border-gray-200 flex-row items-center justify-between">
-        <View className="flex-row items-center">
-          <TouchableOpacity
-            onPress={() => router.push("/")}
-            className="mr-4 p-1"
-            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-          >
-            <Ionicons name="arrow-back" size={24} color="#374151" />
-          </TouchableOpacity>
-          <Text className="text-2xl font-bold text-gray-800">Customer Velocity Report</Text>
-          {isStreaming && (
-            <Text className="text-green-600 text-xs ml-3">● Live</Text>
-          )}
-        </View>
-      </View>
+    <View className="flex-1 bg-[#F7F7F9]">
+      <PageHeader title="Customer Velocity Report" showBack={false} />
 
-      {/* Toolbar */}
-      <View className="bg-white px-5 py-4 border-b border-gray-200">
-        {/* Search & Filter Controls */}
-        <View className="flex-row items-end gap-4 mb-4">
-          <View className="flex-1 max-w-md">
-            <Text className="text-gray-600 text-sm mb-1.5">Search by Customer or Business</Text>
-            <TextInput
-              className="bg-gray-50 border border-gray-200 rounded-lg px-4 py-3"
-              placeholder="Search..."
-              placeholderTextColor="#9ca3af"
-              value={searchQuery}
-              onChangeText={setSearchQuery}
-            />
-          </View>
-          <FilterDropdown
-            label="Sort By"
-            value={sortBy}
-            options={SORT_OPTIONS}
-            onChange={setSortBy}
-            placeholder="Sort..."
-            width={180}
-          />
-          <FilterDropdown
-            label="Margin Level"
-            value={marginFilter}
-            options={MARGIN_FILTER_OPTIONS}
-            onChange={setMarginFilter}
-            placeholder="All Margins"
-            width={140}
-          />
-        </View>
-
-        {/* Applied Filters Display */}
-        <View className="flex-row items-center">
-          <Text className="text-gray-600 text-sm">
-            Showing {filteredData.length} of {reports.length} customers
-          </Text>
-        </View>
-      </View>
-
-      {/* Data Table */}
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} className="flex-1">
-        <View style={{ minWidth: 1200 }}>
-          {/* Table Header */}
-          <View className="flex-row bg-gray-50 py-3 px-5 border-b border-gray-200">
-            <Text className="w-24 text-gray-700 text-xs font-semibold uppercase">Customer No</Text>
-            <Text className="w-20 text-gray-700 text-xs font-semibold uppercase">ID</Text>
-            <Text className="w-36 text-gray-700 text-xs font-semibold uppercase">Customer Name</Text>
-            <Text className="w-56 text-gray-700 text-xs font-semibold uppercase">Business Name</Text>
-            <Text className="w-24 text-gray-700 text-xs font-semibold uppercase text-center">QTY Sold</Text>
-            <Text className="w-32 text-gray-700 text-xs font-semibold uppercase text-center">Revenue</Text>
-            <Text className="w-32 text-gray-700 text-xs font-semibold uppercase text-center">Cost</Text>
-            <Text className="w-28 text-gray-700 text-xs font-semibold uppercase text-center">Margin</Text>
-            <Text className="w-24 text-gray-700 text-xs font-semibold uppercase text-center">Margin %</Text>
-          </View>
-
-          {/* Table Body */}
-          <FlatList
-            data={filteredData}
-            keyExtractor={(item) => item.id}
-            renderItem={renderRow}
-            showsVerticalScrollIndicator={false}
-            ListFooterComponent={filteredData.length > 0 ? renderTableFooter : null}
-            ListEmptyComponent={
-              <View className="py-16 items-center">
-                <Ionicons name="analytics-outline" size={48} color="#d1d5db" />
-                <Text className="text-gray-400 mt-2">No data found</Text>
-              </View>
-            }
-          />
-        </View>
-      </ScrollView>
+      <DataTable<CustomerVelocityView>
+        data={reports}
+        columns={columns}
+        keyExtractor={(item) => item.id}
+        searchable
+        searchPlaceholder="Search customers..."
+        onSearch={handleSearch}
+        filters={[
+          { key: "margin", placeholder: "All Margins", options: MARGIN_FILTER_OPTIONS, width: 140 },
+        ]}
+        onFiltersChange={handleFiltersChange}
+        sortOptions={SORT_OPTIONS}
+        onSort={handleSort}
+        isLoading={isLoading}
+        isStreaming={isStreaming}
+        onRefresh={refresh}
+        ListFooterComponent={filteredData.length > 0 ? renderTableFooter : null}
+        horizontalScroll
+        minWidth={1040}
+      />
     </View>
   );
 }

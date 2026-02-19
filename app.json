@@ -13,6 +13,7 @@
       "bundleIdentifier": "com.anonymous.ititans-app"
     },
     "android": {
+      "usesCleartextTraffic": true,
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
@@ -29,6 +30,14 @@
     },
     "plugins": [
       "expo-router",
+      [
+        "expo-navigation-bar",
+        {
+          "visibility": "hidden",
+          "behavior": "sticky-immersive",
+          "position": "absolute"
+        }
+      ],
       [
         "expo-splash-screen",
         {

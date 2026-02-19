@@ -3,6 +3,7 @@
  * Uses the unified DataTable component
  */
 
+import { useMemo, useCallback } from "react";
 import { Ionicons } from "@expo/vector-icons";
 import { Pressable, Text, View } from "react-native";
 import { ColumnDefinition, DataTable, FilterDefinition, PageHeader } from "../../components";
@@ -53,15 +54,16 @@ function formatCurrency(value: number): string {
 
 export default function SalesReturnScreen() {
   // Column config
-  const columns: ColumnDefinition<SalesReturn>[] = [
+  const columns = useMemo<ColumnDefinition<SalesReturn>[]>(
+    () => [
     {
       key: "returnNumber",
       title: "Return Number",
-      width: 130,
+      width: 180,
       visible: true,
       hideable: false,
       render: (item) => (
-        <Text className="text-blue-600 text-xs font-medium" numberOfLines={1}>
+        <Text className="text-blue-600 text-[18px] font-Montserrat font-medium" numberOfLines={1}>
           {item.returnNumber}
         </Text>
       ),
@@ -69,9 +71,9 @@ export default function SalesReturnScreen() {
     {
       key: "dateTime",
       title: "Date / Time",
-      width: 150,
+      width: 200,
       visible: true,
-      render: (item) => <Text className="text-gray-600 text-xs">{item.dateTime}</Text>,
+      render: (item) => <Text className="text-[#1A1A1A] text-[18px] font-Montserrat">{item.dateTime}</Text>,
     },
     {
       key: "customerName",
@@ -79,78 +81,80 @@ export default function SalesReturnScreen() {
       width: "flex",
       visible: true,
       render: (item) => (
-        <Text className="text-blue-600 text-xs" numberOfLines={1}>{item.customerName}</Text>
+        <Text className="text-blue-600 text-[18px] font-Montserrat" numberOfLines={1}>{item.customerName}</Text>
       ),
     },
     {
       key: "createdBy",
       title: "Created By",
-      width: 100,
+      width: 120,
       visible: true,
-      render: (item) => <Text className="text-gray-600 text-xs">{item.createdBy}</Text>,
+      render: (item) => <Text className="text-[#1A1A1A] text-[18px] font-Montserrat">{item.createdBy}</Text>,
     },
     {
       key: "channelName",
       title: "Channel Name",
-      width: 100,
+      width: 120,
       visible: true,
       render: (item) => (
-        <View className="bg-pink-100 px-2 py-1 rounded self-start">
-          <Text className="text-pink-600 text-xs font-medium">{item.channelName}</Text>
+        <View className="bg-pink-100 px-3 py-1 rounded self-start">
+          <Text className="text-pink-600 text-[14px] font-Montserrat font-medium">{item.channelName}</Text>
         </View>
       ),
     },
     {
       key: "invoiceTotal",
       title: "Invoice Total",
-      width: 110,
+      width: 150,
       visible: true,
       render: (item) => (
-        <Text className="text-red-600 text-xs font-bold">{formatCurrency(item.invoiceTotal)}</Text>
+        <Text className="text-red-600 text-[18px] font-Montserrat font-bold">{formatCurrency(item.invoiceTotal)}</Text>
       ),
     },
     {
       key: "returnTotal",
       title: "Return Total",
-      width: 110,
+      width: 150,
       visible: true,
       render: (item) => (
-        <Text className="text-red-600 text-xs font-bold">{formatCurrency(item.returnTotal)}</Text>
+        <Text className="text-red-600 text-[18px] font-Montserrat font-bold">{formatCurrency(item.returnTotal)}</Text>
       ),
     },
     {
       key: "status",
       title: "Status",
-      width: 90,
+      width: 120,
       visible: true,
       render: (item) => (
         <View 
-          className="px-2 py-1 rounded"
+          className="px-3 py-1 rounded-full self-start"
           style={{ backgroundColor: item.status === "Complete" ? "#22C55E" : "#F59E0B" }}
         >
-          <Text className="text-white text-xs font-medium">{item.status}</Text>
+          <Text className="text-white text-[14px] font-Montserrat font-medium">{item.status}</Text>
         </View>
       ),
     },
     {
       key: "actions",
       title: "Actions",
-      width: 80,
+      width: 100,
       align: "center",
       visible: true,
       hideable: false,
       render: () => (
         <View className="flex-row gap-2">
-          <Pressable className="bg-red-50 p-1.5 rounded">
-            <Ionicons name="print-outline" size={14} color="#EC1A52" />
+          <Pressable className="bg-red-50 p-2 rounded">
+            <Ionicons name="print-outline" size={16} color="#EC1A52" />
           </Pressable>
-          <Pressable className="bg-red-50 p-1.5 rounded">
-            <Ionicons name="eye-outline" size={14} color="#EC1A52" />
+          <Pressable className="bg-red-50 p-2 rounded">
+            <Ionicons name="eye-outline" size={16} color="#EC1A52" />
           </Pressable>
         </View>
       ),
     },
-  ];
+  ],
+    []
+  );
 
   // Filters
   const filters: FilterDefinition[] = [
@@ -166,26 +170,24 @@ export default function SalesReturnScreen() {
     },
   ];
 
-  const handleSearch = (item: SalesReturn, query: string) => {
+  const handleSearch = useCallback((item: SalesReturn, query: string) => {
     const q = query.toLowerCase();
     return (
       item.returnNumber.toLowerCase().includes(q) ||
       item.customerName.toLowerCase().includes(q)
     );
-  };
+  }, []);
 
-  const handleFilter = (item: SalesReturn, filters: Record<string, string | null>) => {
+  const handleFilter = useCallback((item: SalesReturn, filters: Record<string, string | null>) => {
     if (filters.status && filters.status !== "all") {
       return item.status === filters.status;
     }
     return true;
-  };
+  }, []);
 
   return (
-    <View className="flex-1 bg-gray-50">
-      <View className="px-4 pt-4">
-        <PageHeader title="Sales Return" variant="banner" />
-      </View>
+    <View className="flex-1 bg-[#F7F7F9]">
+      <PageHeader title="Sales Return" showBack={false} />
 
       <DataTable<SalesReturn>
         data={SAMPLE_RETURNS}

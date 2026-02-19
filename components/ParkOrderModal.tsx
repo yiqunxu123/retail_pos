@@ -80,7 +80,7 @@ export function ParkOrderModal({
             </Text>
 
             {/* Order Summary */}
-            <View className="bg-gray-50 rounded-lg p-4 mb-5">
+            <View className="bg-[#F7F7F9] rounded-lg p-4 mb-5 shadow-sm">
               <View className="flex-row justify-between mb-2">
                 <Text className="text-gray-600">Customer</Text>
                 <Text className="text-gray-800 font-medium">{customerName}</Text>
@@ -99,7 +99,7 @@ export function ParkOrderModal({
             <View className="mb-5">
               <Text className="text-gray-600 text-sm mb-2">Add Note (Optional)</Text>
               <TextInput
-                className="bg-gray-50 border border-gray-200 rounded-lg px-4 py-3"
+                className="bg-white border border-gray-200 rounded-lg px-4 py-3 shadow-sm"
                 placeholder="Enter a note for this parked order..."
                 placeholderTextColor="#9ca3af"
                 value={note}

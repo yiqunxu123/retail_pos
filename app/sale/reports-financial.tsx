@@ -49,8 +49,8 @@ export default function FinancialReportsScreen() {
   const rightColumn = FINANCIAL_REPORTS.filter((_, i) => i % 2 === 1);
 
   return (
-    <View className="flex-1 bg-white">
-      <PageHeader title="Financial Reports" />
+    <View className="flex-1 bg-[#F7F7F9]">
+      <PageHeader title="Financial Reports" showBack={false} />
 
       <ScrollView className="flex-1 px-6">
         <View className="flex-row gap-4">

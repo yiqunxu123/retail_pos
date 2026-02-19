@@ -146,7 +146,7 @@ export function CashEntryModal({
                       <TouchableOpacity
                         key={num}
                         onPress={() => handleNumberPress(num)}
-                        className="flex-1 bg-gray-100 py-4 rounded-lg items-center justify-center border border-gray-200"
+                        className="flex-1 bg-white py-4 rounded-lg items-center justify-center border border-gray-200 shadow-sm"
                         activeOpacity={0.7}
                       >
                         <Text className="text-xl font-semibold text-gray-800">
@@ -160,14 +160,14 @@ export function CashEntryModal({
                 <View className="flex-row gap-2">
                   <TouchableOpacity
                     onPress={() => handleNumberPress("0")}
-                    className="flex-1 bg-gray-100 py-4 rounded-lg items-center justify-center border border-gray-200"
+                    className="flex-1 bg-white py-4 rounded-lg items-center justify-center border border-gray-200 shadow-sm"
                     activeOpacity={0.7}
                   >
                     <Text className="text-xl font-semibold text-gray-800">0</Text>
                   </TouchableOpacity>
                   <TouchableOpacity
                     onPress={() => handleNumberPress(".")}
-                    className="flex-1 bg-gray-100 py-4 rounded-lg items-center justify-center border border-gray-200"
+                    className="flex-1 bg-white py-4 rounded-lg items-center justify-center border border-gray-200 shadow-sm"
                     activeOpacity={0.7}
                   >
                     <Text className="text-xl font-semibold text-gray-800">.</Text>

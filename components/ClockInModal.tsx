@@ -204,7 +204,7 @@ export function ClockInModal({ visible, onClose, onClockIn }: ClockInModalProps)
                 {/* User Dropdown */}
                 {showUserDropdown && (
                   <View
-                    className="absolute top-full left-0 right-0 bg-white rounded-lg mt-1 z-10"
+                    className="absolute top-full left-0 right-0 bg-white rounded-lg mt-1 z-10 shadow-lg"
                     style={{
                       top: 76,
                       shadowColor: "#000",

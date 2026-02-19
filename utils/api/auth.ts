@@ -80,6 +80,13 @@ function parseErrorResponse(error: AxiosError): string {
  */
 export async function login(credentials: LoginCredentials): Promise<{ user: KhubUser; error?: string }> {
   try {
+    console.log('[Auth.login] baseURL:', (khubApi.defaults as any)?.baseURL);
+    console.log('[Auth.login] POST /tenant/api/v1/core/user/authenticate payload:', {
+      username: credentials.username,
+      password: credentials.password ? '***' : undefined,
+      login_pin: credentials.login_pin ? '***' : undefined,
+    });
+
     const response = await khubApi.post<AuthResponse>(
       '/tenant/api/v1/core/user/authenticate',
       credentials

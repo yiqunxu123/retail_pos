@@ -8,6 +8,7 @@
  * - noOfProducts: Needs aggregate query
  */
 
+import { useMemo, useCallback } from "react";
 import { Ionicons } from "@expo/vector-icons";
 import { Pressable, Text, View } from "react-native";
 import { ColumnDefinition, DataTable, PageHeader } from "../../components";
@@ -21,7 +22,8 @@ export default function CustomerGroupsScreen() {
   const { groups, isLoading, isStreaming, refresh, count } = useCustomerGroups();
 
   // Column config
-  const columns: ColumnDefinition<CustomerGroupView>[] = [
+  const columns = useMemo<ColumnDefinition<CustomerGroupView>[]>(
+    () => [
     {
       key: "name",
       title: "Group Name",
@@ -30,9 +32,9 @@ export default function CustomerGroupsScreen() {
       hideable: false,
       render: (item) => (
         <View>
-          <Text className="text-gray-800 font-medium">{item.name || "-"}</Text>
+          <Text className="text-[#1A1A1A] text-[18px] font-Montserrat font-medium">{item.name || "-"}</Text>
           {item.description && (
-            <Text className="text-gray-500 text-sm" numberOfLines={1}>{item.description}</Text>
+            <Text className="text-gray-500 text-[14px] font-Montserrat" numberOfLines={1}>{item.description}</Text>
           )}
         </View>
       ),
@@ -40,41 +42,43 @@ export default function CustomerGroupsScreen() {
     {
       key: "tier",
       title: "Tier",
-      width: 80,
+      width: 100,
       align: "center",
       visible: true,
-      render: () => <Text className="text-gray-400">-</Text>,
+      render: () => <Text className="text-gray-400 text-[18px] font-Montserrat">-</Text>,
     },
     {
       key: "customerCount",
       title: "Customers",
-      width: 110,
+      width: 140,
       align: "center",
       visible: true,
-      render: (item) => <Text className="text-gray-700">{item.customerCount}</Text>,
+      render: (item) => <Text className="text-[#1A1A1A] text-[18px] font-Montserrat font-bold">{item.customerCount}</Text>,
     },
     {
       key: "products",
       title: "Products",
-      width: 110,
+      width: 120,
       align: "center",
       visible: true,
-      render: () => <Text className="text-gray-400">-</Text>,
+      render: () => <Text className="text-gray-400 text-[18px] font-Montserrat">-</Text>,
     },
     {
       key: "actions",
       title: "Actions",
-      width: 70,
+      width: 80,
       align: "center",
       visible: true,
       hideable: false,
       render: () => (
         <Pressable>
-          <Ionicons name="ellipsis-horizontal" size={20} color="#9ca3af" />
+          <Ionicons name="ellipsis-horizontal" size={24} color="#9ca3af" />
         </Pressable>
       ),
     },
-  ];
+  ],
+    []
+  );
 
   // Sort options
   const sortOptions = [
@@ -82,15 +86,15 @@ export default function CustomerGroupsScreen() {
     { label: "Name (Z-A)", value: "name_desc" },
   ];
 
-  const handleSearch = (item: CustomerGroupView, query: string) => {
+  const handleSearch = useCallback((item: CustomerGroupView, query: string) => {
     const q = query.toLowerCase();
     return (
       item.name.toLowerCase().includes(q) ||
       item.description.toLowerCase().includes(q)
     );
-  };
+  }, []);
 
-  const handleSort = (data: CustomerGroupView[], sortBy: string | null) => {
+  const handleSort = useCallback((data: CustomerGroupView[], sortBy: string | null) => {
     if (!sortBy) return data;
     const sorted = [...data];
     switch (sortBy) {
@@ -98,11 +102,11 @@ export default function CustomerGroupsScreen() {
       case "name_desc": return sorted.sort((a, b) => b.name.localeCompare(a.name));
       default: return sorted;
     }
-  };
+  }, []);
 
   return (
-    <View className="flex-1 bg-gray-50">
-      <PageHeader title="Customer Groups" />
+    <View className="flex-1 bg-[#F7F7F9]">
+      <PageHeader title="Customer Groups" showBack={false} />
 
       <DataTable<CustomerGroupView>
         data={groups}

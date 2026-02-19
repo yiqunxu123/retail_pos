@@ -41,8 +41,8 @@ export default function PurchaseReportsScreen() {
   const rightColumn = PURCHASE_REPORTS.filter((_, i) => i % 2 === 1);
 
   return (
-    <View className="flex-1 bg-white">
-      <PageHeader title="Purchase Order Reports" />
+    <View className="flex-1 bg-[#F7F7F9]">
+      <PageHeader title="Purchase Order Reports" showBack={false} />
 
       <ScrollView className="flex-1 px-6">
         <View className="flex-row gap-4">

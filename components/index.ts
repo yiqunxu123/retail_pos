@@ -21,10 +21,16 @@ export { ProductSearch } from "./ProductSearch";
 export { ProductTable } from "./ProductTable";
 export { RadioGroup } from "./RadioGroup";
 export { default as ReportPlaceholder } from "./ReportPlaceholder";
+export { SearchCustomerModal } from "./SearchCustomerModal";
+export type { SearchCustomerModalProps } from "./SearchCustomerModal";
 export { SearchProductModal } from "./SearchProductModal";
-export { SIDEBAR_WIDTH, Sidebar } from "./Sidebar";
+export { DashboardSidebar, DASHBOARD_SIDEBAR_WIDTH } from "./DashboardSidebar";
 export { SidebarButton } from "./SidebarButton";
-export { STAFF_SIDEBAR_WIDTH, StaffSidebar } from "./StaffSidebar";
 export { StatCard } from "./StatCard";
+export { StatsBar } from "./StatsBar";
+export type { StatsBarItem } from "./StatsBar";
+export { SubPageSidebar, SUB_PAGE_SIDEBAR_WIDTH } from "./SubPageSidebar";
 export { StatCardHorizontal } from "./StatCardHorizontal";
 export { StepNavigation } from "./StepNavigation";
+export { TableToolbarButton } from "./TableToolbarButton";
+

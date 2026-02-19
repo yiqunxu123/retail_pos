@@ -142,7 +142,7 @@ export function CustomerDetailsModal({
             {/* Contact Information */}
             <View className="px-6 py-4 border-t border-gray-100">
               <Text className="text-gray-800 font-semibold mb-3">Contact Information</Text>
-              <View className="bg-gray-50 rounded-lg p-4 gap-3">
+              <View className="bg-[#F7F7F9] rounded-lg p-4 gap-3 shadow-sm">
                 {customer.email && (
                   <View className="flex-row items-center gap-3">
                     <View className="w-8 h-8 bg-blue-100 rounded-full items-center justify-center">
@@ -188,15 +188,15 @@ export function CustomerDetailsModal({
             <View className="px-6 py-4 border-t border-gray-100">
               <Text className="text-gray-800 font-semibold mb-3">Business Information</Text>
               <View className="flex-row gap-4">
-                <View className="flex-1 bg-gray-50 rounded-lg p-3">
+                <View className="flex-1 bg-[#F7F7F9] rounded-lg p-3 shadow-sm">
                   <Text className="text-gray-500 text-xs">Customer Type</Text>
                   <Text className="text-gray-800 font-medium">{customer.customerType}</Text>
                 </View>
-                <View className="flex-1 bg-gray-50 rounded-lg p-3">
+                <View className="flex-1 bg-[#F7F7F9] rounded-lg p-3 shadow-sm">
                   <Text className="text-gray-500 text-xs">Class of Trades</Text>
                   <Text className="text-gray-800 font-medium">{customer.classOfTrades}</Text>
                 </View>
-                <View className="flex-1 bg-gray-50 rounded-lg p-3">
+                <View className="flex-1 bg-[#F7F7F9] rounded-lg p-3 shadow-sm">
                   <Text className="text-gray-500 text-xs">Customer Since</Text>
                   <Text className="text-gray-800 font-medium">{formatDate(customer.createdAt)}</Text>
                 </View>
@@ -218,7 +218,7 @@ export function CustomerDetailsModal({
                   {customer.recentOrders.slice(0, 3).map((order) => (
                     <View
                       key={order.id}
-                      className="flex-row items-center bg-gray-50 rounded-lg px-4 py-3"
+                      className="flex-row items-center bg-[#F7F7F9] rounded-lg px-4 py-3 shadow-sm"
                     >
                       <View className="flex-1">
                         <Text className="text-gray-800 font-medium">#{order.orderNumber}</Text>

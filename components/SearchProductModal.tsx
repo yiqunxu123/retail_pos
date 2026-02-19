@@ -75,26 +75,31 @@ export function SearchProductModal({ visible, onClose, onSelectProduct }: Search
     <Modal visible={visible} transparent animationType="fade" onRequestClose={handleClose}>
       <View className="flex-1 flex-row bg-black/35">
         <Pressable
-          className="bg-white h-full border-r border-gray-200"
+          className="bg-white h-full border-r border-gray-200 shadow-2xl"
           style={{ width: "50%" }}
           onPress={() => {}}
         >
-          <View className="px-5 pt-4 pb-3 border-b border-gray-200">
-            <View className="flex-row items-center justify-between mb-3">
-              <Text className="text-[#C9154A] text-[16px] font-semibold">Search Products</Text>
+          <View className="px-6 pt-6 pb-4 bg-white">
+            <View className="flex-row items-center justify-between mb-4">
+              <Text 
+                style={{ fontFamily: 'Montserrat', fontSize: 24, fontWeight: '700', color: '#EC1A52' }}
+              >
+                Search Products
+              </Text>
               <Pressable
                 onPress={handleClose}
-                className="w-6 h-6 rounded-full bg-[#EC1A52] items-center justify-center"
+                className="w-8 h-8 rounded-full bg-[#EC1A52] items-center justify-center shadow-sm"
               >
-                <Ionicons name="close" size={14} color="white" />
+                <Ionicons name="close" size={20} color="white" />
               </Pressable>
             </View>
 
-            <View className="flex-row items-center bg-white border border-gray-300 rounded-md px-3 py-2">
-              <Ionicons name="search" size={18} color="#9ca3af" />
+            <View className="flex-row items-center bg-white border-2 border-[#EC1A52] rounded-xl px-4 py-2.5 shadow-sm">
+              <Ionicons name="search" size={24} color="#EC1A52" />
               <TextInput
-                className="flex-1 ml-2 text-gray-800 text-sm"
-                placeholder="Search by name, SKU, UPC..."
+                className="flex-1 ml-3 text-gray-800 text-[20px]"
+                style={{ fontFamily: 'Montserrat', fontWeight: '500' }}
+                placeholder="SI"
                 placeholderTextColor="#9ca3af"
                 value={searchQuery}
                 onChangeText={setSearchQuery}
@@ -102,7 +107,7 @@ export function SearchProductModal({ visible, onClose, onSelectProduct }: Search
               />
               {searchQuery.length > 0 && (
                 <Pressable onPress={() => setSearchQuery("")}>
-                  <Ionicons name="close-circle" size={18} color="#9ca3af" />
+                  <Ionicons name="close-circle" size={22} color="#9ca3af" />
                 </Pressable>
               )}
             </View>
@@ -110,42 +115,79 @@ export function SearchProductModal({ visible, onClose, onSelectProduct }: Search
 
           {isLoading ? (
             <View className="flex-1 items-center justify-center">
-              <ActivityIndicator size="large" color="#ef4444" />
+              <ActivityIndicator size="large" color="#EC1A52" />
             </View>
           ) : displayProducts.length === 0 ? (
             <View className="flex-1 items-center justify-center">
-              <Ionicons name="cube-outline" size={48} color="#d1d5db" />
-              <Text className="text-gray-400 mt-2">No products found</Text>
+              <Ionicons name="cube-outline" size={64} color="#d1d5db" />
+              <Text style={{ fontFamily: 'Montserrat' }} className="text-gray-400 mt-4 text-lg">No products found</Text>
             </View>
           ) : (
-            <ScrollView className="flex-1" contentContainerStyle={{ paddingBottom: 12 }}>
+            <ScrollView className="flex-1" contentContainerStyle={{ paddingBottom: 20 }}>
               {displayProducts.map((product) => (
                 <Pressable
                   key={product.id}
                   onPress={() => handleSelectProduct(product)}
-                  className="flex-row items-center px-5 py-3 border-b border-[#F0F1F4]"
+                  className="flex-row items-center px-6 py-5 border-b border-[#F0F1F4]"
                 >
-                  <View className="w-12 h-12 rounded-md bg-gray-100 overflow-hidden items-center justify-center mr-3">
-                    {product.image ? (
-                      <Image source={{ uri: product.image }} className="w-full h-full" resizeMode="cover" />
-                    ) : (
-                      <Ionicons name="cube-outline" size={22} color="#c4c8cf" />
-                    )}
+                  {/* Left side: Image and Name/SKU */}
+                  <View className="flex-1 flex-row items-center">
+                    {/* Product Image */}
+                    <View className="w-16 h-16 rounded-xl bg-[#F7F7F9] overflow-hidden items-center justify-center mr-4 border border-gray-100">
+                      {product.image ? (
+                        <Image source={{ uri: product.image }} className="w-full h-full" resizeMode="cover" />
+                      ) : (
+                        <Ionicons name="cube-outline" size={32} color="#c4c8cf" />
+                      )}
+                    </View>
+
+                    {/* Name and SKU */}
+                    <View className="flex-1 min-w-[120px]">
+                      <Text 
+                        style={{ fontFamily: 'Montserrat', fontSize: 16, fontWeight: '700', color: '#1A1A1A' }} 
+                        numberOfLines={2}
+                      >
+                        {product.name}
+                      </Text>
+                      <Text 
+                        style={{ fontFamily: 'Montserrat', fontSize: 12, color: '#9CA3AF', marginTop: 2 }} 
+                        numberOfLines={1}
+                      >
+                        {product.sku || ""}
+                      </Text>
+                    </View>
                   </View>
 
-                  <View className="flex-1 pr-3">
-                    <Text className="text-[#22252A] text-[13px] font-medium" numberOfLines={1}>
-                      {product.name}
-                    </Text>
-                    <Text className="text-[#737985] text-[10px] mt-0.5" numberOfLines={1}>
+                  {/* Category: Centered in the row, moved 30px right */}
+                  <View className="w-40 items-center px-2 ml-[30px]">
+                    <Text 
+                      style={{ 
+                        fontFamily: 'Montserrat', 
+                        fontSize: 14, 
+                        fontWeight: '600', 
+                        color: '#1A1A1A',
+                        textAlign: 'center'
+                      }}
+                      numberOfLines={1}
+                    >
                       {product.category?.toUpperCase()}
                     </Text>
-                    <Text className="text-[#C5C9D0] text-[10px] mt-0.5" numberOfLines={1}>
-                      {product.sku || ""}
-                    </Text>
                   </View>
 
-                  <Text className="text-[#2E3136] text-[18px] font-semibold">${product.price.toFixed(2)}</Text>
+                  {/* Price: Balanced with flex-1 to keep Category centered */}
+                  <View className="flex-1 items-end">
+                    <Text 
+                      style={{ 
+                        fontFamily: 'Montserrat', 
+                        fontSize: 22, 
+                        fontWeight: '700', 
+                        color: '#1A1A1A',
+                        transform: [{ translateX: -40 }] // Keep the text offset
+                      }}
+                    >
+                      ${product.price.toFixed(2)}
+                    </Text>
+                  </View>
                 </Pressable>
               ))}
             </ScrollView>

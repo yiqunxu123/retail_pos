@@ -24,7 +24,7 @@ export function OrderSummary({
   total,
 }: OrderSummaryProps) {
   return (
-    <View className="bg-white rounded-lg p-4 flex-1">
+    <View className="bg-[#F7F7F9] rounded-lg p-4 flex-1">
       {/* Left Column */}
       <View className="flex-row">
         <View className="flex-1">

@@ -38,17 +38,47 @@ export function ProductSettingsModal({ visible, onClose, product, onSave }: Prod
   const [countyTax, setCountyTax] = useState(false);
 
   const SettingRow = ({ label, value, onValueChange }: { label: string, value: boolean, onValueChange: (val: boolean) => void }) => (
-    <View className="flex-row justify-between items-center py-3 border-b border-gray-100">
-      <Text className="text-gray-700 text-sm flex-1 mr-4" numberOfLines={1}>{label}</Text>
+    <View className="flex-row justify-between items-center py-3.5 border-b border-[#E5E7EB]">
+      <Text 
+        style={{ 
+          fontFamily: 'Montserrat',
+          fontSize: 16,
+          fontWeight: "500",
+          color: "#1A1A1A"
+        }} 
+        className="flex-1 mr-4" 
+        numberOfLines={1}
+      >
+        {label}
+      </Text>
       <Switch
-        trackColor={{ false: "#E5E7EB", true: "#FBCFE8" }} // Light pink for track
-        thumbColor={value ? "#EC1A52" : "#f4f3f4"} // Red for thumb
-        ios_backgroundColor="#E5E7EB"
+        trackColor={{ false: "#D1D5DB", true: "#FBCFE8" }} 
+        thumbColor={value ? "#EC1A52" : "#FFFFFF"} 
+        ios_backgroundColor="#D1D5DB"
         onValueChange={onValueChange}
         value={value}
       />
     </View>
   );
+
+  const handleSave = () => {
+    const settings = {
+      showImage,
+      showCategory,
+      showMSRP,
+      showDiscount,
+      cueTip,
+      preserveLastSalePrice,
+      showPricesOnDisplay,
+      displayTaxCriteria,
+      alabamaPTax,
+      alaskaStateTax,
+      cityTax,
+      countyTax,
+    };
+    onSave?.(settings);
+    onClose();
+  };
 
   return (
     <Modal
@@ -60,28 +90,56 @@ export function ProductSettingsModal({ visible, onClose, product, onSave }: Prod
       <View className="flex-1 justify-center items-center bg-black/50">
         <KeyboardAvoidingView
           behavior={Platform.OS === "ios" ? "padding" : "height"}
-          className="w-[700px] max-h-[85%] bg-white rounded-xl shadow-lg overflow-hidden"
+          className="w-[850px] max-h-[90%] bg-white rounded-2xl shadow-2xl overflow-hidden"
         >
           {/* Header */}
-          <View className="flex-row justify-between items-center px-6 py-4 border-b border-gray-200">
+          <View className="flex-row justify-between items-center px-10 py-8 border-b border-gray-100">
             <View>
-              <Text className="text-xl font-bold text-gray-900">Product Settings</Text>
+              <Text 
+                style={{ 
+                  fontSize: 36, 
+                  fontWeight: "700", 
+                  fontFamily: "Montserrat", 
+                  color: "#1A1A1A",
+                  letterSpacing: -0.5
+                }}
+              >
+                Product Settings
+              </Text>
               {product && (
-                <Text className="text-gray-500 text-sm mt-1" numberOfLines={1}>
+                <Text 
+                  style={{ 
+                    fontFamily: 'Montserrat',
+                    fontSize: 16,
+                    color: "#6B7280",
+                    marginTop: 6
+                  }} 
+                  numberOfLines={1}
+                >
                   {product.name}
                 </Text>
               )}
             </View>
-            <Pressable onPress={onClose} className="p-1">
-              <Ionicons name="close" size={24} color="#9CA3AF" />
+            <Pressable onPress={onClose} className="p-2">
+              <Ionicons name="close" size={36} color="#1A1A1A" />
             </Pressable>
           </View>
 
-          <ScrollView className="p-6">
+          <ScrollView className="px-10 py-8" showsVerticalScrollIndicator={false}>
             {/* General Settings */}
-            <Text className="text-lg font-bold text-gray-900 mb-4">General Settings</Text>
+            <Text 
+              style={{ 
+                fontSize: 28, 
+                fontWeight: "700", 
+                fontFamily: "Montserrat", 
+                color: "#1A1A1A",
+                marginBottom: 24
+              }}
+            >
+              General Settings
+            </Text>
             
-            <View className="flex-row gap-8 mb-6">
+            <View className="flex-row gap-16 mb-12">
               {/* Left Column */}
               <View className="flex-1">
                 <SettingRow label="Show Image" value={showImage} onValueChange={setShowImage} />
@@ -101,8 +159,18 @@ export function ProductSettingsModal({ visible, onClose, product, onSave }: Prod
             </View>
 
             {/* Tax Settings */}
-            <Text className="text-lg font-bold text-gray-900 mb-4">Tax Settings</Text>
-            <View className="flex-row gap-8">
+            <Text 
+              style={{ 
+                fontSize: 28, 
+                fontWeight: "700", 
+                fontFamily: "Montserrat", 
+                color: "#1A1A1A",
+                marginBottom: 24
+              }}
+            >
+              Tax Settings
+            </Text>
+            <View className="flex-row gap-16 mb-8">
                {/* Left Column */}
                <View className="flex-1">
                   <SettingRow label="Alabama P Tax" value={alabamaPTax} onValueChange={setAlabamaPTax} />
@@ -117,37 +185,37 @@ export function ProductSettingsModal({ visible, onClose, product, onSave }: Prod
           </ScrollView>
 
           {/* Footer */}
-          <View className="flex-row justify-center gap-4 p-6 border-t border-gray-200">
+          <View className="flex-row justify-center gap-8 p-10 border-t border-gray-100">
             <Pressable
               onPress={onClose}
-              className="flex-1 py-3 bg-red-50 rounded-lg items-center border border-red-100"
+              className="flex-1 py-5 bg-red-50 rounded-2xl items-center justify-center border border-red-100"
             >
-              <Text className="text-red-500 font-semibold">Cancel</Text>
+              <Text 
+                style={{ 
+                  fontFamily: 'Montserrat',
+                  fontSize: 20,
+                  fontWeight: "600",
+                  color: "#EF4444"
+                }}
+              >
+                Cancel
+              </Text>
             </Pressable>
             <Pressable
-              onPress={() => {
-                // Handle save
-                const settings = {
-                  showImage,
-                  showCategory,
-                  showMSRP,
-                  showDiscount,
-                  cueTip,
-                  preserveLastSalePrice,
-                  showPricesOnDisplay,
-                  displayTaxCriteria,
-                  alabamaPTax,
-                  alaskaStateTax,
-                  cityTax,
-                  countyTax,
-                };
-                onSave?.(settings);
-                onClose();
-              }}
-              className="flex-1 py-3 rounded-lg items-center"
+              onPress={handleSave}
+              className="flex-1 py-5 rounded-2xl items-center justify-center shadow-xl"
               style={{ backgroundColor: "#EC1A52" }}
             >
-              <Text className="text-white font-semibold">Apply</Text>
+              <Text 
+                style={{ 
+                  fontFamily: 'Montserrat',
+                  fontSize: 20,
+                  fontWeight: "600",
+                  color: "#FFFFFF"
+                }}
+              >
+                Apply
+              </Text>
             </Pressable>
           </View>
         </KeyboardAvoidingView>

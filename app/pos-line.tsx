@@ -9,8 +9,10 @@ import {
     POSSidebar,
     ProductSearch,
     ProductTable,
+    SearchCustomerModal,
     SearchProductModal
 } from "../components";
+import { type QuickCustomerResult } from "../components/AddQuickCustomerModal";
 import { ProductItem } from "../components/ProductTable";
 import { SearchProduct } from "../components/SearchProductModal";
 import { useClock } from "../contexts/ClockContext";
@@ -18,6 +20,7 @@ import {
     addPrinterListener,
     getPoolStatus,
     isAnyPrinterModuleAvailable,
+    openCashDrawer,
     print
 } from "../utils/PrinterPoolManager";
 
@@ -84,9 +87,11 @@ export default function POSLineScreen() {
   const [products, setProducts] = useState<ProductItem[]>(SAMPLE_PRODUCTS);
   const [selectedProductId, setSelectedProductId] = useState<string>();
   const [showSearchModal, setShowSearchModal] = useState(false);
+  const [showCustomerModal, setShowCustomerModal] = useState(false);
   const [showCashPaymentModal, setShowCashPaymentModal] = useState(false);
   const [showDiscountModal, setShowDiscountModal] = useState(false);
   const [discount, setDiscount] = useState(0);
+  const [selectedCustomer, setSelectedCustomer] = useState<QuickCustomerResult | null>(null);
 
   // Calculate order summary
   const subTotal = products.reduce((sum, p) => sum + p.total, 0);
@@ -165,10 +170,10 @@ export default function POSLineScreen() {
     router.back();
   }, [router]);
 
-  // Navigate to full order flow
+  // Navigate to full order flow - now opens customer modal
   const handleCheckout = useCallback(() => {
-    router.push("/order/add-customer?mode=add");
-  }, [router]);
+    setShowCustomerModal(true);
+  }, []);
 
   const handleAddProduct = useCallback(() => {
     setShowSearchModal(true);
@@ -321,8 +326,33 @@ Subtotal:              $${subTotal.toFixed(2)}
     );
   }, [products.length, buildReceipt]);
 
+  const handleAddNotes = useCallback(() => {
+    Alert.alert("Add Notes", "Feature coming soon");
+  }, []);
+
+  const handleOpenCashDrawer = useCallback(async () => {
+    const poolStatus = getPoolStatus();
+    const hasIdlePrinter = poolStatus.printers.some(p => p.enabled && p.status === 'idle');
+
+    if (!isAnyPrinterModuleAvailable() || !hasIdlePrinter) {
+      Alert.alert(
+        "Printer Not Available",
+        "Cash drawer requires a connected printer.\n\nPlease configure a printer in Settings.",
+        [{ text: "OK" }]
+      );
+      return;
+    }
+
+    try {
+      await openCashDrawer();
+      Alert.alert("Success", "Cash drawer opened");
+    } catch (error: any) {
+      Alert.alert("Error", error.message || "Failed to open cash drawer");
+    }
+  }, []);
+
   return (
-    <View className={`flex-1 ${isLandscape ? "flex-row" : "flex-col"}`}>
+    <View className={`flex-1 bg-[#F7F7F9] ${isLandscape ? "flex-row" : "flex-col"}`}>
       {/* Main Content Area */}
       <View className="flex-1 p-4">
         {/* Search Bar - clicking opens modal */}
@@ -355,14 +385,18 @@ Subtotal:              $${subTotal.toFixed(2)}
       <POSSidebar
         isLandscape={isLandscape}
         onAddProduct={handleAddProduct}
+        onOpenDrawer={handleOpenCashDrawer}
+        onCashPayment={handleCashPayment}
+        onCardPayment={() => Alert.alert("Card Payment", "Feature coming soon")}
+        onPayLater={() => Alert.alert("Pay Later", "Order saved for later payment.")}
+        onAddTax={() => Alert.alert("Add Tax", "Tax calculation will be added here.")}
         onDeleteProduct={handleDeleteProduct}
+        onVoidPayment={() => Alert.alert("Void Payment", "Feature coming soon")}
+        onAddNotes={handleAddNotes}
+        onAddDiscount={handleAddDiscount}
         onEmptyCart={handleEmptyCart}
-        onGoToMenu={handleGoToMenu}
         onParkOrder={handleParkOrder}
         onCheckout={handleCheckout}
-        onCashPayment={handleCashPayment}
-        onAddDiscount={handleAddDiscount}
-        onPrintReceipt={handlePrintReceipt}
         hideNavButtons={isInOrderFlow}
       />
 
@@ -371,6 +405,21 @@ Subtotal:              $${subTotal.toFixed(2)}
         visible={showSearchModal}
         onClose={() => setShowSearchModal(false)}
         onSelectProduct={handleAddProductFromSearch}
+      />
+
+      {/* Search Customer Modal */}
+      <SearchCustomerModal
+        visible={showCustomerModal}
+        onClose={() => setShowCustomerModal(false)}
+        onSelectCustomer={(customer) => {
+          if (customer) {
+            setSelectedCustomer(customer);
+          } else {
+            setSelectedCustomer(null);
+          }
+          setShowCustomerModal(false);
+        }}
+        currentCustomer={selectedCustomer}
       />
 
       {/* Cash Payment Modal */}

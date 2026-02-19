@@ -59,8 +59,8 @@ export default function SalesReportsScreen() {
   const rightColumn = SALES_REPORTS.filter((_, i) => i % 2 === 1);
 
   return (
-    <View className="flex-1 bg-white">
-      <PageHeader title="Sales Reports" />
+    <View className="flex-1 bg-[#F7F7F9]">
+      <PageHeader title="Sales Reports" showBack={false} />
 
       {/* Reports Grid - Two Columns */}
       <ScrollView className="flex-1 px-6">

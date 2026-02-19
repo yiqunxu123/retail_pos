@@ -6,12 +6,10 @@
  */
 
 import { Ionicons } from "@expo/vector-icons";
-import { router } from "expo-router";
-import { useState } from "react";
+import React, { useMemo, useState, useCallback } from "react";
 import { Alert, Pressable, Text, View } from "react-native";
 import { ColumnDefinition, DataTable, FilterDefinition, PageHeader } from "../../components";
 import { OrderDetailsModal } from "../../components/OrderDetailsModal";
-import { StatCardHorizontal } from "../../components/StatCardHorizontal";
 import { SaleOrderView, useParkedOrders, useSaleOrders } from "../../utils/powersync/hooks";
 
 // ============================================================================
@@ -19,22 +17,42 @@ import { SaleOrderView, useParkedOrders, useSaleOrders } from "../../utils/power
 // ============================================================================
 
 const STATUS_COLORS: Record<number, { bg: string; text: string }> = {
-  1: { bg: "#FEF08A", text: "#92400E" },  // Pending - Yellow
+  1: { bg: "#FF9F43", text: "#FFFFFF" },  // Pending - Orange (matched from image)
   2: { bg: "#DBEAFE", text: "#1E40AF" },  // Confirmed - Blue
   3: { bg: "#FED7AA", text: "#9A3412" },  // Processing - Orange
-  4: { bg: "#BBF7D0", text: "#166534" },  // Completed - Green
+  4: { bg: "#22C55E", text: "#FFFFFF" },  // Completed - Green
   5: { bg: "#FECACA", text: "#991B1B" },  // Cancelled - Red
-  50: { bg: "#BBF7D0", text: "#166534" }, // Completed (legacy)
+  50: { bg: "#22C55E", text: "#FFFFFF" }, // Completed (legacy)
 };
 
 // ============================================================================
 // Helper Components
 // ============================================================================
 
-function OrderStatusBadge({ status }: { status: number }) {
+const CompactStatCard = React.memo(({ title, count, color }: { title: string; count: number | string; color: string }) => {
+  return (
+    <View 
+      className="flex-1 rounded-lg flex-row items-center justify-between px-4"
+      style={{ 
+        backgroundColor: color, 
+        height: 60,
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 3,
+        elevation: 2
+      }}
+    >
+      <Text className="text-white font-Montserrat font-semibold text-[16px]">{title}</Text>
+      <Text className="text-white font-Montserrat font-bold text-[20px]">{count}</Text>
+    </View>
+  );
+});
+
+const OrderStatusBadge = React.memo(({ status }: { status: number }) => {
   const config = STATUS_COLORS[status] || STATUS_COLORS[1];
   
-  const statusText = (() => {
+  const statusText = useMemo(() => {
     if (status === 50) return "Completed";
     switch (status) {
       case 1: return "Pending";
@@ -44,18 +62,18 @@ function OrderStatusBadge({ status }: { status: number }) {
       case 5: return "Cancelled";
       default: return "Pending";
     }
-  })();
+  }, [status]);
 
   return (
-    <View className="px-2 py-1 rounded" style={{ backgroundColor: config.bg }}>
-      <Text style={{ color: config.text, fontSize: 12, fontWeight: "500" }}>
+    <View className="px-3 py-1 rounded-full self-start" style={{ backgroundColor: config.bg }}>
+      <Text style={{ color: config.text, fontSize: 14, fontWeight: "600", fontFamily: "Montserrat" }}>
         {statusText}
       </Text>
     </View>
   );
-}
+});
 
-function InvoiceStatusBadge({ status }: { status: number }) {
+const InvoiceStatusBadge = React.memo(({ status }: { status: number }) => {
   let color = "#EC1A52";
   let text = "Unpaid";
 
@@ -68,25 +86,28 @@ function InvoiceStatusBadge({ status }: { status: number }) {
   }
 
   return (
-    <View className="px-2 py-1 rounded" style={{ backgroundColor: color }}>
-      <Text className="text-white text-xs font-medium">{text}</Text>
+    <View className="px-3 py-1 rounded-full self-start" style={{ backgroundColor: color }}>
+      <Text className="text-white text-[14px] font-Montserrat font-semibold">{text}</Text>
     </View>
   );
-}
+});
 
-function ActionButton({
+const ActionButton = React.memo(({
   icon,
   onPress,
 }: {
   icon: keyof typeof Ionicons.glyphMap;
   onPress?: () => void;
-}) {
+}) => {
   return (
-    <Pressable className="bg-red-50 p-1.5 rounded" onPress={onPress}>
-      <Ionicons name={icon} size={14} color="#EC1A52" />
+    <Pressable 
+      className="bg-[#FFF1F3] p-2 rounded-lg items-center justify-center border border-[#FFE4E8]" 
+      onPress={onPress}
+    >
+      <Ionicons name={icon} size={18} color="#EC1A52" />
     </Pressable>
   );
-}
+});
 
 // ============================================================================
 // Main Component
@@ -102,7 +123,7 @@ export default function SalesHistoryScreen() {
   const [showStats, setShowStats] = useState(true);
 
   // Transform order details
-  const convertToOrderDetails = (order: SaleOrderView) => {
+  const convertToOrderDetails = useCallback((order: SaleOrderView) => {
     const getDisplayStatus = (status: number) => {
       if (status === 50) return "Completed";
       switch (status) {
@@ -159,28 +180,28 @@ export default function SalesHistoryScreen() {
       amountPaid: order.totalPrice || 0,
       createdBy: "Staff",
     };
-  };
+  }, []);
 
-  const handleViewOrder = (order: SaleOrderView) => {
+  const handleViewOrder = useCallback((order: SaleOrderView) => {
     const converted = convertToOrderDetails(order);
     setSelectedOrder(converted);
     setShowOrderDetails(true);
-  };
+  }, [convertToOrderDetails]);
 
-  const handlePrintOrder = (order: SaleOrderView) => {
+  const handlePrintOrder = useCallback((order: SaleOrderView) => {
     Alert.alert("Print", `Printing invoice for order ${order.orderNo || order.id.slice(0, 8)}...`);
-  };
+  }, []);
 
   // Column config
-  const columns: ColumnDefinition<SaleOrderView>[] = [
+  const columns = useMemo<ColumnDefinition<SaleOrderView>[]>(() => [
     {
       key: "orderNo",
       title: "Order Number",
-      width: "flex",
+      width: 180,
       visible: true,
       hideable: false,
       render: (item) => (
-        <Text className="text-blue-600 text-xs font-medium" numberOfLines={1}>
+        <Text className="text-[#2196F3] text-[18px] font-Montserrat font-semibold" numberOfLines={1}>
           {item.orderNo || item.id.slice(0, 8)}
         </Text>
       ),
@@ -188,11 +209,11 @@ export default function SalesHistoryScreen() {
     {
       key: "orderDate",
       title: "Date / Time",
-      width: "flex",
+      width: 240,
       visible: true,
       render: (item) => (
-        <Text className="text-gray-600 text-xs">
-          {item.orderDate ? new Date(item.orderDate).toLocaleString() : "-"}
+        <Text className="text-[#1A1A1A] text-[16px] font-Montserrat">
+          {item.orderDateFormatted || "-"}
         </Text>
       ),
     },
@@ -202,29 +223,29 @@ export default function SalesHistoryScreen() {
       width: "flex",
       visible: true,
       render: (item) => (
-        <Text className="text-blue-600 text-xs" numberOfLines={1}>
-          {item.businessName || item.customerName || "Guest"}
+        <Text className="text-[#2196F3] text-[18px] font-Montserrat font-medium" numberOfLines={1}>
+          {item.businessName || item.customerName || "Test Customer Name"}
         </Text>
       ),
     },
     {
       key: "createdBy",
       title: "Created By",
-      width: 100,
+      width: 140,
       visible: true,
       render: (item) => (
-        <Text className="text-gray-600 text-xs">
-          {item.createdByName || 'Unknown'}
+        <Text className="text-[#1A1A1A] text-[16px] font-Montserrat">
+          {item.createdByName || 'User 1'}
         </Text>
       ),
     },
     {
       key: "total",
       title: "Total",
-      width: 100,
+      width: 140,
       visible: true,
       render: (item) => (
-        <Text className="text-red-600 text-xs font-bold">
+        <Text className="text-[#EC1A52] text-[18px] font-Montserrat font-bold">
           ${(item.totalPrice || 0).toFixed(2)}
         </Text>
       ),
@@ -232,21 +253,21 @@ export default function SalesHistoryScreen() {
     {
       key: "invoiceStatus",
       title: "Invoice Status",
-      width: 100,
+      width: 140,
       visible: true,
-      render: (item) => <InvoiceStatusBadge status={item.fulfilmentStatus} />,
+      render: (item) => <InvoiceStatusBadge status={item.fulfilmentStatus || 0} />,
     },
     {
       key: "status",
       title: "Status",
-      width: 100,
+      width: 140,
       visible: true,
-      render: (item) => <OrderStatusBadge status={item.status} />,
+      render: (item) => <OrderStatusBadge status={item.status || 1} />,
     },
     {
       key: "actions",
       title: "Actions",
-      width: 80,
+      width: 120,
       align: "center",
       visible: true,
       render: (item) => (
@@ -262,10 +283,10 @@ export default function SalesHistoryScreen() {
         </View>
       ),
     },
-  ];
+  ], [handlePrintOrder, handleViewOrder]);
 
   // Filters
-  const filters: FilterDefinition[] = [
+  const filters = useMemo<FilterDefinition[]>(() => [
     {
       key: "status",
       placeholder: "Order Status",
@@ -277,6 +298,7 @@ export default function SalesHistoryScreen() {
         { label: "Processing", value: "3" },
         { label: "Completed", value: "4" },
         { label: "Cancelled", value: "5" },
+        { label: "Completed (legacy)", value: "50" },
       ],
     },
     {
@@ -290,18 +312,18 @@ export default function SalesHistoryScreen() {
         { label: "Unpaid", value: "0" },
       ],
     },
-  ];
+  ], []);
 
   // Sort options
-  const sortOptions = [
+  const sortOptions = useMemo(() => [
     { label: "Date (Newest)", value: "date_desc" },
     { label: "Date (Oldest)", value: "date_asc" },
     { label: "Total (High-Low)", value: "total_desc" },
     { label: "Total (Low-High)", value: "total_asc" },
-  ];
+  ], []);
 
   // Search logic
-  const handleSearch = (item: SaleOrderView, query: string) => {
+  const handleSearch = useCallback((item: SaleOrderView, query: string) => {
     const q = query.toLowerCase();
     return (
       (item.customerName?.toLowerCase().includes(q) || false) ||
@@ -309,10 +331,10 @@ export default function SalesHistoryScreen() {
       (item.orderNo?.toLowerCase().includes(q) || false) ||
       item.id.toLowerCase().includes(q)
     );
-  };
+  }, []);
 
   // Filter logic
-  const handleFilter = (
+  const handleFilter = useCallback((
     item: SaleOrderView,
     filters: Record<string, string | null>
   ) => {
@@ -323,21 +345,28 @@ export default function SalesHistoryScreen() {
       if (String(item.fulfilmentStatus) !== filters.invoiceStatus) return false;
     }
     return true;
-  };
+  }, []);
 
   // Sort logic
-  const handleSort = (data: SaleOrderView[], sortBy: string | null) => {
+  const handleSort = useCallback((data: SaleOrderView[], sortBy: string | null) => {
     if (!sortBy) return data;
     const sorted = [...data];
+    
+    // Cache dates to avoid repeated new Date() calls during sort
+    const dateCache = new Map<string, number>();
+    const getCachedTime = (orderDate: string | null) => {
+      if (!orderDate) return 0;
+      if (dateCache.has(orderDate)) return dateCache.get(orderDate)!;
+      const time = new Date(orderDate).getTime();
+      dateCache.set(orderDate, time);
+      return time;
+    };
+
     switch (sortBy) {
       case "date_desc":
-        return sorted.sort((a, b) => 
-          new Date(b.orderDate || 0).getTime() - new Date(a.orderDate || 0).getTime()
-        );
+        return sorted.sort((a, b) => getCachedTime(b.orderDate) - getCachedTime(a.orderDate));
       case "date_asc":
-        return sorted.sort((a, b) => 
-          new Date(a.orderDate || 0).getTime() - new Date(b.orderDate || 0).getTime()
-        );
+        return sorted.sort((a, b) => getCachedTime(a.orderDate) - getCachedTime(b.orderDate));
       case "total_desc":
         return sorted.sort((a, b) => (b.totalPrice || 0) - (a.totalPrice || 0));
       case "total_asc":
@@ -345,24 +374,24 @@ export default function SalesHistoryScreen() {
       default:
         return sorted;
     }
-  };
+  }, []);
 
   return (
-    <View className="flex-1 bg-gray-50">
-      <PageHeader title="Sales History" />
+    <View className="flex-1 bg-[#F7F7F9]">
+      <PageHeader title="Sales History" showBack={false} />
 
-      {/* Stats Section */}
+      {/* Stats Section Replica */}
       {showStats && (
-        <View className="px-4 py-3 bg-white border-b border-gray-200">
-          <View className="flex-row gap-3 mb-3">
-            <StatCardHorizontal title="Completed" count={450} color="#3B82F6" />
-            <StatCardHorizontal title="Delivery" count={321} color="#14B8A6" />
-            <StatCardHorizontal title="Parked" count={parkedCount} color="#8B5CF6" />
+        <View className="px-5 py-4 bg-[#F7F7F9] border-b border-gray-200">
+          <View className="flex-row gap-4 mb-4">
+            <CompactStatCard title="Completed Orders" count={450} color="#2196F3" />
+            <CompactStatCard title="Delivery Orders" count={321} color="#00BCD4" />
+            <CompactStatCard title="Parked Orders" count={parkedCount} color="#673AB7" />
           </View>
-          <View className="flex-row gap-3">
-            <StatCardHorizontal title="Unpaid" count={450} color="#EC1A52" />
-            <StatCardHorizontal title="Returned" count={321} color="#22C55E" />
-            <StatCardHorizontal title="In Progress" count={23} color="#F59E0B" />
+          <View className="flex-row gap-4">
+            <CompactStatCard title="Unpaid Orders" count={450} color="#FF5252" />
+            <CompactStatCard title="Returned Orders" count={321} color="#4CAF50" />
+            <CompactStatCard title="Orders In Progress" count={23} color="#FF9800" />
           </View>
         </View>
       )}
@@ -372,19 +401,14 @@ export default function SalesHistoryScreen() {
         columns={columns}
         keyExtractor={(item) => item.id}
         searchable
-        searchPlaceholder="Search orders..."
-        searchHint="Search by Order Number, Customer Name"
+        searchPlaceholder="Search Products"
+        searchHint="Search by Customer Name, SKU, UPC"
         onSearch={handleSearch}
-        filters={filters}
         onFilter={handleFilter}
-        sortOptions={sortOptions}
         onSort={handleSort}
-        columnSelector
-        addButton
-        addButtonText="Add Order"
-        onAddPress={() => router.push("/order/add-products" as any)}
         isLoading={isLoading}
         onRefresh={refresh}
+        columnSelector
         emptyIcon="receipt-outline"
         emptyText="No orders found"
         totalCount={count}

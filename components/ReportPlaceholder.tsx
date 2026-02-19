@@ -10,7 +10,7 @@ export default function ReportPlaceholder({ title }: ReportPlaceholderProps) {
   const { safeGoBack } = useAppNavigation();
 
   return (
-    <View className="flex-1 bg-white">
+    <View className="flex-1 bg-[#F7F7F9]">
       {/* Header with Back Button */}
       <View className="px-6 py-4 flex-row items-center border-b border-gray-200">
         <Pressable onPress={() => safeGoBack()} className="mr-4">
@@ -20,7 +20,7 @@ export default function ReportPlaceholder({ title }: ReportPlaceholderProps) {
       </View>
 
       {/* Empty Content */}
-      <View className="flex-1 bg-white" />
+      <View className="flex-1 bg-[#F7F7F9]" />
     </View>
   );
 }

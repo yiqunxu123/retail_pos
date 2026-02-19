@@ -1,25 +1,30 @@
-import { Ionicons, MaterialCommunityIcons, MaterialIcons } from "@expo/vector-icons";
+import { Ionicons } from "@expo/vector-icons";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Alert, Dimensions, Image, Modal, Pressable, ScrollView, Text, TextInput, TouchableOpacity, View } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { captureRef } from "react-native-view-shot";
 import { AddDiscountModal } from "../../components/AddDiscountModal";
+import { BarcodePrintModal } from "../../components/BarcodePrintModal";
 import { type QuickCustomerResult } from "../../components/AddQuickCustomerModal";
 import { AddTaxModal } from "../../components/AddTaxModal";
-import { BrandingSection } from "../../components/BrandingSection";
 import { CashEntryModal } from "../../components/CashEntryModal";
 import { CashPaymentModal } from "../../components/CashPaymentModal";
 import { CashResultModal } from "../../components/CashResultModal";
 import { DeclareCashModal } from "../../components/DeclareCashModal";
 import { ParkedOrdersModal } from "../../components/ParkedOrdersModal";
 import { ParkOrderModal } from "../../components/ParkOrderModal";
+import { POSSidebar } from "../../components/POSSidebar";
 import { ProductSettingsModal } from "../../components/ProductSettingsModal";
+import { ProductTable } from "../../components/ProductTable";
 import { ReceiptData, ReceiptTemplate } from "../../components/ReceiptTemplate";
 import { SaleInvoiceModal } from "../../components/SaleInvoiceModal";
+import { SearchCustomerModal } from "../../components/SearchCustomerModal";
 import { SearchProduct, SearchProductModal } from "../../components/SearchProductModal";
-import { SidebarButton } from "../../components/SidebarButton";
 import { useAuth } from "../../contexts/AuthContext";
 import { OrderProduct, useOrder } from "../../contexts/OrderContext";
+import { useProducts } from "../../utils/powersync/hooks";
 import { useParkedOrders } from "../../contexts/ParkedOrderContext";
 import {
   createSaleOrder,
@@ -35,11 +40,9 @@ import {
 } from "../../utils/PrinterPoolManager";
 import { printImageToAll } from "../../utils/receiptImagePrint";
 import { formatReceiptText } from "../../utils/receiptTextFormat";
-import AsyncStorage from "@react-native-async-storage/async-storage";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 // Action button width
-const SIDEBAR_WIDTH = 260;
+const SIDEBAR_WIDTH = 440;
 
 function buildCustomerSnapshot(
   customerId: string | null,
@@ -62,6 +65,14 @@ function buildCustomerSnapshot(
     customer_billing_details: null,
     sale_agent_obj: { label: "Please Select", value: null },
   };
+}
+
+interface ScanLogEntry {
+  id: string;
+  code: string;
+  timestamp: Date;
+  matched: boolean;
+  productName?: string;
 }
 
 /**
@@ -108,9 +119,25 @@ export default function AddProductsScreen() {
 
   const [scanQty, setScanQty] = useState("1");
   const [showSearchModal, setShowSearchModal] = useState(false);
+  const [showScanLogModal, setShowScanLogModal] = useState(false);
+  const [showBarcodePrintModal, setShowBarcodePrintModal] = useState(false);
+  const [scanLogs, setScanLogs] = useState<ScanLogEntry[]>([]);
+  const scanBufferRef = useRef("");
+  const scanTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const hiddenInputRef = useRef<TextInput>(null);
+  const { products: allProducts } = useProducts();
+  const [showCustomerModal, setShowCustomerModal] = useState(false);
   const [showCashPaymentModal, setShowCashPaymentModal] = useState(false);
   const [showDiscountModal, setShowDiscountModal] = useState(false);
   const [selectedCustomerData, setSelectedCustomerData] = useState<QuickCustomerResult | null>(null);
+  const [orderSettings, setOrderSettings] = useState({
+    paymentTerms: "due_immediately",
+    shippingType: "pickup",
+    orderNumber: "",
+    invoiceDueDate: "",
+    notesInternal: "",
+    notesInvoice: "",
+  });
 
   useEffect(() => {
     if (selectedCustomerData) return;
@@ -163,6 +190,112 @@ export default function AddProductsScreen() {
   const previewImgHeight = receiptImageSize.w > 0
     ? previewImgWidth * (receiptImageSize.h / receiptImageSize.w)
     : previewImgWidth * 1.5;
+
+  // Process a scanned barcode: look up product, add to cart, log it
+  const handleScanComplete = useCallback((code: string) => {
+    const trimmed = code.trim();
+    if (!trimmed) return;
+
+    const keyword = trimmed.toLowerCase();
+    const matchedProduct = allProducts.find((p) => {
+      const sku = (p.sku || "").toLowerCase();
+      const upc = (p.upc || "").toLowerCase();
+      return sku === keyword || upc === keyword;
+    });
+
+    const entry: ScanLogEntry = {
+      id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+      code: trimmed,
+      timestamp: new Date(),
+      matched: !!matchedProduct,
+      productName: matchedProduct?.name,
+    };
+    setScanLogs((prev) => [entry, ...prev]);
+
+    if (matchedProduct) {
+      const qty = parseInt(scanQty) || 1;
+      const newProduct: OrderProduct = {
+        id: `${matchedProduct.id}-${Date.now()}`,
+        productId: matchedProduct.id,
+        sku: matchedProduct.sku,
+        name: matchedProduct.name,
+        salePrice: matchedProduct.salePrice,
+        unit: "Piece",
+        quantity: qty,
+        tnVaporTax: 0,
+        ncVaporTax: 0,
+        total: matchedProduct.salePrice * qty,
+      };
+      addProduct(newProduct);
+    }
+  }, [allProducts, scanQty, addProduct]);
+
+  // Scanner submits via Enter key (onSubmitEditing)
+  const handleScannerSubmit = useCallback(() => {
+    const code = scanBufferRef.current.trim();
+    if (code.length >= 3) {
+      handleScanComplete(code);
+    }
+    scanBufferRef.current = "";
+    hiddenInputRef.current?.setNativeProps?.({ text: "" });
+    setTimeout(() => {
+      hiddenInputRef.current?.clear();
+      hiddenInputRef.current?.focus();
+    }, 50);
+  }, [handleScanComplete]);
+
+  // Track characters as they come in from the scanner
+  const handleScannerInput = useCallback((text: string) => {
+    scanBufferRef.current = text;
+
+    // Fallback: auto-submit after 400ms of silence (for scanners without Enter suffix)
+    if (scanTimerRef.current) clearTimeout(scanTimerRef.current);
+    scanTimerRef.current = setTimeout(() => {
+      const buffered = scanBufferRef.current.trim();
+      if (buffered.length >= 4) {
+        handleScanComplete(buffered);
+        scanBufferRef.current = "";
+        hiddenInputRef.current?.setNativeProps?.({ text: "" });
+        setTimeout(() => {
+          hiddenInputRef.current?.clear();
+          hiddenInputRef.current?.focus();
+        }, 50);
+      }
+    }, 400);
+  }, [handleScanComplete]);
+
+  // Refocus hidden input whenever a modal closes
+  useEffect(() => {
+    const anyModalOpen = showSearchModal || showCustomerModal || showScanLogModal ||
+      showBarcodePrintModal || showCashPaymentModal || showDiscountModal ||
+      showProductSettingsModal || showParkOrderModal || showParkedOrdersModal ||
+      showDeclareCashModal || showCashEntryModal || showCashResultModal ||
+      showTaxModal || showInvoiceModal;
+    if (!anyModalOpen) {
+      setTimeout(() => hiddenInputRef.current?.focus(), 200);
+    }
+  }, [showSearchModal, showCustomerModal, showScanLogModal, showBarcodePrintModal,
+      showCashPaymentModal, showDiscountModal, showProductSettingsModal,
+      showParkOrderModal, showParkedOrdersModal, showDeclareCashModal,
+      showCashEntryModal, showCashResultModal, showTaxModal, showInvoiceModal]);
+
+  // Periodic refocus: ensure scanner input always has focus (every 3s)
+  useEffect(() => {
+    const interval = setInterval(() => {
+      const anyModalOpen = showSearchModal || showCustomerModal || showScanLogModal ||
+        showBarcodePrintModal || showCashPaymentModal || showDiscountModal ||
+        showProductSettingsModal || showParkOrderModal || showParkedOrdersModal ||
+        showDeclareCashModal || showCashEntryModal || showCashResultModal ||
+        showTaxModal || showInvoiceModal;
+      if (!anyModalOpen) {
+        hiddenInputRef.current?.focus();
+      }
+    }, 3000);
+    return () => clearInterval(interval);
+  }, [showSearchModal, showCustomerModal, showScanLogModal, showBarcodePrintModal,
+      showCashPaymentModal, showDiscountModal, showProductSettingsModal,
+      showParkOrderModal, showParkedOrdersModal, showDeclareCashModal,
+      showCashEntryModal, showCashResultModal, showTaxModal, showInvoiceModal]);
 
   // Build receipt data from current cart (for live preview template)
   const receiptData = useMemo((): ReceiptData => {
@@ -456,9 +589,126 @@ export default function AddProductsScreen() {
     ]);
   };
 
+  const handleDeleteProduct = () => {
+    if (!selectedProduct) {
+      Alert.alert("No Selection", "Please select a product to delete.");
+      return;
+    }
+    removeProduct(selectedProduct.id);
+    setSelectedProduct(null);
+  };
+
   const handleGoToMenu = () => {
     router.back();
   };
+
+  const handleAddNotes = () => {
+    Alert.alert("Add Notes", "Feature coming soon");
+  };
+
+  // Place Order Logic - Now part of payment flow
+  const executeOrderPlacement = useCallback(async (paymentType: number = 1) => {
+    if (products.length === 0) return;
+
+    setPlacingOrder(true);
+    try {
+      const now = new Date().toISOString();
+      const payload: CreateSaleOrderPayload = {
+        sale_order_details: products.map((p) => ({
+          product_id: parseInt(p.productId, 10),
+          qty: p.quantity,
+          unit: 1, 
+          unit_price: p.salePrice,
+          discount: 0,
+          discount_type: 1,
+        })),
+        customer_id: order.customerId ? parseInt(order.customerId, 10) : null,
+        order_type: 1,
+        sale_type: 1,
+        shipping_type: 1,
+        channel_id: 1,
+        order_date: now,
+        dispatch_date: now,
+        due_date: now,
+        discount: parseFloat(
+          (order.discountType === 2
+            ? (summary.subTotal * order.additionalDiscount) / 100
+            : order.additionalDiscount
+          ).toFixed(2)
+        ),
+        discount_type: 1,
+        delivery_charges: order.shippingCharges || 0,
+        payment_detail: {
+          payments: [
+            {
+              payment_type: paymentType,
+              amount: parseFloat(summary.total.toFixed(2)),
+              category: 1,
+            },
+          ],
+          collected_by_id: user?.id ? parseInt(user.id, 10) : 1,
+          payment_date: now,
+        },
+      };
+
+      const res = await createSaleOrder(payload);
+      const entity = res.data.entity;
+
+      let fullOrder: SaleOrderEntity = entity;
+      if (entity.id) {
+        try {
+          const detailRes = await getSaleOrderById(entity.id);
+          fullOrder = detailRes.data.entity;
+        } catch (fetchErr: any) {
+          fullOrder = {
+            ...entity,
+            sale_order_details: products.map((p, idx) => ({
+              id: idx,
+              sale_order_id: entity.id,
+              product_id: parseInt(p.productId, 10),
+              product: { id: parseInt(p.productId, 10), name: p.name, sku: p.sku },
+              qty: p.quantity,
+              unit: 1,
+              unit_price: p.salePrice,
+              price: p.salePrice,
+              discount: 0,
+              discount_type: 1,
+              total_price: p.salePrice * p.quantity,
+            })),
+            customer: selectedCustomerData ? {
+              id: parseInt(order.customerId || "0", 10),
+              no: selectedCustomerData.no || undefined,
+              business_name: selectedCustomerData.business_name || "",
+              name: selectedCustomerData.name || undefined,
+              email: selectedCustomerData.email || undefined,
+              business_phone_no: selectedCustomerData.business_phone_no || undefined,
+              customer_billing_details: selectedCustomerData.customer_billing_details || undefined,
+            } : undefined,
+          } as SaleOrderEntity;
+        }
+      }
+
+      const printFormat = await AsyncStorage.getItem("print_format").catch(() => null);
+
+      if (printFormat === "receipt") {
+        const rd = buildReceiptFromOrder(fullOrder);
+        try {
+          await printToAllWithFormat((printWidth) => formatReceiptText(rd, printWidth));
+        } catch (printErr) {}
+        clearOrder();
+        setSelectedCustomerData(null);
+        router.back();
+      } else {
+        setInvoiceOrder(fullOrder);
+        setShowInvoiceModal(true);
+      }
+    } catch (err: any) {
+      const msg = err?.response?.data?.message || err?.message || "Failed to place order";
+      Alert.alert("Order Error", msg);
+    } finally {
+      setPlacingOrder(false);
+    }
+  }, [products, order, summary, user, selectedCustomerData, buildReceiptFromOrder, clearOrder, router]);
 
   const handleCashPayment = () => {
     if (products.length === 0) {
@@ -468,155 +718,25 @@ export default function AddProductsScreen() {
     setShowCashPaymentModal(true);
   };
 
-  // Place Order ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â call API and show Sale Invoice modal
-  const handlePlaceOrder = useCallback(async () => {
+  const handleCardPayment = () => {
     if (products.length === 0) {
       Alert.alert("Error", "Please add products to cart first");
       return;
     }
+    Alert.alert("Card Payment", `Charge $${summary.total.toFixed(2)}?`, [
+      { text: "Cancel", style: "cancel" },
+      { text: "Confirm", onPress: () => executeOrderPlacement(2) }
+    ]);
+  };
 
-    Alert.alert(
-      "Confirm Order",
-      `Place order with ${products.length} product(s) for $${summary.total.toFixed(2)}?`,
-      [
-        { text: "Cancel", style: "cancel" },
-        {
-          text: "Place Order",
-          onPress: async () => {
-            setPlacingOrder(true);
-            try {
-              const now = new Date().toISOString();
-              const payload: CreateSaleOrderPayload = {
-                // TODO: product discount / discount_type should come from cart item
-                sale_order_details: products.map((p) => ({
-                  product_id: parseInt(p.productId, 10),
-                  qty: p.quantity,
-                  unit: 1, // TODO: Piece=1, should come from product unit
-                  unit_price: p.salePrice,
-                  discount: 0,
-                  discount_type: 1, // Fixed
-                })),
-                customer_id: order.customerId ? parseInt(order.customerId, 10) : null,
-                // TODO: order_type should be selectable (Walk-in=1 Phone=2 Online=3 Offsite=4 Other=5)
-                order_type: 1, // Walk-in
-                // TODO: sale_type should be selectable (Order=1 Return=2)
-                sale_type: 1, // Sale Order
-                // TODO: shipping_type should be selectable (Pickup=1 Delivery=2 DropOff=3)
-                shipping_type: 1, // Pickup
-                // TODO: channel_id should come from app config / user settings
-                channel_id: 1,
-                order_date: now,
-                dispatch_date: now,
-                due_date: now,
-                // API treats discount as a fixed dollar amount, so always convert & send type 1
-                discount: parseFloat(
-                  (order.discountType === 2
-                    ? (summary.subTotal * order.additionalDiscount) / 100
-                    : order.additionalDiscount
-                  ).toFixed(2)
-                ),
-                discount_type: 1,
-                delivery_charges: order.shippingCharges || 0,
-                // TODO: payment_detail should support multiple payment types, not just hardcoded Cash
-                payment_detail: {
-                  payments: [
-                    {
-                      payment_type: 1, // TODO: Cash=1, should be selectable
-                      amount: parseFloat(summary.total.toFixed(2)),
-                      category: 1, // SALE_RECEIPT
-                    },
-                  ],
-                  collected_by_id: user?.id ? parseInt(user.id, 10) : 1,
-                  payment_date: now,
-                },
-              };
-
-              console.log("[PlaceOrder] Sending payload:", JSON.stringify(payload, null, 2));
-              const res = await createSaleOrder(payload);
-              const entity = res.data.entity;
-              console.log("[PlaceOrder] Created ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â Order No:", entity.no, "peculiar_no:", entity.peculiar_no, "Status:", entity.status);
-
-              // The POST response only returns basic order info.
-              // Fetch the full order (with sale_order_details, invoice, customer, etc.)
-              let fullOrder: SaleOrderEntity = entity;
-              if (entity.id) {
-                try {
-                  const detailRes = await getSaleOrderById(entity.id);
-                  fullOrder = detailRes.data.entity;
-                  console.log("[PlaceOrder] Fetched full order ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â products:", fullOrder.sale_order_details?.length, "invoice:", !!fullOrder.invoice);
-                } catch (fetchErr: any) {
-                  console.warn("[PlaceOrder] Could not fetch full order, building from cart:", fetchErr?.message);
-                  // Fallback: build sale_order_details from cart so modal has content
-                  fullOrder = {
-                    ...entity,
-                    sale_order_details: products.map((p, idx) => ({
-                      id: idx,
-                      sale_order_id: entity.id,
-                      product_id: parseInt(p.productId, 10),
-                      product: { id: parseInt(p.productId, 10), name: p.name, sku: p.sku },
-                      qty: p.quantity,
-                      unit: 1,
-                      unit_price: p.salePrice,
-                      price: p.salePrice,
-                      discount: 0,
-                      discount_type: 1,
-                      total_price: p.salePrice * p.quantity,
-                    })),
-                    customer: selectedCustomerData ? {
-                      id: parseInt(order.customerId || "0", 10),
-                      no: selectedCustomerData.no || undefined,
-                      business_name: selectedCustomerData.business_name || "",
-                      name: selectedCustomerData.name || undefined,
-                      email: selectedCustomerData.email || undefined,
-                      business_phone_no: selectedCustomerData.business_phone_no || undefined,
-                      customer_billing_details: selectedCustomerData.customer_billing_details || undefined,
-                    } : undefined,
-                  } as SaleOrderEntity;
-                }
-              }
-
-              // Check print format setting
-              const printFormat = await AsyncStorage.getItem("print_format").catch(() => null);
-
-              if (printFormat === "receipt") {
-                // Receipt mode ÃƒÂ¢Ã¢â‚¬Â Ã¢â‚¬â„¢ build receipt from real order and print directly
-                const rd = buildReceiptFromOrder(fullOrder);
-                console.log("ÃƒÂ°Ã…Â¸Ã‚Â§Ã‚Â¾ [PlaceOrder] Receipt mode ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â printing", fullOrder.no);
-                try {
-                  const printResult = await printToAllWithFormat((printWidth) =>
-                    formatReceiptText(rd, printWidth)
-                  );
-                  const ok = printResult.results.filter(r => r.success).length;
-                  Alert.alert("Order Placed", `Order ${fullOrder.no} ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â receipt sent to ${ok} printer(s).`);
-                } catch (printErr) {
-                  console.warn("[PlaceOrder] Print error:", printErr);
-                  Alert.alert("Order Placed", `Order ${fullOrder.no} created. Print failed.`);
-                }
-                clearOrder();
-                setSelectedCustomerData(null);
-              } else {
-                // A4 mode (default) ÃƒÂ¢Ã¢â‚¬Â Ã¢â‚¬â„¢ show SaleInvoiceModal
-                setInvoiceOrder(fullOrder);
-                setShowInvoiceModal(true);
-              }
-            } catch (err: any) {
-              console.error("[PlaceOrder] Error message:", err?.message);
-              console.error("[PlaceOrder] Error status:", err?.response?.status);
-              console.error("[PlaceOrder] Error data:", JSON.stringify(err?.response?.data));
-              console.error("[PlaceOrder] Full error:", JSON.stringify(err, Object.getOwnPropertyNames(err)));
-              const errors = err?.response?.data?.errors;
-              const msg = Array.isArray(errors)
-                ? errors.join("\n")
-                : err?.response?.data?.message || err?.message || "Failed to place order";
-              Alert.alert("Order Error", msg);
-            } finally {
-              setPlacingOrder(false);
-            }
-          },
-        },
-      ]
-    );
-  }, [products, order, summary, buildReceiptFromOrder, clearOrder]);
+  const handleCashPaymentConfirm = useCallback(async (amountReceived: number) => {
+    await executeOrderPlacement(1); // 1 = Cash
+    setShowCashPaymentModal(false);
+    // Note: change calculation alert could be added here or inside executeOrderPlacement
+    if (amountReceived > summary.total) {
+      Alert.alert("Payment Complete", `Change due: $${(amountReceived - summary.total).toFixed(2)}`);
+    }
+  }, [executeOrderPlacement, summary.total]);
 
   // After invoice modal ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â "New Order" resets everything
   const handleInvoiceNewOrder = useCallback(() => {
@@ -628,31 +748,32 @@ export default function AddProductsScreen() {
 
 
   return (
-    <View className="flex-1 flex-row bg-[#F7F7F9]" style={{ marginTop: -insets.top }}>
+    <View className="flex-1 flex-row bg-[#F7F7F9]">
       {/* Main Content Area */}
       <View className="flex-1">
         {/* Top Bar */}
         <View
-          className="flex-row items-end gap-3 bg-white border-b border-gray-200"
+          className="flex-row items-end gap-3 bg-[#F7F7F9] border-b border-gray-200"
           style={{ paddingTop: insets.top + 10, paddingHorizontal: 16, paddingBottom: 10 }}
         >
           {/* Search group: label on top, search bar below */}
           <View className="flex-1">
-            <Text className="text-[#5A5F66] text-sm mb-1">Add product by Name, SKU, UPC</Text>
+            <Text className="text-[#5A5F66] text-[18px] mb-1" style={{ fontFamily: 'Montserrat' }}>Add product by Name, SKU, UPC</Text>
             <TouchableOpacity
               onPress={() => setShowSearchModal(true)}
-              className="flex-row items-center bg-white border border-gray-300 rounded-xl px-3 py-2.5"
+              className="flex-row items-center bg-white border border-gray-300 rounded-xl px-3 py-3 shadow-sm"
             >
-              <Ionicons name="search" size={18} color="#9ca3af" />
-              <Text className="flex-1 ml-2 text-gray-400">Search Products</Text>
+              <Ionicons name="search" size={20} color="#9ca3af" />
+              <Text className="flex-1 ml-2 text-gray-400 text-[18px]" style={{ fontFamily: 'Montserrat' }}>Search Products</Text>
             </TouchableOpacity>
           </View>
 
           {/* Scan Qty group: label on top, input below */}
           <View>
-            <Text className="text-[#5A5F66] text-sm mb-1">Scan Qty</Text>
+            <Text className="text-[#5A5F66] text-[18px] mb-1" style={{ fontFamily: 'Montserrat' }}>Scan Qty</Text>
             <TextInput
-              className="w-16 bg-white border border-gray-300 rounded-xl px-2 py-2.5 text-center text-gray-800"
+              className="w-20 bg-white border border-gray-300 rounded-xl px-2 py-3 text-center text-gray-800 text-[18px] shadow-sm"
+              style={{ fontFamily: 'Montserrat' }}
               keyboardType="numeric"
               value={scanQty}
               onChangeText={setScanQty}
@@ -661,7 +782,7 @@ export default function AddProductsScreen() {
 
           {/* Refresh Button */}
           <TouchableOpacity
-            className="h-11 px-6 rounded-xl flex-row items-center justify-center gap-1"
+            className="h-11 px-6 rounded-xl flex-row items-center justify-center gap-1 shadow-sm"
             style={{ backgroundColor: '#EC1A52' }}
           >
             <Ionicons name="refresh" size={16} color="white" />
@@ -669,13 +790,39 @@ export default function AddProductsScreen() {
           </TouchableOpacity>
 
           {/* Scan Logs Button */}
-          <TouchableOpacity className="h-11 border border-red-500 px-6 rounded-xl items-center justify-center">
+          <TouchableOpacity
+            className="h-11 border border-red-500 bg-white px-6 rounded-xl flex-row items-center justify-center gap-2 shadow-sm"
+            onPress={() => setShowScanLogModal(true)}
+          >
+            <Ionicons name="barcode-outline" size={18} color="#EC1A52" />
             <Text className="text-red-500 font-medium">Scan Logs</Text>
+            {scanLogs.length > 0 && (
+              <View style={{
+                backgroundColor: "#EC1A52",
+                borderRadius: 10,
+                minWidth: 20,
+                height: 20,
+                alignItems: "center",
+                justifyContent: "center",
+                paddingHorizontal: 6,
+              }}>
+                <Text style={{ color: "#FFF", fontSize: 11, fontWeight: "700" }}>{scanLogs.length}</Text>
+              </View>
+            )}
+          </TouchableOpacity>
+
+          {/* Print Barcode Button */}
+          <TouchableOpacity
+            className="h-11 bg-[#3B82F6] px-5 rounded-xl flex-row items-center justify-center gap-2 shadow-sm"
+            onPress={() => setShowBarcodePrintModal(true)}
+          >
+            <Ionicons name="barcode-outline" size={18} color="white" />
+            <Text className="text-white font-medium">Print Barcode</Text>
           </TouchableOpacity>
 
           {/* Settings Button */}
           <TouchableOpacity 
-            className="bg-[#20232A] p-3 rounded-xl"
+            className="bg-[#20232A] p-3 rounded-xl shadow-sm"
             onPress={() => {
               if (products.length === 0) {
                 Alert.alert("No Product", "Please add a product first");
@@ -691,349 +838,140 @@ export default function AddProductsScreen() {
         </View>
 
         {/* Products Table */}
-        <ScrollView className="flex-1" contentContainerStyle={{ paddingHorizontal: 12, paddingTop: 12, paddingBottom: 10 }}>
-          <View className="bg-white border border-gray-200 rounded-xl overflow-hidden">
-            {/* Table Header */}
-            <View className="flex-row bg-[#F7F7FA] border-b border-gray-200 px-3 py-2.5">
-              <View className="w-28 flex-row items-center">
-                <Text className="text-[#5A5F66] text-xs font-semibold">SKU/UPC</Text>
-                <Ionicons name="chevron-expand" size={12} color="#9ca3af" style={{ marginLeft: 4 }} />
-              </View>
-              <View className="flex-1 flex-row items-center">
-                <Text className="text-[#5A5F66] text-xs font-semibold">Product Name</Text>
-                <Ionicons name="chevron-expand" size={12} color="#9ca3af" style={{ marginLeft: 4 }} />
-              </View>
-              <View className="w-20 flex-row items-center">
-                <Text className="text-[#5A5F66] text-xs font-semibold">Sale Price</Text>
-                <Ionicons name="chevron-expand" size={12} color="#9ca3af" style={{ marginLeft: 4 }} />
-              </View>
-              <Text className="w-16 text-[#5A5F66] text-xs font-semibold">Unit</Text>
-              <View className="w-20 flex-row items-center">
-                <Text className="text-[#5A5F66] text-xs font-semibold">Quantity</Text>
-                <Ionicons name="chevron-expand" size={12} color="#9ca3af" style={{ marginLeft: 4 }} />
-              </View>
-              <Text className="w-20 text-[#5A5F66] text-xs font-semibold">TN Vapor Tax</Text>
-              <Text className="w-20 text-[#5A5F66] text-xs font-semibold">NC Vapor Tax</Text>
-              <Text className="w-20 text-[#5A5F66] text-xs font-semibold">Total</Text>
-            </View>
-
-            {/* Empty State */}
-            {products.length === 0 ? (
-              <View className="py-16 items-center">
-                <View className="w-32 h-32 mb-4">
-                  <MaterialCommunityIcons name="cart-outline" size={80} color="#d1d5db" />
-                </View>
-                <Text className="text-gray-500 text-center mb-2">
-                  There are no products in the list yet, Add Products to get Started
-                </Text>
-                <TouchableOpacity
-                  onPress={() => setShowSearchModal(true)}
-                  className="mt-4 border border-red-500 px-6 py-2 rounded-lg flex-row items-center gap-2"
-                >
-                  <Ionicons name="add" size={18} color="#EC1A52" />
-                  <Text className="text-red-500 font-medium">Add New Product</Text>
-                </TouchableOpacity>
-              </View>
-            ) : (
-              /* Table Body */
-              products.map((product, index) => {
-                const isSelected = selectedProduct?.id === product.id;
-                return (
-                <Pressable
-                  key={product.id}
-                  onPress={() => setSelectedProduct(product)}
-                  className={`flex-row items-center px-3 py-2.5 border-b border-[#F0F1F4] ${
-                    isSelected 
-                      ? 'bg-[#FFF6F8] border-l-2 border-[#EC1A52]' 
-                      : 'bg-white'
-                  }`}
-                >
-                  <Text className="w-28 text-[#2E3136] text-xs font-medium">{product.sku}</Text>
-                  <View className="flex-1 pr-2">
-                    <Text className="text-[#3A3D42] text-xs" numberOfLines={2}>
-                      {product.name}
-                    </Text>
-                    {index === 0 && (
-                      <View className="bg-[#FDCB6E] px-2 py-0.5 rounded-full mt-1 self-start">
-                        <Text className="text-[10px] font-semibold text-[#6B4F1D]">PROMO</Text>
-                      </View>
-                    )}
-                  </View>
-                  <Text className="w-20 text-[#6A6F77] text-xs">{product.salePrice}</Text>
-                  <View className="w-16">
-                    <View className="flex-row items-center rounded px-1 py-1">
-                      <Text className="text-[#6A6F77] text-xs flex-1">{product.unit}</Text>
-                      <Ionicons name="chevron-down" size={10} color="#6b7280" />
-                    </View>
-                  </View>
-                  {/* Quantity Controls */}
-                  <View className="w-20 flex-row items-center justify-center gap-1.5">
-                    <TouchableOpacity
-                      onPress={() => handleQuantityChange(product.id, -1)}
-                      className="w-5 h-5 bg-[#EC1A52] rounded items-center justify-center"
-                    >
-                      <Ionicons name="remove" size={12} color="white" />
-                    </TouchableOpacity>
-                    <Text className="w-5 text-center text-[#2E3136] text-xs font-medium">{product.quantity}</Text>
-                    <TouchableOpacity
-                      onPress={() => handleQuantityChange(product.id, 1)}
-                      className="w-5 h-5 bg-[#EC1A52] rounded items-center justify-center"
-                    >
-                      <Ionicons name="add" size={12} color="white" />
-                    </TouchableOpacity>
-                  </View>
-                  <Text className="w-20 text-[#3A3D42] text-xs">${product.tnVaporTax.toFixed(4)}</Text>
-                  <Text className="w-20 text-[#3A3D42] text-xs">${product.ncVaporTax.toFixed(4)}</Text>
-                  <Text className="w-20 text-[#2E3136] text-xs font-bold">${product.total.toFixed(2)}</Text>
-                </Pressable>
-              );})
-            )}
-          </View>
-        </ScrollView>
+        <ProductTable
+          products={products}
+          onQuantityChange={handleQuantityChange}
+          selectedProductId={selectedProduct?.id}
+          onSelectProduct={(p) => setSelectedProduct(p as any)}
+          onAddProductPress={() => setShowSearchModal(true)}
+        />
 
         {/* Bottom Section */}
-        <View className="flex-row p-3 gap-3 bg-[#F8F8FA] border-t border-gray-200">
-          {/* Customer Card */}
-          <View className="bg-[#FFF7F8] border border-gray-200 rounded-xl p-3" style={{ width: 220 }}>
+        <View className="flex-row p-4 gap-4 bg-[#F7F7F9]">
+          {/* Customer Card (Left) */}
+          <View className="bg-[#FFC0D1] border border-[#FFB5C5] rounded-xl p-4 shadow-sm" style={{ width: 280, justifyContent: 'center' }}>
             {selectedCustomerData ? (
-              <>
-                {/* Customer Name Label */}
-                <Text className="text-red-400 text-xs mb-1">Customer Name:</Text>
-                {/* Customer Name */}
-                <Text className="text-gray-900 font-bold text-lg mb-2">
+              <View>
+                <Text className="text-[#EC1A52] text-[14px] font-Montserrat font-medium mb-1 text-center">Current Status:</Text>
+                <Text className="text-[#1A1A1A] font-Montserrat font-bold text-[22px] mb-3 text-center">
                   {selectedCustomerData.business_name}
                 </Text>
-                {/* Loyalty Member Badge */}
-                <View className="border border-red-500 rounded-full px-3 py-1 self-start mb-2">
-                  <Text className="text-red-500 text-xs font-medium">Loyalty Member</Text>
+                
+                {/* Loyalty Info */}
+                <View className="items-center mb-4">
+                  <View className="bg-[#FFF0F3] border border-[#FECACA] rounded-full px-4 py-1.5 mb-2">
+                    <Text className="text-[#EC1A52] text-[12px] font-Montserrat font-semibold">Loyalty Member</Text>
+                  </View>
+                  <View className="bg-[#20232A] rounded-full px-4 py-1.5">
+                    <Text className="text-white text-[12px] font-Montserrat">Loyalty Points: 760</Text>
+                  </View>
                 </View>
-                {/* Loyalty Points Balance Badge */}
-                <View className="bg-gray-800 rounded-full px-3 py-1 self-start mb-3">
-                  <Text className="text-white text-xs">Loyalty Points Balance: 760</Text>
-                </View>
+
                 {/* Action Buttons */}
                 <View className="flex-row gap-2">
                   <TouchableOpacity
-                    onPress={() => router.push("/order/add-customer?mode=change")}
-                    className="flex-1 bg-red-500 rounded-lg py-2.5 items-center"
+                    onPress={() => setShowCustomerModal(true)}
+                    className="flex-1 bg-[#EC1A52] rounded-lg py-3 items-center shadow-sm"
                   >
-                    <Text className="text-white text-xs font-medium">Change{'\n'}Customer</Text>
+                    <Text className="text-white text-[13px] font-Montserrat font-semibold text-center">Change{'\n'}Customer</Text>
                   </TouchableOpacity>
                   <TouchableOpacity
                     onPress={() => {
                       setSelectedCustomerData(null);
                       updateOrder({ customerName: "Guest Customer", customerId: null });
                     }}
-                    className="flex-1 bg-red-500 rounded-lg py-2.5 items-center"
+                    className="flex-1 bg-[#FEE2E2] rounded-lg py-3 items-center border border-[#FECACA]"
                   >
-                    <Text className="text-white text-xs font-medium">Remove{'\n'}Customer</Text>
+                    <Text className="text-[#EC1A52] text-[13px] font-Montserrat font-semibold text-center">Remove{'\n'}Customer</Text>
                   </TouchableOpacity>
                 </View>
-              </>
+              </View>
             ) : (
-              <>
-                <View className="items-center">
-                  <Text className="text-[#C88A98] text-sm mb-1">Current Status:</Text>
-                  <Text className="text-gray-900 font-semibold text-[18px] mb-3">Guest Customer</Text>
-                  <TouchableOpacity
-                    onPress={() => router.push("/order/add-customer?mode=add")}
-                    className="w-full bg-[#C9154A] rounded-xl py-3 items-center justify-center"
-                  >
-                    <Ionicons name="add" size={34} color="white" />
-                    <Text className="text-white font-medium text-[15px] mt-1">Add Quick Customer</Text>
-                  </TouchableOpacity>
-                </View>
-              </>
+              <View className="items-center">
+                <Text className="text-[#EC1A52] text-[16px] font-Montserrat font-medium mb-1">Current Status:</Text>
+                <Text className="text-[#1A1A1A] font-Montserrat font-bold text-[24px] mb-6">Guest Customer</Text>
+                <TouchableOpacity
+                  onPress={() => setShowCustomerModal(true)}
+                  className="w-full bg-[#EC1A52] rounded-xl py-4 items-center justify-center shadow-md"
+                >
+                  <View className="items-center">
+                    <Ionicons name="add" size={32} color="white" />
+                    <Text className="text-white font-Montserrat font-bold text-[18px] mt-1">Add Quick Customer</Text>
+                  </View>
+                </TouchableOpacity>
+              </View>
             )}
           </View>
 
-          {/* Order Summary + Total */}
-          <View className="flex-1 bg-white border border-gray-200 rounded-xl overflow-hidden">
-            {/* Summary Rows */}
-            <View className="flex-row px-4 py-3">
-              <View className="flex-1 pr-4 border-r border-[#EEF0F3]">
-                <View className="flex-row justify-between py-1.5">
-                  <Text className="text-gray-600 text-sm">Total Products</Text>
-                  <Text className="text-gray-800 font-medium">{String(products.length).padStart(2, '0')}</Text>
+          {/* Order Summary Table (Right) */}
+          <View className="flex-1 bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm">
+            <View className="flex-row">
+              {/* Left Summary Column */}
+              <View className="flex-1 border-r border-gray-100">
+                <View className="flex-row justify-between px-5 py-4 border-b border-gray-100">
+                  <Text className="text-[#5A5F66] text-[16px] font-Montserrat font-medium">Total Products</Text>
+                  <Text className="text-[#1A1A1A] text-[18px] font-Montserrat font-bold">{products.length}</Text>
                 </View>
-                <View className="flex-row justify-between py-1.5">
-                  <Text className="text-gray-600 text-sm">Total Quantity</Text>
-                  <Text className="text-gray-800 font-medium">{String(summary.totalQuantity).padStart(2, '0')}</Text>
+                <View className="flex-row justify-between px-5 py-4 border-b border-gray-100">
+                  <Text className="text-[#5A5F66] text-[16px] font-Montserrat font-medium">Total Quantity</Text>
+                  <Text className="text-[#1A1A1A] text-[18px] font-Montserrat font-bold">{summary.totalQuantity}</Text>
                 </View>
-                <View className="flex-row justify-between py-1.5">
-                  <Text className="text-gray-600 text-sm">Loyalty Credit</Text>
-                  <Text className="text-gray-800 font-medium">-$10.00</Text>
+                <View className="flex-row justify-between px-5 py-4 border-b border-gray-100">
+                  <Text className="text-[#5A5F66] text-[16px] font-Montserrat font-medium">Sub Total</Text>
+                  <Text className="text-[#1A1A1A] text-[18px] font-Montserrat font-bold">${summary.subTotal.toFixed(2)}</Text>
                 </View>
-                <View className="flex-row justify-between py-1.5">
-                  <Text className="text-gray-600 text-sm">Sub Total</Text>
-                  <Text className="text-gray-800 font-semibold">${summary.subTotal.toFixed(2)}</Text>
+                <View className="flex-row justify-between px-5 py-4">
+                  <Text className="text-[#5A5F66] text-[16px] font-Montserrat font-medium">Loyalty Credit</Text>
+                  <Text className="text-[#1A1A1A] text-[18px] font-Montserrat font-bold">-$10.00</Text>
                 </View>
               </View>
-              <View className="flex-1 pl-4">
-                <View className="flex-row justify-between py-1.5">
-                  <Text className="text-gray-600 text-sm">Additional Discount</Text>
-                  <Text className="text-gray-800 font-medium">
+
+              {/* Right Summary Column */}
+              <View className="flex-1">
+                <View className="flex-row justify-between px-5 py-4 border-b border-gray-100">
+                  <Text className="text-[#5A5F66] text-[16px] font-Montserrat font-medium">Additional Discount</Text>
+                  <Text className="text-[#1A1A1A] text-[18px] font-Montserrat font-bold">
                     {order.discountType === 2
                       ? `${order.additionalDiscount}%`
                       : `$${order.additionalDiscount.toFixed(2)}`}
                   </Text>
                 </View>
-                <View className="flex-row justify-between py-1.5">
-                  <Text className="text-gray-600 text-sm">Delivery Charges</Text>
-                  <Text className="text-gray-800 font-medium">$0.00</Text>
+                <View className="flex-row justify-between px-5 py-4 border-b border-gray-100">
+                  <Text className="text-[#5A5F66] text-[16px] font-Montserrat font-medium">Delivery Charges</Text>
+                  <Text className="text-[#1A1A1A] text-[18px] font-Montserrat font-bold">$0.00</Text>
                 </View>
-                <View className="flex-row justify-between py-1.5">
-                  <Text className="text-gray-600 text-sm">Loyalty Points Earned</Text>
-                  <Text className="text-gray-800 font-medium">120</Text>
+                <View className="flex-row justify-between px-5 py-4 border-b border-gray-100">
+                  <Text className="text-[#5A5F66] text-[16px] font-Montserrat font-medium">Tax</Text>
+                  <Text className="text-[#1A1A1A] text-[18px] font-Montserrat font-bold">${summary.tax.toFixed(2)}</Text>
                 </View>
-                <View className="flex-row justify-between py-1.5">
-                  <Text className="text-gray-600 text-sm">Tax</Text>
-                  <Text className="text-gray-800 font-medium">${summary.tax.toFixed(2)}</Text>
+                <View className="flex-row justify-between px-5 py-4">
+                  <Text className="text-[#5A5F66] text-[16px] font-Montserrat font-medium">Loyalty Earned</Text>
+                  <Text className="text-[#1A1A1A] text-[18px] font-Montserrat font-bold">120</Text>
                 </View>
               </View>
             </View>
 
             {/* Total Bar */}
-            <View className="flex-row justify-between items-center bg-[#FFF0F3] border-t border-red-100 px-4 py-2.5">
-              <Text className="text-red-500 text-[24px] font-bold">Total</Text>
-              <Text className="text-red-500 text-[32px] font-bold">${summary.total.toFixed(2)}</Text>
+            <View className="flex-row justify-between items-center bg-[#FFF0F3] border-t border-[#FEE2E2] px-6 py-4">
+              <Text className="text-[#EC1A52] text-[24px] font-Montserrat font-bold">Total</Text>
+              <Text className="text-[#EC1A52] text-[32px] font-Montserrat font-bold">${summary.total.toFixed(2)}</Text>
             </View>
           </View>
         </View>
       </View>
 
       {/* Right Action Panel */}
-      <View className="bg-gray-50 border-l border-gray-200 p-2" style={{ width: SIDEBAR_WIDTH }}>
-        {/* Branding Section */}
-        <View className="mb-2">
-          <BrandingSection />
-        </View>
-
-        {/* Go to Menu - Top position below branding */}
-        <View className="mb-3">
-          <SidebarButton
-            title="Go to Menu"
-            icon={<Ionicons name="menu-outline" size={20} color="#EC1A52" />}
-            onPress={handleGoToMenu}
-          />
-        </View>
-
-        <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>
-          {/* Row 1 */}
-          <View>
-        
-            <SidebarButton
-              title="Open Drawer"
-              onPress={handleOpenCashDrawer}
-              icon={<MaterialCommunityIcons name="cash-register" size={20} color="#EC1A52" />}
-              fullWidth={false}
-            />
-          </View>
-
-          {/* Row 2 */}
-          <View className="flex-row gap-2">
-            <SidebarButton
-              title="Cash Payment"
-              onPress={handleCashPayment}
-              icon={<MaterialCommunityIcons name="cash" size={20} color="#EC1A52" />}
-              fullWidth={false}
-            />
-            <SidebarButton
-              title="Card Payment"
-              onPress={() => Alert.alert("Card Payment", "Feature coming soon")}
-              icon={<MaterialCommunityIcons name="credit-card" size={20} color="#EC1A52" />}
-              fullWidth={false}
-            />
-          </View>
-
-          {/* Row 3 */}
-          <View className="flex-row gap-2">
-            <SidebarButton
-              title="Payment Method"
-              onPress={() => Alert.alert("Payment Method 1", "Feature coming soon")}
-              icon={<MaterialIcons name="payment" size={20} color="#EC1A52" />}
-              fullWidth={false}
-            />
-            <SidebarButton
-              title="Payment Method"
-              onPress={() => Alert.alert("Payment Method 2", "Feature coming soon")}
-              icon={<MaterialIcons name="payment" size={20} color="#EC1A52" />}
-              fullWidth={false}
-            />
-          </View>
-
-          {/* Row 4 */}
-          <View className="flex-row gap-2">
-            <SidebarButton
-              title={placingOrder ? "Placing..." : "Place Order"}
-              onPress={handlePlaceOrder}
-              icon={<Ionicons name="checkmark-circle-outline" size={20} color="#EC1A52" />}
-              fullWidth={false}
-            />
-            <SidebarButton
-              title={sendingToPrinter ? "Printing..." : "Print Receipt"}
-              onPress={handleTextPrint}
-              icon={<Ionicons name="print-outline" size={20} color="#EC1A52" />}
-              fullWidth={false}
-            />
-          </View>
-
-          {/* Row 5 */}
-          <View className="flex-row gap-2">
-            <SidebarButton
-              title="Pay Later"
-              onPress={() => Alert.alert("Pay Later", "Feature coming soon")}
-              icon={<MaterialCommunityIcons name="clock-outline" size={20} color="#EC1A52" />}
-              fullWidth={false}
-            />
-            <SidebarButton
-              title="Add Tax"
-              onPress={() => setShowTaxModal(true)}
-              icon={<Ionicons name="add-circle-outline" size={20} color="#EC1A52" />}
-              fullWidth={false}
-            />
-          </View>
-
-          {/* Row 6 */}
-          <View className="flex-row gap-2">
-            <SidebarButton
-              title="Delete Product"
-              onPress={() => Alert.alert("Delete Product", "Select a product to delete")}
-              icon={<Ionicons name="trash-outline" size={20} color="#EC1A52" />}
-              fullWidth={false}
-            />
-            <SidebarButton
-              title="Void Payment"
-              onPress={() => Alert.alert("Void Payment", "Feature coming soon")}
-              icon={<MaterialCommunityIcons name="cancel" size={20} color="#EC1A52" />}
-              fullWidth={false}
-            />
-          </View>
-
-          {/* Row 7 */}
-          <View className="flex-row gap-2">
-            <SidebarButton
-              title="Add Discount"
-              onPress={() => setShowDiscountModal(true)}
-              icon={<MaterialIcons name="discount" size={20} color="#EC1A52" />}
-              fullWidth={false}
-            />
-            <SidebarButton
-              title="Park Order"
-              onPress={handleParkOrder}
-              icon={<MaterialCommunityIcons name="pause-circle-outline" size={20} color="#EC1A52" />}
-              fullWidth={false}
-            />
-          </View>
-
-          {/* Row 8 */}
-          <SidebarButton
-            title="Empty Cart"
-            onPress={handleEmptyCart}
-            icon={<Ionicons name="trash-outline" size={20} color="#EC1A52" />}
-          />
-        </ScrollView>
-      </View>
+      <POSSidebar
+        isLandscape={true}
+        onAddProduct={() => setShowSearchModal(true)}
+        onCashPayment={handleCashPayment}
+        onCardPayment={handleCardPayment}
+        onPayLater={() => Alert.alert("Pay Later", "Feature coming soon")}
+        onDeleteProduct={handleDeleteProduct}
+        onEmptyCart={handleEmptyCart}
+        onGoToMenu={handleGoToMenu}
+        hideNavButtons={false}
+      />
 
       {/* Modals */}
       <SearchProductModal
@@ -1042,16 +980,33 @@ export default function AddProductsScreen() {
         onSelectProduct={handleAddProductFromSearch}
       />
 
+      <SearchCustomerModal
+        visible={showCustomerModal}
+        onClose={() => setShowCustomerModal(false)}
+        onSelectCustomer={(customer) => {
+          if (customer) {
+            setSelectedCustomerData(customer);
+            updateOrder({
+              customerName: customer.business_name,
+              customerId: String(customer.id),
+            });
+          } else {
+            // null means "remove customer"
+            setSelectedCustomerData(null);
+            updateOrder({ customerName: "Guest Customer", customerId: null });
+          }
+          setShowCustomerModal(false);
+        }}
+        currentCustomer={selectedCustomerData}
+        orderSettings={orderSettings}
+        onOrderSettingsChange={setOrderSettings}
+      />
+
       <CashPaymentModal
         visible={showCashPaymentModal}
         onClose={() => setShowCashPaymentModal(false)}
         subTotal={summary.total}
-        onConfirm={(amountPaid) => {
-          Alert.alert("Payment Complete", `Change due: $${(amountPaid - summary.total).toFixed(2)}`);
-          setShowCashPaymentModal(false);
-          clearOrder();
-          router.back();
-        }}
+        onConfirm={handleCashPaymentConfirm}
       />
 
       <AddDiscountModal
@@ -1148,6 +1103,19 @@ export default function AddProductsScreen() {
         onNewOrder={handleInvoiceNewOrder}
         onPrint={handleTextPrint}
         order={invoiceOrder}
+      />
+
+      {/* Barcode Print Modal */}
+      <BarcodePrintModal
+        visible={showBarcodePrintModal}
+        onClose={() => setShowBarcodePrintModal(false)}
+        cartItems={products.map((p) => ({
+          productId: p.productId,
+          name: p.name,
+          sku: p.sku,
+          salePrice: p.salePrice,
+          quantity: p.quantity,
+        }))}
       />
 
       {/* Hidden receipt template for capture */}
@@ -1274,6 +1242,226 @@ export default function AddProductsScreen() {
                 >
                   <Ionicons name="add-circle-outline" size={16} color="#FFF" />
                   <Text style={{ color: '#FFF', fontWeight: '700', fontSize: 14 }}>New Order</Text>
+                </TouchableOpacity>
+              )}
+            </View>
+          </Pressable>
+        </Pressable>
+      </Modal>
+      {/* Hidden TextInput for QBT2500 scanner HID input */}
+      <TextInput
+        ref={hiddenInputRef}
+        style={{
+          position: "absolute",
+          width: 1,
+          height: 1,
+          opacity: 0,
+          top: 0,
+          left: 0,
+        }}
+        autoFocus
+        blurOnSubmit={false}
+        returnKeyType="done"
+        onChangeText={handleScannerInput}
+        onSubmitEditing={handleScannerSubmit}
+        showSoftInputOnFocus={false}
+        caretHidden
+      />
+
+      {/* Scan Logs Modal */}
+      <Modal
+        visible={showScanLogModal}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowScanLogModal(false)}
+      >
+        <Pressable
+          style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.5)", justifyContent: "center", alignItems: "center" }}
+          onPress={() => setShowScanLogModal(false)}
+        >
+          <Pressable
+            style={{
+              backgroundColor: "#FFF",
+              borderRadius: 16,
+              width: 560,
+              maxHeight: "80%",
+              overflow: "hidden",
+            }}
+            onPress={() => {}}
+          >
+            {/* Header */}
+            <View style={{
+              flexDirection: "row",
+              alignItems: "center",
+              justifyContent: "space-between",
+              paddingHorizontal: 24,
+              paddingVertical: 18,
+              borderBottomWidth: 1,
+              borderBottomColor: "#F0F1F4",
+              backgroundColor: "#FAFAFA",
+            }}>
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
+                <View style={{
+                  width: 40, height: 40, borderRadius: 12,
+                  backgroundColor: "#EC1A52", alignItems: "center", justifyContent: "center",
+                }}>
+                  <Ionicons name="barcode-outline" size={22} color="#FFF" />
+                </View>
+                <View>
+                  <Text style={{ fontFamily: "Montserrat", fontSize: 20, fontWeight: "700", color: "#1A1A1A" }}>
+                    Scan Logs
+                  </Text>
+                  <Text style={{ fontFamily: "Montserrat", fontSize: 13, color: "#9CA3AF", marginTop: 1 }}>
+                    {scanLogs.length} scan{scanLogs.length !== 1 ? "s" : ""} recorded
+                  </Text>
+                </View>
+              </View>
+              <TouchableOpacity
+                onPress={() => setShowScanLogModal(false)}
+                style={{
+                  width: 36, height: 36, borderRadius: 18,
+                  backgroundColor: "#F3F4F6", alignItems: "center", justifyContent: "center",
+                }}
+              >
+                <Ionicons name="close" size={20} color="#6B7280" />
+              </TouchableOpacity>
+            </View>
+
+            {/* Table Header */}
+            <View style={{
+              flexDirection: "row",
+              paddingHorizontal: 24,
+              paddingVertical: 12,
+              backgroundColor: "#F7F7F9",
+              borderBottomWidth: 1,
+              borderBottomColor: "#E5E7EB",
+            }}>
+              <Text style={{ width: 50, fontFamily: "Montserrat", fontSize: 12, fontWeight: "700", color: "#6B7280" }}>#</Text>
+              <Text style={{ flex: 1, fontFamily: "Montserrat", fontSize: 12, fontWeight: "700", color: "#6B7280" }}>BARCODE</Text>
+              <Text style={{ flex: 1.5, fontFamily: "Montserrat", fontSize: 12, fontWeight: "700", color: "#6B7280" }}>PRODUCT</Text>
+              <Text style={{ width: 70, fontFamily: "Montserrat", fontSize: 12, fontWeight: "700", color: "#6B7280", textAlign: "center" }}>STATUS</Text>
+              <Text style={{ width: 80, fontFamily: "Montserrat", fontSize: 12, fontWeight: "700", color: "#6B7280", textAlign: "right" }}>TIME</Text>
+            </View>
+
+            {/* Log Entries */}
+            {scanLogs.length === 0 ? (
+              <View style={{ paddingVertical: 60, alignItems: "center", justifyContent: "center" }}>
+                <Ionicons name="scan-outline" size={56} color="#D1D5DB" />
+                <Text style={{ fontFamily: "Montserrat", fontSize: 16, fontWeight: "600", color: "#9CA3AF", marginTop: 16 }}>
+                  No scans yet
+                </Text>
+                <Text style={{ fontFamily: "Montserrat", fontSize: 13, color: "#C4C8CF", marginTop: 6, textAlign: "center", paddingHorizontal: 40 }}>
+                  Scan a barcode with your QBT2500 scanner and it will appear here
+                </Text>
+              </View>
+            ) : (
+              <ScrollView style={{ maxHeight: 420 }} contentContainerStyle={{ paddingBottom: 8 }}>
+                {scanLogs.map((log, index) => (
+                  <View
+                    key={log.id}
+                    style={{
+                      flexDirection: "row",
+                      alignItems: "center",
+                      paddingHorizontal: 24,
+                      paddingVertical: 14,
+                      borderBottomWidth: 1,
+                      borderBottomColor: "#F3F4F6",
+                      backgroundColor: index % 2 === 0 ? "#FFFFFF" : "#FAFAFA",
+                    }}
+                  >
+                    <Text style={{ width: 50, fontFamily: "Montserrat", fontSize: 13, color: "#9CA3AF" }}>
+                      {scanLogs.length - index}
+                    </Text>
+                    <View style={{ flex: 1 }}>
+                      <Text
+                        style={{ fontFamily: "Montserrat", fontSize: 15, fontWeight: "700", color: "#1A1A1A", letterSpacing: 1.5 }}
+                        selectable
+                      >
+                        {log.code}
+                      </Text>
+                    </View>
+                    <View style={{ flex: 1.5 }}>
+                      <Text
+                        style={{
+                          fontFamily: "Montserrat",
+                          fontSize: 13,
+                          fontWeight: "500",
+                          color: log.matched ? "#1A1A1A" : "#9CA3AF",
+                        }}
+                        numberOfLines={1}
+                      >
+                        {log.matched ? log.productName : "—"}
+                      </Text>
+                    </View>
+                    <View style={{ width: 70, alignItems: "center" }}>
+                      <View style={{
+                        paddingHorizontal: 10,
+                        paddingVertical: 4,
+                        borderRadius: 20,
+                        backgroundColor: log.matched ? "#ECFDF5" : "#FEF2F2",
+                      }}>
+                        <Text style={{
+                          fontFamily: "Montserrat",
+                          fontSize: 11,
+                          fontWeight: "700",
+                          color: log.matched ? "#059669" : "#DC2626",
+                        }}>
+                          {log.matched ? "FOUND" : "MISS"}
+                        </Text>
+                      </View>
+                    </View>
+                    <Text style={{ width: 80, fontFamily: "Montserrat", fontSize: 12, color: "#9CA3AF", textAlign: "right" }}>
+                      {log.timestamp.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" })}
+                    </Text>
+                  </View>
+                ))}
+              </ScrollView>
+            )}
+
+            {/* Footer */}
+            <View style={{
+              flexDirection: "row",
+              alignItems: "center",
+              justifyContent: "space-between",
+              paddingHorizontal: 24,
+              paddingVertical: 16,
+              borderTopWidth: 1,
+              borderTopColor: "#F0F1F4",
+              backgroundColor: "#FAFAFA",
+            }}>
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 16 }}>
+                <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+                  <View style={{ width: 10, height: 10, borderRadius: 5, backgroundColor: "#059669" }} />
+                  <Text style={{ fontFamily: "Montserrat", fontSize: 13, color: "#6B7280" }}>
+                    {scanLogs.filter((l) => l.matched).length} matched
+                  </Text>
+                </View>
+                <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+                  <View style={{ width: 10, height: 10, borderRadius: 5, backgroundColor: "#DC2626" }} />
+                  <Text style={{ fontFamily: "Montserrat", fontSize: 13, color: "#6B7280" }}>
+                    {scanLogs.filter((l) => !l.matched).length} missed
+                  </Text>
+                </View>
+              </View>
+              {scanLogs.length > 0 && (
+                <TouchableOpacity
+                  onPress={() => setScanLogs([])}
+                  style={{
+                    flexDirection: "row",
+                    alignItems: "center",
+                    gap: 6,
+                    paddingHorizontal: 16,
+                    paddingVertical: 8,
+                    borderRadius: 8,
+                    borderWidth: 1,
+                    borderColor: "#E5E7EB",
+                    backgroundColor: "#FFF",
+                  }}
+                >
+                  <Ionicons name="trash-outline" size={16} color="#DC2626" />
+                  <Text style={{ fontFamily: "Montserrat", fontSize: 13, fontWeight: "600", color: "#DC2626" }}>
+                    Clear All
+                  </Text>
                 </TouchableOpacity>
               )}
             </View>

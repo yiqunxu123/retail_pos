@@ -60,6 +60,8 @@ export interface SaleOrderView {
   shippingType: number;
   fulfilmentStatus: number;
   orderDate: string;
+  /** Pre-formatted date string for display (avoids toLocaleString in render) */
+  orderDateFormatted: string;
   createdById: number | null;
   createdByName: string;
   createdAt: string;
@@ -85,12 +87,34 @@ export const FULFILMENT_STATUS = {
 // Data Transformers
 // ============================================================================
 
+/** Fast date formatter - avoids slow toLocaleString on Hermes/Android */
+function formatOrderDate(dateStr: string): string {
+  if (!dateStr) return '-';
+  try {
+    const d = new Date(dateStr);
+    if (isNaN(d.getTime())) return '-';
+    const mm = String(d.getMonth() + 1).padStart(2, '0');
+    const dd = String(d.getDate()).padStart(2, '0');
+    const yyyy = d.getFullYear();
+    let hh = d.getHours();
+    const min = String(d.getMinutes()).padStart(2, '0');
+    const sec = String(d.getSeconds()).padStart(2, '0');
+    const ampm = hh >= 12 ? 'PM' : 'AM';
+    hh = hh % 12 || 12;
+    return `${mm}/${dd}/${yyyy}, ${String(hh).padStart(2, '0')}:${min}:${sec} ${ampm} , CST`;
+  } catch {
+    return '-';
+  }
+}
+
 /** Transform database record to UI view */
 function toSaleOrderView(db: SaleOrderJoinRow): SaleOrderView {
   // Build creator name from first_name and last_name, fallback to username
   const createdByName = db.created_by_first_name && db.created_by_last_name
     ? `${db.created_by_first_name} ${db.created_by_last_name}`
     : db.created_by_username || 'Unknown';
+
+  const rawDate = db.order_date || db.created_at || '';
 
   return {
     id: db.id,
@@ -107,7 +131,8 @@ function toSaleOrderView(db: SaleOrderJoinRow): SaleOrderView {
     deliveryCharges: db.delivery_charges || 0,
     shippingType: db.shipping_type,
     fulfilmentStatus: db.fulfilment_status,
-    orderDate: db.order_date || db.created_at || '',
+    orderDate: rawDate,
+    orderDateFormatted: formatOrderDate(rawDate),
     createdById: db.created_by_id,
     createdByName,
     createdAt: db.created_at || '',

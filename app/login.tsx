@@ -1,19 +1,19 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useEffect, useState } from "react";
 import {
-  ActivityIndicator,
-  Alert,
-  Image,
-  KeyboardAvoidingView,
-  Platform,
-  Pressable,
-  ScrollView,
-  Text,
-  TextInput,
-  TouchableWithoutFeedback,
-  Keyboard,
-  View,
-  useWindowDimensions,
+    ActivityIndicator,
+    Alert,
+    Image,
+    Keyboard,
+    KeyboardAvoidingView,
+    Platform,
+    Pressable,
+    ScrollView,
+    Text,
+    TextInput,
+    TouchableWithoutFeedback,
+    View,
+    useWindowDimensions,
 } from "react-native";
 import { useAuth } from "../contexts/AuthContext";
 import { usePowerSync } from "../utils/powersync/PowerSyncProvider";
@@ -90,7 +90,7 @@ export default function LoginScreen() {
   // For wide screens (tablet/desktop), show split layout
   if (isWideScreen) {
     return (
-      <View className="flex-1 flex-row bg-gray-100">
+      <View className="flex-1 flex-row bg-[#F7F7F9]">
         {/* Left Panel - Branding */}
         <View style={{ width: "35%", minWidth: 420, maxWidth: 600 }}>
           <View className="flex-1 relative">
@@ -167,7 +167,7 @@ export default function LoginScreen() {
         {/* Right Panel - Login Form */}
         <KeyboardAvoidingView
           behavior={Platform.OS === "ios" ? "padding" : "height"}
-          className="flex-1 bg-gray-100"
+          className="flex-1 bg-[#F7F7F9]"
           keyboardVerticalOffset={0}
         >
           <ScrollView 
@@ -331,7 +331,7 @@ export default function LoginScreen() {
   return (
     <KeyboardAvoidingView
       behavior={Platform.OS === "ios" ? "padding" : "height"}
-      className="flex-1 bg-gray-100"
+      className="flex-1 bg-[#F7F7F9]"
       keyboardVerticalOffset={0}
     >
       {/* Compact header for mobile */}

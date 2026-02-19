@@ -13,20 +13,22 @@
  */
 
 import { Ionicons } from "@expo/vector-icons";
-import { ReactElement, ReactNode, useCallback, useEffect, useMemo, useState } from "react";
+import React, { ReactElement, ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
-    ActivityIndicator,
-    FlatList,
-    Modal,
-    Pressable,
-    RefreshControl,
-    ScrollView,
-    Text,
-    TextInput,
-    View,
-    ViewStyle,
+  ActivityIndicator,
+  Modal,
+  Pressable,
+  RefreshControl,
+  ScrollView,
+  StyleSheet,
+  Switch,
+  Text,
+  TextInput,
+  View,
+  ViewStyle,
 } from "react-native";
 import { FilterDropdown } from "./FilterDropdown";
+import { TableToolbarButton } from "./TableToolbarButton";
 
 // ============================================================================
 // Types
@@ -90,14 +92,30 @@ export interface DataTableProps<T = any> {
   searchHint?: string;
   /** Custom search filter logic */
   onSearch?: (item: T, query: string) => boolean;
+  /** Called when search query text changes */
+  onSearchQueryChange?: (query: string) => void;
+  /** Default search query text */
+  defaultSearchQuery?: string;
+  /** Controlled search query text */
+  searchQueryValue?: string;
   
   // Filter related
   /** Filter definitions */
   filters?: FilterDefinition[];
   /** Custom filter logic */
-  onFilter?: (item: T, filters: Record<string, string | string[] | null>) => boolean;
+  onFilter?: (item: T, filters: Record<string, any>) => boolean;
+  /** Called when active filters change */
+  onFiltersChange?: (filters: Record<string, string | string[] | null>) => void;
+  /** Controlled filter values */
+  filterValues?: Record<string, string | string[] | null>;
   /** Whether to render filters in the top action row */
   filtersInActionRow?: boolean;
+  /** Custom content rendered in the action row */
+  actionRowExtras?: ReactNode;
+  /** Extra content rendered inside the Settings/Columns modal (e.g. advance filters) */
+  settingsModalExtras?: ReactNode;
+  /** Called when the settings/columns modal opens */
+  onSettingsModalOpen?: () => void;
   
   // Sort related
   /** Sort options */
@@ -145,6 +163,10 @@ export interface DataTableProps<T = any> {
   /** Total displayed data count */
   totalCount?: number;
   
+  // Footer
+  /** Custom list footer */
+  ListFooterComponent?: React.ComponentType<any> | React.ReactElement | null;
+  
   // Styling
   /** Container style */
   containerStyle?: ViewStyle;
@@ -160,9 +182,93 @@ export interface DataTableProps<T = any> {
   onRowPress?: (item: T) => void;
 }
 
+function isFilterValueEqual(
+  left: string | string[] | null | undefined,
+  right: string | string[] | null | undefined
+) {
+  const a = left ?? null;
+  const b = right ?? null;
+  if (Array.isArray(a) || Array.isArray(b)) {
+    const av = Array.isArray(a) ? [...a].sort() : [];
+    const bv = Array.isArray(b) ? [...b].sort() : [];
+    if (av.length !== bv.length) return false;
+    return av.every((value, index) => value === bv[index]);
+  }
+  return a === b;
+}
+
+function areFilterMapsEqual(
+  left: Record<string, string | string[] | null> | undefined,
+  right: Record<string, string | string[] | null> | undefined
+) {
+  const a = left ?? {};
+  const b = right ?? {};
+  const keys = new Set([...Object.keys(a), ...Object.keys(b)]);
+  for (const key of keys) {
+    if (!isFilterValueEqual(a[key], b[key])) {
+      return false;
+    }
+  }
+  return true;
+}
+
 // ============================================================================
 // Helper Components
 // ============================================================================
+
+const ROW_HEIGHT = 52;
+
+// Pre-computed static styles for DataTableRow (avoids NativeWind runtime processing)
+const rowStyles = StyleSheet.create({
+  row: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F0F1F4',
+    backgroundColor: '#F7F7F9',
+    minHeight: ROW_HEIGHT,
+  },
+  rowSelected: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F0F1F4',
+    backgroundColor: '#FFF0F3',
+    borderLeftWidth: 4,
+    borderLeftColor: '#EC1A52',
+    minHeight: ROW_HEIGHT,
+  },
+  checkboxContainer: {
+    width: 32,
+    marginRight: 16,
+  },
+  flexCol: {
+    flex: 1,
+  },
+  alignCenter: {
+    alignItems: 'center',
+  },
+  alignRight: {
+    alignItems: 'flex-end',
+  },
+  defaultCellText: {
+    color: '#1A1A1A',
+    fontSize: 18,
+    fontFamily: 'Montserrat',
+  },
+});
+
+const ROW_STYLE = rowStyles.row;
+const ROW_STYLE_SELECTED = rowStyles.rowSelected;
+const CHECKBOX_CONTAINER_STYLE = rowStyles.checkboxContainer;
+const FLEX_COL_STYLE = rowStyles.flexCol;
+const ALIGN_CENTER_STYLE = rowStyles.alignCenter;
+const ALIGN_RIGHT_STYLE = rowStyles.alignRight;
+const DEFAULT_CELL_TEXT_STYLE = rowStyles.defaultCellText;
 
 function TableCheckbox({
   checked = false,
@@ -189,6 +295,81 @@ function TableCheckbox({
   );
 }
 
+/**
+ * DataTableRow - Optimized memoized row component to prevent unnecessary re-renders
+ */
+const DataTableRow = React.memo(function DataTableRow({
+  item,
+  columns,
+  visibleColumns,
+  keyExtractor,
+  isSelected,
+  bulkActions,
+  onRowPress,
+  toggleRowSelection,
+}: {
+  item: any;
+  columns: ColumnDefinition<any>[];
+  visibleColumns: Record<string, boolean>;
+  keyExtractor: (item: any) => string;
+  isSelected: boolean;
+  bulkActions: boolean;
+  onRowPress?: (item: any) => void;
+  toggleRowSelection: (key: string) => void;
+}) {
+  const key = keyExtractor(item);
+  
+  return (
+    <Pressable 
+      style={isSelected ? ROW_STYLE_SELECTED : ROW_STYLE}
+      onPress={() => {
+        if (bulkActions && !onRowPress) {
+          toggleRowSelection(key);
+          return;
+        }
+        onRowPress?.(item);
+      }}
+    >
+      {bulkActions && (
+        <View style={CHECKBOX_CONTAINER_STYLE}>
+          <TableCheckbox
+            checked={isSelected}
+            onPress={() => toggleRowSelection(key)}
+          />
+        </View>
+      )}
+      {columns.map((col) => {
+        if (!visibleColumns[col.key]) return null;
+        
+        const colStyle = col.width === "flex" 
+          ? FLEX_COL_STYLE 
+          : col.width 
+            ? { width: col.width as number } 
+            : FLEX_COL_STYLE;
+        
+        const alignStyle = col.align === "center" 
+          ? ALIGN_CENTER_STYLE 
+          : col.align === "right" 
+            ? ALIGN_RIGHT_STYLE 
+            : undefined;
+        
+        return (
+          <View key={col.key} style={alignStyle ? [colStyle, alignStyle] : colStyle}>
+            {col.render ? (
+              col.render(item)
+            ) : (
+              <Text style={DEFAULT_CELL_TEXT_STYLE}>
+                {/* @ts-ignore */}
+                {item[col.key] ?? "-"}
+              </Text>
+            )}
+          </View>
+        );
+      })}
+    </Pressable>
+  );
+});
+
 // ============================================================================
 // Main Component
 // ============================================================================
@@ -202,9 +383,17 @@ export function DataTable<T = any>(props: DataTableProps<T>) {
     searchPlaceholder = "Search...",
     searchHint,
     onSearch,
+    onSearchQueryChange,
+    defaultSearchQuery = "",
+    searchQueryValue,
     filters = [],
     onFilter,
+    onFiltersChange,
+    filterValues,
     filtersInActionRow = false,
+    actionRowExtras,
+    settingsModalExtras,
+    onSettingsModalOpen,
     sortOptions = [],
     onSort,
     columnSelector = true,
@@ -228,26 +417,46 @@ export function DataTable<T = any>(props: DataTableProps<T>) {
     minWidth = 900,
     renderRow,
     onRowPress,
+    ListFooterComponent,
   } = props;
 
   // State
-  const [searchQuery, setSearchQuery] = useState("");
+  const [searchQuery, setSearchQuery] = useState(searchQueryValue ?? defaultSearchQuery);
   const [activeFilters, setActiveFilters] = useState<Record<string, string | string[] | null>>(
-    () =>
+    () => (filterValues ?? (
       filters.reduce((acc, filter) => {
         if (filter.defaultValue !== undefined) {
           acc[filter.key] = filter.defaultValue;
         }
         return acc;
       }, {} as Record<string, string | string[] | null>)
+    ))
   );
   const [sortBy, setSortBy] = useState<string | null>(null);
+  const [sortOrder, setSortByOrder] = useState<"asc" | "desc">("desc");
   const [showColumnsModal, setShowColumnsModal] = useState(false);
   const [internalRefreshing, setInternalRefreshing] = useState(false);
   const [internalSelectedRowKeys, setInternalSelectedRowKeys] = useState<string[]>([]);
   
+  // Pagination State
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+  
+  const syncingFiltersFromPropsRef = useRef(false);
+  const lastEmittedFiltersRef = useRef<Record<string, string | string[] | null> | null>(null);
+  
   // Internal refresh state, supports external or auto-managed
   const isRefreshing = refreshing || internalRefreshing;
+  
+  // Handle Sort
+  const handleSortPress = (key: string) => {
+    if (sortBy === key) {
+      setSortByOrder(sortOrder === "asc" ? "desc" : "asc");
+    } else {
+      setSortBy(key);
+      setSortByOrder("desc");
+    }
+  };
   
   // Wrap onRefresh, auto-manage refreshing state
   const handleRefresh = useCallback(async () => {
@@ -335,12 +544,83 @@ export function DataTable<T = any>(props: DataTableProps<T>) {
   }, [bulkActions, selectedRowKeys, keyToRow, setSelectedKeys]);
 
   // Filter handler
-  const handleFilterChange = (filterKey: string, value: string | string[] | null) => {
-    setActiveFilters(prev => ({ ...prev, [filterKey]: value }));
+  const handleFilterChange = useCallback((filterKey: string, value: string | string[] | null) => {
+    setActiveFilters((prev) => {
+      if (isFilterValueEqual(prev[filterKey], value)) {
+        return prev;
+      }
+      return { ...prev, [filterKey]: value };
+    });
+  }, []);
+
+  const renderFilterDropdown = (filter: FilterDefinition) => {
+    const rawValue = activeFilters[filter.key] ?? null;
+
+    if (filter.multiple) {
+      const value =
+        Array.isArray(rawValue)
+          ? rawValue
+          : (typeof rawValue === "string" && rawValue ? [rawValue] : null);
+      return (
+        <FilterDropdown
+          key={filter.key}
+          label=""
+          value={value}
+          options={filter.options}
+          onChange={(nextValue: string[] | null) => handleFilterChange(filter.key, nextValue)}
+          placeholder={filter.placeholder}
+          width={filter.width}
+          multiple
+        />
+      );
+    }
+
+    const value = typeof rawValue === "string" ? rawValue : null;
+    return (
+      <FilterDropdown
+        key={filter.key}
+        label=""
+        value={value}
+        options={filter.options}
+        onChange={(nextValue: string | null) => handleFilterChange(filter.key, nextValue)}
+        placeholder={filter.placeholder}
+        width={filter.width}
+      />
+    );
   };
 
+  useEffect(() => {
+    if (searchQueryValue !== undefined) {
+      setSearchQuery(searchQueryValue);
+    }
+  }, [searchQueryValue]);
+
+  useEffect(() => {
+    if (filterValues !== undefined) {
+      setActiveFilters((prev) => {
+        if (areFilterMapsEqual(prev, filterValues)) {
+          return prev;
+        }
+        syncingFiltersFromPropsRef.current = true;
+        return filterValues;
+      });
+    }
+  }, [filterValues]);
+
+  useEffect(() => {
+    if (syncingFiltersFromPropsRef.current) {
+      syncingFiltersFromPropsRef.current = false;
+      return;
+    }
+    if (lastEmittedFiltersRef.current && areFilterMapsEqual(lastEmittedFiltersRef.current, activeFilters)) {
+      return;
+    }
+    lastEmittedFiltersRef.current = activeFilters;
+    onFiltersChange?.(activeFilters);
+  }, [activeFilters, onFiltersChange]);
+
   // Filter and sort data
-  const filteredData = useMemo(() => {
+  const processedData = useMemo(() => {
     let result = [...data];
 
     // Apply search
@@ -360,6 +640,20 @@ export function DataTable<T = any>(props: DataTableProps<T>) {
 
     return result;
   }, [data, searchQuery, activeFilters, sortBy, onSearch, onFilter, onSort]);
+
+  // Frontend Pagination Logic
+  const totalPages = Math.ceil(processedData.length / pageSize) || 1;
+  const paginatedData = useMemo(() => {
+    const start = (currentPage - 1) * pageSize;
+    return processedData.slice(start, start + pageSize);
+  }, [processedData, currentPage, pageSize]);
+
+  // Reset to first page when search or filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery, activeFilters, sortBy]);
+
+  const filteredData = paginatedData;
 
   const filteredKeys = useMemo(
     () => filteredData.map((item) => keyExtractor(item)),
@@ -390,53 +684,13 @@ export function DataTable<T = any>(props: DataTableProps<T>) {
     setSelectedKeys([...selectedRowKeys, ...filteredKeys]);
   }, [allFilteredSelected, filteredKeys, selectedRowKeys, setSelectedKeys]);
 
-  // Render default row
-  const renderDefaultRow = (item: T) => (
-    <Pressable 
-      className="flex-row items-center py-3 px-5 border-b border-gray-100 bg-white"
-      onPress={() => {
-        if (bulkActions && !onRowPress) {
-          toggleRowSelection(keyExtractor(item));
-          return;
-        }
-        onRowPress?.(item);
-      }}
-    >
-      {bulkActions && (
-        <View className="w-8 mr-4">
-          <TableCheckbox
-            checked={selectedRowKeySet.has(keyExtractor(item))}
-            onPress={() => toggleRowSelection(keyExtractor(item))}
-          />
-        </View>
-      )}
-      {columns.map((col) => {
-        if (!visibleColumns[col.key]) return null;
-        
-        const width = col.width === "flex" ? { flex: 1 } : col.width ? { width: col.width } : { flex: 1 };
-        const align = col.align || "left";
-        
-        return (
-          <View 
-            key={col.key} 
-            style={width}
-            className={`${align === "center" ? "items-center" : align === "right" ? "items-end" : ""}`}
-          >
-            {col.render ? col.render(item) : <Text className="text-gray-800">-</Text>}
-          </View>
-        );
-      })}
-    </Pressable>
-  );
-
-  // Render table header
-  const renderHeader = () => (
-    <View className="flex-row bg-gray-50 py-3 px-5 border-b border-gray-200">
+  const renderHeader = useCallback(() => (
+    <View className="flex-row bg-[#F7F7F9] border-b border-gray-200 py-4 px-5">
       {bulkActions && (
         <View className="w-8 mr-4">
           <TableCheckbox
             checked={allFilteredSelected}
-            indeterminate={!allFilteredSelected && someFilteredSelected}
+            indeterminate={someFilteredSelected && !allFilteredSelected}
             onPress={toggleSelectAllFiltered}
           />
         </View>
@@ -444,31 +698,68 @@ export function DataTable<T = any>(props: DataTableProps<T>) {
       {columns.map((col) => {
         if (!visibleColumns[col.key]) return null;
         
-        const width = col.width === "flex" ? { flex: 1 } : col.width ? { width: col.width } : { flex: 1 };
+        const colWidth = col.width === "flex" ? { flex: 1 } : col.width ? { width: col.width } : { flex: 1 };
         const align = col.align || "left";
+        const isSortable = !!onSort && !!col.sortKey;
         
         return (
-          <Text 
-            key={col.key}
-            style={width}
-            className={`text-gray-500 text-xs font-semibold uppercase ${
-              align === "center" ? "text-center" : align === "right" ? "text-right" : ""
+          <View 
+            key={col.key} 
+            style={colWidth}
+            className={`flex-row items-center ${
+              align === "center" ? "justify-center" : align === "right" ? "justify-end" : ""
             }`}
           >
-            {col.title}
-          </Text>
+            <Pressable 
+              onPress={() => isSortable && handleSortPress(col.key)}
+              className="flex-row items-center"
+            >
+              <Text className="text-[#6B7280] font-Montserrat font-medium text-[16px] uppercase mr-1">
+                {col.title}
+              </Text>
+              {isSortable && (
+                <Ionicons 
+                  name={sortBy === col.key ? (sortOrder === "asc" ? "caret-up" : "caret-down") : "caret-down"} 
+                  size={12} 
+                  color={sortBy === col.key ? "#EC1A52" : "#D1D5DB"} 
+                />
+              )}
+            </Pressable>
+          </View>
         );
       })}
     </View>
-  );
+  ), [bulkActions, allFilteredSelected, someFilteredSelected, toggleSelectAllFiltered, columns, visibleColumns, onSort, sortBy, sortOrder, handleSortPress]);
+
+  // Memoized row list - uses index keys so React REUSES native views on page change
+  // (like RecyclerView ViewHolder pattern) instead of destroying + recreating them
+  const renderedRows = useMemo(() => {
+    return filteredData.map((item, index) => {
+      const key = keyExtractor(item);
+      const isSelected = selectedRowKeySet.has(key);
+      return (
+        <DataTableRow
+          key={`row-${index}`}
+          item={item}
+          columns={columns}
+          visibleColumns={visibleColumns}
+          keyExtractor={keyExtractor}
+          isSelected={isSelected}
+          bulkActions={bulkActions}
+          onRowPress={onRowPress}
+          toggleRowSelection={toggleRowSelection}
+        />
+      );
+    });
+  }, [filteredData, keyExtractor, selectedRowKeySet, columns, visibleColumns, bulkActions, onRowPress, toggleRowSelection]);
 
   // Loading state
   if (isLoading && data.length === 0) {
     return (
-      <View className="flex-1 bg-gray-50" style={containerStyle}>
+      <View className="flex-1 bg-[#F7F7F9]" style={containerStyle}>
         <View className="flex-1 justify-center items-center">
-          <ActivityIndicator size="large" color="#3B82F6" />
-          <Text className="mt-4 text-gray-600">Loading...</Text>
+          <ActivityIndicator size="large" color="#EC1A52" />
+          <Text style={{ fontFamily: 'Montserrat' }} className="mt-4 text-gray-600">Loading...</Text>
         </View>
       </View>
     );
@@ -476,135 +767,184 @@ export function DataTable<T = any>(props: DataTableProps<T>) {
 
   // Main render
   const tableContent = (
-    <View className="flex-1 bg-gray-50" style={containerStyle}>
+    <View className="flex-1 bg-[#F7F7F9]" style={containerStyle}>
       {/* Toolbar */}
-      <View className="bg-white px-5 py-4 border-b border-gray-200">
-        {/* Action Buttons */}
-        <View className="flex-row flex-wrap items-center gap-3 mb-4">
-          {bulkActions && (
-            <Pressable
-              className={`px-4 py-2 rounded-lg flex-row items-center gap-2 ${
-                onBulkActionPress && selectedRows.length === 0 ? "bg-red-300" : "bg-red-500"
-              }`}
-              onPress={() => onBulkActionPress?.(selectedRows)}
-              disabled={!!onBulkActionPress && selectedRows.length === 0}
-            >
-              <Text className="text-white font-medium">
-                {bulkActionText}
-                {selectedRows.length > 0 ? ` (${selectedRows.length})` : ""}
-              </Text>
-              {!onBulkActionPress && <Ionicons name="chevron-down" size={16} color="white" />}
-            </Pressable>
-          )}
-          {columnSelector && (
-            <Pressable 
-              className="bg-gray-100 px-4 py-2 rounded-lg flex-row items-center gap-2"
-              onPress={() => setShowColumnsModal(true)}
-            >
-              <Ionicons name="grid" size={16} color="#374151" />
-              <Text className="text-gray-700">Columns</Text>
-            </Pressable>
-          )}
-          {filtersInActionRow && filters.map((filter) => (
-            <FilterDropdown
-              key={filter.key}
-              label=""
-              value={activeFilters[filter.key] || null}
-              options={filter.options}
-              onChange={(value) => handleFilterChange(filter.key, value)}
-              placeholder={filter.placeholder}
-              width={filter.width}
-              multiple={filter.multiple}
-            />
-          ))}
-          {isStreaming && (
-            <View className="flex-row items-center gap-1 ml-2">
-              <Ionicons name="ellipse" size={8} color="#16a34a" />
-              <Text className="text-green-600 text-xs">Live</Text>
+      <View className="bg-[#F7F7F9] px-5 py-4 border-b border-gray-200">
+        {/* Search & Actions Replica Row */}
+        <View className="flex-row items-center gap-3">
+          {searchable && (
+            <View className="relative" style={{ flex: 1, maxWidth: 800 }}>
+              <Ionicons 
+                name="search-outline" 
+                size={20} 
+                color="#9CA3AF" 
+                style={{ position: "absolute", left: 16, top: 12, zIndex: 10 }} 
+              />
+              <TextInput
+                className="bg-white border border-gray-200 rounded-xl pl-12 pr-4 py-3 text-[18px] shadow-sm"
+                style={{ fontFamily: 'Montserrat' }}
+                placeholder={searchPlaceholder}
+                placeholderTextColor="#9CA3AF"
+                value={searchQuery}
+                onChangeText={(value) => {
+                  setSearchQuery(value);
+                  onSearchQueryChange?.(value);
+                }}
+              />
             </View>
           )}
-          <View className="flex-1" />
-          {addButton && onAddPress && (
-            <Pressable 
-              className="px-4 py-2 rounded-lg flex-row items-center gap-2"
-              style={{ backgroundColor: "#3B82F6" }}
-              onPress={onAddPress}
-            >
-              <Text className="text-white font-medium">{addButtonText}</Text>
-            </Pressable>
+          
+          {onRefresh && (
+            <TableToolbarButton
+              title="Refresh"
+              icon="refresh"
+              onPress={handleRefresh}
+              isLoading={isRefreshing}
+              variant="primary"
+            />
           )}
+
+          {columnSelector && (
+            <TableToolbarButton
+              icon="settings-sharp"
+              onPress={() => {
+                onSettingsModalOpen?.();
+                setShowColumnsModal(true);
+              }}
+              variant="dark"
+            />
+          )}
+
+          {filtersInActionRow && filters.length > 0 && filters.map(renderFilterDropdown)}
+          {filtersInActionRow && actionRowExtras}
         </View>
 
-        {/* Search & Filters */}
-        {(searchable || (!filtersInActionRow && filters.length > 0) || sortOptions.length > 0) && (
-          <>
-            {searchHint && (
-              <Text className="text-gray-500 text-sm mb-2">{searchHint}</Text>
+        {/* Legacy Bulk Actions & Add Button if needed - keep for compat but usually hidden in replica mode */}
+        {(bulkActions || (addButton && onAddPress)) && (
+          <View className="flex-row flex-wrap items-center gap-3 mt-4">
+            {bulkActions && (
+              <Pressable
+                className={`h-9 px-4 rounded-md flex-row items-center justify-center gap-2 ${
+                  onBulkActionPress && selectedRows.length === 0 ? "bg-red-300" : "bg-red-500"
+                }`}
+                onPress={() => onBulkActionPress?.(selectedRows)}
+                disabled={!!onBulkActionPress && selectedRows.length === 0}
+              >
+                <Text style={{ fontFamily: 'Montserrat' }} className="text-white font-medium">
+                  {bulkActionText}
+                  {selectedRows.length > 0 ? ` (${selectedRows.length})` : ""}
+                </Text>
+                {!onBulkActionPress && <Ionicons name="chevron-down" size={16} color="white" />}
+              </Pressable>
             )}
-            <View className="flex-row flex-wrap gap-3">
-              {searchable && (
-                <View className="flex-1" style={{ minWidth: 220 }}>
-                  <TextInput
-                    className="bg-gray-50 border border-gray-200 rounded-lg px-4 py-2.5"
-                    placeholder={searchPlaceholder}
-                    placeholderTextColor="#9ca3af"
-                    value={searchQuery}
-                    onChangeText={setSearchQuery}
-                  />
-                </View>
-              )}
-              {!filtersInActionRow && filters.map((filter) => (
-                <FilterDropdown
-                  key={filter.key}
-                  label=""
-                  value={activeFilters[filter.key] || null}
-                  options={filter.options}
-                  onChange={(value) => handleFilterChange(filter.key, value)}
-                  placeholder={filter.placeholder}
-                  width={filter.width}
-                  multiple={filter.multiple}
-                />
-              ))}
-              {sortOptions.length > 0 && (
-                <FilterDropdown
-                  label=""
-                  value={sortBy}
-                  options={sortOptions}
-                  onChange={setSortBy}
-                  placeholder="Sort By"
-                  width={150}
-                />
-              )}
-            </View>
-          </>
+            {addButton && onAddPress && (
+              <Pressable 
+                className="px-4 py-2 rounded-lg flex-row items-center gap-2"
+                style={{ backgroundColor: "#3B82F6" }}
+                onPress={onAddPress}
+              >
+                <Text style={{ fontFamily: 'Montserrat' }} className="text-white font-medium">{addButtonText}</Text>
+              </Pressable>
+            )}
+          </View>
         )}
 
-        {/* Results count */}
-        <Text className="text-gray-400 text-sm mt-2">
-          Showing {filteredData.length}{totalCount ? ` of ${totalCount}` : ""} items
-        </Text>
+        {/* Filters if any */}
+        {!filtersInActionRow && filters.length > 0 && (
+          <View className="flex-row flex-wrap gap-3 mt-4">
+            {filters.map(renderFilterDropdown)}
+            {sortOptions.length > 0 && (
+              <FilterDropdown
+                label=""
+                value={sortBy}
+                options={sortOptions}
+                onChange={(value) => setSortBy(typeof value === "string" ? value : null)}
+                placeholder="Sort By"
+                width={150}
+              />
+            )}
+          </View>
+        )}
       </View>
 
       {/* Data Table */}
       <View className="flex-1">
         {renderHeader()}
-        <FlatList
-          data={filteredData}
-          keyExtractor={keyExtractor}
-          renderItem={({ item }) => renderRow ? renderRow(item, columns, visibleColumns) : renderDefaultRow(item)}
+        <ScrollView
           showsVerticalScrollIndicator={false}
           refreshControl={
             onRefresh ? (
               <RefreshControl refreshing={isRefreshing} onRefresh={handleRefresh} />
             ) : undefined
           }
-          ListEmptyComponent={
+        >
+          {filteredData.length === 0 ? (
             <View className="py-16 items-center">
               <Ionicons name={emptyIcon} size={48} color="#d1d5db" />
-              <Text className="text-gray-400 mt-2">{emptyText}</Text>
+              <Text style={{ fontFamily: 'Montserrat' }} className="text-gray-400 mt-2">{emptyText}</Text>
             </View>
-          }
-        />
+          ) : (
+            renderedRows
+          )}
+          {ListFooterComponent ? (
+            React.isValidElement(ListFooterComponent) ? ListFooterComponent : null
+          ) : null}
+        </ScrollView>
+      </View>
+
+      {/* Pagination Footer Replica */}
+      <View className="flex-row items-center justify-between px-5 py-4 bg-[#F7F7F9] border-t border-gray-200">
+        <View className="flex-row items-center gap-2">
+          <Pressable 
+            className="w-8 h-8 items-center justify-center border border-gray-200 rounded bg-white shadow-sm"
+            onPress={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+            disabled={currentPage === 1}
+          >
+            <Ionicons name="chevron-back" size={16} color={currentPage === 1 ? "#D1D5DB" : "#6B7280"} />
+          </Pressable>
+          
+          {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+            // Basic logic to show pages around current page if many pages exist
+            let pageNum = i + 1;
+            if (totalPages > 5 && currentPage > 3) {
+              pageNum = currentPage - 3 + i;
+              if (pageNum + (5 - i - 1) > totalPages) {
+                pageNum = totalPages - 5 + i + 1;
+              }
+            }
+            
+            if (pageNum <= 0 || pageNum > totalPages) return null;
+
+            return (
+              <Pressable 
+                key={pageNum}
+                className={`w-8 h-8 items-center justify-center rounded shadow-sm ${pageNum === currentPage ? "bg-[#EC1A52]" : "border border-gray-200 bg-white"}`}
+                onPress={() => setCurrentPage(pageNum)}
+              >
+                <Text className={`font-Montserrat font-medium ${pageNum === currentPage ? "text-white" : "text-[#6B7280]"}`}>
+                  {pageNum}
+                </Text>
+              </Pressable>
+            );
+          })}
+
+          <Pressable 
+            className="w-8 h-8 items-center justify-center border border-gray-200 rounded bg-white shadow-sm"
+            onPress={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+            disabled={currentPage === totalPages}
+          >
+            <Ionicons name="chevron-forward" size={16} color={currentPage === totalPages ? "#D1D5DB" : "#6B7280"} />
+          </Pressable>
+          
+          <Text className="ml-2 text-gray-400 font-Montserrat text-[12px]">
+            Page {currentPage} of {totalPages} ({processedData.length} total)
+          </Text>
+        </View>
+
+        <View className="flex-row items-center gap-2 border border-gray-200 rounded px-3 py-1.5 bg-white shadow-sm">
+          <Text className="font-Montserrat text-[#1A1A1A] text-[14px]">{pageSize}/Page</Text>
+          <Ionicons name="chevron-down" size={14} color="#6B7280" />
+        </View>
       </View>
 
       {/* Columns Selection Modal */}
@@ -616,63 +956,141 @@ export function DataTable<T = any>(props: DataTableProps<T>) {
           onRequestClose={() => setShowColumnsModal(false)}
         >
           <View className="flex-1 bg-black/50 justify-center items-center">
-            <View className="bg-white rounded-xl w-80 max-w-[90%] p-6">
+            <View className="bg-white rounded-xl w-[600px] max-w-[95%] max-h-[85%] overflow-hidden shadow-lg">
               {/* Header */}
-              <View className="flex-row items-center justify-between mb-2">
-                <Text className="text-xl font-semibold text-gray-800">Select Columns</Text>
-                <Pressable onPress={() => setShowColumnsModal(false)}>
-                  <Ionicons name="close" size={24} color="#9CA3AF" />
+              <View className="flex-row items-center justify-between px-6 py-6 border-b border-gray-200">
+                <Text 
+                  style={{ 
+                    fontSize: 32, 
+                    fontWeight: "600", 
+                    fontFamily: "Montserrat", 
+                    color: "#1A1A1A",
+                    letterSpacing: -0.64
+                  }}
+                >
+                  Select Columns
+                </Text>
+                <Pressable onPress={() => setShowColumnsModal(false)} className="p-1">
+                  <Ionicons name="close" size={28} color="#9CA3AF" />
                 </Pressable>
               </View>
 
-              <View className="flex-row items-center py-2 mb-2 border-b border-gray-100">
-                <View className="mr-3">
-                  <TableCheckbox
-                    checked={allHideableColumnsSelected}
-                    indeterminate={!allHideableColumnsSelected && someHideableColumnsSelected}
-                    onPress={toggleSelectAllHideable}
-                    disabled={hideableColumnKeys.length === 0}
-                  />
-                </View>
-                <Text className="text-sm text-gray-700">Select all</Text>
-              </View>
-
-              {/* Column Options */}
-              <ScrollView className="max-h-96" showsVerticalScrollIndicator={false}>
-                {columns.map((col) => {
-                  const isHideable = col.hideable !== false;
-                  const isVisible = visibleColumns[col.key];
-                  
-                  return (
-                    <Pressable 
-                      key={col.key}
-                      className="flex-row items-center py-3"
-                      onPress={() => isHideable && toggleColumn(col.key)}
-                      disabled={!isHideable}
+              <ScrollView className="px-6 pt-6" showsVerticalScrollIndicator={false} style={{ flexShrink: 1 }} contentContainerStyle={{ paddingBottom: 24 }}>
+                {/* Select All Toggle */}
+                <View className="flex-row justify-between items-center py-4 mb-4">
+                  <Text 
+                    style={{ 
+                      fontSize: 24, 
+                      fontWeight: "600", 
+                      fontFamily: "Montserrat", 
+                      color: "#1A1A1A" 
+                    }}
+                  >
+                    General Settings
+                  </Text>
+                  <View className="flex-row items-center gap-3">
+                    <Text 
+                      style={{ 
+                        fontSize: 14, 
+                        color: "#6B7280", 
+                        fontFamily: "Montserrat",
+                        fontStyle: "italic" 
+                      }}
                     >
-                      <View 
-                        className={`w-5 h-5 rounded border mr-3 items-center justify-center ${
-                          isVisible ? 'bg-red-500 border-red-500' : 'border-gray-300'
-                        } ${!isHideable ? 'opacity-50' : ''}`}
-                      >
-                        {isVisible && <Ionicons name="checkmark" size={14} color="white" />}
-                      </View>
-                      <Text className={`text-base ${!isHideable ? 'text-gray-400' : 'text-gray-700'}`}>
-                        {col.title}
-                      </Text>
-                    </Pressable>
-                  );
-                })}
+                      Select all
+                    </Text>
+                    <Switch
+                      trackColor={{ false: "#D1D5DB", true: "#FBCFE8" }}
+                      thumbColor={allHideableColumnsSelected ? "#EC1A52" : "#FFFFFF"}
+                      ios_backgroundColor="#D1D5DB"
+                      onValueChange={toggleSelectAllHideable}
+                      value={allHideableColumnsSelected}
+                      disabled={hideableColumnKeys.length === 0}
+                    />
+                  </View>
+                </View>
+
+                {/* Two-Column Column Options */}
+                <View className="flex-row gap-8">
+                  {/* Left Column */}
+                  <View className="flex-1">
+                    {columns.filter((_, i) => i % 2 === 0).map((col) => {
+                      const isHideable = col.hideable !== false;
+                      const isVisible = visibleColumns[col.key];
+                      return (
+                        <View key={col.key} className="flex-row justify-between items-center py-4 border-b border-[#E5E7EB]">
+                          <Text 
+                            style={{ fontFamily: 'Montserrat', fontSize: 16, color: "#1A1A1A" }}
+                            className={`flex-1 mr-4 ${!isHideable ? 'text-gray-400 font-medium italic' : ''}`}
+                            numberOfLines={1}
+                          >
+                            {col.title} {!isHideable && '(Fixed)'}
+                          </Text>
+                          <Switch
+                            trackColor={{ false: "#D1D5DB", true: "#FBCFE8" }}
+                            thumbColor={isVisible ? "#EC1A52" : "#FFFFFF"}
+                            ios_backgroundColor="#D1D5DB"
+                            onValueChange={() => { if (isHideable) toggleColumn(col.key); }}
+                            value={isVisible}
+                            disabled={!isHideable}
+                          />
+                        </View>
+                      );
+                    })}
+                  </View>
+
+                  {/* Right Column */}
+                  <View className="flex-1">
+                    {columns.filter((_, i) => i % 2 !== 0).map((col) => {
+                      const isHideable = col.hideable !== false;
+                      const isVisible = visibleColumns[col.key];
+                      return (
+                        <View key={col.key} className="flex-row justify-between items-center py-4 border-b border-[#E5E7EB]">
+                          <Text 
+                            style={{ fontFamily: 'Montserrat', fontSize: 16, color: "#1A1A1A" }}
+                            className={`flex-1 mr-4 ${!isHideable ? 'text-gray-400 font-medium italic' : ''}`}
+                            numberOfLines={1}
+                          >
+                            {col.title} {!isHideable && '(Fixed)'}
+                          </Text>
+                          <Switch
+                            trackColor={{ false: "#D1D5DB", true: "#FBCFE8" }}
+                            thumbColor={isVisible ? "#EC1A52" : "#FFFFFF"}
+                            ios_backgroundColor="#D1D5DB"
+                            onValueChange={() => { if (isHideable) toggleColumn(col.key); }}
+                            value={isVisible}
+                            disabled={!isHideable}
+                          />
+                        </View>
+                      );
+                    })}
+                  </View>
+                </View>
+
+                {/* Extra settings content (e.g. Advance Filters) */}
+                {settingsModalExtras && (
+                  <View className="mt-6 pt-6 border-t border-gray-200">
+                    {settingsModalExtras}
+                  </View>
+                )}
               </ScrollView>
 
-              {/* Footer Button */}
-              <Pressable
-                className="mt-6 py-3 rounded-lg items-center"
-                style={{ backgroundColor: "#3B82F6" }}
-                onPress={() => setShowColumnsModal(false)}
-              >
-                <Text className="text-white font-medium">Done</Text>
-              </Pressable>
+              {/* Footer Buttons */}
+              <View className="flex-row justify-center gap-4 p-6 border-t border-gray-200">
+                <Pressable
+                  onPress={() => setShowColumnsModal(false)}
+                  className="flex-1 py-3 bg-red-50 rounded-lg items-center border border-red-100"
+                >
+                  <Text style={{ fontFamily: 'Montserrat' }} className="text-red-500 font-semibold">Cancel</Text>
+                </Pressable>
+                <Pressable
+                  onPress={() => setShowColumnsModal(false)}
+                  className="flex-1 py-3 rounded-lg items-center shadow-sm"
+                  style={{ backgroundColor: "#EC1A52" }}
+                >
+                  <Text style={{ fontFamily: 'Montserrat' }} className="text-white font-semibold">Apply</Text>
+                </Pressable>
+              </View>
             </View>
           </View>
         </Modal>

@@ -9,9 +9,9 @@ export default function TestSyncScreen() {
   const router = useRouter()
 
   return (
-    <View className="flex-1 bg-gray-100">
+    <View className="flex-1 bg-[#F7F7F9]">
       {/* Back Button */}
-      <View className="pt-12 px-4 pb-2 bg-white border-b border-gray-200">
+      <View className="pt-12 px-4 pb-2 bg-[#F7F7F9] border-b border-gray-200">
         <TouchableOpacity 
           onPress={() => router.back()}
           className="flex-row items-center"

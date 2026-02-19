@@ -31,7 +31,7 @@ export type { ProductView } from './useProducts';
 
 // Stock hooks
 export { useStockAlerts, useStockSearch, useStocks } from './useStocks';
-export type { StockView } from './useStocks';
+export type { StockView, StocksQueryFilters } from './useStocks';
 
 // Sale order hooks
 export { FULFILMENT_STATUS, ORDER_STATUS, fetchSaleOrderProducts, useParkedOrders, useSaleOrderById, useSaleOrderSearch, useSaleOrders } from './useSaleOrders';

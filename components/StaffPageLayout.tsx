@@ -1,38 +1,46 @@
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
-import { Alert, ScrollView, Text, TouchableOpacity, View } from "react-native";
+import { Alert, ScrollView, TouchableOpacity, View } from "react-native";
 import { useAuth } from "../contexts/AuthContext";
 import { useClock } from "../contexts/ClockContext";
+import { useViewMode } from "../contexts/ViewModeContext";
 import { useAppNavigation } from "../hooks/useAppNavigation";
 import { BrandingSection } from "./BrandingSection";
 import { SidebarButton } from "./SidebarButton";
+import { PageHeader } from "./PageHeader";
 
 // Re-export SidebarButton for backward compatibility
 export { SidebarButton };
 
-const SIDEBAR_WIDTH = 260;
+const SIDEBAR_WIDTH = 440;
 
 interface StaffPageLayoutProps {
   children: React.ReactNode;
   sidebarCustomButtons?: React.ReactNode;
   title?: string;
   subTitle?: string;
+  showBack?: boolean;
 }
 
-export default function StaffPageLayout({ children, sidebarCustomButtons, title, subTitle }: StaffPageLayoutProps) {
-  const { navigateTo, router } = useAppNavigation();
-  const { logout } = useAuth();
-  const { isClockedIn, clockIn, clockOut } = useClock();
+export default function StaffPageLayout({ children, sidebarCustomButtons, title, subTitle, showBack = false }: StaffPageLayoutProps) {
+  const { navigateTo } = useAppNavigation();
+  const { clockOut } = useAuth();
+  const { isClockedIn } = useClock();
+  const { isStaffMode, setViewMode } = useViewMode();
+
+  // Handle Change User - switch mode and navigate to homepage
+  const handleChangeUser = () => {
+    setViewMode(isStaffMode ? "admin" : "staff");
+    navigateTo("/");
+  };
 
   // Handle Time Clock logic
   const handleTimeClock = () => {
     // If using the real ClockContext, toggle clock in/out or show modal
-    // For now, simulating the button press
     if (isClockedIn) {
       // Logic for already clocked in
     } else {
       // Logic for clocking in
     }
-    // In real implementation, this would trigger the modal
   };
 
   const handleClockOut = () => {
@@ -55,22 +63,12 @@ export default function StaffPageLayout({ children, sidebarCustomButtons, title,
   };
 
   return (
-    <View className="flex-1 flex-row bg-white">
+    <View className="flex-1 bg-[#F7F7F9] flex-row">
       {/* Main Content Area (Left) */}
       <View className="flex-1 flex-col">
         {/* Optional Header if title is provided */}
         {(title || subTitle) && (
-          <View className="px-6 py-4 border-b border-gray-200">
-             {title && (
-                <View className="flex-row items-center mb-1">
-                  <TouchableOpacity onPress={() => router.back()} className="mr-3 p-1">
-                    <Ionicons name="arrow-back" size={24} color="#1A1A1A" />
-                  </TouchableOpacity>
-                  <Text className="text-2xl font-bold text-gray-900">{title}</Text>
-                </View>
-             )}
-             {subTitle && <Text className="text-gray-500 text-sm ml-9">{subTitle}</Text>}
-          </View>
+          <PageHeader title={title || ""} subtitle={subTitle} showBack={showBack} />
         )}
         
         <View className="flex-1">
@@ -80,36 +78,27 @@ export default function StaffPageLayout({ children, sidebarCustomButtons, title,
 
       {/* Right Sidebar */}
       <View 
-        className="bg-gray-50 border-l border-gray-200 p-2 flex-col" 
+        className="bg-[#F7F7F9] flex-col" 
         style={{ width: SIDEBAR_WIDTH }}
       >
         {/* Branding Section */}
-        <View className="mb-2">
+        <View className="px-2">
           <BrandingSection />
         </View>
 
-        {/* Go to Menu - Top position below branding */}
-        <View className="mb-3">
-          <SidebarButton 
-            title="Go to Menu"
-            icon={<Ionicons name="menu-outline" size={20} color="#EC1A52" />}
-            onPress={handleGoToMenu}
-          />
-        </View>
-
-        <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 20, gap: 8 }}>
+        <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ padding: 8, paddingBottom: 20, gap: 8 }}>
           {/* Top Fixed Buttons: Time Clock | Change User */}
           <View className="flex-row gap-2">
             <SidebarButton 
               title="Time Clock" 
-              icon={<Ionicons name="time-outline" size={20} color="#EC1A52" />}
+              icon={<Ionicons name="time-outline" size={32} color="#EC1A52" />}
               onPress={handleTimeClock}
               fullWidth={false}
             />
             <SidebarButton 
               title="Change User" 
-              icon={<MaterialCommunityIcons name="account-switch-outline" size={20} color="#848484" />}
-              onPress={() => Alert.alert("Change User", "Functionality implementation pending")}
+              icon={<MaterialCommunityIcons name="account-switch-outline" size={32} color="#848484" />}
+              onPress={handleChangeUser}
               fullWidth={false}
               isActive={false}
             />
@@ -125,13 +114,13 @@ export default function StaffPageLayout({ children, sidebarCustomButtons, title,
           {/* Common Bottom Buttons */}
           <SidebarButton 
             title="Clock out"
-            icon={<Ionicons name="log-out-outline" size={20} color="#EC1A52" />}
+            icon={<Ionicons name="log-out-outline" size={32} color="#EC1A52" />}
             onPress={handleClockOut}
           />
 
           <SidebarButton 
             title="Exit Program"
-            icon={<Ionicons name="close-circle-outline" size={20} color="#EC1A52" />}
+            icon={<Ionicons name="close-circle-outline" size={32} color="#EC1A52" />}
             onPress={handleExit}
           />
         </ScrollView>

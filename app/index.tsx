@@ -1,19 +1,21 @@
 import { FontAwesome5, Ionicons, MaterialCommunityIcons, MaterialIcons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { LinearGradient } from "expo-linear-gradient";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Alert, Modal, Pressable, ScrollView, Text, ToastAndroid, TouchableOpacity, useWindowDimensions, View } from "react-native";
 import {
     ActionCard,
+    DASHBOARD_SIDEBAR_WIDTH,
     DateRangePickerModal,
-    SIDEBAR_WIDTH,
-    StatCard
+    StatCard,
+    StatsBar
 } from "../components";
+import type { StatsBarItem } from "../components";
 import { CashEntryModal } from "../components/CashEntryModal";
 import { CashResultModal } from "../components/CashResultModal";
 import { DeclareCashModal } from "../components/DeclareCashModal";
 import { ParkedOrdersModal } from "../components/ParkedOrdersModal";
-import { STAFF_SIDEBAR_WIDTH } from "../components/StaffSidebar";
 import { useAuth } from "../contexts/AuthContext";
 import { useClock } from "../contexts/ClockContext";
 import { useParkedOrders } from "../contexts/ParkedOrderContext";
@@ -25,15 +27,11 @@ import { usePowerSync } from "../utils/powersync/PowerSyncProvider";
 import { getLocalToday } from "../utils/powersync/sqlFilters";
 import { useSyncStream } from "../utils/powersync/useSyncStream";
 import {
-    addPrinter,
     addPrinterListener,
     getPoolStatus,
     getPrinters,
     isAnyPrinterModuleAvailable,
-    openCashDrawer,
-    print,
-    printToAll,
-    printToOne
+    openCashDrawer
 } from "../utils/PrinterPoolManager";
 
 // Default printer configuration
@@ -200,8 +198,7 @@ export default function Dashboard() {
   }, [openDeclareCash, lastHandledDeclareCashToken]);
   
   // Calculate available content width
-  const sidebarWidth = isStaffMode ? STAFF_SIDEBAR_WIDTH : SIDEBAR_WIDTH;
-  const contentWidth = isLandscape ? width - sidebarWidth : width;
+  const contentWidth = isLandscape ? width - DASHBOARD_SIDEBAR_WIDTH : width;
 
   // Update clock duration
   useEffect(() => {
@@ -236,183 +233,49 @@ export default function Dashboard() {
     loadSettings();
   }, []);
 
-  // Initialize printer pool from saved settings - run only once
+  // Sync printer list state for use in this component if needed (though UI is moved)
   useEffect(() => {
-    let isMounted = true;
-    
-    const initPrinterPool = async () => {
-      // If pool already has printers, skip initialization
-      if (getPrinters().length > 0) {
-        console.log("🖨️ [Dashboard] Pool already has printers, skipping init");
-        // Update printer list state
-        const currentPrinters = getPrinters().filter(p => p.enabled);
-        setPrinterList(currentPrinters.map(p => ({ id: p.id, name: p.name })));
-        return;
-      }
-      
-      console.log("🖨️ [Dashboard] Initializing printer pool...");
-      try {
-        // Load printer pool config from AsyncStorage
-        const savedConfig = await AsyncStorage.getItem("printer_pool_config");
-        console.log("🖨️ [Dashboard] Saved config:", savedConfig ? "found" : "not found");
-        console.log("🖨️ [Dashboard] Raw config:", savedConfig);
-        
-        if (!isMounted) return;
-        
-        if (savedConfig) {
-          const printers = JSON.parse(savedConfig);
-          console.log("🖨️ [Dashboard] Loading", printers.length, "printers from config");
-          printers.forEach((p: any) => {
-            if (!getPrinters().find(existing => existing.id === p.id)) {
-              console.log("🖨️ [Dashboard] Adding printer:", p.id, p.name);
-              addPrinter(p);
-            }
-          });
-        } else {
-          console.log("🖨️ [Dashboard] No saved printer config");
-        }
-        
-        // Log final pool status and update state
-        const status = getPoolStatus();
-        console.log("🖨️ [Dashboard] Pool initialized:", status.printers.length, "printers");
-        status.printers.forEach(p => {
-          console.log("   -", p.id, `(${p.name})`, p.enabled ? "enabled" : "disabled", p.status);
-        });
-        
-        // Update printer list state
-        const enabledPrinters = status.printers.filter(p => p.enabled);
-        setPrinterList(enabledPrinters.map(p => ({ id: p.id, name: p.name })));
-      } catch (e) {
-        console.log("🖨️ [Dashboard] Failed to init printer pool:", e);
-      }
+    const updatePrinters = () => {
+      const enabledPrinters = getPrinters().filter(p => p.enabled);
+      setPrinterList(enabledPrinters.map(p => ({ id: p.id, name: p.name })));
     };
-    initPrinterPool();
-
-    // Listen to print events
+    
+    updatePrinters();
     const unsubscribe = addPrinterListener((event) => {
-      console.log("🖨️ [Dashboard] Print event:", event.type, event.jobId || "", event.printerId || "");
-      if (event.type === 'job_failed') {
-        Alert.alert("Print Error", `Failed to print: ${event.data?.error || 'Unknown error'}`);
-      }
-      // Update printer list (status may have changed)
-      if (event.type === 'printer_added' || event.type === 'printer_removed') {
-        const currentPrinters = getPrinters().filter(p => p.enabled);
-        setPrinterList(currentPrinters.map(p => ({ id: p.id, name: p.name })));
+      if (['printer_added', 'printer_removed', 'printer_status_changed'].includes(event.type)) {
+        updatePrinters();
       }
     });
-    
-    return () => {
-      isMounted = false;
-      unsubscribe();
-    };
+    return () => unsubscribe();
   }, []); // Remove dependencies, run only once
-
-  // Test receipt content
-  const buildTestReceipt = (): string => {
-    return `
-<CB>ITITANS STORE</CB>
-<C>123 Main Street</C>
-<C>City, State 12345</C>
-<C>================================</C>
-
-TEST PRINT RECEIPT
-Date: ${new Date().toLocaleString()}
-
-Coffee Latte          x2    $8.00
-Sandwich              x1   $12.50
-Cookies               x3    $6.00
-
-<C>--------------------------------</C>
-<CB>TOTAL: $26.50</CB>
-<C>--------------------------------</C>
-
-<C>Thank you for shopping!</C>
-<C>Please come again</C>
-
-`;
-  };
-
-  // Test print function - supports specific printer or print to all
-  const handleTestPrint = async (printerIndex?: number | 'all') => {
-    try {
-      if (!isClockedIn) {
-        clockIn("TEST-001", 1);
-      }
-
-      if (printerList.length === 0) {
-        ToastAndroid.show(`❌ No available printers`, ToastAndroid.LONG);
-        return;
-      }
-
-      const receipt = buildTestReceipt();
-
-      if (printerIndex === 'all') {
-        // Print to all printers in parallel (Promise.all)
-        console.log("🖨️ [Dashboard] ========== PARALLEL Print to ALL ==========");
-        ToastAndroid.show(`⏳ Printing in parallel...`, ToastAndroid.SHORT);
-        
-        const result = await printToAll(receipt);
-        
-        if (result.success) {
-          const successPrinters = result.results.filter(r => r.success).map(r => r.printer);
-          const failedPrinters = result.results.filter(r => !r.success).map(r => r.printer);
-          
-          if (failedPrinters.length === 0) {
-            ToastAndroid.show(`✅ All successful: ${successPrinters.join(', ')}`, ToastAndroid.LONG);
-          } else {
-            ToastAndroid.show(`⚠️ Success: ${successPrinters.join(', ')} | Failed: ${failedPrinters.join(', ')}`, ToastAndroid.LONG);
-          }
-        } else {
-          ToastAndroid.show(`❌ All prints failed`, ToastAndroid.LONG);
-        }
-      } else if (typeof printerIndex === 'number') {
-        // Print to specific printer (using TCP, non-blocking)
-        const targetPrinter = printerList[printerIndex];
-        if (!targetPrinter) {
-          ToastAndroid.show(`❌ Printer ${printerIndex + 1} not found`, ToastAndroid.LONG);
-          return;
-        }
-        console.log(`🖨️ [Dashboard] ========== Print to: ${targetPrinter.name} ==========`);
-        ToastAndroid.show(`⏳ Printing...`, ToastAndroid.SHORT);
-        
-        const result = await printToOne(targetPrinter.id, receipt);
-        if (result.success) {
-          ToastAndroid.show(`✅ ${targetPrinter.name} success`, ToastAndroid.LONG);
-        } else {
-          ToastAndroid.show(`❌ ${targetPrinter.name} failed: ${result.error}`, ToastAndroid.LONG);
-        }
-      } else {
-        // Default load balancing
-        console.log("🖨️ [Dashboard] ========== Print (load balanced) ==========");
-        print(receipt);
-        ToastAndroid.show(`✅ Print job sent`, ToastAndroid.LONG);
-      }
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : String(err);
-      console.log("🖨️ [Dashboard] ERROR:", msg, err);
-      ToastAndroid.show(`❌ Error: ${msg}`, ToastAndroid.LONG);
-    }
-  };
 
   // =========================================================================
   // Staff Home Content
   // =========================================================================
   if (isStaffMode) {
     return (
-      <View className="flex-1 bg-gray-100">
+      <View className="flex-1 bg-[#F7F7F9]">
         <ScrollView 
           className="flex-1"
           contentContainerStyle={{ padding: 16 }}
           showsVerticalScrollIndicator={false}
         >
           {/* Header Bar */}
-          <View 
-            className="rounded-xl p-5 mb-4 flex-row justify-between items-center"
+          <LinearGradient
+            colors={["#9C1235", "#E91E63"]} // Dark red to vibrant red gradient
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 0 }}
             style={{
-              backgroundColor: "#EC1A52",
-              shadowColor: "#989898",
-              shadowOffset: { width: 4, height: 4 },
-              shadowOpacity: 0.25,
+              height: 122,
+              borderRadius: 12,
+              paddingHorizontal: 20,
+              marginBottom: 16,
+              flexDirection: "row",
+              justifyContent: "between",
+              alignItems: "center",
+              shadowColor: "#000",
+              shadowOffset: { width: 0, height: 4 },
+              shadowOpacity: 0.2,
               shadowRadius: 4,
               elevation: 4,
             }}
@@ -445,65 +308,78 @@ Cookies               x3    $6.00
               activeOpacity={0.8}
             >
               <Text 
-                className="text-white font-semibold"
-                style={{ fontSize: 28, letterSpacing: -0.5 }}
+                style={{ 
+                  fontSize: 36, 
+                  lineHeight: 40,
+                  letterSpacing: -0.72, // -2% of 36
+                  fontWeight: "600", 
+                  fontFamily: "Montserrat",
+                  color: "#FFFFFF"
+                }}
               >
                 Welcome to KHUB POS System
               </Text>
-              <Text 
-                className="text-white font-medium mt-1"
-                style={{ fontSize: 16 }}
-              >
-                Access sales, reporting, and system actions quickly and securely.
-              </Text>
-              {/* Sync Status Indicator */}
-              <View className="flex-row items-center mt-2 gap-2">
-                <View 
-                  style={{
-                    width: 8,
-                    height: 8,
-                    borderRadius: 4,
-                    backgroundColor: isConnected ? '#10B981' : '#EF4444',
+              <View className="flex-row items-center mt-1 gap-4">
+                <Text 
+                  style={{ 
+                    fontSize: 18, 
+                    fontWeight: "500", 
+                    fontFamily: "Montserrat",
+                    color: "rgba(255, 255, 255, 0.9)"
                   }}
-                />
-                <Text className="text-white text-xs opacity-75">
-                  {isSyncing ? 'Syncing...' : isConnected ? 'Connected' : 'Offline'}
+                >
+                  Access sales, reporting, and system actions quickly and securely.
                 </Text>
-                <Text className="text-white text-xs opacity-50 ml-2">
-                  (Long press to resync)
-                </Text>
+                
+                {/* Connection Status Indicator */}
+                <View className="flex-row items-center gap-2 bg-black/20 px-3 py-1 rounded-full">
+                  <View 
+                    style={{
+                      width: 8,
+                      height: 8,
+                      borderRadius: 4,
+                      backgroundColor: isConnected ? '#10B981' : '#EF4444',
+                    }}
+                  />
+                  <Text style={{ color: "white", fontSize: 12, fontWeight: "600", fontFamily: "Montserrat" }}>
+                    {isSyncing ? 'Syncing...' : isConnected ? 'Online' : 'Offline'}
+                  </Text>
+                </View>
               </View>
             </TouchableOpacity>
             
             {/* Role Badge */}
             <View 
-              className="bg-white rounded-xl px-4 py-2 ml-4"
+              className="bg-white rounded-xl px-5 py-2.5 ml-4"
               style={{ borderWidth: 1, borderColor: "#1A1A1A" }}
             >
               <Text 
-                className="font-semibold"
-                style={{ fontSize: 16, color: "#1A1A1A" }}
+                style={{ fontSize: 18, color: "#1A1A1A", fontWeight: "600", fontFamily: "Montserrat" }}
               >
-                STAFF
+                CASHIER
               </Text>
             </View>
-          </View>
+          </LinearGradient>
 
           {/* Primary Action Buttons */}
           <View className="flex-row gap-4 mb-4">
             <ActionCard
               title="Start Sale"
-              backgroundColor="#EC1A52"
+              gradientColors={["#EC1A52", "#9C1235"]}
               onPress={() => router.push("/order/add-products")}
               disabled={!isClockedIn}
+              isGrayedOut={!isClockedIn}
+              height={180}
             />
 
             <ActionCard
               title="Resume Last Order"
-              backgroundColor="#5F4BB6"
+              gradientColors={["#5F4BB6", "#3F328C"]}
               onPress={() => setShowParkedOrdersModal(true)}
               disabled={!isClockedIn}
+              isGrayedOut={!isClockedIn}
               badge={parkedOrders.length > 0 ? parkedOrders.length : undefined}
+              height={180}
             />
           </View>
 
@@ -513,7 +389,9 @@ Cookies               x3    $6.00
               title="Open Drawer"
               backgroundColor="#EC1A52"
               outline
-              icon={<MaterialCommunityIcons name="package-variant-closed" size={48} color={isClockedIn ? "#EC1A52" : "#848484"} />}
+              isGrayedOut={!isClockedIn}
+              grayVariant="light"
+              icon={<MaterialCommunityIcons name="package-variant-closed" size={48} color={isClockedIn ? "#EC1A52" : "#FFFFFF"} />}
               onPress={async () => {
                 const poolStatus = getPoolStatus();
                 const hasIdlePrinter = poolStatus.printers.some(p => p.enabled && p.status === 'idle');
@@ -529,24 +407,31 @@ Cookies               x3    $6.00
                 }
               }}
               disabled={!isClockedIn}
+              height={180}
             />
 
             <ActionCard
               title="Declare Cash"
               backgroundColor="#EC1A52"
               outline
-              icon={<MaterialCommunityIcons name="cash-multiple" size={48} color={isClockedIn ? "#EC1A52" : "#848484"} />}
+              isGrayedOut={!isClockedIn}
+              grayVariant="light"
+              icon={<MaterialCommunityIcons name="cash-multiple" size={48} color={isClockedIn ? "#EC1A52" : "#FFFFFF"} />}
               onPress={() => setShowDeclareCashModal(true)}
               disabled={!isClockedIn}
+              height={180}
             />
 
             <ActionCard
               title="Payments History"
-              backgroundColor="#EC1A52"
+              backgroundColor="#5F4BB6"
               outline
-              icon={<MaterialIcons name="payment" size={48} color={isClockedIn ? "#EC1A52" : "#848484"} />}
+              isGrayedOut={!isClockedIn}
+              grayVariant="light"
+              icon={<MaterialIcons name="payment" size={48} color={isClockedIn ? "#5F4BB6" : "#FFFFFF"} />}
               onPress={() => router.push("/sale/payments-history")}
               disabled={!isClockedIn}
+              height={180}
             />
           </View>
 
@@ -562,27 +447,14 @@ Cookies               x3    $6.00
 
         {/* Bottom Stats Bar - Only show when clocked in */}
         {isClockedIn && (
-          <View 
-            className="flex-row px-4 py-3 gap-4"
-            style={{ backgroundColor: "#1A1A1A" }}
-          >
-            <View className="flex-1 rounded-lg py-3 px-3 border-2 border-white items-center">
-              <Text className="text-white font-semibold" style={{ fontSize: 14 }}>User Sales :</Text>
-              <Text className="text-white font-bold" style={{ fontSize: 22 }}>${userSales.toFixed(2)}</Text>
-            </View>
-            <View className="flex-1 rounded-lg py-3 px-3 border-2 border-white items-center">
-              <Text className="text-white font-semibold" style={{ fontSize: 14 }}>Parked Orders :</Text>
-              <Text className="text-white font-bold" style={{ fontSize: 22 }}>{parkedOrders.length}</Text>
-            </View>
-            <View className="flex-1 rounded-lg py-3 px-3 border-2 border-white items-center">
-              <Text className="text-white font-semibold" style={{ fontSize: 14 }}>Clock In Time :</Text>
-              <Text className="text-white font-bold" style={{ fontSize: 22 }}>{getClockInTimeString()}</Text>
-            </View>
-            <View className="flex-1 rounded-lg py-3 px-3 border-2 border-white items-center">
-              <Text className="text-white font-semibold" style={{ fontSize: 14 }}>Clock In Duration :</Text>
-              <Text className="text-white font-bold" style={{ fontSize: 22 }}>{clockDuration}</Text>
-            </View>
-          </View>
+          <StatsBar
+            items={[
+              { label: "User Sales :", value: `$${userSales.toFixed(2)}` },
+              { label: "Parked Orders :", value: String(parkedOrders.length) },
+              { label: "Clock In Time :", value: getClockInTimeString() },
+              { label: "Clock In Duration :", value: clockDuration },
+            ]}
+          />
         )}
 
         {/* Parked Orders Modal */}
@@ -648,20 +520,28 @@ Cookies               x3    $6.00
   // Admin Dashboard Content
   // =========================================================================
   return (
-    <View className="flex-1 bg-gray-100">
+    <View className="flex-1 bg-[#F7F7F9]">
       <ScrollView
         className="flex-1"
         contentContainerStyle={{ padding: 16 }}
         showsVerticalScrollIndicator={false}
       >
         {/* ===== HEADER GROUP ===== */}
-        <View 
-          className="rounded-xl p-5 mb-4 flex-row justify-between items-center"
+        <LinearGradient
+          colors={["#9C1235", "#E91E63"]} // Dark red to vibrant red gradient
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 0 }}
           style={{
-            backgroundColor: "#EC1A52",
-            shadowColor: "#989898",
-            shadowOffset: { width: 4, height: 4 },
-            shadowOpacity: 0.25,
+            height: 122,
+            borderRadius: 12,
+            paddingHorizontal: 20,
+            marginBottom: 16,
+            flexDirection: "row",
+            justifyContent: "between",
+            alignItems: "center",
+            shadowColor: "#000",
+            shadowOffset: { width: 0, height: 4 },
+            shadowOpacity: 0.2,
             shadowRadius: 4,
             elevation: 4,
           }}
@@ -694,77 +574,58 @@ Cookies               x3    $6.00
             activeOpacity={0.8}
           >
             <Text 
-              className="text-white font-semibold"
-              style={{ fontSize: 28, letterSpacing: -0.5 }}
+              style={{ 
+                fontSize: 36, 
+                lineHeight: 40,
+                letterSpacing: -0.72, // -2% of 36
+                fontWeight: "600", 
+                fontFamily: "Montserrat",
+                color: "#FFFFFF"
+              }}
             >
-              Welcome, {user?.name || "User"}
+              Welcome to KHUB POS System
             </Text>
-            <Text 
-              className="text-white font-medium mt-1"
-              style={{ fontSize: 16 }}
-            >
-              Access sales, reporting, and system actions quickly and securely.
-            </Text>
-            {/* Sync Status Indicator */}
-            <View className="flex-row items-center mt-2 gap-2">
-              <View 
-                style={{
-                  width: 8,
-                  height: 8,
-                  borderRadius: 4,
-                  backgroundColor: isConnected ? '#10B981' : '#EF4444',
+            <View className="flex-row items-center mt-1 gap-4">
+              <Text 
+                style={{ 
+                  fontSize: 18, 
+                  fontWeight: "500", 
+                  fontFamily: "Montserrat",
+                  color: "rgba(255, 255, 255, 0.9)"
                 }}
-              />
-              <Text className="text-white text-xs opacity-75">
-                {isSyncing ? 'Syncing...' : isConnected ? 'Connected' : 'Offline'}
+              >
+                Access sales, reporting, and system actions quickly and securely.
               </Text>
-              <Text className="text-white text-xs opacity-50 ml-2">
-                (Long press to resync)
-              </Text>
+              
+              {/* Connection Status Indicator */}
+              <View className="flex-row items-center gap-2 bg-black/20 px-3 py-1 rounded-full">
+                <View 
+                  style={{
+                    width: 8,
+                    height: 8,
+                    borderRadius: 4,
+                    backgroundColor: isConnected ? '#10B981' : '#EF4444',
+                  }}
+                />
+                <Text style={{ color: "white", fontSize: 12, fontWeight: "600", fontFamily: "Montserrat" }}>
+                  {isSyncing ? 'Syncing...' : isConnected ? 'Online' : 'Offline'}
+                </Text>
+              </View>
             </View>
           </TouchableOpacity>
           
           {/* Role Badge */}
           <View 
-            className="bg-white rounded-xl px-4 py-2 ml-4"
-            style={{ borderWidth: 1, borderColor: "#1A1A1A" }}
+            className="bg-[#1A1A1A] rounded-xl px-5 py-2.5 ml-4"
+            style={{ borderWidth: 1, borderColor: "rgba(255,255,255,0.2)" }}
           >
             <Text 
-              className="font-semibold"
-              style={{ fontSize: 16, color: "#1A1A1A" }}
+              style={{ fontSize: 18, color: "#FFFFFF", fontWeight: "600", fontFamily: "Montserrat" }}
             >
               ADMIN
             </Text>
           </View>
-        </View>
-
-        {/* ===== NAVIGATION GROUP ===== */}
-        <View className="flex-row gap-4 mb-4">
-          <ActionCard
-            title="Product Catalog"
-            backgroundColor="#3B82F6"
-            icon={<Ionicons name="cube-outline" size={32} color="white" />}
-            onPress={() => router.push("/catalog/products")}
-          />
-          <ActionCard
-            title="Inventory"
-            backgroundColor="#10B981"
-            icon={<Ionicons name="layers-outline" size={32} color="white" />}
-            onPress={() => router.push("/inventory/stocks")}
-          />
-          <ActionCard
-            title="Sales"
-            backgroundColor="#8B5CF6"
-            icon={<Ionicons name="cart-outline" size={32} color="white" />}
-            onPress={() => router.push("/sale/customers")}
-          />
-          <ActionCard
-            title="Report"
-            backgroundColor="#F59E0B"
-            icon={<Ionicons name="bar-chart-outline" size={32} color="white" />}
-            onPress={() => router.push("/report")}
-          />
-        </View>
+        </LinearGradient>
 
         {/* ===== DASHBOARD FILTERS ===== */}
         {showAdminStats && (
@@ -779,7 +640,7 @@ Cookies               x3    $6.00
                 <View className="flex-row items-center justify-between">
                   <View className="flex-row items-center gap-2">
                     <Ionicons name="calendar-outline" size={18} color="#4B5563" />
-                    <Text style={{ fontSize: 14, color: '#1F2937', fontWeight: '600' }}>{dateRangeLabel}</Text>
+                    <Text style={{ fontSize: 14, color: '#1F2937', fontWeight: '600', fontFamily: 'Montserrat' }}>{dateRangeLabel}</Text>
                   </View>
                   <Ionicons name="chevron-down" size={14} color="#9CA3AF" />
                 </View>
@@ -792,7 +653,7 @@ Cookies               x3    $6.00
                 style={{ backgroundColor: '#fff', borderWidth: 1, borderColor: '#E5E7EB' }}
               >
                 <Ionicons name="storefront-outline" size={18} color="#4B5563" />
-                <Text style={{ fontSize: 14, color: '#1F2937', fontWeight: '500' }}>{channelLabel}</Text>
+                <Text style={{ fontSize: 14, color: '#1F2937', fontWeight: '500', fontFamily: 'Montserrat' }}>{channelLabel}</Text>
                 <Ionicons name="chevron-down" size={14} color="#9CA3AF" />
               </TouchableOpacity>
             </View>
@@ -807,173 +668,97 @@ Cookies               x3    $6.00
                 title="Total Sale/Revenue"
                 value={formatCurrency(stats.totalRevenue)}
                 subtitle={`${stats.orderCount} orders`}
-                icon={<Ionicons name="pricetag" size={24} color="white" />}
-                variant="yellow"
+                icon={<Ionicons name="pricetag" size={40} color="white" />}
+                variant="green"
+                height={180}
               />
               <StatCard
                 title="Paid Amount"
                 value={formatCurrency(stats.paidAmount)}
-                icon={<FontAwesome5 name="coins" size={22} color="white" />}
+                icon={<FontAwesome5 name="coins" size={36} color="white" />}
                 variant="teal"
+                height={180}
               />
               <StatCard
                 title="Payable Amount"
                 value={formatCurrency(stats.payableAmount)}
-                icon={<Ionicons name="cart" size={24} color="white" />}
-                variant="purple"
+                icon={<Ionicons name="cart" size={40} color="white" />}
+                variant="yellow"
+                height={180}
               />
             </View>
 
-            <View className="flex-row gap-4">
+            <View className="flex-row gap-4 mb-4">
               <StatCard
                 title="Receivable Amount"
                 value={formatCurrency(stats.receivableAmount)}
                 subtitle={`${stats.customerCount} customers`}
-                icon={<MaterialCommunityIcons name="cash-multiple" size={24} color="white" />}
+                icon={<MaterialCommunityIcons name="cash-multiple" size={40} color="white" />}
                 variant="blue"
-              />
-              <StatCard
-                title="Delivery Orders"
-                value={String(stats.deliveryOrdersCount)}
-                icon={<MaterialCommunityIcons name="truck-delivery" size={24} color="white" />}
-                variant="pink"
+                height={180}
               />
               <StatCard
                 title="Pickup Orders"
                 value={String(stats.pickupOrdersCount)}
-                icon={<MaterialCommunityIcons name="shopping" size={24} color="white" />}
-                variant="dark"
+                icon={<MaterialCommunityIcons name="shopping" size={40} color="white" />}
+                variant="purple"
+                height={180}
+              />
+              <StatCard
+                title="Delivery Orders"
+                value={String(stats.deliveryOrdersCount)}
+                icon={<MaterialCommunityIcons name="truck-delivery" size={40} color="white" />}
+                variant="red"
+                height={180}
               />
             </View>
           </>
         )}
+
+        {/* ===== NAVIGATION GROUP ===== */}
+        <View className="flex-row gap-4 mb-4">
+          <ActionCard
+            title="Product Catalog"
+            backgroundColor="#3B82F6"
+            icon={<Ionicons name="cube-outline" size={40} color="white" />}
+            onPress={() => router.push("/catalog/products")}
+            height={180}
+          />
+          <ActionCard
+            title="Inventory"
+            backgroundColor="#10B981"
+            icon={<Ionicons name="layers-outline" size={40} color="white" />}
+            onPress={() => router.push("/inventory/stocks")}
+            height={180}
+          />
+          <ActionCard
+            title="Sales"
+            backgroundColor="#8B5CF6"
+            icon={<Ionicons name="cart-outline" size={40} color="white" />}
+            onPress={() => router.push("/order/add-products")}
+            height={180}
+          />
+          <ActionCard
+            title="Report"
+            backgroundColor="#F59E0B"
+            icon={<Ionicons name="bar-chart-outline" size={40} color="white" />}
+            onPress={() => router.push("/report")}
+            height={180}
+          />
+        </View>
       </ScrollView>
 
-      {/* Bottom Stats Bar - Time & Clock Info */}
-      <View 
-        className="flex-row px-4 py-3 gap-4"
-        style={{ backgroundColor: "#1A1A1A" }}
-      >
-        <View className="flex-1 rounded-lg py-3 px-3 border-2 border-white items-center">
-          <Text className="text-white font-semibold" style={{ fontSize: 14 }}>Current Time :</Text>
-          <Text className="text-white font-bold" style={{ fontSize: 22 }}>
-            {currentTime.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: true })}
-          </Text>
-        </View>
-        <View className="flex-1 rounded-lg py-3 px-3 border-2 border-white items-center">
-          <Text className="text-white font-semibold" style={{ fontSize: 14 }}>Date :</Text>
-          <Text className="text-white font-bold" style={{ fontSize: 22 }}>
-            {currentTime.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
-          </Text>
-        </View>
-        {isClockedIn && (
-          <>
-            <View className="flex-1 rounded-lg py-3 px-3 border-2 border-white items-center">
-              <Text className="text-white font-semibold" style={{ fontSize: 14 }}>Clock In Time :</Text>
-              <Text className="text-white font-bold" style={{ fontSize: 22 }}>{getClockInTimeString()}</Text>
-            </View>
-            <View className="flex-1 rounded-lg py-3 px-3 border-2 border-white items-center">
-              <Text className="text-white font-semibold" style={{ fontSize: 14 }}>Clock In Duration :</Text>
-              <Text className="text-white font-bold" style={{ fontSize: 22 }}>{clockDuration}</Text>
-            </View>
-          </>
-        )}
-      </View>
-
-      {/* Floating Test Buttons */}
-      <View
-        style={{
-          position: "absolute",
-          bottom: 30,
-          right: 20,
-          gap: 12,
-          zIndex: 999,
-        }}
-      >
-        {/* Sync Test Button */}
-        <TouchableOpacity
-          onPress={() => router.push("/test-sync")}
-          style={{
-            backgroundColor: "#3B82F6",
-            paddingVertical: 16,
-            paddingHorizontal: 24,
-            borderRadius: 12,
-            flexDirection: "row",
-            alignItems: "center",
-            gap: 8,
-            shadowColor: "#000",
-            shadowOffset: { width: 0, height: 4 },
-            shadowOpacity: 0.3,
-            shadowRadius: 4,
-            elevation: 8,
-          }}
-        >
-          <Ionicons name="sync" size={24} color="white" />
-          <Text style={{ color: "white", fontWeight: "bold", fontSize: 16 }}>
-            TEST SYNC
-          </Text>
-        </TouchableOpacity>
-
-        {/* Print Test Buttons - dynamically generated for any number of printers */}
-        {printerList.map((printer, index) => {
-          // Assign different colors for each printer
-          const colors = ['#ef4444', '#f97316', '#eab308', '#22c55e', '#06b6d4', '#3b82f6', '#8b5cf6', '#ec4899'];
-          const bgColor = colors[index % colors.length];
-          
-          return (
-            <TouchableOpacity
-              key={printer.id}
-              onPress={() => handleTestPrint(index)}
-              style={{
-                backgroundColor: bgColor,
-                paddingVertical: 12,
-                paddingHorizontal: 16,
-                borderRadius: 12,
-                flexDirection: "row",
-                alignItems: "center",
-                gap: 6,
-                shadowColor: "#000",
-                shadowOffset: { width: 0, height: 4 },
-                shadowOpacity: 0.3,
-                shadowRadius: 4,
-                elevation: 8,
-              }}
-            >
-              <Ionicons name="print" size={20} color="white" />
-              <Text style={{ color: "white", fontWeight: "bold", fontSize: 14 }}>
-                {printer.name}
-              </Text>
-            </TouchableOpacity>
-          );
-        })}
-
-        {/* Print All button - only show when there are 2+ printers */}
-        {printerList.length >= 2 && (
-          <TouchableOpacity
-            onPress={() => handleTestPrint('all')}
-            style={{
-              backgroundColor: "#7c3aed",
-              paddingVertical: 12,
-              paddingHorizontal: 16,
-              borderRadius: 12,
-              flexDirection: "row",
-              alignItems: "center",
-              gap: 6,
-              shadowColor: "#000",
-              shadowOffset: { width: 0, height: 4 },
-              shadowOpacity: 0.3,
-              shadowRadius: 4,
-              elevation: 8,
-            }}
-          >
-            <Ionicons name="print-outline" size={20} color="white" />
-            <Text style={{ color: "white", fontWeight: "bold", fontSize: 14 }}>
-              All ({printerList.length})
-            </Text>
-          </TouchableOpacity>
-        )}
-
-      </View>
+        {/* Bottom Stats Bar - Time & Clock Info */}
+      <StatsBar
+        items={[
+          { label: "Current Time :", value: currentTime.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: true }) },
+          { label: "Date :", value: currentTime.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) },
+          ...(isClockedIn ? [
+            { label: "Clock In Time :", value: getClockInTimeString() },
+            { label: "Clock In Duration :", value: clockDuration },
+          ] : []),
+        ]}
+      />
 
       {/* ===== DATE RANGE PICKER MODAL ===== */}
       <DateRangePickerModal

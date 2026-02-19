@@ -42,7 +42,7 @@ export function POSLineCard({
   return (
     <Pressable
       onPress={onPress}
-      className="flex-1 min-h-[140px] rounded-lg bg-white overflow-hidden"
+      className="flex-1 min-h-[140px] rounded-lg bg-[#F7F7F9] overflow-hidden shadow-sm"
       style={({ pressed }) => ({
         opacity: pressed ? 0.7 : 1,
         borderWidth: 2,

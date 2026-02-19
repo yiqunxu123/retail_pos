@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { powerSyncDb } from './PowerSyncProvider'
 
 /**
@@ -23,11 +23,21 @@ export function useSyncStream<T>(
   const [isStreaming, setIsStreaming] = useState(false)
   
   const abortControllerRef = useRef<AbortController | null>(null)
+  const dataRef = useRef<T[]>([])
+  const activeStreamKeyRef = useRef<string | null>(null)
   const enabled = options?.enabled ?? true
+  const paramsKey = useMemo(() => JSON.stringify(params), [params])
+  const stableParams = useMemo(() => params, [paramsKey])
+  const streamKey = useMemo(() => `${query}::${paramsKey}`, [query, paramsKey])
 
   // Subscribe to the stream
   const subscribe = useCallback(async () => {
     if (!enabled) return
+
+    // Guard against redundant resubscribe with an identical stream key.
+    if (activeStreamKeyRef.current === streamKey && abortControllerRef.current) {
+      return
+    }
     
     // Abort any existing stream
     if (abortControllerRef.current) {
@@ -36,20 +46,20 @@ export function useSyncStream<T>(
 
     const abortController = new AbortController()
     abortControllerRef.current = abortController
+    activeStreamKeyRef.current = streamKey
 
     setIsStreaming(true)
-    setIsLoading(true)
+    // Keep existing data stable while reconnecting to avoid UI flashing.
+    setIsLoading(dataRef.current.length === 0)
     setError(null)
 
     try {
-      console.log(`[SyncStream] Subscribing to: ${query}`)
-      
       // Stream data changes
-      for await (const result of powerSyncDb.watch(query, params, {
+      for await (const result of powerSyncDb.watch(query, stableParams, {
         signal: abortController.signal,
       })) {
         const rows = result.rows?._array || []
-        console.log(`[SyncStream] Received ${rows.length} rows`)
+        dataRef.current = rows as T[]
         setData(rows as T[])
         setIsLoading(false)
       }
@@ -59,29 +69,34 @@ export function useSyncStream<T>(
         setError(err)
       }
     } finally {
+      // Only clear streaming flag for the currently active stream.
+      if (activeStreamKeyRef.current === streamKey) {
+        activeStreamKeyRef.current = null
+      }
       setIsStreaming(false)
     }
-  }, [query, JSON.stringify(params), enabled])
+  }, [enabled, query, stableParams, streamKey])
 
   // Unsubscribe from the stream
   const unsubscribe = useCallback(() => {
-    console.log(`[SyncStream] Unsubscribing from: ${query}`)
     if (abortControllerRef.current) {
       abortControllerRef.current.abort()
       abortControllerRef.current = null
     }
+    activeStreamKeyRef.current = null
     setIsStreaming(false)
-  }, [query])
+  }, [])
 
   // Refresh data manually
   const refresh = useCallback(async () => {
     try {
-      const result = await powerSyncDb.getAll<T>(query, params)
+      const result = await powerSyncDb.getAll<T>(query, stableParams)
+      dataRef.current = result
       setData(result)
     } catch (err: any) {
       setError(err)
     }
-  }, [query, JSON.stringify(params)])
+  }, [query, stableParams])
 
   // Auto-subscribe on mount, unsubscribe on unmount
   useEffect(() => {

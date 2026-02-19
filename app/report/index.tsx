@@ -1,12 +1,12 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-import { Pressable, ScrollView, Text, View } from "react-native";
+import { Alert, Pressable, ScrollView, Text, View } from "react-native";
 import { PageHeader } from "../../components";
 
 interface ReportItem {
   id: string;
   name: string;
-  route: string;
+  route: string | null;
 }
 
 const REPORTS_LEFT: ReportItem[] = [
@@ -17,10 +17,10 @@ const REPORTS_LEFT: ReportItem[] = [
 ];
 
 const REPORTS_RIGHT: ReportItem[] = [
-  { id: "5", name: "Lost Sale Report", route: "/report/lost-sales" },
-  { id: "6", name: "Detail Sale Report", route: "/report/detail-sales" },
-  { id: "7", name: "Sales Summary Report", route: "/report/sales-summary" },
-  { id: "8", name: "Sales Rep Category Report", route: "/report/sales-rep-category" },
+  { id: "5", name: "Lost Sale Report", route: null },
+  { id: "6", name: "Detail Sale Report", route: null },
+  { id: "7", name: "Sales Summary Report", route: null },
+  { id: "8", name: "Sales Rep Category Report", route: null },
 ];
 
 export default function ReportingScreen() {
@@ -28,20 +28,24 @@ export default function ReportingScreen() {
 
   const ReportRow = ({ item }: { item: ReportItem }) => (
     <Pressable
-      onPress={() => router.push(item.route as any)}
+      onPress={() => {
+        if (item.route) {
+          router.push(item.route as any);
+        } else {
+          Alert.alert(item.name, "Coming soon");
+        }
+      }}
       className="flex-row items-center justify-between py-4 px-5 border-b border-gray-100 active:bg-gray-50"
     >
-      <Text className="text-gray-800 text-base flex-1">{item.name}</Text>
-      <Ionicons name="chevron-forward" size={20} color="#9ca3af" />
+      <Text className={`text-base flex-1 ${item.route ? "text-gray-800" : "text-gray-400"}`}>{item.name}</Text>
+      <Ionicons name="chevron-forward" size={20} color={item.route ? "#9ca3af" : "#d1d5db"} />
     </Pressable>
   );
 
   return (
-    <View className="flex-1 bg-white">
+    <View className="flex-1 bg-[#F7F7F9]">
       {/* Header */}
-      <View className="px-4 pt-4">
-        <PageHeader title="Business Reporting" variant="banner" />
-      </View>
+      <PageHeader title="Business Reporting" showBack={false} />
 
       {/* Reports Grid */}
       <ScrollView className="flex-1" contentContainerClassName="p-5">

@@ -616,8 +616,8 @@ export default function SettingsScreen() {
   );
 
   return (
-    <View className="flex-1 bg-gray-50">
-      <PageHeader title="Settings" />
+    <View className="flex-1 bg-[#F7F7F9]">
+      <PageHeader title="Settings" showBack={false} />
 
       <ScrollView className="flex-1" contentContainerClassName="p-5">
         {/* Printer Pool Card */}

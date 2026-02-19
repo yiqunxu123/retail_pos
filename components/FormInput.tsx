@@ -32,25 +32,26 @@ export function FormInput({
 
   return (
     <View className="mb-4">
-      <Text className="text-gray-600 text-sm mb-1.5">{label}</Text>
+      <Text className="text-[#5A5F66] text-[18px] mb-1.5" style={{ fontFamily: 'Montserrat' }}>{label}</Text>
       <InputWrapper
         onPress={isDropdown || isDatePicker ? onDropdownPress : undefined}
-        className="flex-row items-center bg-white border border-gray-200 rounded-lg px-3 py-2.5"
+        className="flex-row items-center bg-white border border-gray-200 rounded-xl px-3 py-3 shadow-sm"
       >
         {isDropdown || isDatePicker ? (
           <>
-            <Text className={`flex-1 ${value ? "text-gray-800" : "text-gray-400"}`}>
+            <Text className={`flex-1 text-[18px] ${value ? "text-gray-800" : "text-gray-400"}`} style={{ fontFamily: 'Montserrat' }}>
               {value || placeholder}
             </Text>
             <Ionicons
               name={isDatePicker ? "calendar-outline" : "chevron-down"}
-              size={18}
+              size={20}
               color="#9ca3af"
             />
           </>
         ) : (
           <TextInput
-            className="flex-1 text-gray-800"
+            className="flex-1 text-gray-800 text-[18px]"
+            style={{ fontFamily: 'Montserrat' }}
             value={value}
             onChangeText={onChangeText}
             placeholder={placeholder}
@@ -58,7 +59,6 @@ export function FormInput({
             editable={editable}
             multiline={multiline}
             numberOfLines={multiline ? 3 : 1}
-            style={multiline ? { minHeight: 60, textAlignVertical: "top" } : {}}
           />
         )}
       </InputWrapper>

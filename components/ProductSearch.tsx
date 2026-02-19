@@ -25,20 +25,21 @@ export function ProductSearch({
   onSearchFocus,
 }: ProductSearchProps) {
   return (
-    <View className="bg-white rounded-lg p-4 mb-4">
+    <View className="bg-[#F7F7F9] rounded-lg p-4 mb-4 shadow-sm">
       <View className="flex-row items-center gap-4">
         {/* Search Input */}
         <View className="flex-1">
-          <Text className="text-gray-600 text-sm mb-2">
+          <Text className="text-[#5A5F66] text-[18px] mb-2" style={{ fontFamily: 'Montserrat' }}>
             Add product by Name, SKU, UPC
           </Text>
           <Pressable
             onPress={onSearchFocus}
-            className="flex-row items-center bg-gray-50 border border-gray-200 rounded-lg px-3 py-2"
+            className="flex-row items-center bg-white border border-gray-200 rounded-lg px-3 py-3 shadow-sm"
           >
             <Ionicons name="search" size={20} color="#9ca3af" />
             <TextInput
-              className="flex-1 ml-2 text-gray-800 text-base"
+              className="flex-1 ml-2 text-gray-800 text-[18px]"
+              style={{ fontFamily: 'Montserrat' }}
               placeholder="Search Products"
               placeholderTextColor="#9ca3af"
               value={searchQuery}
@@ -50,9 +51,10 @@ export function ProductSearch({
 
         {/* Scan Qty */}
         <View>
-          <Text className="text-gray-600 text-sm mb-2">Scan Qty</Text>
+          <Text className="text-[#5A5F66] text-[18px] mb-2" style={{ fontFamily: 'Montserrat' }}>Scan Qty</Text>
           <TextInput
-            className="w-16 bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-center text-gray-800"
+            className="w-20 bg-white border border-gray-200 rounded-lg px-3 py-3 text-center text-gray-800 text-[18px] shadow-sm"
+            style={{ fontFamily: 'Montserrat' }}
             keyboardType="numeric"
             value={scanQty}
             onChangeText={onScanQtyChange}

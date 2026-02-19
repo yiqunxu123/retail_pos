@@ -5,33 +5,35 @@
  */
 
 import { Ionicons } from "@expo/vector-icons";
-import { useState } from "react";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
-  ActivityIndicator,
-  Alert,
-  Modal,
-  Pressable,
-  ScrollView,
-  Text,
-  TextInput,
-  View,
+    ActivityIndicator,
+    Alert,
+    Modal,
+    Pressable,
+    ScrollView,
+    Text,
+    TextInput,
+    View,
 } from "react-native";
-import { ColumnDefinition, DataTable, FilterDefinition, PageHeader } from "../../components";
+import { ColumnDefinition, DataTable, FilterDefinition, FilterDropdown, PageHeader } from "../../components";
 import {
-  BulkStockUpdateItem,
-  bulkUpdateStocks,
-  getStockByProductId,
-  StockChannelInfo,
-  updateStocks as updateStocksApi,
+    BulkStockUpdateItem,
+    bulkUpdateStocks,
+    getStockByProductId,
+    StockChannelInfo,
+    updateStocks as updateStocksApi,
 } from "../../utils/api";
-import { StockView, useStocks } from "../../utils/powersync/hooks";
+import { StocksQueryFilters, StockView, useStocks } from "../../utils/powersync/hooks";
+import { useSyncStream } from "../../utils/powersync/useSyncStream";
 
 // ============================================================================
 // Helpers
 // ============================================================================
 
 const formatCurrency = (value: number) => (value > 0 ? `$${value.toFixed(2)}` : "-");
-const formatQty = (value: number | null | undefined) => (value === null || value === undefined ? "-" : value.toLocaleString());
+const formatQty = (value: number | null | undefined) => (value === null || value === undefined ? "-" : String(value));
 const qtyValueTextStyle = { fontSize: 12, lineHeight: 16, fontWeight: "400" as const, color: "#374151" };
 const qtyInputTextStyle = {
   fontSize: 12,
@@ -87,6 +89,187 @@ const PRODUCT_STATUS_FILTER_OPTIONS = [
   { label: "Inactive", value: "2" },
   { label: "Archived", value: "3" },
 ];
+
+const STOCK_SEARCH_FILTER_STORAGE_KEY = "stock_search_filter";
+const STOCK_TYPE_OPTIONS = [
+  { label: "Damaged Stock", value: "damaged" },
+  { label: "Out of Stock", value: "out_of_stock" },
+];
+
+interface StocksCompareCase {
+  id: string;
+  filters: StocksQueryFilters;
+  expectedRemoteCount: number;
+}
+
+const STOCKS_COMPARE_CASES: StocksCompareCase[] = [
+  // Remote baseline generated via `npm run stocks:compare:remote` on 2026-02-14.
+  { id: "tc01_default_active", filters: { channelIds: [1], productStatus: [1] }, expectedRemoteCount: 23 },
+  { id: "tc02_status_inactive", filters: { channelIds: [1], productStatus: [2] }, expectedRemoteCount: 0 },
+  { id: "tc03_status_archived", filters: { channelIds: [1], productStatus: [3] }, expectedRemoteCount: 0 },
+  { id: "tc04_status_active_archived", filters: { channelIds: [1], productStatus: [1, 3] }, expectedRemoteCount: 24 },
+  { id: "tc05_out_of_stock", filters: { channelIds: [1], productStatus: [1], outOfStock: true }, expectedRemoteCount: 5 },
+  { id: "tc06_has_damaged", filters: { channelIds: [1], productStatus: [1], hasDamaged: true }, expectedRemoteCount: 0 },
+  { id: "tc07_brand_11", filters: { channelIds: [1], productStatus: [1], brandIds: [11] }, expectedRemoteCount: 6 },
+  { id: "tc08_category_10", filters: { channelIds: [1], productStatus: [1], categoryIds: [10] }, expectedRemoteCount: 5 },
+  {
+    id: "tc09_brand11_category10",
+    filters: { channelIds: [1], productStatus: [1], brandIds: [11], categoryIds: [10] },
+    expectedRemoteCount: 0,
+  },
+  { id: "tc10_search_mock", filters: { channelIds: [1], productStatus: [1], searchKey: "mock" }, expectedRemoteCount: 18 },
+  {
+    id: "tc11_search_not_found",
+    filters: { channelIds: [1], productStatus: [1], searchKey: "__no_such_product__" },
+    expectedRemoteCount: 0,
+  },
+  {
+    id: "tc12_brand11_out_of_stock",
+    filters: { channelIds: [1], productStatus: [1], brandIds: [11], outOfStock: true },
+    expectedRemoteCount: 0,
+  },
+];
+
+interface ChannelOptionRow {
+  id: number;
+  name: string;
+  is_primary: number | null;
+}
+
+interface NamedOptionRow {
+  id: number;
+  name: string;
+}
+
+interface StocksAdvancedFilters {
+  channelIds: number[];
+  brandIds: number[];
+  supplierIds: number[];
+  categoryIds: number[];
+  searchZone: string;
+  searchAisle: string;
+  searchBin: string;
+  stockType: "" | "damaged" | "out_of_stock";
+}
+
+interface StocksFilterStoragePayload {
+  advance_filters: {
+    channel_ids: number[];
+    brand_ids: number[];
+    supplier_ids: number[];
+    category_id: number[];
+    searchText: string;
+    search_zone: string;
+    search_aisle: string;
+    search_Bin: string;
+    damaged_product: string;
+    out_of_stock: string;
+    product_status: number[];
+  };
+  show_advance_filters: boolean;
+  display_advance_filters: boolean;
+  channelForBulkEdit: Array<{ id: number; name: string }>;
+}
+
+function createDefaultAdvancedFilters(defaultChannelId: number | null): StocksAdvancedFilters {
+  return {
+    channelIds: defaultChannelId ? [defaultChannelId] : [],
+    brandIds: [],
+    supplierIds: [],
+    categoryIds: [],
+    searchZone: "",
+    searchAisle: "",
+    searchBin: "",
+    stockType: "",
+  };
+}
+
+function toStringIds(ids: number[]) {
+  return ids.map((id) => String(id));
+}
+
+function isPositiveInteger(value: number) {
+  return Number.isInteger(value) && value > 0;
+}
+
+function fromStringIds(value: string | string[] | null): number[] {
+  const raw = Array.isArray(value) ? value : (typeof value === "string" && value ? [value] : []);
+  return raw
+    .map((v) => Number(v))
+    .filter((v) => isPositiveInteger(v));
+}
+
+function normalizeIdArray(value?: (number | string)[]): number[] {
+  if (!value) return [];
+  return Array.from(
+    new Set(
+      value
+        .map((item) => Number(item))
+        .filter((item) => isPositiveInteger(item))
+    )
+  ).sort((a, b) => a - b);
+}
+
+function normalizeQueryFilters(filters: StocksQueryFilters) {
+  return {
+    searchKey: (filters.searchKey || "").trim().toLowerCase(),
+    channelIds: normalizeIdArray(filters.channelIds),
+    brandIds: normalizeIdArray(filters.brandIds),
+    supplierIds: normalizeIdArray(filters.supplierIds),
+    categoryIds: normalizeIdArray(filters.categoryIds),
+    productStatus: normalizeIdArray(filters.productStatus),
+    searchZone: (filters.searchZone || "").trim().toLowerCase(),
+    searchAisle: (filters.searchAisle || "").trim().toLowerCase(),
+    searchBin: (filters.searchBin || "").trim().toLowerCase(),
+    hasDamaged: Boolean(filters.hasDamaged),
+    outOfStock: Boolean(filters.outOfStock),
+  };
+}
+
+function isEqualNormalizedQueryFilters(left: StocksQueryFilters, right: StocksQueryFilters) {
+  const a = normalizeQueryFilters(left);
+  const b = normalizeQueryFilters(right);
+  return (
+    a.searchKey === b.searchKey &&
+    equalNumberArrays(a.channelIds, b.channelIds) &&
+    equalNumberArrays(a.brandIds, b.brandIds) &&
+    equalNumberArrays(a.supplierIds, b.supplierIds) &&
+    equalNumberArrays(a.categoryIds, b.categoryIds) &&
+    equalNumberArrays(a.productStatus, b.productStatus) &&
+    a.searchZone === b.searchZone &&
+    a.searchAisle === b.searchAisle &&
+    a.searchBin === b.searchBin &&
+    a.hasDamaged === b.hasDamaged &&
+    a.outOfStock === b.outOfStock
+  );
+}
+
+function equalNumberArrays(a: number[], b: number[]) {
+  if (a.length !== b.length) return false;
+  const as = [...a].sort((x, y) => x - y);
+  const bs = [...b].sort((x, y) => x - y);
+  return as.every((value, index) => value === bs[index]);
+}
+
+function equalStringArrays(a: string[], b: string[]) {
+  if (a.length !== b.length) return false;
+  const as = [...a].sort();
+  const bs = [...b].sort();
+  return as.every((value, index) => value === bs[index]);
+}
+
+function equalAdvancedFilters(a: StocksAdvancedFilters, b: StocksAdvancedFilters) {
+  return (
+    equalNumberArrays(a.channelIds, b.channelIds) &&
+    equalNumberArrays(a.brandIds, b.brandIds) &&
+    equalNumberArrays(a.supplierIds, b.supplierIds) &&
+    equalNumberArrays(a.categoryIds, b.categoryIds) &&
+    a.searchZone.trim() === b.searchZone.trim() &&
+    a.searchAisle.trim() === b.searchAisle.trim() &&
+    a.searchBin.trim() === b.searchBin.trim() &&
+    a.stockType === b.stockType
+  );
+}
 
 function distributeStock(
   receivedQty: number,
@@ -154,7 +337,70 @@ function ActionButton({
 // ============================================================================
 
 export default function StocksScreen() {
-  const { stocks, isLoading, isStreaming, refresh, count } = useStocks();
+  const { data: channelRows } = useSyncStream<ChannelOptionRow>(
+    "SELECT id, name, is_primary FROM channels ORDER BY name ASC",
+    []
+  );
+  const { data: brandRows } = useSyncStream<NamedOptionRow>(
+    "SELECT id, name FROM brands ORDER BY name ASC",
+    []
+  );
+  const { data: supplierRows } = useSyncStream<NamedOptionRow>(
+    "SELECT id, name FROM suppliers ORDER BY name ASC",
+    []
+  );
+  const { data: categoryRows } = useSyncStream<NamedOptionRow>(
+    "SELECT id, name FROM categories ORDER BY name ASC",
+    []
+  );
+
+  const defaultChannelId = useMemo(() => {
+    if (channelRows.length === 0) return null;
+    const primaryChannel = channelRows.find((channel) => Number(channel.is_primary || 0) === 1);
+    return Number((primaryChannel || channelRows[0]).id);
+  }, [channelRows]);
+
+  const defaultAdvancedFilters = useMemo(
+    () => createDefaultAdvancedFilters(defaultChannelId),
+    [defaultChannelId]
+  );
+
+  const [filtersReady, setFiltersReady] = useState(false);
+  const [storageHydrated, setStorageHydrated] = useState(false);
+  const [initialChannelApplied, setInitialChannelApplied] = useState(false);
+  const [searchText, setSearchText] = useState("");
+  const [productStatusValues, setProductStatusValues] = useState<string[]>(["1"]);
+  const [advancedFilters, setAdvancedFilters] = useState<StocksAdvancedFilters>(
+    () => createDefaultAdvancedFilters(null)
+  );
+  const [advancedFiltersDraft, setAdvancedFiltersDraft] = useState<StocksAdvancedFilters>(
+    () => createDefaultAdvancedFilters(null)
+  );
+
+  const queryFilters = useMemo<StocksQueryFilters>(
+    () => ({
+      searchKey: searchText,
+      productStatus: productStatusValues,
+      channelIds: advancedFilters.channelIds,
+      brandIds: advancedFilters.brandIds,
+      supplierIds: advancedFilters.supplierIds,
+      categoryIds: advancedFilters.categoryIds,
+      searchZone: advancedFilters.searchZone,
+      searchAisle: advancedFilters.searchAisle,
+      searchBin: advancedFilters.searchBin,
+      hasDamaged: advancedFilters.stockType === "damaged",
+      outOfStock: advancedFilters.stockType === "out_of_stock",
+    }),
+    [advancedFilters, productStatusValues, searchText]
+  );
+
+  const { stocks, isLoading, isStreaming, refresh, count } = useStocks(queryFilters);
+  const lastCompareLogRef = useRef<string>("");
+  const activeCompareCase = useMemo(
+    () => STOCKS_COMPARE_CASES.find((testCase) => isEqualNormalizedQueryFilters(queryFilters, testCase.filters)),
+    [queryFilters]
+  );
+
   const [selectedRowKeys, setSelectedRowKeys] = useState<string[]>([]);
   const [bulkModalVisible, setBulkModalVisible] = useState(false);
   const [bulkRows, setBulkRows] = useState<StockView[]>([]);
@@ -167,6 +413,187 @@ export default function StocksScreen() {
   const [singleEditProductName, setSingleEditProductName] = useState("");
   const [singleEditRows, setSingleEditRows] = useState<StockEditRow[]>([]);
   const [singleEditMap, setSingleEditMap] = useState<Record<string, SingleEditValue>>({});
+
+  const channelNameMap = useMemo(
+    () =>
+      new Map<number, string>(
+        channelRows.map((channel) => [Number(channel.id), String(channel.name || `#${channel.id}`)])
+      ),
+    [channelRows]
+  );
+  const brandNameMap = useMemo(
+    () =>
+      new Map<number, string>(
+        brandRows.map((brand) => [Number(brand.id), String(brand.name || `#${brand.id}`)])
+      ),
+    [brandRows]
+  );
+  const supplierNameMap = useMemo(
+    () =>
+      new Map<number, string>(
+        supplierRows.map((supplier) => [Number(supplier.id), String(supplier.name || `#${supplier.id}`)])
+      ),
+    [supplierRows]
+  );
+  const categoryNameMap = useMemo(
+    () =>
+      new Map<number, string>(
+        categoryRows.map((category) => [Number(category.id), String(category.name || `#${category.id}`)])
+      ),
+    [categoryRows]
+  );
+
+  const persistStockFilters = useCallback(
+    async (nextSearchText: string, nextProductStatusValues: string[], nextAdvancedFilters: StocksAdvancedFilters) => {
+      const payload: StocksFilterStoragePayload = {
+        advance_filters: {
+          channel_ids: nextAdvancedFilters.channelIds,
+          brand_ids: nextAdvancedFilters.brandIds,
+          supplier_ids: nextAdvancedFilters.supplierIds,
+          category_id: nextAdvancedFilters.categoryIds,
+          searchText: nextSearchText,
+          search_zone: nextAdvancedFilters.searchZone,
+          search_aisle: nextAdvancedFilters.searchAisle,
+          search_Bin: nextAdvancedFilters.searchBin,
+          damaged_product: nextAdvancedFilters.stockType === "damaged" ? "1" : "",
+          out_of_stock: nextAdvancedFilters.stockType === "out_of_stock" ? "1" : "",
+          product_status: nextProductStatusValues
+            .map((value) => Number(value))
+            .filter((value) => isPositiveInteger(value)),
+        },
+        show_advance_filters: true,
+        display_advance_filters: true,
+        channelForBulkEdit: nextAdvancedFilters.channelIds.map((channelId) => ({
+          id: channelId,
+          name: channelNameMap.get(channelId) || String(channelId),
+        })),
+      };
+      await AsyncStorage.setItem(STOCK_SEARCH_FILTER_STORAGE_KEY, JSON.stringify(payload));
+    },
+    [channelNameMap]
+  );
+
+  useEffect(() => {
+    let cancelled = false;
+
+    (async () => {
+      try {
+        const raw = await AsyncStorage.getItem(STOCK_SEARCH_FILTER_STORAGE_KEY);
+        if (!raw) return;
+        const parsed = JSON.parse(raw) as Partial<StocksFilterStoragePayload>;
+        const storedFilters = parsed.advance_filters;
+        if (!storedFilters) return;
+
+        const storedStatusRaw = storedFilters.product_status;
+        const storedStatusValues = (Array.isArray(storedStatusRaw) ? storedStatusRaw : [storedStatusRaw])
+          .map((value) => Number(value))
+          .filter((value) => isPositiveInteger(value))
+          .map((value) => String(value));
+
+        const nextAdvancedFilters: StocksAdvancedFilters = {
+          channelIds: Array.isArray(storedFilters.channel_ids)
+            ? storedFilters.channel_ids.map((value) => Number(value)).filter((value) => isPositiveInteger(value))
+            : [],
+          brandIds: Array.isArray(storedFilters.brand_ids)
+            ? storedFilters.brand_ids.map((value) => Number(value)).filter((value) => isPositiveInteger(value))
+            : [],
+          supplierIds: Array.isArray(storedFilters.supplier_ids)
+            ? storedFilters.supplier_ids.map((value) => Number(value)).filter((value) => isPositiveInteger(value))
+            : [],
+          categoryIds: Array.isArray(storedFilters.category_id)
+            ? storedFilters.category_id.map((value) => Number(value)).filter((value) => isPositiveInteger(value))
+            : [],
+          searchZone: typeof storedFilters.search_zone === "string" ? storedFilters.search_zone : "",
+          searchAisle: typeof storedFilters.search_aisle === "string" ? storedFilters.search_aisle : "",
+          searchBin: typeof storedFilters.search_Bin === "string" ? storedFilters.search_Bin : "",
+          stockType:
+            storedFilters.damaged_product === "1"
+              ? "damaged"
+              : storedFilters.out_of_stock === "1"
+                ? "out_of_stock"
+                : "",
+        };
+
+        if (cancelled) return;
+        setSearchText(typeof storedFilters.searchText === "string" ? storedFilters.searchText : "");
+        setProductStatusValues(storedStatusValues.length > 0 ? storedStatusValues : ["1"]);
+        setAdvancedFilters(nextAdvancedFilters);
+        setAdvancedFiltersDraft(nextAdvancedFilters);
+        if (nextAdvancedFilters.channelIds.length > 0) {
+          setInitialChannelApplied(true);
+        }
+      } catch (error) {
+        console.warn("[Stocks] Failed to hydrate stock_search_filter", error);
+      } finally {
+        if (!cancelled) {
+          setStorageHydrated(true);
+        }
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!storageHydrated || filtersReady) return;
+
+    const nextAdvancedFilters: StocksAdvancedFilters = {
+      ...defaultAdvancedFilters,
+      ...advancedFilters,
+      channelIds:
+        advancedFilters.channelIds.length > 0
+          ? advancedFilters.channelIds
+          : defaultAdvancedFilters.channelIds,
+    };
+
+    setAdvancedFilters(nextAdvancedFilters);
+    setAdvancedFiltersDraft(nextAdvancedFilters);
+    if (nextAdvancedFilters.channelIds.length > 0) {
+      setInitialChannelApplied(true);
+    }
+    if (productStatusValues.length === 0) {
+      setProductStatusValues(["1"]);
+    }
+    setFiltersReady(true);
+  }, [
+    advancedFilters,
+    defaultAdvancedFilters,
+    filtersReady,
+    productStatusValues.length,
+    storageHydrated,
+  ]);
+
+  useEffect(() => {
+    if (!filtersReady || initialChannelApplied || !defaultChannelId) return;
+
+    setAdvancedFilters((prev) => {
+      if (prev.channelIds.length > 0) return prev;
+      const next = { ...prev, channelIds: [defaultChannelId] };
+      setAdvancedFiltersDraft(next);
+      return next;
+    });
+    setInitialChannelApplied(true);
+  }, [defaultChannelId, filtersReady, initialChannelApplied]);
+
+  useEffect(() => {
+    if (!filtersReady) return;
+    void persistStockFilters(searchText, productStatusValues, advancedFilters);
+  }, [advancedFilters, filtersReady, persistStockFilters, productStatusValues, searchText]);
+
+  useEffect(() => {
+    if (!activeCompareCase) return;
+    const logKey = `${activeCompareCase.id}:${count}`;
+    if (lastCompareLogRef.current === logKey) return;
+    lastCompareLogRef.current = logKey;
+    const isMatch = count === activeCompareCase.expectedRemoteCount;
+    console.log(
+      `[StocksCompare][LOCAL] case=${activeCompareCase.id} local_count=${count} remote_expected=${activeCompareCase.expectedRemoteCount} result=${isMatch ? "PASS" : "FAIL"} filters=${JSON.stringify(
+        normalizeQueryFilters(queryFilters)
+      )}`
+    );
+  }, [activeCompareCase, count, queryFilters]);
 
   const updateSingleEditValue = (rowKey: string, key: keyof SingleEditValue, value: string) => {
     const cleaned = value.replace(/[^0-9]/g, "");
@@ -190,7 +617,7 @@ export default function StocksScreen() {
     setSingleEditProductName("");
   };
 
-  const handleEdit = async (row: StockView) => {
+  const handleEdit = useCallback(async (row: StockView) => {
     try {
       setSingleEditLoading(true);
       setSingleEditProductName(row.productName || "-");
@@ -248,7 +675,7 @@ export default function StocksScreen() {
     } finally {
       setSingleEditLoading(false);
     }
-  };
+  }, []);
 
   const handleSingleEditSubmit = async () => {
     if (!singleEditProductId || !singleEditRows.length || singleEditSubmitting) return;
@@ -287,7 +714,7 @@ export default function StocksScreen() {
     }
   };
 
-  const handleBulkEditOpen = (rows: StockView[]) => {
+  const handleBulkEditOpen = useCallback((rows: StockView[]) => {
     if (!rows.length) {
       Alert.alert("Bulk Edit Stock", "Please select product(s) for bulk editing.");
       return;
@@ -310,7 +737,7 @@ export default function StocksScreen() {
     setBulkRows(rows);
     setBulkEditMap(nextEditMap);
     setBulkModalVisible(true);
-  };
+  }, []);
 
   const updateBulkValue = (rowId: string, key: keyof BulkEditValue, value: string) => {
     const cleaned = value.replace(/[^0-9]/g, "");
@@ -369,30 +796,30 @@ export default function StocksScreen() {
     }
   };
 
-  const columns: ColumnDefinition<StockView>[] = [
+  const columns = useMemo<ColumnDefinition<StockView>[]>(() => [
       {
         key: "image",
         title: "Image",
-        width: 70,
+        width: 80,
         visible: true,
         render: () => (
-          <View className="w-10 h-10 rounded bg-gray-100 items-center justify-center">
-            <Ionicons name="cube-outline" size={18} color="#9ca3af" />
+          <View className="w-12 h-12 rounded bg-gray-100 items-center justify-center">
+            <Ionicons name="cube-outline" size={20} color="#9ca3af" />
           </View>
         ),
       },
       {
         key: "productName",
         title: "Product Name",
-        width: 220,
+        width: 300,
         visible: true,
         hideable: false,
         render: (item) => (
           <View>
-            <Text className="text-blue-600 text-sm font-medium" numberOfLines={1}>
+            <Text className="text-blue-600 text-[18px] font-Montserrat font-medium" numberOfLines={1}>
               {item.productName || "-"}
             </Text>
-            <Text className="text-gray-500 text-xs" numberOfLines={1}>
+            <Text className="text-gray-500 text-[14px] font-Montserrat" numberOfLines={1}>
               Bin: {item.bin || "-"}
             </Text>
           </View>
@@ -401,68 +828,68 @@ export default function StocksScreen() {
       {
         key: "skuUpc",
         title: "SKU/UPC",
-        width: 150,
+        width: 180,
         visible: true,
         render: (item) => (
           <View>
-            <Text className="text-gray-700 text-sm">{item.sku || "-"}</Text>
-            <Text className="text-gray-500 text-xs">{item.upc || "-"}</Text>
+            <Text className="text-[#1A1A1A] text-[18px] font-Montserrat">{item.sku || "-"}</Text>
+            <Text className="text-gray-500 text-[14px] font-Montserrat">{item.upc || "-"}</Text>
           </View>
         ),
       },
       {
         key: "channelName",
         title: "Channel Name",
-        width: 140,
+        width: 160,
         visible: true,
-        render: (item) => <Text className="text-gray-700 text-sm">{item.channelName || "-"}</Text>,
+        render: (item) => <Text className="text-[#1A1A1A] text-[18px] font-Montserrat">{item.channelName || "-"}</Text>,
       },
       {
         key: "categoryName",
         title: "Category",
-        width: 130,
+        width: 160,
         visible: true,
-        render: (item) => <Text className="text-gray-700 text-sm">{item.categoryName || "-"}</Text>,
+        render: (item) => <Text className="text-[#1A1A1A] text-[18px] font-Montserrat">{item.categoryName || "-"}</Text>,
       },
       {
         key: "brandName",
         title: "Brand",
-        width: 120,
+        width: 160,
         visible: true,
-        render: (item) => <Text className="text-gray-700 text-sm">{item.brandName || "-"}</Text>,
+        render: (item) => <Text className="text-[#1A1A1A] text-[18px] font-Montserrat">{item.brandName || "-"}</Text>,
       },
       {
         key: "baseCostPrice",
         title: "Base Cost Prices",
-        width: 130,
+        width: 150,
         align: "center",
         visible: true,
-        render: (item) => <Text className="text-gray-700 text-sm">{formatCurrency(item.baseCostPrice)}</Text>,
+        render: (item) => <Text className="text-[#1A1A1A] text-[18px] font-Montserrat">{formatCurrency(item.baseCostPrice)}</Text>,
       },
       {
         key: "costPrice",
         title: "Net Cost Prices",
-        width: 130,
+        width: 150,
         align: "center",
         visible: true,
-        render: (item) => <Text className="text-gray-700 text-sm">{formatCurrency(item.costPrice)}</Text>,
+        render: (item) => <Text className="text-[#1A1A1A] text-[18px] font-Montserrat">{formatCurrency(item.costPrice)}</Text>,
       },
       {
         key: "salePrice",
         title: "Sale Price",
-        width: 120,
+        width: 150,
         align: "center",
         visible: true,
-        render: (item) => <Text className="text-green-600 font-medium text-sm">{formatCurrency(item.salePrice)}</Text>,
+        render: (item) => <Text className="text-green-600 font-bold text-[18px] font-Montserrat">{formatCurrency(item.salePrice)}</Text>,
       },
       {
         key: "availableQty",
         title: "Available QTY",
-        width: 120,
+        width: 150,
         align: "center",
         visible: true,
         render: (item) => (
-          <Text className={`font-medium ${item.availableQty > 0 ? "text-green-600" : "text-red-500"}`}>
+          <Text className={`font-bold text-[18px] font-Montserrat ${item.availableQty > 0 ? "text-green-600" : "text-red-500"}`}>
             {formatQty(item.availableQty)}
           </Text>
         ),
@@ -470,58 +897,58 @@ export default function StocksScreen() {
       {
         key: "onHoldQty",
         title: "On Hold",
-        width: 100,
+        width: 120,
         align: "center",
         visible: true,
-        render: (item) => <Text className="text-gray-600 text-sm">{formatQty(item.onHoldQty)}</Text>,
+        render: (item) => <Text className="text-[#1A1A1A] text-[18px] font-Montserrat">{formatQty(item.onHoldQty)}</Text>,
       },
       {
         key: "backOrderQty",
         title: "Back Order QTY",
-        width: 130,
+        width: 150,
         align: "center",
         visible: true,
-        render: (item) => <Text className="text-gray-600 text-sm">{formatQty(item.backOrderQty)}</Text>,
+        render: (item) => <Text className="text-[#1A1A1A] text-[18px] font-Montserrat">{formatQty(item.backOrderQty)}</Text>,
       },
       {
         key: "comingSoonQty",
         title: "Coming Soon QTY",
-        width: 140,
+        width: 160,
         align: "center",
         visible: true,
-        render: (item) => <Text className="text-gray-600 text-sm">{formatQty(item.comingSoonQty)}</Text>,
+        render: (item) => <Text className="text-[#1A1A1A] text-[18px] font-Montserrat">{formatQty(item.comingSoonQty)}</Text>,
       },
       {
         key: "deliveredWithoutStockQty",
         title: "Delivered Without Stock",
-        width: 170,
+        width: 200,
         align: "center",
         visible: true,
-        render: (item) => <Text className="text-gray-600 text-sm">{formatQty(item.deliveredWithoutStockQty)}</Text>,
+        render: (item) => <Text className="text-[#1A1A1A] text-[18px] font-Montserrat">{formatQty(item.deliveredWithoutStockQty)}</Text>,
       },
       {
         key: "damagedQty",
         title: "Damaged QTY",
-        width: 120,
+        width: 140,
         align: "center",
         visible: true,
-        render: (item) => <Text className="text-gray-600 text-sm">{formatQty(item.damagedQty)}</Text>,
+        render: (item) => <Text className="text-[#1A1A1A] text-[18px] font-Montserrat">{formatQty(item.damagedQty)}</Text>,
       },
       {
         key: "totalQty",
         title: "Total Quantity",
-        width: 120,
+        width: 150,
         align: "center",
         visible: true,
-        render: (item) => <Text className="text-gray-700 text-sm">{formatQty(item.totalQty)}</Text>,
+        render: (item) => <Text className="text-[#1A1A1A] text-[18px] font-Montserrat">{formatQty(item.totalQty)}</Text>,
       },
       {
         key: "totalCost",
         title: "Total Cost",
-        width: 120,
+        width: 150,
         align: "center",
         visible: true,
-        render: (item) => <Text className="text-gray-700 text-sm">{formatCurrency(item.totalCost)}</Text>,
+        render: (item) => <Text className="text-[#1A1A1A] text-[18px] font-Montserrat">{formatCurrency(item.totalCost)}</Text>,
       },
       {
         key: "actions",
@@ -541,7 +968,7 @@ export default function StocksScreen() {
           </View>
         ),
       },
-    ];
+    ], [handleEdit]);
 
   const filters: FilterDefinition[] = [
     {
@@ -550,82 +977,349 @@ export default function StocksScreen() {
       width: 170,
       options: PRODUCT_STATUS_FILTER_OPTIONS,
       multiple: true,
-      defaultValue: ["1"],
+      defaultValue: productStatusValues,
     },
   ];
 
-  const handleSearch = (item: StockView, query: string) => {
-    const q = query.toLowerCase();
-    return (
-      item.productName.toLowerCase().includes(q) ||
-      item.sku.toLowerCase().includes(q) ||
-      item.upc.toLowerCase().includes(q)
-    );
-  };
+  const channelFilterOptions = useMemo(
+    () =>
+      channelRows.map((channel) => ({
+        label: String(channel.name || `#${channel.id}`),
+        value: String(channel.id),
+      })),
+    [channelRows]
+  );
+  const brandFilterOptions = useMemo(
+    () =>
+      brandRows.map((brand) => ({
+        label: String(brand.name || `#${brand.id}`),
+        value: String(brand.id),
+      })),
+    [brandRows]
+  );
+  const supplierFilterOptions = useMemo(
+    () =>
+      supplierRows.map((supplier) => ({
+        label: String(supplier.name || `#${supplier.id}`),
+        value: String(supplier.id),
+      })),
+    [supplierRows]
+  );
+  const categoryFilterOptions = useMemo(
+    () =>
+      categoryRows.map((category) => ({
+        label: String(category.name || `#${category.id}`),
+        value: String(category.id),
+      })),
+    [categoryRows]
+  );
 
-  const handleFilter = (item: StockView, filtersMap: Record<string, string | string[] | null>) => {
-    const productStatus = filtersMap.productStatus;
-    const selectedStatuses = productStatus === undefined
-      ? ["1"] // Web default parser applies Active when filter is untouched.
-      : Array.isArray(productStatus)
-        ? productStatus
-        : (typeof productStatus === "string" ? [productStatus] : []);
-    const statusSet = new Set(
-      selectedStatuses
-        .map((v) => Number(v))
-        .filter((v) => !Number.isNaN(v))
-    );
+  const defaultStatusValues = useMemo(() => ["1"], []);
+  const isAdvancedFilterDirty = useMemo(
+    () => !equalAdvancedFilters(advancedFilters, defaultAdvancedFilters),
+    [advancedFilters, defaultAdvancedFilters]
+  );
 
-    if (statusSet.size > 0) {
-      const hasArchived = statusSet.has(3);
-      const hasActiveOrInactive = statusSet.has(1) || statusSet.has(2);
-      const isArchivedProduct = Boolean(item.deletedAt);
+  const appliedFilters = useMemo(() => {
+    const statusLabel = productStatusValues
+      .map((value) => PRODUCT_STATUS_FILTER_OPTIONS.find((option) => option.value === value)?.label)
+      .filter(Boolean)
+      .join(", ");
+    const stockTypeLabel = STOCK_TYPE_OPTIONS.find((option) => option.value === advancedFilters.stockType)?.label || "";
 
-      if (hasArchived) {
-        if (hasActiveOrInactive) {
-          const isActiveOrInactiveMatch = statusSet.has(item.status) && !isArchivedProduct;
-          if (!(isActiveOrInactiveMatch || isArchivedProduct)) return false;
-        } else if (!isArchivedProduct) {
-          return false;
-        }
-      } else if (hasActiveOrInactive) {
-        if (!(statusSet.has(item.status) && !isArchivedProduct)) return false;
+    const resolveNames = (ids: number[], nameMap: Map<number, string>) =>
+      ids.map((id) => nameMap.get(id) || String(id)).join(", ");
+
+    return [
+      { label: "Search", value: searchText.trim() },
+      { label: "Product Status", value: statusLabel },
+      { label: "Channel", value: resolveNames(advancedFilters.channelIds, channelNameMap) },
+      { label: "Brand", value: resolveNames(advancedFilters.brandIds, brandNameMap) },
+      { label: "Supplier", value: resolveNames(advancedFilters.supplierIds, supplierNameMap) },
+      { label: "Category", value: resolveNames(advancedFilters.categoryIds, categoryNameMap) },
+      { label: "Zone", value: advancedFilters.searchZone.trim() },
+      { label: "Aisle", value: advancedFilters.searchAisle.trim() },
+      { label: "Bin", value: advancedFilters.searchBin.trim() },
+      { label: "Stock Type", value: stockTypeLabel },
+    ].filter((item) => item.value);
+  }, [
+    advancedFilters,
+    brandNameMap,
+    categoryNameMap,
+    channelNameMap,
+    productStatusValues,
+    searchText,
+    supplierNameMap,
+  ]);
+
+  const handleSearchQueryChange = useCallback((value: string) => {
+    setSearchText(value.replace(/^\s+/, ""));
+  }, []);
+
+  const handleTableFiltersChange = useCallback(
+    (filtersMap: Record<string, string | string[] | null>) => {
+      const nextValuesRaw = filtersMap.productStatus;
+      const nextValues = Array.isArray(nextValuesRaw)
+        ? nextValuesRaw
+        : (typeof nextValuesRaw === "string" && nextValuesRaw ? [nextValuesRaw] : []);
+      if (!equalStringArrays(nextValues, productStatusValues)) {
+        setProductStatusValues(nextValues);
       }
-    }
+    },
+    [productStatusValues]
+  );
 
-    return true;
-  };
+  const handleSettingsModalOpen = useCallback(() => {
+    setAdvancedFiltersDraft(advancedFilters);
+  }, [advancedFilters]);
+
+  const applyAdvancedFilters = useCallback(() => {
+    const normalizedNextFilters: StocksAdvancedFilters = {
+      ...advancedFiltersDraft,
+      channelIds: advancedFiltersDraft.channelIds.filter((value) => isPositiveInteger(value)),
+      brandIds: advancedFiltersDraft.brandIds.filter((value) => isPositiveInteger(value)),
+      supplierIds: advancedFiltersDraft.supplierIds.filter((value) => isPositiveInteger(value)),
+      categoryIds: advancedFiltersDraft.categoryIds.filter((value) => isPositiveInteger(value)),
+      searchZone: advancedFiltersDraft.searchZone.trim(),
+      searchAisle: advancedFiltersDraft.searchAisle.trim(),
+      searchBin: advancedFiltersDraft.searchBin.trim(),
+    };
+    setAdvancedFilters(normalizedNextFilters);
+  }, [advancedFiltersDraft]);
+
+  const clearAdvancedFilters = useCallback(() => {
+    const nextAdvancedFilters = createDefaultAdvancedFilters(defaultChannelId);
+    setSearchText("");
+    setProductStatusValues(defaultStatusValues);
+    setAdvancedFilters(nextAdvancedFilters);
+    setAdvancedFiltersDraft(nextAdvancedFilters);
+  }, [defaultChannelId, defaultStatusValues]);
+
+  const updateDraftMultiSelect = useCallback(
+    (key: "channelIds" | "brandIds" | "supplierIds" | "categoryIds", value: string | string[] | null) => {
+      const ids = fromStringIds(value);
+      setAdvancedFiltersDraft((prev) => ({ ...prev, [key]: ids }));
+    },
+    []
+  );
+
+  const advanceFiltersContent = (
+    <View>
+      <Text 
+        style={{ 
+          fontSize: 24, 
+          fontWeight: "600", 
+          fontFamily: "Montserrat", 
+          color: "#1A1A1A",
+          marginBottom: 16, 
+        }}
+      >
+        Advance Filters
+      </Text>
+
+      <View className="gap-3">
+        <View className="flex-row gap-3">
+          <View className="flex-1">
+            <Text className="text-xs font-medium text-gray-700 mb-1">Channel Name</Text>
+            <FilterDropdown
+              label=""
+              value={toStringIds(advancedFiltersDraft.channelIds)}
+              options={channelFilterOptions}
+              onChange={(value) => updateDraftMultiSelect("channelIds", value)}
+              placeholder="Select Channel"
+              multiple
+            />
+          </View>
+          <View className="flex-1">
+            <Text className="text-xs font-medium text-gray-700 mb-1">Brand</Text>
+            <FilterDropdown
+              label=""
+              value={toStringIds(advancedFiltersDraft.brandIds)}
+              options={brandFilterOptions}
+              onChange={(value) => updateDraftMultiSelect("brandIds", value)}
+              placeholder="Select Brand"
+              multiple
+            />
+          </View>
+        </View>
+
+        <View className="flex-row gap-3">
+          <View className="flex-1">
+            <Text className="text-xs font-medium text-gray-700 mb-1">Supplier</Text>
+            <FilterDropdown
+              label=""
+              value={toStringIds(advancedFiltersDraft.supplierIds)}
+              options={supplierFilterOptions}
+              onChange={(value) => updateDraftMultiSelect("supplierIds", value)}
+              placeholder="Select Supplier"
+              multiple
+            />
+          </View>
+          <View className="flex-1">
+            <Text className="text-xs font-medium text-gray-700 mb-1">Category</Text>
+            <FilterDropdown
+              label=""
+              value={toStringIds(advancedFiltersDraft.categoryIds)}
+              options={categoryFilterOptions}
+              onChange={(value) => updateDraftMultiSelect("categoryIds", value)}
+              placeholder="Select Category"
+              multiple
+            />
+          </View>
+        </View>
+
+        <View className="flex-row gap-3">
+          <View className="flex-1">
+            <Text className="text-xs font-medium text-gray-700 mb-1">Zone</Text>
+            <TextInput
+              className="bg-gray-50 border border-gray-200 rounded-lg px-3"
+              style={{ height: 40, fontSize: 14 }}
+              placeholder="Search Zone"
+              placeholderTextColor="#9ca3af"
+              value={advancedFiltersDraft.searchZone}
+              onChangeText={(value) =>
+                setAdvancedFiltersDraft((prev) => ({ ...prev, searchZone: value }))
+              }
+            />
+          </View>
+          <View className="flex-1">
+            <Text className="text-xs font-medium text-gray-700 mb-1">Aisle</Text>
+            <TextInput
+              className="bg-gray-50 border border-gray-200 rounded-lg px-3"
+              style={{ height: 40, fontSize: 14 }}
+              placeholder="Search Aisle"
+              placeholderTextColor="#9ca3af"
+              value={advancedFiltersDraft.searchAisle}
+              onChangeText={(value) =>
+                setAdvancedFiltersDraft((prev) => ({ ...prev, searchAisle: value }))
+              }
+            />
+          </View>
+        </View>
+
+        <View>
+          <Text className="text-xs font-medium text-gray-700 mb-1">Bin</Text>
+          <TextInput
+            className="bg-gray-50 border border-gray-200 rounded-lg px-3"
+            style={{ height: 40, fontSize: 14 }}
+            placeholder="Search by Bin"
+            placeholderTextColor="#9ca3af"
+            value={advancedFiltersDraft.searchBin}
+            onChangeText={(value) =>
+              setAdvancedFiltersDraft((prev) => ({ ...prev, searchBin: value }))
+            }
+          />
+        </View>
+
+        <View>
+          <Text className="text-xs font-medium text-gray-700 mb-1">Stock Type</Text>
+          <FilterDropdown
+            label=""
+            value={advancedFiltersDraft.stockType || null}
+            options={STOCK_TYPE_OPTIONS}
+            onChange={(value) =>
+              setAdvancedFiltersDraft((prev) => ({
+                ...prev,
+                stockType:
+                  typeof value === "string" &&
+                  (value === "damaged" || value === "out_of_stock")
+                    ? value
+                    : "",
+              }))
+            }
+            placeholder="Select Stock Type"
+          />
+        </View>
+      </View>
+
+      <View className="flex-row justify-end mt-4 mb-2 gap-2">
+        <Pressable
+          className="rounded-lg bg-gray-100 items-center justify-center"
+          style={{ width: "49%", height: 40 }}
+          onPress={clearAdvancedFilters}
+        >
+          <Text className="text-gray-700 font-medium">Clear Filter</Text>
+        </Pressable>
+        <Pressable
+          className="rounded-lg bg-blue-500 items-center justify-center"
+          style={{ width: "49%", height: 40 }}
+          onPress={applyAdvancedFilters}
+        >
+          <Text className="text-white font-medium">Apply</Text>
+        </Pressable>
+      </View>
+    </View>
+  );
+
+  const handleSelectionChange = useCallback((keys: string[]) => {
+    setSelectedRowKeys(keys);
+  }, []);
+
+  const dataTableFilterValues = useMemo<Record<string, string | string[] | null>>(
+    () => ({
+      productStatus: productStatusValues.length > 0 ? productStatusValues : null,
+    }),
+    [productStatusValues]
+  );
 
   return (
-    <View className="flex-1 bg-gray-50">
-      <PageHeader title="Stocks" />
+    <View className="flex-1 bg-[#F7F7F9]">
+      <PageHeader title="Stocks" showBack={false} />
 
-      <DataTable<StockView>
-        data={stocks}
-        columns={columns}
-        keyExtractor={(item) => item.id}
-        searchable
-        searchPlaceholder="Search stocks..."
-        searchHint="Search by Product Name, SKU/UPC"
-        onSearch={handleSearch}
-        filters={filters}
-        filtersInActionRow
-        onFilter={handleFilter}
-        columnSelector
-        bulkActions
-        bulkActionText="Bulk Edit Stock"
-        onBulkActionPress={handleBulkEditOpen}
-        selectedRowKeys={selectedRowKeys}
-        onSelectionChange={(keys) => setSelectedRowKeys(keys)}
-        isLoading={isLoading}
-        isStreaming={isStreaming}
-        onRefresh={refresh}
-        emptyIcon="cube-outline"
-        emptyText="No stock items found"
-        totalCount={count}
-        horizontalScroll
-        minWidth={2400}
-      />
+      {!filtersReady ? (
+        <View className="flex-1 items-center justify-center">
+          <ActivityIndicator size="large" color="#3b82f6" />
+        </View>
+      ) : (
+        <>
+          {appliedFilters.length > 0 && (
+            <View className="px-5 pt-3 pb-2 bg-[#F7F7F9] border-b border-gray-100">
+              <Text className="text-base font-semibold text-gray-500 mb-2 uppercase">Filters Applied</Text>
+              <View className="flex-row flex-wrap gap-2">
+                {appliedFilters.map((item) => (
+                  <View key={`${item.label}-${item.value}`} className="px-3 py-1.5 rounded bg-gray-100">
+                    <Text className="text-base text-gray-700">
+                      <Text className="font-semibold">{item.label}:</Text> {item.value}
+                    </Text>
+                  </View>
+                ))}
+              </View>
+            </View>
+          )}
+
+          <DataTable<StockView>
+            data={stocks}
+            columns={columns}
+            keyExtractor={(item) => item.id}
+            searchable
+            searchPlaceholder="Search stocks..."
+            searchHint="Search by Product Name, SKU/UPC"
+            defaultSearchQuery={searchText}
+            searchQueryValue={searchText}
+            onSearchQueryChange={handleSearchQueryChange}
+            filters={filters}
+            filterValues={dataTableFilterValues}
+            onFiltersChange={handleTableFiltersChange}
+            filtersInActionRow
+            columnSelector
+            settingsModalExtras={advanceFiltersContent}
+            onSettingsModalOpen={handleSettingsModalOpen}
+            bulkActions
+            bulkActionText="Bulk Edit Stock"
+            onBulkActionPress={handleBulkEditOpen}
+            selectedRowKeys={selectedRowKeys}
+            onSelectionChange={handleSelectionChange}
+            isLoading={isLoading}
+            isStreaming={isStreaming}
+            onRefresh={refresh}
+            emptyIcon="cube-outline"
+            emptyText="No stock items found"
+            totalCount={count}
+            horizontalScroll
+            minWidth={2400}
+          />
+        </>
+      )}
 
       <Modal
         visible={singleEditModalVisible}
@@ -872,49 +1566,61 @@ export default function StocksScreen() {
         onRequestClose={() => setBulkModalVisible(false)}
       >
         <View className="flex-1 bg-black/50 justify-center items-center px-4">
-          <View className="bg-white rounded-xl p-5" style={{ width: "96%", maxHeight: "85%" }}>
-            <View className="flex-row items-start justify-between mb-3">
-              <View className="flex-1 pr-4">
-                <Text className="text-lg font-semibold text-gray-800">Bulk Edit Stock</Text>
-                <Text className="text-xs text-gray-500 mt-1">
-                  Please note that stock changes on this screen apply to unit: PIECE.
-                </Text>
-                <Text className="text-xs text-gray-500 mt-1">
-                  Channel: {bulkRows[0]?.channelName || "-"} | Selected: {bulkRows.length}
-                </Text>
+          <View className="bg-white rounded-lg" style={{ width: "94%", maxWidth: 1100, maxHeight: "85%" }}>
+            {/* Header */}
+            <View className="px-6 py-4 border-b border-gray-100">
+              <View className="flex-row items-start justify-between">
+                <View className="flex-1">
+                  <Text style={{ fontSize: 20, fontWeight: '700', color: '#1F2937', fontFamily: 'Montserrat', marginBottom: 6 }}>
+                    Bulk Edit Stock
+                  </Text>
+                  <Text style={{ fontSize: 13, color: '#6B7280', marginTop: 4, fontFamily: 'Montserrat' }}>
+                    Please note that stock changes on this screen apply to unit: PIECE.
+                  </Text>
+                  <Text style={{ fontSize: 13, color: '#6B7280', marginTop: 2, fontFamily: 'Montserrat' }}>
+                    Channel: {bulkRows[0]?.channelName || "-"} | Selected: {bulkRows.length}
+                  </Text>
+                </View>
+                <Pressable 
+                  onPress={() => setBulkModalVisible(false)}
+                  className="p-1"
+                  hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                >
+                  <Ionicons name="close" size={22} color="#9CA3AF" />
+                </Pressable>
               </View>
-              <Pressable onPress={() => setBulkModalVisible(false)}>
-                <Ionicons name="close" size={24} color="#9ca3af" />
-              </Pressable>
             </View>
 
-            <ScrollView style={{ maxHeight: "65%" }} showsVerticalScrollIndicator={false}>
+            {/* Table Content */}
+            <ScrollView style={{ maxHeight: 400 }} showsVerticalScrollIndicator={false}>
               <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-                <View style={{ minWidth: 1200 }}>
-                  <View className="flex-row pb-2 border-b border-gray-200">
-                    <View style={{ width: 220, paddingRight: 8 }}>
-                      <Text className="text-xs text-gray-500">Products</Text>
+                <View style={{ minWidth: 1050 }}>
+                  {/* Table Header */}
+                  <View className="flex-row items-center bg-gray-50 border-b border-gray-200 px-4 py-3">
+                    <View style={{ width: 180 }}>
+                      <Text style={{ fontSize: 13, fontWeight: '500', color: '#6B7280', fontFamily: 'Montserrat' }}>Products</Text>
                     </View>
-                    <View style={{ width: 170, paddingRight: 8 }}>
-                      <Text className="text-xs text-gray-500">Available Qty</Text>
+                    <View style={{ width: 140 }}>
+                      <Text style={{ fontSize: 13, fontWeight: '500', color: '#6B7280', fontFamily: 'Montserrat' }}>Available Qty</Text>
                     </View>
-                    <View style={{ width: 170, paddingRight: 8 }}>
-                      <Text className="text-xs text-gray-500">Damaged Qty</Text>
+                    <View style={{ width: 140 }}>
+                      <Text style={{ fontSize: 13, fontWeight: '500', color: '#6B7280', fontFamily: 'Montserrat' }}>Damaged Qty</Text>
                     </View>
-                    <View style={{ width: 170, paddingRight: 8 }}>
-                      <Text className="text-xs text-gray-500">On Hold Qty</Text>
+                    <View style={{ width: 130 }}>
+                      <Text style={{ fontSize: 13, fontWeight: '500', color: '#6B7280', fontFamily: 'Montserrat' }}>On Hold Qty</Text>
                     </View>
-                    <View style={{ width: 170, paddingRight: 8 }}>
-                      <Text className="text-xs text-gray-500">Back Order Qty</Text>
+                    <View style={{ width: 140 }}>
+                      <Text style={{ fontSize: 13, fontWeight: '500', color: '#6B7280', fontFamily: 'Montserrat' }}>Back Order Qty</Text>
                     </View>
-                    <View style={{ width: 190, paddingRight: 8 }}>
-                      <Text className="text-xs text-gray-500">Delivered Without Stock</Text>
+                    <View style={{ width: 180 }}>
+                      <Text style={{ fontSize: 13, fontWeight: '500', color: '#6B7280', fontFamily: 'Montserrat' }}>Delivered Without Stock</Text>
                     </View>
-                    <View style={{ width: 150 }}>
-                      <Text className="text-xs text-gray-500">Channel Name</Text>
+                    <View style={{ width: 120 }}>
+                      <Text style={{ fontSize: 13, fontWeight: '500', color: '#6B7280', fontFamily: 'Montserrat' }}>Channel Name</Text>
                     </View>
                   </View>
 
+                  {/* Table Rows */}
                   {bulkRows.map((row, index) => {
                     const preview = distributeStock(
                       parseQtyInput(bulkEditMap[row.id]?.availableQty ?? "", row.availableQty ?? 0),
@@ -928,101 +1634,175 @@ export default function StocksScreen() {
                     return (
                       <View
                         key={row.id}
-                        className="py-2"
-                        style={index < bulkRows.length - 1 ? { borderBottomWidth: 1, borderBottomColor: "#f3f4f6" } : undefined}
+                        className="flex-row items-center px-4 py-3"
+                        style={{ 
+                          borderBottomWidth: index < bulkRows.length - 1 ? 1 : 0, 
+                          borderBottomColor: "#F3F4F6",
+                          backgroundColor: index % 2 === 1 ? '#FAFAFA' : '#FFFFFF'
+                        }}
                       >
-                        <View className="flex-row items-start">
-                          <View style={{ width: 220, paddingRight: 8 }}>
-                            <Text className="text-sm font-medium text-gray-800" numberOfLines={2}>
-                              {row.productName || "-"}
-                            </Text>
-                            <Text className="text-xs text-gray-500 mt-0.5" numberOfLines={1}>
-                              {row.sku || "-"}/{row.upc || "-"}
-                            </Text>
-                          </View>
+                        {/* Product Name */}
+                        <View style={{ width: 180 }}>
+                          <Text style={{ fontSize: 14, fontWeight: '500', color: '#1F2937', fontFamily: 'Montserrat' }} numberOfLines={1}>
+                            {row.productName || "-"}
+                          </Text>
+                          <Text style={{ fontSize: 12, color: '#9CA3AF', marginTop: 2, fontFamily: 'Montserrat' }} numberOfLines={1}>
+                            {row.sku || "-"}/{row.upc || "-"}
+                          </Text>
+                        </View>
 
-                          <View style={{ width: 170, paddingRight: 8 }}>
-                            <View className="h-10 rounded border border-gray-200 flex-row items-center bg-white overflow-hidden">
+                        {/* Available Qty - Editable */}
+                        <View style={{ width: 140 }}>
+                          <View className="flex-row items-center">
+                            <View style={{ 
+                              height: 36, 
+                              width: 70, 
+                              borderWidth: 1, 
+                              borderColor: '#E5E7EB', 
+                              borderRadius: 4,
+                              backgroundColor: '#FFFFFF',
+                              justifyContent: 'center',
+                            }}>
                               <TextInput
-                                className="flex-1 px-2"
                                 keyboardType="number-pad"
                                 value={bulkEditMap[row.id]?.availableQty ?? String(row.availableQty ?? 0)}
                                 onChangeText={(value) => updateBulkValue(row.id, "availableQty", value)}
-                                placeholder="Enter Qty"
-                                placeholderTextColor="#9ca3af"
+                                placeholder="0"
+                                placeholderTextColor="#D1D5DB"
                                 selectTextOnFocus
-                                style={qtyInputTextStyle}
+                                style={{ 
+                                  fontSize: 14, 
+                                  color: '#1F2937', 
+                                  textAlign: 'center',
+                                  fontFamily: 'Montserrat',
+                                  paddingHorizontal: 8,
+                                }}
                               />
-                              <View className="h-full px-2 border-l border-gray-200 bg-gray-50 justify-center">
-                                <Text style={qtyUnitTextStyle}>Piece</Text>
-                              </View>
                             </View>
-                            {showPreview ? (
-                              <Text className="text-[11px] text-gray-500 italic mt-1">
-                                New Value: <Text style={qtyValueTextStyle}>{preview.new_inhand_qty}</Text>
-                              </Text>
-                            ) : null}
+                            <Text style={{ fontSize: 13, color: '#9CA3AF', marginLeft: 8, fontFamily: 'Montserrat' }}>Piece</Text>
                           </View>
+                          {showPreview && (
+                            <Text style={{ fontSize: 11, color: '#6B7280', fontStyle: 'italic', marginTop: 4 }}>
+                              New: {preview.new_inhand_qty}
+                            </Text>
+                          )}
+                        </View>
 
-                          <View style={{ width: 170, paddingRight: 8 }}>
-                            <View className="h-10 rounded border border-gray-200 flex-row items-center bg-white overflow-hidden">
+                        {/* Damaged Qty - Editable */}
+                        <View style={{ width: 140 }}>
+                          <View className="flex-row items-center">
+                            <View style={{ 
+                              height: 36, 
+                              width: 70, 
+                              borderWidth: 1, 
+                              borderColor: '#E5E7EB', 
+                              borderRadius: 4,
+                              backgroundColor: '#FFFFFF',
+                              justifyContent: 'center',
+                            }}>
                               <TextInput
-                                className="flex-1 px-2"
                                 keyboardType="number-pad"
                                 value={bulkEditMap[row.id]?.damagedQty ?? String(row.damagedQty ?? 0)}
                                 onChangeText={(value) => updateBulkValue(row.id, "damagedQty", value)}
-                                placeholder="Enter Qty"
-                                placeholderTextColor="#9ca3af"
+                                placeholder="0"
+                                placeholderTextColor="#D1D5DB"
                                 selectTextOnFocus
-                                style={qtyInputTextStyle}
+                                style={{ 
+                                  fontSize: 14, 
+                                  color: '#1F2937', 
+                                  textAlign: 'center',
+                                  fontFamily: 'Montserrat',
+                                  paddingHorizontal: 8,
+                                }}
                               />
-                              <View className="h-full px-2 border-l border-gray-200 bg-gray-50 justify-center">
-                                <Text style={qtyUnitTextStyle}>Piece</Text>
-                              </View>
                             </View>
+                            <Text style={{ fontSize: 13, color: '#9CA3AF', marginLeft: 8, fontFamily: 'Montserrat' }}>Piece</Text>
                           </View>
+                        </View>
 
-                          <View style={{ width: 170, paddingRight: 8 }}>
-                            <View className="h-10 rounded border border-gray-200 bg-gray-50 flex-row items-center justify-between px-2">
-                              <Text style={qtyValueTextStyle}>{formatQty(row.onHoldQty ?? 0)}</Text>
-                              <Text style={qtyUnitTextStyle}>Piece</Text>
-                            </View>
-                            {showPreview ? (
-                              <Text className="text-[11px] text-gray-500 italic mt-1">
-                                New Value: <Text style={qtyValueTextStyle}>{preview.new_onHold_qty}</Text>
+                        {/* On Hold Qty - Read Only */}
+                        <View style={{ width: 130 }}>
+                          <View className="flex-row items-center">
+                            <View style={{ 
+                              height: 36, 
+                              width: 70, 
+                              borderWidth: 1, 
+                              borderColor: '#E5E7EB', 
+                              borderRadius: 4,
+                              backgroundColor: '#F9FAFB',
+                              justifyContent: 'center',
+                              alignItems: 'center',
+                            }}>
+                              <Text style={{ fontSize: 14, color: '#6B7280', fontFamily: 'Montserrat' }}>
+                                {row.onHoldQty ?? 0}
                               </Text>
-                            ) : null}
-                          </View>
-
-                          <View style={{ width: 170, paddingRight: 8 }}>
-                            <View className="h-10 rounded border border-gray-200 bg-gray-50 flex-row items-center justify-between px-2">
-                              <Text style={qtyValueTextStyle}>{formatQty(row.backOrderQty ?? 0)}</Text>
-                              <Text style={qtyUnitTextStyle}>Piece</Text>
                             </View>
-                            {showPreview ? (
-                              <Text className="text-[11px] text-gray-500 italic mt-1">
-                                New Value: <Text style={qtyValueTextStyle}>{preview.new_bo_qty}</Text>
-                              </Text>
-                            ) : null}
+                            <Text style={{ fontSize: 13, color: '#9CA3AF', marginLeft: 8, fontFamily: 'Montserrat' }}>Piece</Text>
                           </View>
-
-                          <View style={{ width: 190, paddingRight: 8 }}>
-                            <View className="h-10 rounded border border-gray-200 bg-gray-50 flex-row items-center justify-between px-2">
-                              <Text style={qtyValueTextStyle}>{formatQty(row.deliveredWithoutStockQty ?? 0)}</Text>
-                              <Text style={qtyUnitTextStyle}>Piece</Text>
-                            </View>
-                            {showPreview ? (
-                              <Text className="text-[11px] text-gray-500 italic mt-1">
-                                New Value: <Text style={qtyValueTextStyle}>{preview.new_hold_free_shipment}</Text>
-                              </Text>
-                            ) : null}
-                          </View>
-
-                          <View style={{ width: 150 }}>
-                            <Text className="text-sm text-gray-600 pt-2" numberOfLines={2}>
-                              {row.channelName || "-"}
+                          {showPreview && (
+                            <Text style={{ fontSize: 11, color: '#6B7280', fontStyle: 'italic', marginTop: 4 }}>
+                              New: {preview.new_onHold_qty}
                             </Text>
+                          )}
+                        </View>
+
+                        {/* Back Order Qty - Read Only */}
+                        <View style={{ width: 140 }}>
+                          <View className="flex-row items-center">
+                            <View style={{ 
+                              height: 36, 
+                              width: 70, 
+                              borderWidth: 1, 
+                              borderColor: '#E5E7EB', 
+                              borderRadius: 4,
+                              backgroundColor: '#F9FAFB',
+                              justifyContent: 'center',
+                              alignItems: 'center',
+                            }}>
+                              <Text style={{ fontSize: 14, color: '#6B7280', fontFamily: 'Montserrat' }}>
+                                {row.backOrderQty ?? 0}
+                              </Text>
+                            </View>
+                            <Text style={{ fontSize: 13, color: '#9CA3AF', marginLeft: 8, fontFamily: 'Montserrat' }}>Piece</Text>
                           </View>
+                          {showPreview && (
+                            <Text style={{ fontSize: 11, color: '#6B7280', fontStyle: 'italic', marginTop: 4 }}>
+                              New: {preview.new_bo_qty}
+                            </Text>
+                          )}
+                        </View>
+
+                        {/* Delivered Without Stock - Read Only */}
+                        <View style={{ width: 180 }}>
+                          <View className="flex-row items-center">
+                            <View style={{ 
+                              height: 36, 
+                              width: 70, 
+                              borderWidth: 1, 
+                              borderColor: '#E5E7EB', 
+                              borderRadius: 4,
+                              backgroundColor: '#F9FAFB',
+                              justifyContent: 'center',
+                              alignItems: 'center',
+                            }}>
+                              <Text style={{ fontSize: 14, color: '#6B7280', fontFamily: 'Montserrat' }}>
+                                {row.deliveredWithoutStockQty ?? 0}
+                              </Text>
+                            </View>
+                            <Text style={{ fontSize: 13, color: '#9CA3AF', marginLeft: 8, fontFamily: 'Montserrat' }}>Piece</Text>
+                          </View>
+                          {showPreview && (
+                            <Text style={{ fontSize: 11, color: '#6B7280', fontStyle: 'italic', marginTop: 4 }}>
+                              New: {preview.new_hold_free_shipment}
+                            </Text>
+                          )}
+                        </View>
+
+                        {/* Channel Name */}
+                        <View style={{ width: 120 }}>
+                          <Text style={{ fontSize: 14, color: '#1F2937', fontFamily: 'Montserrat' }} numberOfLines={1}>
+                            {row.channelName || "-"}
+                          </Text>
                         </View>
                       </View>
                     );
@@ -1031,23 +1811,26 @@ export default function StocksScreen() {
               </ScrollView>
             </ScrollView>
 
-            <View className="flex-row justify-end mt-4 gap-2">
+            {/* Footer Buttons */}
+            <View className="flex-row justify-end px-6 py-4 border-t border-gray-100 gap-3">
               <Pressable
-                className="px-4 py-2 rounded-lg bg-gray-100"
+                className="px-6 py-2.5 rounded-md bg-white border border-gray-300"
                 onPress={() => setBulkModalVisible(false)}
                 disabled={bulkSubmitting}
+                style={{ minWidth: 90 }}
               >
-                <Text className="text-gray-700 font-medium">Cancel</Text>
+                <Text style={{ fontSize: 14, fontWeight: '500', color: '#374151', textAlign: 'center', fontFamily: 'Montserrat' }}>Cancel</Text>
               </Pressable>
               <Pressable
-                className="px-4 py-2 rounded-lg bg-red-500 min-w-24 items-center"
+                className="px-6 py-2.5 rounded-md bg-[#EC1A52]"
                 onPress={handleBulkEditSubmit}
                 disabled={bulkSubmitting}
+                style={{ minWidth: 90 }}
               >
                 {bulkSubmitting ? (
                   <ActivityIndicator size="small" color="white" />
                 ) : (
-                  <Text className="text-white font-medium">Update</Text>
+                  <Text style={{ fontSize: 14, fontWeight: '500', color: '#FFFFFF', textAlign: 'center', fontFamily: 'Montserrat' }}>Update</Text>
                 )}
               </Pressable>
             </View>

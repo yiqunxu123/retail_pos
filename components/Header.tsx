@@ -21,7 +21,7 @@ export function Header({ title, subtitle, badge, showBack = false }: HeaderProps
   };
 
   return (
-    <View className="flex-row justify-between items-center px-6 py-4 bg-red-500 rounded-xl">
+    <View className="flex-row justify-between items-center px-6 py-4 bg-[#EC1A52] rounded-xl">
       <View className="flex-row items-center flex-1">
         {/* Back button */}
         {showBack && (
@@ -30,7 +30,7 @@ export function Header({ title, subtitle, badge, showBack = false }: HeaderProps
             className="mr-3 p-1"
             hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
           >
-            <Ionicons name="arrow-back" size={24} color="white" />
+            <Ionicons name="menu" size={24} color="white" />
           </TouchableOpacity>
         )}
         
@@ -44,7 +44,7 @@ export function Header({ title, subtitle, badge, showBack = false }: HeaderProps
 
       {/* Role badge */}
       {badge && (
-        <View className="bg-white px-4 py-2 rounded">
+        <View className="bg-[#F7F7F9] px-4 py-2 rounded">
           <Text className="text-gray-800 font-semibold text-sm">{badge}</Text>
         </View>
       )}

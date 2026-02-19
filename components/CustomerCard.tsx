@@ -26,7 +26,7 @@ export function CustomerCard({ customerName, customerId, onCustomerAdded }: Cust
 
   return (
     <>
-      <View className="bg-white rounded-lg p-4 w-48">
+      <View className="bg-[#F7F7F9] rounded-lg p-4 w-48 shadow-sm">
         {/* Current Status */}
         <View className="items-center mb-3">
           <Text className="text-red-500 text-xs font-medium">Current Status:</Text>

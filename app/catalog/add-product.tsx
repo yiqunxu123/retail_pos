@@ -233,7 +233,7 @@ function FormInput({
         )}
       </View>
       <TextInput
-        className="bg-white border border-gray-200 rounded-lg px-4 py-3"
+        className="bg-[#F7F7F9] border border-gray-200 rounded-lg px-4 py-3"
         placeholder={placeholder || label}
         placeholderTextColor="#9ca3af"
         value={value}
@@ -1085,7 +1085,7 @@ export default function AddProductScreen() {
   const renderBasicTab = () => (
     <View className="flex-1 flex-row">
       {/* Left Sidebar - Category (mirrors kapp CategoryTree) */}
-      <View className="w-56 bg-white border-r border-gray-200 p-4">
+      <View className="w-56 bg-[#F7F7F9] border-r border-gray-200 p-4">
         <View className="flex-row items-center justify-between mb-4">
           <Text className="text-gray-800 font-medium">
             Select Category<Text className="text-red-500">*</Text>
@@ -1203,7 +1203,7 @@ export default function AddProductScreen() {
               <Text className="text-gray-700 text-sm font-medium mb-2">Weight</Text>
               <View className="flex-row">
                 <TextInput
-                  className="flex-1 bg-white border border-gray-200 rounded-l-lg px-4 py-3"
+                  className="flex-1 bg-white border border-gray-200 rounded-l-lg px-4 py-3 shadow-sm"
                   placeholder="Enter Weight"
                   placeholderTextColor="#9ca3af"
                   value={weight}
@@ -1224,7 +1224,7 @@ export default function AddProductScreen() {
                 <Text className="text-gray-700 text-sm font-medium">Select Brand</Text>
               </View>
               <Pressable
-                className="bg-white border border-gray-200 rounded-lg px-4 py-3 flex-row justify-between items-center"
+                className="bg-white border border-gray-200 rounded-lg px-4 py-3 flex-row justify-between items-center shadow-sm"
                 onPress={() => {
                   if (brandsList.length === 0) return;
                   // Cycle through brands or show picker
@@ -1324,7 +1324,7 @@ export default function AddProductScreen() {
             <View className="mb-4">
               <Text className="text-gray-700 text-sm font-medium mb-2">Manufacturer</Text>
               <Pressable
-                className="bg-white border border-gray-200 rounded-lg px-4 py-3 flex-row justify-between items-center"
+                className="bg-white border border-gray-200 rounded-lg px-4 py-3 flex-row justify-between items-center shadow-sm"
                 onPress={() => {
                   if (manufacturersList.length === 0) return;
                   const currentIdx = manufacturersList.findIndex((m) => selectedManufacturerIds.includes(m.id));
@@ -1353,7 +1353,7 @@ export default function AddProductScreen() {
             <View className="mb-4">
               <Text className="text-gray-700 text-sm font-medium mb-2">Select Suppliers</Text>
               <Pressable
-                className="bg-white border border-gray-200 rounded-lg px-4 py-3 flex-row justify-between items-center"
+                className="bg-white border border-gray-200 rounded-lg px-4 py-3 flex-row justify-between items-center shadow-sm"
                 onPress={() => {
                   if (suppliersList.length === 0) return;
                   const currentIdx = suppliersList.findIndex((s) => selectedSupplierIds.includes(s.id));
@@ -1384,7 +1384,7 @@ export default function AddProductScreen() {
                 Select Main Category<Text className="text-red-500">*</Text>
               </Text>
               <Pressable
-                className="bg-white border border-gray-200 rounded-lg px-4 py-3 flex-row justify-between items-center"
+                className="bg-white border border-gray-200 rounded-lg px-4 py-3 flex-row justify-between items-center shadow-sm"
                 onPress={() => {
                   if (selectedCategoryIds.length === 0) {
                     Alert.alert("Info", "Please select categories from the left panel first");
@@ -1419,7 +1419,7 @@ export default function AddProductScreen() {
             <View className="mb-4">
               <Text className="text-gray-700 text-sm font-medium mb-2">Product Note</Text>
               <TextInput
-                className="bg-white border border-gray-200 rounded-lg px-4 py-3"
+                className="bg-[#F7F7F9] border border-gray-200 rounded-lg px-4 py-3"
                 placeholder="Place note here"
                 placeholderTextColor="#9ca3af"
                 value={productNote}
@@ -1492,7 +1492,7 @@ export default function AddProductScreen() {
           </Pressable>
         </View>
         <TextInput
-          className="bg-white border border-gray-200 rounded-lg px-4 py-3 mb-6"
+          className="bg-white border border-gray-200 rounded-lg px-4 py-3 mb-6 shadow-sm"
           placeholder="Enter product description..."
           placeholderTextColor="#9ca3af"
           value={description}
@@ -1506,7 +1506,7 @@ export default function AddProductScreen() {
         <View className="mb-6 flex-row items-center" onLayout={(e) => trackFieldLayout("youtubeLink", e.nativeEvent.layout.y)}>
           <Text className="text-gray-700 text-sm font-medium mr-3" style={{ width: 90 }}>Youtube Link</Text>
           <TextInput
-            className="flex-1 bg-white border border-gray-200 rounded-lg px-4 py-3"
+            className="flex-1 bg-white border border-gray-200 rounded-lg px-4 py-3 shadow-sm"
             placeholder="Enter youtube link"
             placeholderTextColor="#9ca3af"
             value={youtubeLink}
@@ -1522,9 +1522,9 @@ export default function AddProductScreen() {
 
   // Render Pricing & Stock Tab Content
   const renderPricingTab = () => (
-    <ScrollView ref={pricingScrollRef} className="flex-1 bg-gray-50" showsVerticalScrollIndicator={false}>
+    <ScrollView ref={pricingScrollRef} className="flex-1 bg-[#F7F7F9]" showsVerticalScrollIndicator={false}>
       {/* Define Unit of Measurement Section */}
-      <View className="bg-white m-4 rounded-lg border border-gray-200" onLayout={(e) => trackFieldLayout("unitMeasurement", e.nativeEvent.layout.y)}>
+      <View className="bg-[#F7F7F9] m-4 rounded-lg border border-gray-200" onLayout={(e) => trackFieldLayout("unitMeasurement", e.nativeEvent.layout.y)}>
         <Pressable 
           className="flex-row items-center justify-between p-4 border-b border-gray-100"
           onPress={() => setMeasurementExpanded(!measurementExpanded)}
@@ -1569,7 +1569,7 @@ export default function AddProductScreen() {
                   <Text className="w-20 text-gray-700">{item.unit}</Text>
                   <View className="w-40 flex-row items-center">
                     <TextInput
-                      className="bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 w-20"
+                      className="bg-white border border-gray-200 rounded-lg px-3 py-2 w-20 shadow-sm"
                       placeholder={index === 0 ? "1" : "Enter Q..."}
                       placeholderTextColor="#9ca3af"
                       value={item.qty}
@@ -1586,7 +1586,7 @@ export default function AddProductScreen() {
                     )}
                   </View>
                   <TextInput
-                    className="flex-1 bg-white border border-gray-200 rounded-lg px-3 py-2 ml-4"
+                    className="flex-1 bg-white border border-gray-200 rounded-lg px-3 py-2 ml-4 shadow-sm"
                     placeholder="UPC"
                     placeholderTextColor="#9ca3af"
                     value={item.upc}
@@ -1604,7 +1604,7 @@ export default function AddProductScreen() {
       </View>
 
       {/* Define Pricing Section */}
-      <View className="bg-white mx-4 mb-4 rounded-lg border border-gray-200" onLayout={(e) => trackFieldLayout("pricingTable", e.nativeEvent.layout.y)}>
+      <View className="bg-[#F7F7F9] mx-4 mb-4 rounded-lg border border-gray-200" onLayout={(e) => trackFieldLayout("pricingTable", e.nativeEvent.layout.y)}>
         <Pressable 
           className="flex-row items-center justify-between p-4 border-b border-gray-100"
           onPress={() => setPricingExpanded(!pricingExpanded)}
@@ -1643,7 +1643,7 @@ export default function AddProductScreen() {
                   This product is sold by<Text className="text-red-500">*</Text>
                 </Text>
                 <Pressable
-                  className="bg-white border border-gray-200 rounded-lg px-4 py-3 flex-row justify-between items-center"
+                  className="bg-white border border-gray-200 rounded-lg px-4 py-3 flex-row justify-between items-center shadow-sm"
                   onPress={() => openPicker(
                     "This product is sold by",
                     definedUnits.map((u) => ({ label: u.unit, value: u.unit })),
@@ -1660,7 +1660,7 @@ export default function AddProductScreen() {
                   This product is bought by<Text className="text-red-500">*</Text>
                 </Text>
                 <Pressable
-                  className="bg-white border border-gray-200 rounded-lg px-4 py-3 flex-row justify-between items-center"
+                  className="bg-white border border-gray-200 rounded-lg px-4 py-3 flex-row justify-between items-center shadow-sm"
                   onPress={() => openPicker(
                     "This product is bought by",
                     definedUnits.map((u) => ({ label: u.unit, value: u.unit })),
@@ -1688,7 +1688,7 @@ export default function AddProductScreen() {
             <ScrollView horizontal showsHorizontalScrollIndicator={true}>
               <View>
                 {/* Header */}
-                <View className="flex-row py-3 border-b border-gray-200 bg-gray-50">
+                <View className="flex-row py-3 border-b border-gray-200 bg-[#F7F7F9] shadow-sm">
                   <Text className="w-16 text-gray-600 text-xs font-medium">Unit</Text>
                   <Text className="w-28 text-gray-600 text-xs font-medium">Packaging Quantity</Text>
                   <Text className="w-24 text-gray-600 text-xs font-medium">Base Cost Price* ($)</Text>
@@ -1741,11 +1741,11 @@ export default function AddProductScreen() {
                     <TextInput className="w-16 bg-white border border-gray-200 rounded px-2 py-1.5 text-sm ml-1" placeholder="MSRP" placeholderTextColor="#d1d5db" value={item.msrp} onChangeText={(v) => updatePricing("msrp", v)} keyboardType="decimal-pad" />
                     <TextInput className="w-20 bg-white border border-gray-200 rounded px-2 py-1.5 text-sm ml-1" placeholder="Lowest..." placeholderTextColor="#d1d5db" value={item.lowestPrice} onChangeText={(v) => updatePricing("lowestPrice", v)} keyboardType="decimal-pad" />
                     <TextInput className="w-20 bg-white border border-gray-200 rounded px-2 py-1.5 text-sm ml-1" placeholder="Ecom ..." placeholderTextColor="#d1d5db" value={item.ecomPrice} onChangeText={(v) => updatePricing("ecomPrice", v)} keyboardType="decimal-pad" />
-                    <TextInput className="w-20 bg-gray-50 border border-gray-200 rounded px-2 py-1.5 text-sm ml-1" placeholder="Tier 1" placeholderTextColor="#d1d5db" value={item.tier1} onChangeText={(v) => updatePricing("tier1", v)} keyboardType="decimal-pad" />
-                    <TextInput className="w-20 bg-gray-50 border border-gray-200 rounded px-2 py-1.5 text-sm ml-1" placeholder="Tier 2" placeholderTextColor="#d1d5db" value={item.tier2} onChangeText={(v) => updatePricing("tier2", v)} keyboardType="decimal-pad" />
-                    <TextInput className="w-20 bg-gray-50 border border-gray-200 rounded px-2 py-1.5 text-sm ml-1" placeholder="Tier 3" placeholderTextColor="#d1d5db" value={item.tier3} onChangeText={(v) => updatePricing("tier3", v)} keyboardType="decimal-pad" />
-                    <TextInput className="w-20 bg-gray-50 border border-gray-200 rounded px-2 py-1.5 text-sm ml-1" placeholder="Tier 4" placeholderTextColor="#d1d5db" value={item.tier4} onChangeText={(v) => updatePricing("tier4", v)} keyboardType="decimal-pad" />
-                    <TextInput className="w-20 bg-gray-50 border border-gray-200 rounded px-2 py-1.5 text-sm ml-1" placeholder="Tier 5" placeholderTextColor="#d1d5db" value={item.tier5} onChangeText={(v) => updatePricing("tier5", v)} keyboardType="decimal-pad" />
+                    <TextInput className="w-20 bg-white border border-gray-200 rounded px-2 py-1.5 text-sm ml-1 shadow-sm" placeholder="Tier 1" placeholderTextColor="#d1d5db" value={item.tier1} onChangeText={(v) => updatePricing("tier1", v)} keyboardType="decimal-pad" />
+                    <TextInput className="w-20 bg-white border border-gray-200 rounded px-2 py-1.5 text-sm ml-1 shadow-sm" placeholder="Tier 2" placeholderTextColor="#d1d5db" value={item.tier2} onChangeText={(v) => updatePricing("tier2", v)} keyboardType="decimal-pad" />
+                    <TextInput className="w-20 bg-white border border-gray-200 rounded px-2 py-1.5 text-sm ml-1 shadow-sm" placeholder="Tier 3" placeholderTextColor="#d1d5db" value={item.tier3} onChangeText={(v) => updatePricing("tier3", v)} keyboardType="decimal-pad" />
+                    <TextInput className="w-20 bg-white border border-gray-200 rounded px-2 py-1.5 text-sm ml-1 shadow-sm" placeholder="Tier 4" placeholderTextColor="#d1d5db" value={item.tier4} onChangeText={(v) => updatePricing("tier4", v)} keyboardType="decimal-pad" />
+                    <TextInput className="w-20 bg-white border border-gray-200 rounded px-2 py-1.5 text-sm ml-1 shadow-sm" placeholder="Tier 5" placeholderTextColor="#d1d5db" value={item.tier5} onChangeText={(v) => updatePricing("tier5", v)} keyboardType="decimal-pad" />
                   </View>
                   );
                 })}
@@ -1756,7 +1756,7 @@ export default function AddProductScreen() {
       </View>
 
       {/* Stock Information Section */}
-      <View className="bg-white mx-4 mb-4 rounded-lg border border-gray-200" onLayout={(e) => trackFieldLayout("channels", e.nativeEvent.layout.y)}>
+      <View className="bg-[#F7F7F9] mx-4 mb-4 rounded-lg border border-gray-200" onLayout={(e) => trackFieldLayout("channels", e.nativeEvent.layout.y)}>
         <Pressable 
           className="flex-row items-center justify-between p-4 border-b border-gray-100"
           onPress={() => setStockExpanded(!stockExpanded)}
@@ -1773,7 +1773,7 @@ export default function AddProductScreen() {
             <ScrollView horizontal showsHorizontalScrollIndicator={true}>
               <View>
                 {/* Header */}
-                <View className="flex-row py-3 border-b border-gray-200 bg-gray-50">
+                <View className="flex-row py-3 border-b border-gray-200 bg-[#F7F7F9] shadow-sm">
                   <Text className="w-16 text-gray-600 text-xs font-medium">Sr no.</Text>
                   <Text className="w-40 text-gray-600 text-xs font-medium">Warehouses/Storefront</Text>
                   <Text className="w-24 text-gray-600 text-xs font-medium">Available Qty</Text>
@@ -1852,8 +1852,8 @@ export default function AddProductScreen() {
 
   // Render SEO Tab Content
   const renderSeoTab = () => (
-    <ScrollView ref={seoScrollRef} className="flex-1 bg-gray-50 p-6" showsVerticalScrollIndicator={false}>
-      <View className="bg-white rounded-lg border border-gray-200 p-6">
+    <ScrollView ref={seoScrollRef} className="flex-1 bg-[#F7F7F9] p-6" showsVerticalScrollIndicator={false}>
+      <View className="bg-[#F7F7F9] rounded-lg border border-gray-200 p-6">
         {/* Slug */}
         <View className="mb-6" onLayout={(e) => trackFieldLayout("seoSlug", e.nativeEvent.layout.y)}>
           <View className="flex-row items-center mb-2">
@@ -1861,7 +1861,7 @@ export default function AddProductScreen() {
             <Ionicons name="information-circle-outline" size={16} color="#9CA3AF" style={{ marginLeft: 4 }} />
           </View>
           <TextInput
-            className="bg-white border border-gray-200 rounded-lg px-4 py-3"
+            className="bg-[#F7F7F9] border border-gray-200 rounded-lg px-4 py-3"
             placeholder="Enter Product Slug"
             placeholderTextColor="#d1d5db"
             value={seoSlug}
@@ -1874,7 +1874,7 @@ export default function AddProductScreen() {
         <View className="mb-6">
           <Text className="text-gray-700 text-sm font-medium mb-2">Meta Title</Text>
           <TextInput
-            className="bg-white border border-gray-200 rounded-lg px-4 py-3"
+            className="bg-[#F7F7F9] border border-gray-200 rounded-lg px-4 py-3"
             placeholder="Enter Meta Title for Product"
             placeholderTextColor="#d1d5db"
             value={metaTitle}
@@ -1890,7 +1890,7 @@ export default function AddProductScreen() {
         <View className="mb-2">
           <Text className="text-gray-700 text-sm font-medium mb-2">Meta Description</Text>
           <TextInput
-            className="bg-white border border-gray-200 rounded-lg px-4 py-3"
+            className="bg-[#F7F7F9] border border-gray-200 rounded-lg px-4 py-3"
             placeholder="Enter Meta Description for Product"
             placeholderTextColor="#d1d5db"
             value={metaDescription}
@@ -1959,11 +1959,11 @@ export default function AddProductScreen() {
     };
 
     return (
-      <View className="flex-1 bg-gray-50">
+      <View className="flex-1 bg-[#F7F7F9]">
         <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
           <View className="p-4">
             {/* Search & Filter Section */}
-            <View className="bg-white rounded-lg border border-gray-200 p-4 mb-4">
+            <View className="bg-[#F7F7F9] rounded-lg border border-gray-200 p-4 mb-4">
               <Text className="text-gray-800 font-medium mb-3">Search Promotions</Text>
               <View className="flex-row gap-3">
                 <TextInput
@@ -1984,7 +1984,7 @@ export default function AddProductScreen() {
 
               {/* Advance Filters Panel */}
               {showAdvanceFilters && (
-                <View className="mt-4 bg-white border border-gray-200 rounded-lg p-4">
+                <View className="mt-4 bg-[#F7F7F9] border border-gray-200 rounded-lg p-4">
                   <Text className="text-lg font-semibold text-gray-800 mb-4">Advance Filters</Text>
 
                   {/* Status multi-select chips */}
@@ -2074,11 +2074,11 @@ export default function AddProductScreen() {
 
             {/* Promotions Table */}
             {!promotionsLoading && (
-              <View className="bg-white rounded-lg border border-gray-200">
+              <View className="bg-[#F7F7F9] rounded-lg border border-gray-200">
                 <ScrollView horizontal showsHorizontalScrollIndicator={true}>
                   <View style={{ minWidth: 1100 }}>
                     {/* Table Header – mirrors kapp columns */}
-                    <View className="flex-row bg-gray-50 py-3 px-4 border-b border-gray-200">
+                    <View className="flex-row bg-[#F7F7F9] py-3 px-4 border-b border-gray-200 shadow-sm">
                       <Text className="text-gray-500 text-xs font-semibold uppercase" style={{ width: 180 }}>Promotion Name</Text>
                       <Text className="text-gray-500 text-xs font-semibold uppercase" style={{ width: 150 }}>Promo Price</Text>
                       <Text className="text-gray-500 text-xs font-semibold uppercase text-center" style={{ width: 100 }}>Applied To</Text>
@@ -2128,7 +2128,7 @@ export default function AddProductScreen() {
 
                 {/* Total count footer */}
                 {promotionRows.length > 0 && (
-                  <View className="flex-row justify-between items-center px-4 py-3 border-t border-gray-200 bg-gray-50">
+                  <View className="flex-row justify-between items-center px-4 py-3 border-t border-gray-200 bg-[#F7F7F9] shadow-sm">
                     <Text className="text-gray-500 text-sm">
                       Showing {promotionRows.length} of {promotionsTotalCount} promotion(s)
                     </Text>
@@ -2151,7 +2151,7 @@ export default function AddProductScreen() {
   );
 
   return (
-    <View className="flex-1 bg-gray-50">
+    <View className="flex-1 bg-[#F7F7F9]">
       <PageHeader title="Add Product" rightContent={
         <View className="flex-row items-center gap-3">
           <Pressable
@@ -2174,7 +2174,7 @@ export default function AddProductScreen() {
       } />
 
       {/* Tab Navigation */}
-      <View className="bg-white border-b border-gray-200">
+      <View className="bg-[#F7F7F9] border-b border-gray-200">
         <ScrollView 
           horizontal 
           showsHorizontalScrollIndicator={false}
@@ -2240,7 +2240,7 @@ export default function AddProductScreen() {
                     Category Name<Text className="text-red-500">*</Text>
                   </Text>
                   <TextInput
-                    className="bg-white border border-gray-200 rounded-lg px-4 py-3"
+                    className="bg-[#F7F7F9] border border-gray-200 rounded-lg px-4 py-3"
                     placeholder="Enter Category Name"
                     placeholderTextColor="#9ca3af"
                     value={categoryName}
@@ -2250,7 +2250,7 @@ export default function AddProductScreen() {
                 <View className="flex-1">
                   <Text className="text-gray-700 text-sm font-medium mb-2">MSA Code</Text>
                   <Pressable
-                    className="bg-white border border-gray-200 rounded-lg px-4 py-3 flex-row justify-between items-center"
+                    className="bg-white border border-gray-200 rounded-lg px-4 py-3 flex-row justify-between items-center shadow-sm"
                     onPress={() => {
                       if (!categoryIsMsa) {
                         Alert.alert("Info", "Turn on Is MSA to enter MSA code");

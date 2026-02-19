@@ -3,7 +3,7 @@
  * Uses the unified DataTable component
  */
 
-import { useState } from "react";
+import { useState, useMemo, useCallback } from "react";
 import { Pressable, Text, View } from "react-native";
 import { ColumnDefinition, DataTable, FilterDefinition, PageHeader } from "../../components";
 import { Fulfillment } from "../../types";
@@ -35,15 +35,15 @@ function PickerBadge({ isAssigned, details }: { isAssigned: boolean; details: st
   return (
     <View className="flex-row items-center justify-center gap-2">
       <View
-        className={`w-6 h-6 rounded-full items-center justify-center ${
+        className={`w-7 h-7 rounded-full items-center justify-center ${
           isAssigned ? "bg-red-500" : "bg-gray-300"
         }`}
       >
-        <Text className="text-white text-xs font-bold">
+        <Text className="text-white text-[14px] font-bold">
           {isAssigned ? "D" : "?"}
         </Text>
       </View>
-      <Text className="text-gray-600 text-sm" numberOfLines={1}>
+      <Text className="text-gray-600 text-[18px] font-Montserrat" numberOfLines={1}>
         {details}
       </Text>
     </View>
@@ -59,7 +59,8 @@ export default function FulfillmentsScreen() {
   const [fulfillments] = useState<Fulfillment[]>(SAMPLE_FULFILLMENTS);
 
   // Column config
-  const columns: ColumnDefinition<Fulfillment>[] = [
+  const columns = useMemo<ColumnDefinition<Fulfillment>[]>(
+    () => [
     {
       key: "businessName",
       title: "Business Name / Customer Name",
@@ -68,9 +69,9 @@ export default function FulfillmentsScreen() {
       hideable: false,
       render: (item) => (
         <View>
-          <Text className="text-blue-600 font-medium">{item.businessName}</Text>
+          <Text className="text-blue-600 font-medium text-[18px] font-Montserrat">{item.businessName}</Text>
           {item.customerName && (
-            <Text className="text-blue-500 text-sm">{item.customerName}</Text>
+            <Text className="text-blue-500 text-[14px] font-Montserrat">{item.customerName}</Text>
           )}
         </View>
       ),
@@ -78,30 +79,32 @@ export default function FulfillmentsScreen() {
     {
       key: "orderNo",
       title: "Order No",
-      width: 140,
+      width: 180,
       align: "center",
       visible: true,
-      render: (item) => <Text className="text-blue-600">{item.orderNo}</Text>,
+      render: (item) => <Text className="text-blue-600 text-[18px] font-Montserrat">{item.orderNo}</Text>,
     },
     {
       key: "shippingType",
       title: "Shipping",
-      width: 100,
+      width: 140,
       align: "center",
       visible: true,
-      render: (item) => <Text className="text-gray-600">{item.shippingType}</Text>,
+      render: (item) => <Text className="text-gray-600 text-[18px] font-Montserrat">{item.shippingType}</Text>,
     },
     {
       key: "pickerDetails",
       title: "Picker",
-      width: 140,
+      width: 180,
       align: "center",
       visible: true,
       render: (item) => (
         <PickerBadge isAssigned={item.pickerAssigned} details={item.pickerDetails} />
       ),
     },
-  ];
+  ],
+    []
+  );
 
   // Filters
   const filters: FilterDefinition[] = [
@@ -128,16 +131,16 @@ export default function FulfillmentsScreen() {
     },
   ];
 
-  const handleSearch = (item: Fulfillment, query: string) => {
+  const handleSearch = useCallback((item: Fulfillment, query: string) => {
     const q = query.toLowerCase();
     return (
       item.businessName.toLowerCase().includes(q) ||
       item.customerName.toLowerCase().includes(q) ||
       item.orderNo.toLowerCase().includes(q)
     );
-  };
+  }, []);
 
-  const handleFilter = (item: Fulfillment, filters: Record<string, string | null>) => {
+  const handleFilter = useCallback((item: Fulfillment, filters: Record<string, string | null>) => {
     if (filters.shippingType && filters.shippingType !== "all") {
       if (item.shippingType !== filters.shippingType) return false;
     }
@@ -146,14 +149,14 @@ export default function FulfillmentsScreen() {
       if (filters.picker === "not_assigned" && item.pickerAssigned) return false;
     }
     return true;
-  };
+  }, []);
 
   return (
-    <View className="flex-1 bg-gray-50">
-      <PageHeader title="Fulfillments" />
+    <View className="flex-1 bg-[#F7F7F9]">
+      <PageHeader title="Fulfillments" showBack={false} />
 
       {/* Tab Navigation */}
-      <View className="bg-white flex-row border-b border-gray-200">
+      <View className="bg-[#F7F7F9] flex-row border-b border-gray-200">
         {TABS.map((tab) => {
           const isActive = activeTab === tab;
           return (

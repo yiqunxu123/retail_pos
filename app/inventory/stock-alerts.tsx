@@ -30,73 +30,73 @@ export default function StockAlertsScreen() {
       width: "flex",
       visible: true,
       hideable: false,
-      render: (item) => <Text className="text-gray-800">{item.productName}</Text>,
+      render: (item) => <Text className="text-[#1A1A1A] text-[18px] font-Montserrat">{item.productName}</Text>,
     },
     {
       key: "skuUpc",
       title: "SKU/UPC",
-      width: 140,
+      width: 180,
       visible: true,
-      render: (item) => <Text className="text-gray-600">{item.skuUpc}</Text>,
+      render: (item) => <Text className="text-gray-600 text-[18px] font-Montserrat">{item.skuUpc}</Text>,
     },
     {
       key: "channelName",
       title: "Channel Name",
-      width: 110,
+      width: 140,
       visible: true,
-      render: (item) => <Text className="text-gray-600">{item.channelName}</Text>,
+      render: (item) => <Text className="text-gray-600 text-[18px] font-Montserrat">{item.channelName}</Text>,
     },
     {
       key: "categoryName",
       title: "Category Name",
-      width: 120,
+      width: 150,
       visible: true,
-      render: (item) => <Text className="text-gray-600">{item.categoryName}</Text>,
+      render: (item) => <Text className="text-gray-600 text-[18px] font-Montserrat">{item.categoryName}</Text>,
     },
     {
       key: "availableQty",
       title: "Available Qty",
-      width: 100,
+      width: 120,
       align: "center",
       visible: true,
       render: (item) => {
         const isCritical = item.availableQty === 0;
         const isBelowMin = item.availableQty < item.minQty;
-        const colorClass = isCritical ? "text-red-600" : isBelowMin ? "text-orange-600" : "text-gray-800";
-        return <Text className={`font-medium ${colorClass}`}>{item.availableQty}</Text>;
+        const colorClass = isCritical ? "text-red-600" : isBelowMin ? "text-orange-600" : "text-[#1A1A1A]";
+        return <Text className={`font-Montserrat font-bold text-[18px] ${colorClass}`}>{item.availableQty}</Text>;
       },
     },
     {
       key: "backOrderQty",
       title: "Back Order Qty",
-      width: 100,
+      width: 120,
       align: "center",
       visible: true,
-      render: (item) => <Text className="text-gray-800">{item.backOrderQty}</Text>,
+      render: (item) => <Text className="text-[#1A1A1A] text-[18px] font-Montserrat">{item.backOrderQty}</Text>,
     },
     {
       key: "totalQty",
       title: "Total Qty",
-      width: 80,
+      width: 100,
       align: "center",
       visible: true,
-      render: (item) => <Text className="text-gray-800">{item.totalQty}</Text>,
+      render: (item) => <Text className="text-[#1A1A1A] text-[18px] font-Montserrat">{item.totalQty}</Text>,
     },
     {
       key: "minQty",
       title: "Min Qty",
-      width: 80,
+      width: 100,
       align: "center",
       visible: true,
-      render: (item) => <Text className="text-blue-600">{item.minQty}</Text>,
+      render: (item) => <Text className="text-blue-600 text-[18px] font-Montserrat font-bold">{item.minQty}</Text>,
     },
     {
       key: "maxQty",
       title: "Max Qty",
-      width: 80,
+      width: 100,
       align: "center",
       visible: true,
-      render: (item) => <Text className="text-blue-600">{item.maxQty}</Text>,
+      render: (item) => <Text className="text-blue-600 text-[18px] font-Montserrat font-bold">{item.maxQty}</Text>,
     },
   ];
 
@@ -168,8 +168,8 @@ export default function StockAlertsScreen() {
   };
 
   return (
-    <View className="flex-1 bg-gray-50">
-      <PageHeader title="Stock Alerts" />
+    <View className="flex-1 bg-[#F7F7F9]">
+      <PageHeader title="Stock Alerts" showBack={false} />
 
       <DataTable<StockAlert>
         data={SAMPLE_ALERTS}

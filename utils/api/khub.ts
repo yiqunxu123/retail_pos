@@ -10,6 +10,7 @@ export const STORAGE_KEYS = {
 
 // KHUB API base URL from environment
 const KHUB_API_URL = process.env.EXPO_PUBLIC_KHUB_API_URL || 'http://localhost:5002';
+console.log('[KHUB_API_URL]', KHUB_API_URL);
 
 // Create axios instance
 const khubApi: AxiosInstance = axios.create({

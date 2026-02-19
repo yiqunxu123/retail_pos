@@ -63,13 +63,13 @@ export function CashResultModal({
 
             {/* Amounts */}
             <View className="flex-row gap-4 w-full mb-8">
-              <View className="flex-1 bg-gray-50 p-4 rounded-lg items-center border border-gray-200">
+              <View className="flex-1 bg-[#F7F7F9] p-4 rounded-lg items-center border border-gray-200 shadow-sm">
                 <Text className="text-gray-500 text-sm font-medium mb-1">Expected Cash</Text>
                 <Text className="text-2xl font-bold text-gray-900">
                   ${expectedAmount.toFixed(0)}
                 </Text>
               </View>
-              <View className="flex-1 bg-gray-50 p-4 rounded-lg items-center border border-gray-200">
+              <View className="flex-1 bg-[#F7F7F9] p-4 rounded-lg items-center border border-gray-200 shadow-sm">
                 <Text className="text-gray-500 text-sm font-medium mb-1">Entered Cash Amount</Text>
                 <Text 
                   className={`text-2xl font-bold ${isMatched ? "text-green-600" : "text-red-600"}`}

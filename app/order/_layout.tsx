@@ -8,7 +8,7 @@ import { OrderProvider } from "../../contexts/OrderContext";
 export default function OrderLayout() {
   return (
     <OrderProvider>
-      <View className="flex-1 bg-gray-100">
+      <View className="flex-1 bg-[#F7F7F9]">
         <Stack screenOptions={{ headerShown: false }}>
           <Stack.Screen
             name="add-customer"

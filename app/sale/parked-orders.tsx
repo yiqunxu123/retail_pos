@@ -10,6 +10,7 @@
  * - Resume: navigate to order form with retrieveOrderId
  */
 
+import { useMemo, useCallback } from "react";
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import { ActivityIndicator, Alert, Pressable, Text, View } from "react-native";
@@ -30,14 +31,14 @@ function formatDate(dateStr: string): string {
   if (!dateStr) return "";
   try {
     const d = new Date(dateStr);
-    return d.toLocaleString("en-US", {
-      month: "2-digit",
-      day: "2-digit",
-      year: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-      second: "2-digit",
-    });
+    const mm = String(d.getMonth() + 1).padStart(2, "0");
+    const dd = String(d.getDate()).padStart(2, "0");
+    const yyyy = d.getFullYear();
+    let hh = d.getHours();
+    const min = String(d.getMinutes()).padStart(2, "0");
+    const ampm = hh >= 12 ? "PM" : "AM";
+    hh = hh % 12 || 12;
+    return `${mm}/${dd}/${yyyy} ${hh}:${min} ${ampm}`;
   } catch {
     return dateStr;
   }
@@ -51,7 +52,7 @@ export default function ParkedOrdersScreen() {
   const { remoteOrders, deleteParkedOrder, isLoading, count } =
     useParkedOrders();
 
-  const handleResumeOrder = (order: ParkedOrderView) => {
+  const handleResumeOrder = useCallback((order: ParkedOrderView) => {
     Alert.alert("Resume Order", `Resume order ${order.orderNo}?`, [
       { text: "Cancel", style: "cancel" },
       {
@@ -64,39 +65,53 @@ export default function ParkedOrdersScreen() {
         },
       },
     ]);
-  };
+  }, []);
 
-  const handleDeleteOrder = (order: ParkedOrderView) => {
-    Alert.alert(
-      "Delete Parked Order",
-      `Are you sure you want to delete order ${order.orderNo}? This action cannot be undone.`,
-      [
-        { text: "Cancel", style: "cancel" },
-        {
-          text: "Delete",
-          style: "destructive",
-          onPress: async () => {
-            try {
-              await deleteParkedOrder(order.id);
-            } catch {
-              // Error alert already shown in context
-            }
+  const handleDeleteOrder = useCallback(
+    (order: ParkedOrderView) => {
+      Alert.alert(
+        "Delete Parked Order",
+        `Are you sure you want to delete order ${order.orderNo}? This action cannot be undone.`,
+        [
+          { text: "Cancel", style: "cancel" },
+          {
+            text: "Delete",
+            style: "destructive",
+            onPress: async () => {
+              try {
+                await deleteParkedOrder(order.id);
+              } catch {
+                // Error alert already shown in context
+              }
+            },
           },
-        },
-      ]
+        ]
+      );
+    },
+    [deleteParkedOrder]
+  );
+
+  const handleSearch = useCallback((item: ParkedOrderView, query: string) => {
+    const q = query.toLowerCase();
+    return (
+      item.orderNo.toLowerCase().includes(q) ||
+      item.customerName.toLowerCase().includes(q) ||
+      item.businessName.toLowerCase().includes(q) ||
+      item.createdByName.toLowerCase().includes(q)
     );
-  };
+  }, []);
 
   // Column configuration
-  const columns: ColumnDefinition<ParkedOrderView>[] = [
+  const columns = useMemo<ColumnDefinition<ParkedOrderView>[]>(
+    () => [
     {
       key: "orderNo",
       title: "Order Number",
-      width: 150,
+      width: 180,
       visible: true,
       hideable: false,
       render: (item) => (
-        <Text className="text-blue-600 text-xs font-medium" numberOfLines={1}>
+        <Text className="text-blue-600 text-[18px] font-Montserrat font-medium" numberOfLines={1}>
           {item.orderNo}
         </Text>
       ),
@@ -104,10 +119,10 @@ export default function ParkedOrdersScreen() {
     {
       key: "date",
       title: "Date / Time",
-      width: 160,
+      width: 200,
       visible: true,
       render: (item) => (
-        <Text className="text-gray-600 text-xs">
+        <Text className="text-gray-600 text-[18px] font-Montserrat">
           {formatDate(item.orderDate)}
         </Text>
       ),
@@ -118,7 +133,7 @@ export default function ParkedOrdersScreen() {
       width: "flex",
       visible: true,
       render: (item) => (
-        <Text className="text-blue-600 text-xs" numberOfLines={1}>
+        <Text className="text-blue-600 text-[18px] font-Montserrat" numberOfLines={1}>
           {item.customerName || "Guest Customer"}
         </Text>
       ),
@@ -126,20 +141,20 @@ export default function ParkedOrdersScreen() {
     {
       key: "createdBy",
       title: "Created By",
-      width: 120,
+      width: 140,
       visible: true,
       render: (item) => (
-        <Text className="text-gray-600 text-xs">{item.createdByName}</Text>
+        <Text className="text-gray-600 text-[18px] font-Montserrat">{item.createdByName}</Text>
       ),
     },
     {
       key: "channel",
       title: "Channel Name",
-      width: 110,
+      width: 140,
       visible: true,
       render: (item) => (
-        <View className="bg-pink-100 px-2 py-1 rounded self-start">
-          <Text className="text-pink-600 text-xs font-medium">
+        <View className="bg-pink-100 px-3 py-1 rounded self-start">
+          <Text className="text-pink-600 text-[14px] font-Montserrat font-medium">
             {item.channelName}
           </Text>
         </View>
@@ -148,20 +163,20 @@ export default function ParkedOrdersScreen() {
     {
       key: "items",
       title: "No. of Items",
-      width: 90,
+      width: 120,
       align: "center",
       visible: true,
       render: (item) => (
-        <Text className="text-gray-600 text-xs">{item.itemCount}</Text>
+        <Text className="text-gray-600 text-[18px] font-Montserrat">{item.itemCount}</Text>
       ),
     },
     {
       key: "total",
       title: "Total",
-      width: 110,
+      width: 140,
       visible: true,
       render: (item) => (
-        <Text className="text-red-600 text-xs font-bold">
+        <Text className="text-red-600 text-[18px] font-Montserrat font-bold">
           {formatCurrency(item.totalPrice)}
         </Text>
       ),
@@ -169,11 +184,11 @@ export default function ParkedOrdersScreen() {
     {
       key: "status",
       title: "Status",
-      width: 90,
+      width: 120,
       visible: true,
       render: (item) => (
-        <View className="bg-purple-100 px-2 py-1 rounded self-start">
-          <Text className="text-purple-700 text-xs font-medium">
+        <View className="bg-purple-100 px-3 py-1 rounded self-start">
+          <Text className="text-purple-700 text-[14px] font-Montserrat font-medium">
             {getSaleOrderStatusLabel(item.status)}
           </Text>
         </View>
@@ -182,43 +197,34 @@ export default function ParkedOrdersScreen() {
     {
       key: "actions",
       title: "Actions",
-      width: 80,
+      width: 100,
       align: "center",
       visible: true,
-      hideable: false,
       render: (item) => (
         <View className="flex-row gap-2">
           <Pressable
-            className="bg-red-50 p-1.5 rounded"
+            className="bg-red-50 p-2 rounded"
             onPress={() => handleResumeOrder(item)}
           >
-            <Ionicons name="play-outline" size={14} color="#EC1A52" />
+            <Ionicons name="play-outline" size={16} color="#EC1A52" />
           </Pressable>
           <Pressable
-            className="bg-red-50 p-1.5 rounded"
+            className="bg-red-50 p-2 rounded"
             onPress={() => handleDeleteOrder(item)}
           >
-            <Ionicons name="trash-outline" size={14} color="#EC1A52" />
+            <Ionicons name="trash-outline" size={16} color="#EC1A52" />
           </Pressable>
         </View>
       ),
     },
-  ];
-
-  const handleSearch = (item: ParkedOrderView, query: string) => {
-    const q = query.toLowerCase();
-    return (
-      item.orderNo.toLowerCase().includes(q) ||
-      item.customerName.toLowerCase().includes(q) ||
-      item.businessName.toLowerCase().includes(q) ||
-      item.createdByName.toLowerCase().includes(q)
-    );
-  };
+  ],
+    [handleResumeOrder, handleDeleteOrder]
+  );
 
   if (isLoading && remoteOrders.length === 0) {
     return (
-      <View className="flex-1 bg-gray-50">
-        <PageHeader title="Parked Orders" />
+      <View className="flex-1 bg-[#F7F7F9]">
+        <PageHeader title="Parked Orders" showBack={false} />
         <View className="flex-1 items-center justify-center">
           <ActivityIndicator size="large" color="#EC1A52" />
           <Text className="text-gray-500 mt-3">Loading parked orders...</Text>
@@ -228,8 +234,8 @@ export default function ParkedOrdersScreen() {
   }
 
   return (
-    <View className="flex-1 bg-gray-50">
-      <PageHeader title="Parked Orders" />
+    <View className="flex-1 bg-[#F7F7F9]">
+      <PageHeader title="Parked Orders" showBack={false} />
 
       <DataTable<ParkedOrderView>
         data={remoteOrders}

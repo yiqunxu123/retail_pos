@@ -1,5 +1,5 @@
 import { Ionicons } from "@expo/vector-icons";
-import { View, Text, Pressable, ScrollView } from "react-native";
+import { View, Text, Pressable, ScrollView, TouchableOpacity, Image } from "react-native";
 
 export interface ProductItem {
   id: string;
@@ -18,136 +18,130 @@ interface ProductTableProps {
   products: ProductItem[];
   onQuantityChange: (id: string, delta: number) => void;
   selectedProductId?: string;
-  onSelectProduct?: (id: string) => void;
+  onSelectProduct?: (product: ProductItem) => void;
+  onAddProductPress?: () => void;
 }
 
 /**
- * ProductTable - Displays cart items in a table format
- * Shows product details with quantity controls
+ * ProductTable - Simplified to match the background of the reference image
  */
 export function ProductTable({
   products,
   onQuantityChange,
   selectedProductId,
   onSelectProduct,
+  onAddProductPress,
 }: ProductTableProps) {
-  // Table header columns
-  const headers = [
-    { label: "SKU/UPC", width: 140, sortable: true },
-    { label: "Product Name", width: 240, sortable: true },
-    { label: "Sale Price", width: 80, sortable: true },
-    { label: "Unit", width: 80 },
-    { label: "Quantity", width: 100, sortable: true },
-    { label: "TN Vapor Tax", width: 90 },
-    { label: "NC Vapor Tax", width: 90 },
-    { label: "Total", width: 100 },
-  ];
-
   return (
-    <View className="bg-white rounded-lg overflow-hidden flex-1">
-      {/* Table Header */}
-      <View className="flex-row bg-gray-50 border-b border-gray-200 px-3 py-3">
-        {headers.map((header, index) => (
-          <View
-            key={index}
-            className="flex-row items-center"
-            style={{ width: header.width }}
-          >
-            <Text className="text-gray-600 text-xs font-semibold">
-              {header.label}
+    <ScrollView 
+      className="flex-1" 
+      contentContainerStyle={{ paddingHorizontal: 12, paddingTop: 40, paddingBottom: 10, flexGrow: 1 }}
+      showsVerticalScrollIndicator={products.length > 0}
+    >
+      <View className="bg-white border border-gray-200 rounded-2xl overflow-hidden shadow-sm flex-1">
+        {/* Table Header */}
+        <View className="flex-row bg-white border-b border-gray-100 px-4 py-4">
+          <View className="flex-1">
+            <Text className="text-[#5A5F66] text-[15px] font-Montserrat font-bold">Product Name / Details</Text>
+          </View>
+          <View className="w-[140px] flex-row items-center justify-center gap-1">
+            <Text className="text-[#5A5F66] text-[15px] font-Montserrat font-bold">Quantity</Text>
+            <Ionicons name="swap-vertical" size={14} color="#9CA3AF" />
+          </View>
+          <View className="w-[120px] items-center">
+            <Text className="text-[#5A5F66] text-[15px] font-Montserrat font-bold">TN Vapor Tax</Text>
+          </View>
+          <View className="w-[120px] items-center">
+            <Text className="text-[#5A5F66] text-[15px] font-Montserrat font-bold">NC Vapor Tax</Text>
+          </View>
+          <View className="w-[120px] items-end pr-4">
+            <Text className="text-[#5A5F66] text-[15px] font-Montserrat font-bold">Total</Text>
+          </View>
+        </View>
+
+        {/* Empty State */}
+        {products.length === 0 ? (
+          <View className="flex-1 items-center justify-center bg-white py-8">
+            <View className="w-96 h-96 mb-2 items-center justify-center">
+              <Image 
+                source={require("../assets/images/cart-image.png")}
+                style={{ width: 380, height: 380 }}
+                resizeMode="contain"
+              />
+            </View>
+            <Text className="text-[#5A5F66] text-center font-Montserrat text-[16px] mb-6 px-20" style={{ marginTop: -20 }}>
+              There are no products in the list yet, Add Products to get Started
             </Text>
-            {header.sortable && (
-              <Ionicons name="chevron-expand" size={12} color="#9ca3af" style={{ marginLeft: 4 }} />
+            {onAddProductPress && (
+              <TouchableOpacity
+                onPress={onAddProductPress}
+                className="bg-[#EC1A52] px-8 py-3 rounded-lg flex-row items-center gap-2 shadow-sm"
+              >
+                <Ionicons name="add" size={24} color="white" />
+                <Text className="text-white font-Montserrat font-bold text-[18px]">Add New Product</Text>
+              </TouchableOpacity>
             )}
           </View>
-        ))}
+        ) : (
+          /* Table Body */
+          <ScrollView>
+            {products.map((product, index) => {
+              const isSelected = selectedProductId === product.id;
+              return (
+                <Pressable
+                  key={product.id}
+                  onPress={() => onSelectProduct?.(product)}
+                  className={`flex-row items-center px-4 py-5 border-b border-[#F0F1F4] ${
+                    isSelected 
+                      ? 'bg-[#FFF0F3] border-l-4 border-[#EC1A52]' 
+                      : 'bg-white'
+                  }`}
+                >
+                  <View className="flex-1">
+                    <Text className="text-[#1A1A1A] text-[16px] font-Montserrat font-semibold" numberOfLines={1}>
+                      {product.sku}
+                    </Text>
+                    <Text className="text-[#5A5F66] text-[14px] font-Montserrat mt-1" numberOfLines={2}>
+                      {product.name}
+                    </Text>
+                    {product.isPromo && (
+                      <View className="bg-[#FFA64D] px-2 py-0.5 rounded-full mt-2 self-start">
+                        <Text className="text-[10px] font-bold text-[#6B4F1D]">PROMO</Text>
+                      </View>
+                    )}
+                  </View>
+
+                  <View className="w-[140px] flex-row items-center justify-center gap-2">
+                    <TouchableOpacity
+                      onPress={() => onQuantityChange(product.id, -1)}
+                      className="w-10 h-10 bg-[#FFF0F3] rounded-lg items-center justify-center border border-[#FECACA]"
+                    >
+                      <Ionicons name="remove" size={20} color="#EC1A52" />
+                    </TouchableOpacity>
+                    <Text className="text-[#1A1A1A] text-[18px] font-Montserrat font-bold w-8 text-center">{product.quantity}</Text>
+                    <TouchableOpacity
+                      onPress={() => onQuantityChange(product.id, 1)}
+                      className="w-10 h-10 bg-[#EC1A52] rounded-lg items-center justify-center shadow-sm"
+                    >
+                      <Ionicons name="add" size={20} color="white" />
+                    </TouchableOpacity>
+                  </View>
+
+                  <View className="w-[120px] items-center">
+                    <Text className="text-[#1A1A1A] text-[16px] font-Montserrat">${product.tnVaporTax.toFixed(4)}</Text>
+                  </View>
+                  <View className="w-[120px] items-center">
+                    <Text className="text-[#1A1A1A] text-[16px] font-Montserrat">${product.ncVaporTax.toFixed(4)}</Text>
+                  </View>
+                  <View className="w-[120px] items-end pr-4">
+                    <Text className="text-[#1A1A1A] text-[18px] font-Montserrat font-bold">${product.total.toFixed(2)}</Text>
+                  </View>
+                </Pressable>
+              );
+            })}
+          </ScrollView>
+        )}
       </View>
-
-      {/* Table Body */}
-      <ScrollView className="flex-1">
-        {products.map((product, index) => (
-          <Pressable
-            key={product.id}
-            onPress={() => onSelectProduct?.(product.id)}
-            className={`flex-row items-center px-3 py-3 border-b border-gray-100 ${
-              selectedProductId === product.id ? "bg-blue-50" : ""
-            }`}
-            style={({ pressed }) => ({ opacity: pressed ? 0.7 : 1 })}
-          >
-            {/* SKU/UPC */}
-            <View style={{ width: 140 }}>
-              <Text className="text-gray-800 text-sm">{product.sku}</Text>
-            </View>
-
-            {/* Product Name */}
-            <View style={{ width: 240 }} className="pr-2">
-              <Text className="text-gray-800 text-sm" numberOfLines={2}>
-                {product.name}
-              </Text>
-              {product.isPromo && (
-                <View className="bg-red-500 px-2 py-0.5 rounded self-start mt-1">
-                  <Text className="text-white text-xs font-medium">PROMO</Text>
-                </View>
-              )}
-            </View>
-
-            {/* Sale Price */}
-            <View style={{ width: 80 }}>
-              <Text className="text-gray-800 text-sm">{product.salePrice}</Text>
-            </View>
-
-            {/* Unit */}
-            <View style={{ width: 80 }}>
-              <View className="flex-row items-center bg-gray-100 rounded px-2 py-1">
-                <Text className="text-gray-700 text-xs">{product.unit}</Text>
-                <Ionicons name="chevron-down" size={12} color="#6b7280" />
-              </View>
-            </View>
-
-            {/* Quantity Controls */}
-            <View style={{ width: 100 }} className="flex-row items-center gap-2">
-              <Pressable
-                onPress={() => onQuantityChange(product.id, -1)}
-                className="w-7 h-7 bg-red-500 rounded items-center justify-center"
-                style={({ pressed }) => ({ opacity: pressed ? 0.7 : 1 })}
-              >
-                <Ionicons name="remove" size={16} color="white" />
-              </Pressable>
-              <Text className="text-gray-800 text-sm font-medium w-6 text-center">
-                {product.quantity}
-              </Text>
-              <Pressable
-                onPress={() => onQuantityChange(product.id, 1)}
-                className="w-7 h-7 bg-green-500 rounded items-center justify-center"
-                style={({ pressed }) => ({ opacity: pressed ? 0.7 : 1 })}
-              >
-                <Ionicons name="add" size={16} color="white" />
-              </Pressable>
-            </View>
-
-            {/* TN Vapor Tax */}
-            <View style={{ width: 90 }}>
-              <Text className="text-gray-800 text-sm">
-                ${product.tnVaporTax.toFixed(4)}
-              </Text>
-            </View>
-
-            {/* NC Vapor Tax */}
-            <View style={{ width: 90 }}>
-              <Text className="text-gray-800 text-sm">
-                ${product.ncVaporTax.toFixed(4)}
-              </Text>
-            </View>
-
-            {/* Total */}
-            <View style={{ width: 100 }}>
-              <Text className="text-gray-800 text-sm font-medium">
-                ${product.total.toFixed(2)}
-              </Text>
-            </View>
-          </Pressable>
-        ))}
-      </ScrollView>
-    </View>
+    </ScrollView>
   );
 }

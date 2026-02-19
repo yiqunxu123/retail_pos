@@ -11,19 +11,20 @@ interface StatCardProps {
   icon?: ReactNode;
   variant: StatCardVariant;
   onPress?: () => void;
+  height?: number;
 }
 
 // Gradient color pairs for each variant [start, end]
 const gradientColors: Record<StatCardVariant, [string, string]> = {
-  green: ["#22c55e", "#16a34a"],    // emerald gradient
-  yellow: ["#f5a623", "#e8961e"],   // orange-yellow (K Web Total Revenue)
-  purple: ["#9b59b6", "#8e44ad"],   // purple (K Web Payable Amount)
-  red: ["#ef4444", "#dc2626"],      // red gradient
-  orange: ["#fb923c", "#f97316"],   // orange gradient
-  dark: ["#2c3e50", "#1a252f"],     // dark (K Web Pickup Orders)
-  teal: ["#1abc9c", "#16a085"],     // teal (K Web Paid Amount)
-  pink: ["#e84393", "#d63384"],     // pink (K Web Delivery Orders)
-  blue: ["#3498db", "#2980b9"],     // blue (K Web Receivable Amount)
+  green: ["#4CAF50", "#388E3C"],    // Total Revenue
+  yellow: ["#FF9800", "#F57C00"],   // Payable Amount
+  purple: ["#9C27B0", "#7B1FA2"],   // Pickup Orders
+  red: ["#E91E63", "#C2185B"],      // Delivery Orders
+  orange: ["#FB8C00", "#EF6C00"],   // General orange
+  dark: ["#2c3e50", "#1a252f"],     // Dark
+  teal: ["#00BCD4", "#0097A7"],     // Paid Amount
+  pink: ["#E91E63", "#C2185B"],     // Same as red for delivery in design
+  blue: ["#2196F3", "#1976D2"],     // Receivable Amount
 };
 
 /**
@@ -37,37 +38,73 @@ export function StatCard({
   icon,
   variant,
   onPress,
+  height = 180,
 }: StatCardProps) {
   return (
     <Pressable
       onPress={onPress}
-      className="flex-1 min-h-[100px] rounded-xl overflow-hidden"
-      style={({ pressed }) => ({ opacity: pressed ? 0.8 : 1 })}
+      className="flex-1 rounded-xl overflow-hidden"
+      style={({ pressed }) => ({ 
+        opacity: pressed ? 0.8 : 1,
+        height: height,
+        minHeight: height,
+      })}
     >
       <LinearGradient
         colors={gradientColors[variant]}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
-        style={{ flex: 1, padding: 16 }}
+        style={{ height: height, padding: 16 }}
       >
-        {/* Icon positioned top-left */}
+        {/* Icon positioned top-left - Increased container size for more internal margin */}
         {icon && (
-          <View className="w-10 h-10 bg-white/20 rounded-lg items-center justify-center mb-2">
+          <View className="w-16 h-16 bg-white/20 rounded-xl items-center justify-center mb-2">
             {icon}
           </View>
         )}
 
-        {/* Value and subtitle aligned top-right */}
-        <View className="absolute top-4 right-4 items-end">
-          <Text className="text-white text-2xl font-bold">{value}</Text>
+        {/* Value and subtitle group - Centered vertically on the right */}
+        <View 
+          className="absolute right-4 top-0 bottom-0 justify-center items-end"
+          style={{ height: height }}
+        >
+          <Text 
+            style={{ 
+              fontSize: 32, 
+              fontWeight: "600",
+              fontFamily: "Montserrat",
+              color: "#FFFFFF"
+            }}
+          >
+            {value}
+          </Text>
           {subtitle && (
-            <Text className="text-white/80 text-xs mt-1">{subtitle}</Text>
+            <Text 
+              style={{ 
+                fontSize: 16, 
+                fontWeight: "500",
+                fontFamily: "Montserrat",
+                color: "rgba(255, 255, 255, 0.8)",
+                marginTop: 2
+              }}
+            >
+              {subtitle}
+            </Text>
           )}
         </View>
 
         {/* Title at bottom-left */}
         <View className="mt-auto">
-          <Text className="text-white font-semibold text-sm">{title}</Text>
+          <Text 
+            style={{ 
+              fontSize: 22, // Increased for better balance with 32px value
+              fontWeight: "600",
+              fontFamily: "Montserrat",
+              color: "#FFFFFF"
+            }}
+          >
+            {title}
+          </Text>
         </View>
       </LinearGradient>
     </Pressable>

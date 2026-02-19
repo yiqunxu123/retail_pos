@@ -5,7 +5,19 @@ streams:
   # Products stream
   products:
     auto_subscribe: true
-    query: "SELECT id, brand_id, name, weight, weight_unit, sku, upc, upc_2, upc_3, mlc, bin, description, is_online, status, unit_of_measurement, slug, sold_count, is_featured, main_category_id, images, deleted_at, created_at, updated_at FROM products"
+    query: "SELECT id, brand_id, name, weight, weight_unit, sku, upc, upc_2, upc_3, mlc, bin, zone, aisle, description, is_online, status, unit_of_measurement, slug, sold_count, is_featured, main_category_id, images, deleted_at, created_at, updated_at FROM products"
+
+  # Product-supplier relation stream (many-to-many)
+  # NOTE: Table has no id column, using composite key as id
+  products_suppliers:
+    auto_subscribe: true
+    query: "SELECT (product_id || '-' || supplier_id) as id, product_id, supplier_id FROM products_suppliers"
+
+  # Product-category relation stream (many-to-many)
+  # NOTE: Table has no id column, using composite key as id
+  categories_products:
+    auto_subscribe: true
+    query: "SELECT (category_id || '-' || product_id) as id, category_id, product_id FROM categories_products"
 
   # Categories stream
   categories:
