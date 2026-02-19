@@ -1306,6 +1306,7 @@ export default function StocksScreen() {
             onSettingsModalOpen={handleSettingsModalOpen}
             bulkActions
             bulkActionText="Bulk Edit Stock"
+            bulkActionInActionRow
             onBulkActionPress={handleBulkEditOpen}
             selectedRowKeys={selectedRowKeys}
             onSelectionChange={handleSelectionChange}

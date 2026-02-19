@@ -130,6 +130,8 @@ export interface DataTableProps<T = any> {
   bulkActions?: boolean;
   /** Bulk action button text */
   bulkActionText?: string;
+  /** Whether to render bulk action button in toolbar row */
+  bulkActionInActionRow?: boolean;
   /** Bulk action handler */
   onBulkActionPress?: (selectedRows: T[]) => void;
   /** Controlled selected row keys */
@@ -399,6 +401,7 @@ export function DataTable<T = any>(props: DataTableProps<T>) {
     columnSelector = true,
     bulkActions = false,
     bulkActionText = "Bulk Actions",
+    bulkActionInActionRow = false,
     onBulkActionPress,
     selectedRowKeys: controlledSelectedRowKeys,
     onSelectionChange,
@@ -519,6 +522,8 @@ export function DataTable<T = any>(props: DataTableProps<T>) {
     () => selectedRowKeys.map((k) => keyToRow.get(k)).filter(Boolean) as T[],
     [selectedRowKeys, keyToRow]
   );
+  const showBulkActionInToolbar = bulkActions && bulkActionInActionRow;
+  const showLegacyBulkActionRow = bulkActions && !bulkActionInActionRow;
 
   const setSelectedKeys = useCallback(
     (keys: string[]) => {
@@ -793,6 +798,22 @@ export function DataTable<T = any>(props: DataTableProps<T>) {
               />
             </View>
           )}
+
+          {showBulkActionInToolbar && (
+            <Pressable
+              className={`h-9 px-4 rounded-md flex-row items-center justify-center gap-2 ${
+                onBulkActionPress && selectedRows.length === 0 ? "bg-red-300" : "bg-red-500"
+              }`}
+              onPress={() => onBulkActionPress?.(selectedRows)}
+              disabled={!!onBulkActionPress && selectedRows.length === 0}
+            >
+              <Text style={{ fontFamily: 'Montserrat' }} className="text-white font-medium">
+                {bulkActionText}
+                {selectedRows.length > 0 ? ` (${selectedRows.length})` : ""}
+              </Text>
+              {!onBulkActionPress && <Ionicons name="chevron-down" size={16} color="white" />}
+            </Pressable>
+          )}
           
           {onRefresh && (
             <TableToolbarButton
@@ -819,10 +840,10 @@ export function DataTable<T = any>(props: DataTableProps<T>) {
           {filtersInActionRow && actionRowExtras}
         </View>
 
-        {/* Legacy Bulk Actions & Add Button if needed - keep for compat but usually hidden in replica mode */}
-        {(bulkActions || (addButton && onAddPress)) && (
+        {/* Legacy Bulk Actions & Add Button if needed */}
+        {(showLegacyBulkActionRow || (addButton && onAddPress)) && (
           <View className="flex-row flex-wrap items-center gap-3 mt-4">
-            {bulkActions && (
+            {showLegacyBulkActionRow && (
               <Pressable
                 className={`h-9 px-4 rounded-md flex-row items-center justify-center gap-2 ${
                   onBulkActionPress && selectedRows.length === 0 ? "bg-red-300" : "bg-red-500"
