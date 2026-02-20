@@ -441,6 +441,7 @@ export function DataTable<T = any>(props: DataTableProps<T>) {
   const [sortBy, setSortBy] = useState<string | null>(null);
   const [sortOrder, setSortByOrder] = useState<"asc" | "desc">("desc");
   const [showColumnsModal, setShowColumnsModal] = useState(false);
+  const [isColumnSelectionExpanded, setIsColumnSelectionExpanded] = useState(true);
   const [internalRefreshing, setInternalRefreshing] = useState(false);
   const [internalSelectedRowKeys, setInternalSelectedRowKeys] = useState<string[]>([]);
   
@@ -527,6 +528,8 @@ export function DataTable<T = any>(props: DataTableProps<T>) {
   );
   const showBulkActionInToolbar = bulkActions && bulkActionInActionRow;
   const showLegacyBulkActionRow = bulkActions && !bulkActionInActionRow;
+  const hasSettingsModalExtras = Boolean(settingsModalExtras);
+  const settingsModalWidth = hasSettingsModalExtras ? 1080 : 600;
 
   const setSelectedKeys = useCallback(
     (keys: string[]) => {
@@ -833,6 +836,7 @@ export function DataTable<T = any>(props: DataTableProps<T>) {
               icon="settings-sharp"
               onPress={() => {
                 onSettingsModalOpen?.();
+                setIsColumnSelectionExpanded(true);
                 setShowColumnsModal(true);
               }}
               variant="dark"
@@ -980,7 +984,10 @@ export function DataTable<T = any>(props: DataTableProps<T>) {
           onRequestClose={() => setShowColumnsModal(false)}
         >
           <View className="flex-1 bg-black/50 justify-center items-center">
-            <View className="bg-white rounded-xl w-[600px] max-w-[95%] max-h-[85%] overflow-hidden shadow-lg">
+            <View
+              className="bg-white rounded-xl max-w-[95%] max-h-[85%] overflow-hidden shadow-lg"
+              style={{ width: settingsModalWidth }}
+            >
               {/* Header */}
               <View className="flex-row items-center justify-between px-6 py-6 border-b border-gray-200">
                 <Text 
@@ -1000,103 +1007,117 @@ export function DataTable<T = any>(props: DataTableProps<T>) {
               </View>
 
               <ScrollView className="px-6 pt-6" showsVerticalScrollIndicator={false} style={{ flexShrink: 1 }} contentContainerStyle={{ paddingBottom: 24 }}>
-                {/* Select All Toggle */}
-                <View className="flex-row justify-between items-center py-4 mb-4">
-                  <Text 
-                    style={{ 
-                      fontSize: 24, 
-                      fontWeight: "600", 
-                      fontFamily: "Montserrat", 
-                      color: "#1A1A1A" 
-                    }}
-                  >
-                    General Settings
-                  </Text>
-                  <View className="flex-row items-center gap-3">
-                    <Text 
-                      style={{ 
-                        fontSize: 14, 
-                        color: "#6B7280", 
-                        fontFamily: "Montserrat",
-                        fontStyle: "italic" 
-                      }}
+                <View className={hasSettingsModalExtras ? "flex-row gap-16" : undefined}>
+                  <View className={hasSettingsModalExtras ? "flex-1" : undefined}>
+                    <Pressable
+                      onPress={() => setIsColumnSelectionExpanded((prev) => !prev)}
+                      className="flex-row items-center justify-between py-2 mb-2"
                     >
-                      Select all
-                    </Text>
-                    <Switch
-                      trackColor={{ false: "#D1D5DB", true: "#FBCFE8" }}
-                      thumbColor={allHideableColumnsSelected ? "#EC1A52" : "#FFFFFF"}
-                      ios_backgroundColor="#D1D5DB"
-                      onValueChange={toggleSelectAllHideable}
-                      value={allHideableColumnsSelected}
-                      disabled={hideableColumnKeys.length === 0}
-                    />
-                  </View>
-                </View>
+                      <Text
+                        style={{
+                          fontSize: 20,
+                          fontWeight: "600",
+                          fontFamily: "Montserrat",
+                          color: "#1A1A1A",
+                        }}
+                      >
+                        Column Selection
+                      </Text>
+                      <Ionicons
+                        name={isColumnSelectionExpanded ? "chevron-up" : "chevron-down"}
+                        size={18}
+                        color="#6B7280"
+                      />
+                    </Pressable>
 
-                {/* Two-Column Column Options */}
-                <View className="flex-row gap-8">
-                  {/* Left Column */}
-                  <View className="flex-1">
-                    {columns.filter((_, i) => i % 2 === 0).map((col) => {
-                      const isHideable = col.hideable !== false;
-                      const isVisible = visibleColumns[col.key];
-                      return (
-                        <View key={col.key} className="flex-row justify-between items-center py-4 border-b border-[#E5E7EB]">
-                          <Text 
-                            style={{ fontFamily: 'Montserrat', fontSize: 16, color: "#1A1A1A" }}
-                            className={`flex-1 mr-4 ${!isHideable ? 'text-gray-400 font-medium italic' : ''}`}
-                            numberOfLines={1}
-                          >
-                            {col.title} {!isHideable && '(Fixed)'}
-                          </Text>
-                          <Switch
-                            trackColor={{ false: "#D1D5DB", true: "#FBCFE8" }}
-                            thumbColor={isVisible ? "#EC1A52" : "#FFFFFF"}
-                            ios_backgroundColor="#D1D5DB"
-                            onValueChange={() => { if (isHideable) toggleColumn(col.key); }}
-                            value={isVisible}
-                            disabled={!isHideable}
-                          />
+                    {isColumnSelectionExpanded && (
+                      <>
+                        <View className="flex-row justify-end items-center py-3 mb-3">
+                          <View className="flex-row items-center gap-3">
+                            <Text 
+                              style={{ 
+                                fontSize: 14, 
+                                color: "#6B7280", 
+                                fontFamily: "Montserrat",
+                                fontStyle: "italic" 
+                              }}
+                            >
+                              Select all
+                            </Text>
+                            <Switch
+                              trackColor={{ false: "#D1D5DB", true: "#FBCFE8" }}
+                              thumbColor={allHideableColumnsSelected ? "#EC1A52" : "#FFFFFF"}
+                              ios_backgroundColor="#D1D5DB"
+                              onValueChange={toggleSelectAllHideable}
+                              value={allHideableColumnsSelected}
+                              disabled={hideableColumnKeys.length === 0}
+                            />
+                          </View>
                         </View>
-                      );
-                    })}
-                  </View>
 
-                  {/* Right Column */}
-                  <View className="flex-1">
-                    {columns.filter((_, i) => i % 2 !== 0).map((col) => {
-                      const isHideable = col.hideable !== false;
-                      const isVisible = visibleColumns[col.key];
-                      return (
-                        <View key={col.key} className="flex-row justify-between items-center py-4 border-b border-[#E5E7EB]">
-                          <Text 
-                            style={{ fontFamily: 'Montserrat', fontSize: 16, color: "#1A1A1A" }}
-                            className={`flex-1 mr-4 ${!isHideable ? 'text-gray-400 font-medium italic' : ''}`}
-                            numberOfLines={1}
-                          >
-                            {col.title} {!isHideable && '(Fixed)'}
-                          </Text>
-                          <Switch
-                            trackColor={{ false: "#D1D5DB", true: "#FBCFE8" }}
-                            thumbColor={isVisible ? "#EC1A52" : "#FFFFFF"}
-                            ios_backgroundColor="#D1D5DB"
-                            onValueChange={() => { if (isHideable) toggleColumn(col.key); }}
-                            value={isVisible}
-                            disabled={!isHideable}
-                          />
+                        <View className="flex-row gap-8">
+                          <View className="flex-1">
+                            {columns.filter((_, i) => i % 2 === 0).map((col) => {
+                              const isHideable = col.hideable !== false;
+                              const isVisible = visibleColumns[col.key];
+                              return (
+                                <View key={col.key} className="flex-row justify-between items-center py-4 border-b border-[#E5E7EB]">
+                                  <Text 
+                                    style={{ fontFamily: 'Montserrat', fontSize: 16, color: "#1A1A1A" }}
+                                    className={`flex-1 mr-4 ${!isHideable ? 'text-gray-400 font-medium italic' : ''}`}
+                                    numberOfLines={1}
+                                  >
+                                    {col.title} {!isHideable && '(Fixed)'}
+                                  </Text>
+                                  <Switch
+                                    trackColor={{ false: "#D1D5DB", true: "#FBCFE8" }}
+                                    thumbColor={isVisible ? "#EC1A52" : "#FFFFFF"}
+                                    ios_backgroundColor="#D1D5DB"
+                                    onValueChange={() => { if (isHideable) toggleColumn(col.key); }}
+                                    value={isVisible}
+                                    disabled={!isHideable}
+                                  />
+                                </View>
+                              );
+                            })}
+                          </View>
+
+                          <View className="flex-1">
+                            {columns.filter((_, i) => i % 2 !== 0).map((col) => {
+                              const isHideable = col.hideable !== false;
+                              const isVisible = visibleColumns[col.key];
+                              return (
+                                <View key={col.key} className="flex-row justify-between items-center py-4 border-b border-[#E5E7EB]">
+                                  <Text 
+                                    style={{ fontFamily: 'Montserrat', fontSize: 16, color: "#1A1A1A" }}
+                                    className={`flex-1 mr-4 ${!isHideable ? 'text-gray-400 font-medium italic' : ''}`}
+                                    numberOfLines={1}
+                                  >
+                                    {col.title} {!isHideable && '(Fixed)'}
+                                  </Text>
+                                  <Switch
+                                    trackColor={{ false: "#D1D5DB", true: "#FBCFE8" }}
+                                    thumbColor={isVisible ? "#EC1A52" : "#FFFFFF"}
+                                    ios_backgroundColor="#D1D5DB"
+                                    onValueChange={() => { if (isHideable) toggleColumn(col.key); }}
+                                    value={isVisible}
+                                    disabled={!isHideable}
+                                  />
+                                </View>
+                              );
+                            })}
+                          </View>
                         </View>
-                      );
-                    })}
+                      </>
+                    )}
                   </View>
-                </View>
 
-                {/* Extra settings content (e.g. Advance Filters) */}
-                {settingsModalExtras && (
-                  <View className="mt-6 pt-6 border-t border-gray-200">
-                    {settingsModalExtras}
-                  </View>
-                )}
+                  {settingsModalExtras && (
+                    <View className="flex-1 border-l border-gray-200 pl-12 ml-4">
+                      {settingsModalExtras}
+                    </View>
+                  )}
+                </View>
               </ScrollView>
 
               {!hideSettingsModalFooter && (
