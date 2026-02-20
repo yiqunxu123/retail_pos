@@ -1303,6 +1303,7 @@ export default function StocksScreen() {
             filtersInActionRow
             columnSelector
             settingsModalExtras={advanceFiltersContent}
+            hideSettingsModalFooter
             onSettingsModalOpen={handleSettingsModalOpen}
             bulkActions
             bulkActionText="Bulk Edit Stock"

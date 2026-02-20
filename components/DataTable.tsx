@@ -116,6 +116,8 @@ export interface DataTableProps<T = any> {
   settingsModalExtras?: ReactNode;
   /** Called when the settings/columns modal opens */
   onSettingsModalOpen?: () => void;
+  /** Whether to hide default footer buttons in settings/columns modal */
+  hideSettingsModalFooter?: boolean;
   
   // Sort related
   /** Sort options */
@@ -396,6 +398,7 @@ export function DataTable<T = any>(props: DataTableProps<T>) {
     actionRowExtras,
     settingsModalExtras,
     onSettingsModalOpen,
+    hideSettingsModalFooter = false,
     sortOptions = [],
     onSort,
     columnSelector = true,
@@ -1096,22 +1099,23 @@ export function DataTable<T = any>(props: DataTableProps<T>) {
                 )}
               </ScrollView>
 
-              {/* Footer Buttons */}
-              <View className="flex-row justify-center gap-4 p-6 border-t border-gray-200">
-                <Pressable
-                  onPress={() => setShowColumnsModal(false)}
-                  className="flex-1 py-3 bg-red-50 rounded-lg items-center border border-red-100"
-                >
-                  <Text style={{ fontFamily: 'Montserrat' }} className="text-red-500 font-semibold">Cancel</Text>
-                </Pressable>
-                <Pressable
-                  onPress={() => setShowColumnsModal(false)}
-                  className="flex-1 py-3 rounded-lg items-center shadow-sm"
-                  style={{ backgroundColor: "#EC1A52" }}
-                >
-                  <Text style={{ fontFamily: 'Montserrat' }} className="text-white font-semibold">Apply</Text>
-                </Pressable>
-              </View>
+              {!hideSettingsModalFooter && (
+                <View className="flex-row justify-center gap-4 p-6 border-t border-gray-200">
+                  <Pressable
+                    onPress={() => setShowColumnsModal(false)}
+                    className="flex-1 py-3 bg-red-50 rounded-lg items-center border border-red-100"
+                  >
+                    <Text style={{ fontFamily: 'Montserrat' }} className="text-red-500 font-semibold">Cancel</Text>
+                  </Pressable>
+                  <Pressable
+                    onPress={() => setShowColumnsModal(false)}
+                    className="flex-1 py-3 rounded-lg items-center shadow-sm"
+                    style={{ backgroundColor: "#EC1A52" }}
+                  >
+                    <Text style={{ fontFamily: 'Montserrat' }} className="text-white font-semibold">Apply</Text>
+                  </Pressable>
+                </View>
+              )}
             </View>
           </View>
         </Modal>
