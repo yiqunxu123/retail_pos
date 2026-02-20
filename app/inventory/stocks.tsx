@@ -370,6 +370,9 @@ export default function StocksScreen() {
   const [initialChannelApplied, setInitialChannelApplied] = useState(false);
   const [searchText, setSearchText] = useState("");
   const [productStatusValues, setProductStatusValues] = useState<string[]>(["1"]);
+  const [tablePage, setTablePage] = useState(1);
+  const [isPageLoading, setIsPageLoading] = useState(false);
+  const tablePageSize = 10;
   const [advancedFilters, setAdvancedFilters] = useState<StocksAdvancedFilters>(
     () => createDefaultAdvancedFilters(null)
   );
@@ -394,7 +397,23 @@ export default function StocksScreen() {
     [advancedFilters, productStatusValues, searchText]
   );
 
-  const { stocks, isLoading, isStreaming, refresh, count } = useStocks(queryFilters);
+  const { stocks, isLoading, isStreaming, refresh, count } = useStocks(queryFilters, {
+    page: tablePage,
+    pageSize: tablePageSize,
+  });
+
+  useEffect(() => {
+    setTablePage(1);
+    setIsPageLoading(false);
+  }, [queryFilters]);
+
+  useEffect(() => {
+    if (!isPageLoading) return;
+    if (!isLoading) {
+      setIsPageLoading(false);
+    }
+  }, [isPageLoading, isLoading]);
+
   const lastCompareLogRef = useRef<string>("");
   const activeCompareCase = useMemo(
     () => STOCKS_COMPARE_CASES.find((testCase) => isEqualNormalizedQueryFilters(queryFilters, testCase.filters)),
@@ -841,7 +860,7 @@ export default function StocksScreen() {
         key: "channelName",
         title: "Channel Name",
         width: 160,
-        visible: true,
+        visible: false,
         render: (item) => <Text className="text-[#1A1A1A] text-[18px] font-Montserrat">{item.channelName || "-"}</Text>,
       },
       {
@@ -863,7 +882,7 @@ export default function StocksScreen() {
         title: "Base Cost Prices",
         width: 150,
         align: "center",
-        visible: true,
+        visible: false,
         render: (item) => <Text className="text-[#1A1A1A] text-[18px] font-Montserrat">{formatCurrency(item.baseCostPrice)}</Text>,
       },
       {
@@ -871,7 +890,7 @@ export default function StocksScreen() {
         title: "Net Cost Prices",
         width: 150,
         align: "center",
-        visible: true,
+        visible: false,
         render: (item) => <Text className="text-[#1A1A1A] text-[18px] font-Montserrat">{formatCurrency(item.costPrice)}</Text>,
       },
       {
@@ -879,7 +898,7 @@ export default function StocksScreen() {
         title: "Sale Price",
         width: 150,
         align: "center",
-        visible: true,
+        visible: false,
         render: (item) => <Text className="text-green-600 font-bold text-[18px] font-Montserrat">{formatCurrency(item.salePrice)}</Text>,
       },
       {
@@ -899,7 +918,7 @@ export default function StocksScreen() {
         title: "On Hold",
         width: 120,
         align: "center",
-        visible: true,
+        visible: false,
         render: (item) => <Text className="text-[#1A1A1A] text-[18px] font-Montserrat">{formatQty(item.onHoldQty)}</Text>,
       },
       {
@@ -907,7 +926,7 @@ export default function StocksScreen() {
         title: "Back Order QTY",
         width: 150,
         align: "center",
-        visible: true,
+        visible: false,
         render: (item) => <Text className="text-[#1A1A1A] text-[18px] font-Montserrat">{formatQty(item.backOrderQty)}</Text>,
       },
       {
@@ -915,7 +934,7 @@ export default function StocksScreen() {
         title: "Coming Soon QTY",
         width: 160,
         align: "center",
-        visible: true,
+        visible: false,
         render: (item) => <Text className="text-[#1A1A1A] text-[18px] font-Montserrat">{formatQty(item.comingSoonQty)}</Text>,
       },
       {
@@ -923,7 +942,7 @@ export default function StocksScreen() {
         title: "Delivered Without Stock",
         width: 200,
         align: "center",
-        visible: true,
+        visible: false,
         render: (item) => <Text className="text-[#1A1A1A] text-[18px] font-Montserrat">{formatQty(item.deliveredWithoutStockQty)}</Text>,
       },
       {
@@ -931,7 +950,7 @@ export default function StocksScreen() {
         title: "Damaged QTY",
         width: 140,
         align: "center",
-        visible: true,
+        visible: false,
         render: (item) => <Text className="text-[#1A1A1A] text-[18px] font-Montserrat">{formatQty(item.damagedQty)}</Text>,
       },
       {
@@ -1054,6 +1073,15 @@ export default function StocksScreen() {
 
   const handleSearchQueryChange = useCallback((value: string) => {
     setSearchText(value.replace(/^\s+/, ""));
+  }, []);
+
+  const handleTablePageChange = useCallback((nextPage: number) => {
+    const normalizedPage = Math.max(1, Math.floor(nextPage || 1));
+    setTablePage((prev) => {
+      if (prev === normalizedPage) return prev;
+      setIsPageLoading(true);
+      return normalizedPage;
+    });
   }, []);
 
   const handleTableFiltersChange = useCallback(
@@ -1311,12 +1339,16 @@ export default function StocksScreen() {
             onBulkActionPress={handleBulkEditOpen}
             selectedRowKeys={selectedRowKeys}
             onSelectionChange={handleSelectionChange}
-            isLoading={isLoading}
+            isLoading={isLoading || isPageLoading}
             isStreaming={isStreaming}
             onRefresh={refresh}
             emptyIcon="cube-outline"
             emptyText="No stock items found"
             totalCount={count}
+            paginationMode="server"
+            currentPage={tablePage}
+            pageSize={tablePageSize}
+            onPageChange={handleTablePageChange}
             horizontalScroll
             minWidth={2400}
           />

@@ -15,6 +15,7 @@ export function useSyncStream<T>(
   params: any[] = [],
   options?: {
     enabled?: boolean
+    keepPreviousData?: boolean
   }
 ) {
   const [data, setData] = useState<T[]>([])
@@ -26,6 +27,7 @@ export function useSyncStream<T>(
   const dataRef = useRef<T[]>([])
   const activeStreamKeyRef = useRef<string | null>(null)
   const enabled = options?.enabled ?? true
+  const keepPreviousData = options?.keepPreviousData ?? true
   const paramsKey = useMemo(() => JSON.stringify(params), [params])
   const stableParams = useMemo(() => params, [paramsKey])
   const streamKey = useMemo(() => `${query}::${paramsKey}`, [query, paramsKey])
@@ -50,7 +52,7 @@ export function useSyncStream<T>(
 
     setIsStreaming(true)
     // Keep existing data stable while reconnecting to avoid UI flashing.
-    setIsLoading(dataRef.current.length === 0)
+    setIsLoading(keepPreviousData ? dataRef.current.length === 0 : true)
     setError(null)
 
     try {
@@ -75,7 +77,7 @@ export function useSyncStream<T>(
       }
       setIsStreaming(false)
     }
-  }, [enabled, query, stableParams, streamKey])
+  }, [enabled, keepPreviousData, query, stableParams, streamKey])
 
   // Unsubscribe from the stream
   const unsubscribe = useCallback(() => {

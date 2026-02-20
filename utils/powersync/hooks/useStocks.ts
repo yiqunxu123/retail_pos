@@ -90,6 +90,20 @@ interface BuiltQuery {
   params: Array<string | number>;
 }
 
+interface BuiltStocksQueries {
+  dataQuery: BuiltQuery;
+  countQuery: BuiltQuery;
+}
+
+interface CountRow {
+  total_count: number | null;
+}
+
+export interface StocksPaginationOptions {
+  page?: number;
+  pageSize?: number;
+}
+
 // ============================================================================
 // Query Builders
 // ============================================================================
@@ -113,7 +127,10 @@ function pushInCondition(
   targetParams.push(...values);
 }
 
-function buildStocksQuery(filters: StocksQueryFilters = {}, options?: { limit?: number }): BuiltQuery {
+function buildStocksQuery(
+  filters: StocksQueryFilters = {},
+  options?: { limit?: number; offset?: number }
+): BuiltStocksQueries {
   const conditions: string[] = [];
   const params: Array<string | number> = [];
 
@@ -204,9 +221,18 @@ function buildStocksQuery(filters: StocksQueryFilters = {}, options?: { limit?: 
   }
 
   const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(" AND ")}` : "";
-  const limitClause = options?.limit ? `LIMIT ${options.limit}` : "";
+  const dataParams = [...params];
+  let paginationClause = "";
+  if (typeof options?.limit === "number" && options.limit > 0) {
+    paginationClause += " LIMIT ?";
+    dataParams.push(options.limit);
+    if (typeof options?.offset === "number" && options.offset > 0) {
+      paginationClause += " OFFSET ?";
+      dataParams.push(options.offset);
+    }
+  }
 
-  const query = `
+  const dataQuery = `
     WITH stock_by_status AS (
       SELECT
         s.product_id,
@@ -271,10 +297,37 @@ function buildStocksQuery(filters: StocksQueryFilters = {}, options?: { limit?: 
     LEFT JOIN brands b ON p.brand_id = b.id
     ${whereClause}
     ORDER BY p.name ASC
-    ${limitClause}
+    ${paginationClause}
   `;
 
-  return { query, params };
+  const countQuery = `
+    WITH stock_by_status AS (
+      SELECT
+        s.product_id,
+        s.channel_id,
+        SUM(CASE WHEN s.status NOT IN (7, 9, 10, 11) THEN s.qty ELSE 0 END) AS total_qty,
+        SUM(CASE WHEN s.status = 6 THEN s.qty ELSE 0 END) AS available_qty,
+        SUM(CASE WHEN s.status = 3 THEN s.qty ELSE 0 END) AS on_hold_total_qty,
+        SUM(CASE WHEN s.status = 8 THEN s.qty ELSE 0 END) AS damage_qty,
+        SUM(CASE WHEN s.status = 9 THEN s.qty ELSE 0 END) AS back_order_qty,
+        SUM(CASE WHEN s.status = 11 THEN s.qty ELSE 0 END) AS coming_soon_qty,
+        SUM(CASE WHEN s.status = 10 THEN s.qty ELSE 0 END) AS hold_free_shipment
+      FROM stocks s
+      GROUP BY s.product_id, s.channel_id
+    )
+    SELECT COUNT(*) AS total_count
+    FROM stock_by_status sbs
+    INNER JOIN products p ON sbs.product_id = p.id
+    LEFT JOIN channels ch ON sbs.channel_id = ch.id
+    LEFT JOIN categories c ON p.main_category_id = c.id
+    LEFT JOIN brands b ON p.brand_id = b.id
+    ${whereClause}
+  `;
+
+  return {
+    dataQuery: { query: dataQuery, params: dataParams },
+    countQuery: { query: countQuery, params },
+  };
 }
 
 // ============================================================================
@@ -334,18 +387,40 @@ function toStockView(db: StockJoinRow): StockView {
 // ============================================================================
 
 /** Get all stocks with product info and web-aligned filter semantics */
-export function useStocks(filters: StocksQueryFilters = {}) {
+export function useStocks(
+  filters: StocksQueryFilters = {},
+  pagination?: StocksPaginationOptions
+) {
+  const pageSize =
+    typeof pagination?.pageSize === "number" && pagination.pageSize > 0
+      ? Math.floor(pagination.pageSize)
+      : undefined;
+  const page =
+    typeof pagination?.page === "number" && pagination.page > 0
+      ? Math.floor(pagination.page)
+      : 1;
+  const offset = pageSize ? (page - 1) * pageSize : undefined;
+
   const queryConfig = useMemo(
-    () => buildStocksQuery(filters),
-    [filters]
+    () => buildStocksQuery(filters, { limit: pageSize, offset }),
+    [filters, pageSize, offset]
   );
 
   const { data, isLoading, error, isStreaming, refresh } = useSyncStream<StockJoinRow>(
-    queryConfig.query,
-    queryConfig.params
+    queryConfig.dataQuery.query,
+    queryConfig.dataQuery.params,
+    { keepPreviousData: false }
+  );
+  const { data: countRows } = useSyncStream<CountRow>(
+    queryConfig.countQuery.query,
+    queryConfig.countQuery.params
   );
 
   const stocks = useMemo(() => data.map(toStockView), [data]);
+  const count = useMemo(
+    () => toNumber(countRows[0]?.total_count ?? 0),
+    [countRows]
+  );
 
   return {
     stocks,
@@ -353,7 +428,7 @@ export function useStocks(filters: StocksQueryFilters = {}) {
     error,
     isStreaming,
     refresh,
-    count: stocks.length,
+    count,
   };
 }
 
@@ -378,8 +453,8 @@ export function useStockSearch(query: string) {
   );
 
   const { data, isLoading, error } = useSyncStream<StockJoinRow>(
-    queryConfig.query,
-    queryConfig.params,
+    queryConfig.dataQuery.query,
+    queryConfig.dataQuery.params,
     { enabled: searchKey.length >= 2 }
   );
 

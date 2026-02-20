@@ -166,6 +166,14 @@ export interface DataTableProps<T = any> {
   // Stats
   /** Total displayed data count */
   totalCount?: number;
+  /** Pagination mode (client = local slice, server = parent query) */
+  paginationMode?: "client" | "server";
+  /** Controlled current page for server pagination */
+  currentPage?: number;
+  /** Page size used for pagination display/calculation */
+  pageSize?: number;
+  /** Page change callback for server pagination */
+  onPageChange?: (page: number) => void;
   
   // Footer
   /** Custom list footer */
@@ -221,6 +229,19 @@ function areFilterMapsEqual(
 // ============================================================================
 
 const ROW_HEIGHT = 52;
+const dataTableRowRenderCounts = new Map<string, number>();
+const dataTableCellRenderCounts = new Map<string, number>();
+
+function getNowMs() {
+  if (
+    typeof globalThis !== "undefined" &&
+    typeof globalThis.performance !== "undefined" &&
+    typeof globalThis.performance.now === "function"
+  ) {
+    return globalThis.performance.now();
+  }
+  return Date.now();
+}
 
 // Pre-computed static styles for DataTableRow (avoids NativeWind runtime processing)
 const rowStyles = StyleSheet.create({
@@ -264,6 +285,18 @@ const rowStyles = StyleSheet.create({
     fontSize: 18,
     fontFamily: 'Montserrat',
   },
+  loadingOverlay: {
+    position: "absolute",
+    top: 0,
+    right: 0,
+    bottom: 0,
+    left: 0,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "rgba(247, 247, 249, 0.5)",
+    zIndex: 20,
+    elevation: 20,
+  },
 });
 
 const ROW_STYLE = rowStyles.row;
@@ -273,6 +306,7 @@ const FLEX_COL_STYLE = rowStyles.flexCol;
 const ALIGN_CENTER_STYLE = rowStyles.alignCenter;
 const ALIGN_RIGHT_STYLE = rowStyles.alignRight;
 const DEFAULT_CELL_TEXT_STYLE = rowStyles.defaultCellText;
+const LOADING_OVERLAY_STYLE = rowStyles.loadingOverlay;
 
 function TableCheckbox({
   checked = false,
@@ -311,6 +345,7 @@ const DataTableRow = React.memo(function DataTableRow({
   bulkActions,
   onRowPress,
   toggleRowSelection,
+  debugPage,
 }: {
   item: any;
   columns: ColumnDefinition<any>[];
@@ -320,10 +355,14 @@ const DataTableRow = React.memo(function DataTableRow({
   bulkActions: boolean;
   onRowPress?: (item: any) => void;
   toggleRowSelection: (key: string) => void;
+  debugPage?: number;
 }) {
+  const rowRenderStartMs = __DEV__ ? getNowMs() : 0;
   const key = keyExtractor(item);
-  
-  return (
+  const componentRenderCountRef = useRef(0);
+  componentRenderCountRef.current += 1;
+
+  const rowElement = (
     <Pressable 
       style={isSelected ? ROW_STYLE_SELECTED : ROW_STYLE}
       onPress={() => {
@@ -356,22 +395,55 @@ const DataTableRow = React.memo(function DataTableRow({
           : col.align === "right" 
             ? ALIGN_RIGHT_STYLE 
             : undefined;
+        const cellRenderStartMs = __DEV__ ? getNowMs() : 0;
+        const cellContent = col.render ? (
+          col.render(item)
+        ) : (
+          <Text style={DEFAULT_CELL_TEXT_STYLE}>
+            {/* @ts-ignore */}
+            {item[col.key] ?? "-"}
+          </Text>
+        );
+
+        if (__DEV__) {
+          const cellCountKey = `${key}::${col.key}`;
+          const cellRenderCount = (dataTableCellRenderCounts.get(cellCountKey) ?? 0) + 1;
+          dataTableCellRenderCounts.set(cellCountKey, cellRenderCount);
+          const cellRenderBuildMs = Number((getNowMs() - cellRenderStartMs).toFixed(3));
+          console.log("[DataTableCell][render]", {
+            rowKey: key,
+            columnKey: col.key,
+            page: debugPage ?? null,
+            customRenderer: Boolean(col.render),
+            cellRenderCount,
+            renderBuildMs: cellRenderBuildMs,
+          });
+        }
         
         return (
           <View key={col.key} style={alignStyle ? [colStyle, alignStyle] : colStyle}>
-            {col.render ? (
-              col.render(item)
-            ) : (
-              <Text style={DEFAULT_CELL_TEXT_STYLE}>
-                {/* @ts-ignore */}
-                {item[col.key] ?? "-"}
-              </Text>
-            )}
+            {cellContent}
           </View>
         );
       })}
     </Pressable>
   );
+
+  if (__DEV__) {
+    const keyRenderCount = (dataTableRowRenderCounts.get(key) ?? 0) + 1;
+    dataTableRowRenderCounts.set(key, keyRenderCount);
+    const rowRenderBuildMs = Number((getNowMs() - rowRenderStartMs).toFixed(3));
+    console.log("[DataTableRow][render]", {
+      rowKey: key,
+      page: debugPage ?? null,
+      isSelected,
+      componentRenderCount: componentRenderCountRef.current,
+      keyRenderCount,
+      renderBuildMs: rowRenderBuildMs,
+    });
+  }
+
+  return rowElement;
 });
 
 // ============================================================================
@@ -418,6 +490,10 @@ export function DataTable<T = any>(props: DataTableProps<T>) {
     emptyIcon = "document-outline",
     emptyText = "No data found",
     totalCount,
+    paginationMode = "client",
+    currentPage: controlledCurrentPage,
+    pageSize: controlledPageSize,
+    onPageChange,
     containerStyle,
     horizontalScroll = false,
     minWidth = 900,
@@ -425,6 +501,7 @@ export function DataTable<T = any>(props: DataTableProps<T>) {
     onRowPress,
     ListFooterComponent,
   } = props;
+  const tableRenderStartMs = __DEV__ ? getNowMs() : 0;
 
   // State
   const [searchQuery, setSearchQuery] = useState(searchQueryValue ?? defaultSearchQuery);
@@ -446,11 +523,18 @@ export function DataTable<T = any>(props: DataTableProps<T>) {
   const [internalSelectedRowKeys, setInternalSelectedRowKeys] = useState<string[]>([]);
   
   // Pagination State
-  const [currentPage, setCurrentPage] = useState(1);
-  const [pageSize, setPageSize] = useState(10);
+  const [internalCurrentPage, setInternalCurrentPage] = useState(1);
+  const isServerPagination = paginationMode === "server";
+  const effectivePageSize = controlledPageSize ?? 10;
+  const effectiveCurrentPage = isServerPagination ? (controlledCurrentPage ?? 1) : internalCurrentPage;
+  const latestEffectiveCurrentPageRef = useRef(effectiveCurrentPage);
   
   const syncingFiltersFromPropsRef = useRef(false);
   const lastEmittedFiltersRef = useRef<Record<string, string | string[] | null> | null>(null);
+
+  useEffect(() => {
+    latestEffectiveCurrentPageRef.current = effectiveCurrentPage;
+  }, [effectiveCurrentPage]);
   
   // Internal refresh state, supports external or auto-managed
   const isRefreshing = refreshing || internalRefreshing;
@@ -652,19 +736,52 @@ export function DataTable<T = any>(props: DataTableProps<T>) {
     return result;
   }, [data, searchQuery, activeFilters, sortBy, onSearch, onFilter, onSort]);
 
-  // Frontend Pagination Logic
-  const totalPages = Math.ceil(processedData.length / pageSize) || 1;
+  // Pagination logic
+  const totalItems = isServerPagination ? (totalCount ?? processedData.length) : processedData.length;
+  const totalPages = Math.ceil(totalItems / effectivePageSize) || 1;
   const paginatedData = useMemo(() => {
-    const start = (currentPage - 1) * pageSize;
-    return processedData.slice(start, start + pageSize);
-  }, [processedData, currentPage, pageSize]);
+    if (isServerPagination) {
+      return processedData;
+    }
+    const start = (effectiveCurrentPage - 1) * effectivePageSize;
+    return processedData.slice(start, start + effectivePageSize);
+  }, [isServerPagination, processedData, effectiveCurrentPage, effectivePageSize]);
 
-  // Reset to first page when search or filters change
+  const changePage = useCallback(
+    (nextPage: number) => {
+      const boundedPage = Math.max(1, Math.min(totalPages, nextPage));
+      if (isServerPagination) {
+        if (boundedPage !== effectiveCurrentPage) {
+          onPageChange?.(boundedPage);
+        }
+        return;
+      }
+      setInternalCurrentPage((prev) => (prev === boundedPage ? prev : boundedPage));
+    },
+    [totalPages, isServerPagination, effectiveCurrentPage, onPageChange]
+  );
+
+  // Reset to first page when search, filters, or sort changes
   useEffect(() => {
-    setCurrentPage(1);
-  }, [searchQuery, activeFilters, sortBy]);
+    if (isServerPagination) {
+      if (latestEffectiveCurrentPageRef.current !== 1) {
+        onPageChange?.(1);
+      }
+      return;
+    }
+    setInternalCurrentPage(1);
+  }, [searchQuery, activeFilters, sortBy, isServerPagination, onPageChange]);
+
+  useEffect(() => {
+    if (!isServerPagination) return;
+    if (effectiveCurrentPage > totalPages) {
+      onPageChange?.(totalPages);
+    }
+  }, [isServerPagination, effectiveCurrentPage, totalPages, onPageChange]);
 
   const filteredData = paginatedData;
+  const tableRenderCountRef = useRef(0);
+  tableRenderCountRef.current += 1;
 
   const filteredKeys = useMemo(
     () => filteredData.map((item) => keyExtractor(item)),
@@ -759,10 +876,11 @@ export function DataTable<T = any>(props: DataTableProps<T>) {
           bulkActions={bulkActions}
           onRowPress={onRowPress}
           toggleRowSelection={toggleRowSelection}
+          debugPage={effectiveCurrentPage}
         />
       );
     });
-  }, [filteredData, keyExtractor, selectedRowKeySet, columns, visibleColumns, bulkActions, onRowPress, toggleRowSelection]);
+  }, [filteredData, keyExtractor, selectedRowKeySet, columns, visibleColumns, bulkActions, onRowPress, toggleRowSelection, effectiveCurrentPage]);
 
   // Loading state
   if (isLoading && data.length === 0) {
@@ -898,26 +1016,33 @@ export function DataTable<T = any>(props: DataTableProps<T>) {
       {/* Data Table */}
       <View className="flex-1">
         {renderHeader()}
-        <ScrollView
-          showsVerticalScrollIndicator={false}
-          refreshControl={
-            onRefresh ? (
-              <RefreshControl refreshing={isRefreshing} onRefresh={handleRefresh} />
-            ) : undefined
-          }
-        >
-          {filteredData.length === 0 ? (
-            <View className="py-16 items-center">
-              <Ionicons name={emptyIcon} size={48} color="#d1d5db" />
-              <Text style={{ fontFamily: 'Montserrat' }} className="text-gray-400 mt-2">{emptyText}</Text>
+        <View className="flex-1">
+          <ScrollView
+            showsVerticalScrollIndicator={false}
+            refreshControl={
+              onRefresh ? (
+                <RefreshControl refreshing={isRefreshing} onRefresh={handleRefresh} />
+              ) : undefined
+            }
+          >
+            {filteredData.length === 0 ? (
+              <View className="py-16 items-center">
+                <Ionicons name={emptyIcon} size={48} color="#d1d5db" />
+                <Text style={{ fontFamily: 'Montserrat' }} className="text-gray-400 mt-2">{emptyText}</Text>
+              </View>
+            ) : (
+              renderedRows
+            )}
+            {ListFooterComponent ? (
+              React.isValidElement(ListFooterComponent) ? ListFooterComponent : null
+            ) : null}
+          </ScrollView>
+          {!horizontalScroll && isLoading && data.length > 0 && (
+            <View pointerEvents="none" style={LOADING_OVERLAY_STYLE}>
+              <ActivityIndicator size="large" color="#EC1A52" />
             </View>
-          ) : (
-            renderedRows
           )}
-          {ListFooterComponent ? (
-            React.isValidElement(ListFooterComponent) ? ListFooterComponent : null
-          ) : null}
-        </ScrollView>
+        </View>
       </View>
 
       {/* Pagination Footer Replica */}
@@ -925,17 +1050,17 @@ export function DataTable<T = any>(props: DataTableProps<T>) {
         <View className="flex-row items-center gap-2">
           <Pressable 
             className="w-8 h-8 items-center justify-center border border-gray-200 rounded bg-white shadow-sm"
-            onPress={() => setCurrentPage(prev => Math.max(1, prev - 1))}
-            disabled={currentPage === 1}
+            onPress={() => changePage(effectiveCurrentPage - 1)}
+            disabled={effectiveCurrentPage === 1}
           >
-            <Ionicons name="chevron-back" size={16} color={currentPage === 1 ? "#D1D5DB" : "#6B7280"} />
+            <Ionicons name="chevron-back" size={16} color={effectiveCurrentPage === 1 ? "#D1D5DB" : "#6B7280"} />
           </Pressable>
           
           {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
             // Basic logic to show pages around current page if many pages exist
             let pageNum = i + 1;
-            if (totalPages > 5 && currentPage > 3) {
-              pageNum = currentPage - 3 + i;
+            if (totalPages > 5 && effectiveCurrentPage > 3) {
+              pageNum = effectiveCurrentPage - 3 + i;
               if (pageNum + (5 - i - 1) > totalPages) {
                 pageNum = totalPages - 5 + i + 1;
               }
@@ -946,10 +1071,10 @@ export function DataTable<T = any>(props: DataTableProps<T>) {
             return (
               <Pressable 
                 key={pageNum}
-                className={`w-8 h-8 items-center justify-center rounded shadow-sm ${pageNum === currentPage ? "bg-[#EC1A52]" : "border border-gray-200 bg-white"}`}
-                onPress={() => setCurrentPage(pageNum)}
+                className={`w-8 h-8 items-center justify-center rounded shadow-sm ${pageNum === effectiveCurrentPage ? "bg-[#EC1A52]" : "border border-gray-200 bg-white"}`}
+                onPress={() => changePage(pageNum)}
               >
-                <Text className={`font-Montserrat font-medium ${pageNum === currentPage ? "text-white" : "text-[#6B7280]"}`}>
+                <Text className={`font-Montserrat font-medium ${pageNum === effectiveCurrentPage ? "text-white" : "text-[#6B7280]"}`}>
                   {pageNum}
                 </Text>
               </Pressable>
@@ -958,19 +1083,19 @@ export function DataTable<T = any>(props: DataTableProps<T>) {
 
           <Pressable 
             className="w-8 h-8 items-center justify-center border border-gray-200 rounded bg-white shadow-sm"
-            onPress={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
-            disabled={currentPage === totalPages}
+            onPress={() => changePage(effectiveCurrentPage + 1)}
+            disabled={effectiveCurrentPage === totalPages}
           >
-            <Ionicons name="chevron-forward" size={16} color={currentPage === totalPages ? "#D1D5DB" : "#6B7280"} />
+            <Ionicons name="chevron-forward" size={16} color={effectiveCurrentPage === totalPages ? "#D1D5DB" : "#6B7280"} />
           </Pressable>
           
           <Text className="ml-2 text-gray-400 font-Montserrat text-[12px]">
-            Page {currentPage} of {totalPages} ({processedData.length} total)
+            Page {effectiveCurrentPage} of {totalPages} ({totalItems} total)
           </Text>
         </View>
 
         <View className="flex-row items-center gap-2 border border-gray-200 rounded px-3 py-1.5 bg-white shadow-sm">
-          <Text className="font-Montserrat text-[#1A1A1A] text-[14px]">{pageSize}/Page</Text>
+          <Text className="font-Montserrat text-[#1A1A1A] text-[14px]">{effectivePageSize}/Page</Text>
           <Ionicons name="chevron-down" size={14} color="#6B7280" />
         </View>
       </View>
@@ -1146,21 +1271,39 @@ export function DataTable<T = any>(props: DataTableProps<T>) {
 
   // For horizontal scroll mode
   // The table should fill available space but allow scrolling if content exceeds viewport
-  if (horizontalScroll) {
-    return (
-      <View className="flex-1">
-        <ScrollView 
-          horizontal 
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={{ flexGrow: 1, minWidth }}
-        >
-          <View className="flex-1" style={{ minWidth }}>
-            {tableContent}
-          </View>
-        </ScrollView>
-      </View>
-    );
+  const finalContent = horizontalScroll ? (
+    <View className="flex-1">
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={{ flexGrow: 1, minWidth }}
+      >
+        <View className="flex-1" style={{ minWidth }}>
+          {tableContent}
+        </View>
+      </ScrollView>
+      {isLoading && data.length > 0 && (
+        <View pointerEvents="none" style={LOADING_OVERLAY_STYLE}>
+          <ActivityIndicator size="large" color="#EC1A52" />
+        </View>
+      )}
+    </View>
+  ) : (
+    tableContent
+  );
+
+  if (__DEV__) {
+    const tableRenderBuildMs = Number((getNowMs() - tableRenderStartMs).toFixed(3));
+    console.log("[DataTable][render]", {
+      renderCount: tableRenderCountRef.current,
+      currentPage: effectiveCurrentPage,
+      pageSize: effectivePageSize,
+      processedDataLength: totalItems,
+      paginatedDataLength: paginatedData.length,
+      selectedRowCount: selectedRowKeys.length,
+      renderBuildMs: tableRenderBuildMs,
+    });
   }
 
-  return tableContent;
+  return finalContent;
 }
