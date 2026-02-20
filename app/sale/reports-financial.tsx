@@ -50,7 +50,7 @@ export default function FinancialReportsScreen() {
 
   return (
     <View className="flex-1 bg-[#F7F7F9]">
-      <PageHeader title="Financial Reports" showBack={false} />
+      <PageHeader title="Financial Reports" showBack />
 
       <ScrollView className="flex-1 px-6">
         <View className="flex-row gap-4">

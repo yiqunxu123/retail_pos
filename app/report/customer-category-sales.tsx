@@ -1,15 +1,10 @@
-import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { useCallback, useMemo, useState } from "react";
 import {
-  ActivityIndicator,
-  ScrollView,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
+    Text,
+    View
 } from "react-native";
-import { FilterDropdown, DataTable, ColumnDefinition } from "../../components";
+import { ColumnDefinition, DataTable } from "../../components";
 import { CustomerSalesReportView, useCustomerSalesReport } from "../../utils/powersync/hooks";
 
 // ============================================================================

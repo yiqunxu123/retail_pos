@@ -742,7 +742,7 @@ export default function Dashboard() {
             title="Report"
             backgroundColor="#F59E0B"
             icon={<Ionicons name="bar-chart-outline" size={40} color="white" />}
-            onPress={() => router.push("/report")}
+            onPress={() => router.push("/sale/reports")}
             height={180}
           />
         </View>

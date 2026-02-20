@@ -265,37 +265,37 @@ export default function AddProductsScreen() {
   }, [handleScanComplete]);
 
   // Refocus hidden input whenever a modal closes
+  // NOTE: Scan Log and Barcode Print modals should NOT block scanner input
   useEffect(() => {
-    const anyModalOpen = showSearchModal || showCustomerModal || showScanLogModal ||
-      showBarcodePrintModal || showCashPaymentModal || showDiscountModal ||
-      showProductSettingsModal || showParkOrderModal || showParkedOrdersModal ||
-      showDeclareCashModal || showCashEntryModal || showCashResultModal ||
-      showTaxModal || showInvoiceModal;
-    if (!anyModalOpen) {
+    const blockingScanModal = showSearchModal || showCustomerModal ||
+      showCashPaymentModal || showDiscountModal || showProductSettingsModal ||
+      showParkOrderModal || showParkedOrdersModal || showDeclareCashModal ||
+      showCashEntryModal || showCashResultModal || showTaxModal || showInvoiceModal;
+    if (!blockingScanModal) {
       setTimeout(() => hiddenInputRef.current?.focus(), 200);
     }
-  }, [showSearchModal, showCustomerModal, showScanLogModal, showBarcodePrintModal,
-      showCashPaymentModal, showDiscountModal, showProductSettingsModal,
-      showParkOrderModal, showParkedOrdersModal, showDeclareCashModal,
-      showCashEntryModal, showCashResultModal, showTaxModal, showInvoiceModal]);
+  }, [showSearchModal, showCustomerModal, showCashPaymentModal,
+      showDiscountModal, showProductSettingsModal, showParkOrderModal,
+      showParkedOrdersModal, showDeclareCashModal, showCashEntryModal,
+      showCashResultModal, showTaxModal, showInvoiceModal]);
 
-  // Periodic refocus: ensure scanner input always has focus (every 3s)
+  // Periodic refocus: ensure scanner input always has focus (every 2s)
+  // Scan Log and Barcode Print modals allow scanning while open
   useEffect(() => {
     const interval = setInterval(() => {
-      const anyModalOpen = showSearchModal || showCustomerModal || showScanLogModal ||
-        showBarcodePrintModal || showCashPaymentModal || showDiscountModal ||
-        showProductSettingsModal || showParkOrderModal || showParkedOrdersModal ||
-        showDeclareCashModal || showCashEntryModal || showCashResultModal ||
-        showTaxModal || showInvoiceModal;
-      if (!anyModalOpen) {
+      const blockingScanModal = showSearchModal || showCustomerModal ||
+        showCashPaymentModal || showDiscountModal || showProductSettingsModal ||
+        showParkOrderModal || showParkedOrdersModal || showDeclareCashModal ||
+        showCashEntryModal || showCashResultModal || showTaxModal || showInvoiceModal;
+      if (!blockingScanModal) {
         hiddenInputRef.current?.focus();
       }
-    }, 3000);
+    }, 2000);
     return () => clearInterval(interval);
-  }, [showSearchModal, showCustomerModal, showScanLogModal, showBarcodePrintModal,
-      showCashPaymentModal, showDiscountModal, showProductSettingsModal,
-      showParkOrderModal, showParkedOrdersModal, showDeclareCashModal,
-      showCashEntryModal, showCashResultModal, showTaxModal, showInvoiceModal]);
+  }, [showSearchModal, showCustomerModal, showCashPaymentModal,
+      showDiscountModal, showProductSettingsModal, showParkOrderModal,
+      showParkedOrdersModal, showDeclareCashModal, showCashEntryModal,
+      showCashResultModal, showTaxModal, showInvoiceModal]);
 
   // Build receipt data from current cart (for live preview template)
   const receiptData = useMemo((): ReceiptData => {

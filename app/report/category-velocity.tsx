@@ -1,12 +1,11 @@
-import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { useCallback, useMemo, useState } from "react";
 import {
-  View,
-  Text,
+    Text,
+    View,
 } from "react-native";
-import { DataTable, ColumnDefinition, PageHeader } from "../../components";
-import { useCategoryVelocityReport, CategoryReportView } from "../../utils/powersync/hooks";
+import { ColumnDefinition, DataTable, PageHeader } from "../../components";
+import { CategoryReportView, useCategoryVelocityReport } from "../../utils/powersync/hooks";
 
 // ============================================================================
 // Constants

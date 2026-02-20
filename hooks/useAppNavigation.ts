@@ -2,47 +2,47 @@ import { usePathname, useRouter } from "expo-router";
 import { useCallback, useRef } from "react";
 
 /**
- * useAppNavigation - 单例模式导航 hook
+ * useAppNavigation - Singleton-style navigation hook
  *
- * 防止导航栈堆积：
- * 1. 如果已经在目标路径上则跳过导航
- * 2. 先 dismissAll() 回到根页面，再 push 到目标页
- *    确保栈始终只有 [首页] 或 [首页, 目标页] 两层
- * 3. 防抖处理，防止快速连续点击导致多次导航
+ * Prevents navigation stack buildup:
+ * 1. Skip navigation if already on the target path
+ * 2. Call dismissAll() to return to root, then push to target page
+ *    so the stack stays at most two levels: [home] or [home, target]
+ * 3. Debounced to avoid multiple navigations from rapid clicks
  *
- * 还提供 safeGoBack：有历史栈时 back()，没有时 fallback 到首页
+ * Also provides safeGoBack: back() when there is history, fallback to home otherwise
  */
 export function useAppNavigation() {
   const router = useRouter();
   const pathname = String(usePathname() || "/");
   const isNavigatingRef = useRef(false);
 
-  /** 导航到指定路径（单例模式，栈始终保持最多两层） */
+  /** Navigate to the given path (singleton mode, stack stays at most two levels) */
   const navigateTo = useCallback(
     (path: string) => {
-      // 已在目标页面，跳过
+      // Already on target page, skip
       if (pathname === path) return;
-      // 防抖：防止快速连续点击
+      // Debounce: prevent rapid consecutive clicks
       if (isNavigatingRef.current) return;
       isNavigatingRef.current = true;
 
       if (path === "/" || path === "/index") {
-        // 回首页：清空栈回到根页面
+        // Go home: clear stack back to root
         if (router.canGoBack()) {
           router.dismissAll();
         } else {
-          // 无历史栈（deep link 等场景），用 replace 确保能回首页
+          // No history (e.g. deep link), use replace to ensure we can get home
           router.replace("/");
         }
       } else {
-        // 去其他页面：先回根页面，再 push 目标页
+        // Go to other page: return to root first, then push target
         if (router.canGoBack()) {
           router.dismissAll();
         }
         router.push(path as any);
       }
 
-      // 延迟后解锁
+      // Unlock after delay
       setTimeout(() => {
         isNavigatingRef.current = false;
       }, 500);
@@ -50,7 +50,7 @@ export function useAppNavigation() {
     [pathname, router]
   );
 
-  /** 安全返回：有历史栈时 back()，无历史栈时 fallback 到首页 */
+  /** Safe back: back() when there is history, fallback to home otherwise */
   const safeGoBack = useCallback(() => {
     if (router.canGoBack()) {
       router.back();

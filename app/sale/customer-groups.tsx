@@ -8,8 +8,8 @@
  * - noOfProducts: Needs aggregate query
  */
 
-import { useMemo, useCallback } from "react";
 import { Ionicons } from "@expo/vector-icons";
+import { useCallback, useMemo } from "react";
 import { Pressable, Text, View } from "react-native";
 import { ColumnDefinition, DataTable, PageHeader } from "../../components";
 import { CustomerGroupView, useCustomerGroups } from "../../utils/powersync/hooks";

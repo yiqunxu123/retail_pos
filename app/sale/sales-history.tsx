@@ -6,7 +6,7 @@
  */
 
 import { Ionicons } from "@expo/vector-icons";
-import React, { useMemo, useState, useCallback } from "react";
+import React, { useCallback, useMemo, useState } from "react";
 import { Alert, Pressable, Text, View } from "react-native";
 import { ColumnDefinition, DataTable, FilterDefinition, PageHeader } from "../../components";
 import { OrderDetailsModal } from "../../components/OrderDetailsModal";

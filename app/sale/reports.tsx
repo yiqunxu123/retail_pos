@@ -82,7 +82,7 @@ function ReportCard({
 export default function ReportsScreen() {
   return (
     <View className="flex-1 bg-[#F7F7F9]">
-      <PageHeader title="View Reports" showBack={false} />
+      <PageHeader title="View Reports" showBack />
 
       {/* Report Categories Grid */}
       <ScrollView className="flex-1 px-6" contentContainerStyle={{ paddingVertical: 16 }}>

@@ -9,13 +9,10 @@ import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { useCallback, useMemo, useState } from "react";
 import {
-  ActivityIndicator,
-  Pressable,
-  Text,
-  TextInput,
-  View,
+    Text,
+    View
 } from "react-native";
-import { FilterDropdown, PageHeader, DataTable, ColumnDefinition } from "../../components";
+import { ColumnDefinition, DataTable, PageHeader } from "../../components";
 import { ProductView, useProducts } from "../../utils/powersync/hooks";
 
 // ============================================================================

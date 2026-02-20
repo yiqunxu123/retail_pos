@@ -45,7 +45,7 @@ export default function LegalReportsScreen() {
 
   return (
     <View className="flex-1 bg-[#F7F7F9]">
-      <PageHeader title="Legal Reports" showBack={false} />
+      <PageHeader title="Legal Reports" showBack />
 
       <ScrollView className="flex-1 px-6">
         <View className="flex-row gap-4">

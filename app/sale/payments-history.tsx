@@ -4,7 +4,7 @@
  */
 
 import { Ionicons } from "@expo/vector-icons";
-import { useState, useMemo, useCallback } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { Pressable, Text, View } from "react-native";
 import { ColumnDefinition, DataTable, FilterDefinition, PageHeader } from "../../components";
 import { PAYMENT_STATUS, PAYMENT_TYPE, PaymentView, usePayments } from "../../utils/powersync/hooks";
