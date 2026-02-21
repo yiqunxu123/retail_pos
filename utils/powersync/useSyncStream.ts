@@ -56,10 +56,24 @@ export function useSyncStream<T>(
     setError(null)
 
     try {
+      // Fetch an initial snapshot for the current query/params.
+      // Relying only on watch() can keep stale rows when params change
+      // (e.g. pagination OFFSET) if no stream event arrives immediately.
+      const initialRows = await powerSyncDb.getAll<T>(query, stableParams)
+      if (abortController.signal.aborted) {
+        return
+      }
+      dataRef.current = initialRows
+      setData(initialRows)
+      setIsLoading(false)
+
       // Stream data changes
       for await (const result of powerSyncDb.watch(query, stableParams, {
         signal: abortController.signal,
       })) {
+        if (abortController.signal.aborted) {
+          break
+        }
         const rows = result.rows?._array || []
         dataRef.current = rows as T[]
         setData(rows as T[])

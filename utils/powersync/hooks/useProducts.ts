@@ -9,7 +9,8 @@
  *   const { product } = useProductById(id);
  */
 
-import { useCallback, useMemo } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { powerSyncDb } from '../PowerSyncProvider';
 import { useSyncStream } from '../useSyncStream';
 
 // ============================================================================
@@ -270,59 +271,151 @@ export function useProductsPage({
     ? `WHERE p.name LIKE ? OR p.sku LIKE ? OR p.upc LIKE ?`
     : ``;
 
-  const whereParams = hasQuery ? [searchTerm, searchTerm, searchTerm] : [];
+  const whereParams = useMemo(
+    () => (hasQuery ? [searchTerm, searchTerm, searchTerm] : []),
+    [hasQuery, searchTerm]
+  );
 
-  const listQuery = `SELECT
+  const listQuery = useMemo(
+    () => `SELECT
       p.*,
-      up.price,
-      up.cost,
-      up.base_cost,
+      (
+        SELECT MAX(up.price)
+        FROM unit_prices up
+        WHERE up.product_id = p.id AND up.channel_id = 1
+      ) AS price,
+      (
+        SELECT MAX(up.cost)
+        FROM unit_prices up
+        WHERE up.product_id = p.id AND up.channel_id = 1
+      ) AS cost,
+      (
+        SELECT MAX(up.base_cost)
+        FROM unit_prices up
+        WHERE up.product_id = p.id AND up.channel_id = 1
+      ) AS base_cost,
       c.name AS category_name,
       b.name AS brand_name
      FROM products p
-     LEFT JOIN unit_prices up ON p.id = up.product_id AND up.channel_id = 1
      LEFT JOIN categories c ON p.main_category_id = c.id
      LEFT JOIN brands b ON p.brand_id = b.id
      ${whereClause}
-     ORDER BY p.name ASC
-     LIMIT ? OFFSET ?`;
+     ORDER BY p.name COLLATE NOCASE ASC, p.id ASC
+     LIMIT ${normalizedPageSize} OFFSET ${offset}`,
+    [normalizedPageSize, offset, whereClause]
+  );
 
-  const countQuery = `SELECT
+  const countQuery = useMemo(
+    () => `SELECT
       COUNT(*) AS total
      FROM products p
-     ${whereClause}`;
+     ${whereClause}`,
+    [whereClause]
+  );
 
-  const listParams = [...whereParams, normalizedPageSize, offset];
-  const countParams = [...whereParams];
+  const [listRows, setListRows] = useState<ProductJoinRow[]>([]);
+  const [countRows, setCountRows] = useState<ProductCountRow[]>([]);
+  const [isListLoading, setIsListLoading] = useState(enabled);
+  const [isCountLoading, setIsCountLoading] = useState(enabled);
+  const [error, setError] = useState<Error | null>(null);
+  const listRequestIdRef = useRef(0);
+  const countRequestIdRef = useRef(0);
+  const loadedCountKeyRef = useRef<string | null>(null);
+  const countKey = useMemo(
+    () => `${countQuery}::${JSON.stringify(whereParams)}`,
+    [countQuery, whereParams]
+  );
 
-  const listStream = useSyncStream<ProductJoinRow>(listQuery, listParams, {
-    enabled,
-    keepPreviousData: true,
-  });
-  const countStream = useSyncStream<ProductCountRow>(countQuery, countParams, {
-    enabled,
-    keepPreviousData: true,
-  });
+  const fetchListPage = useCallback(async () => {
+    const requestId = listRequestIdRef.current + 1;
+    listRequestIdRef.current = requestId;
 
-  const products = useMemo(() => listStream.data.map(toProductView), [listStream.data]);
+    if (!enabled) {
+      setListRows([]);
+      setIsListLoading(false);
+      return;
+    }
+
+    setError(null);
+    setIsListLoading(true);
+
+    try {
+      const nextListRows = await powerSyncDb.getAll<ProductJoinRow>(listQuery, whereParams);
+      if (listRequestIdRef.current !== requestId) return;
+      setListRows([...nextListRows]);
+    } catch (err) {
+      if (listRequestIdRef.current !== requestId) return;
+      const normalizedError = err instanceof Error ? err : new Error(String(err));
+      setError(normalizedError);
+    } finally {
+      if (listRequestIdRef.current !== requestId) return;
+      setIsListLoading(false);
+    }
+  }, [enabled, listQuery, whereParams]);
+
+  const fetchCountIfNeeded = useCallback(async (force = false) => {
+    const requestId = countRequestIdRef.current + 1;
+    countRequestIdRef.current = requestId;
+
+    if (!enabled) {
+      loadedCountKeyRef.current = null;
+      setCountRows([]);
+      setIsCountLoading(false);
+      return;
+    }
+
+    const shouldFetchCount = force || loadedCountKeyRef.current !== countKey;
+    if (!shouldFetchCount) {
+      setIsCountLoading(false);
+      return;
+    }
+
+    setIsCountLoading(true);
+    try {
+      const nextCountRows = await powerSyncDb.getAll<ProductCountRow>(countQuery, whereParams);
+      if (countRequestIdRef.current !== requestId) return;
+      setCountRows([...nextCountRows]);
+      loadedCountKeyRef.current = countKey;
+    } catch (err) {
+      if (countRequestIdRef.current !== requestId) return;
+      const normalizedError = err instanceof Error ? err : new Error(String(err));
+      setError((prev) => prev ?? normalizedError);
+    } finally {
+      if (countRequestIdRef.current !== requestId) return;
+      setIsCountLoading(false);
+    }
+  }, [countKey, countQuery, enabled, whereParams]);
+
+  useEffect(() => {
+    void fetchListPage();
+    return () => {
+      listRequestIdRef.current += 1;
+    };
+  }, [fetchListPage]);
+
+  useEffect(() => {
+    void fetchCountIfNeeded();
+    return () => {
+      countRequestIdRef.current += 1;
+    };
+  }, [fetchCountIfNeeded]);
+
+  const products = useMemo(() => listRows.map(toProductView), [listRows]);
   const totalCount = useMemo(() => {
-    const raw = countStream.data[0]?.total ?? 0;
+    const raw = countRows[0]?.total ?? 0;
     const numeric = Number(raw);
     return Number.isFinite(numeric) ? numeric : 0;
-  }, [countStream.data]);
+  }, [countRows]);
   const totalPages = useMemo(
     () => Math.max(1, Math.ceil(totalCount / normalizedPageSize)),
     [normalizedPageSize, totalCount]
   );
-  const isListLoading = listStream.isLoading;
-  const isCountLoading = countStream.isLoading;
   const isLoading = isListLoading || isCountLoading;
-  const isStreaming = listStream.isStreaming || countStream.isStreaming;
-  const error = listStream.error ?? countStream.error;
+  const isStreaming = false;
 
   const refresh = useCallback(async () => {
-    await Promise.all([listStream.refresh(), countStream.refresh()]);
-  }, [countStream, listStream]);
+    await Promise.all([fetchListPage(), fetchCountIfNeeded(true)]);
+  }, [fetchCountIfNeeded, fetchListPage]);
 
   return {
     products,

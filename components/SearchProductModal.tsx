@@ -468,11 +468,7 @@ const SearchProductModalCore = forwardRef<
   const keyExtractor = useCallback((item: ProductView) => item.id, []);
 
   const canGoPrevPage = pageModeEnabled && currentPage > 1;
-  const canGoNextPage = pageModeEnabled
-    ? pageInfoLoading
-      ? filteredProducts.length >= normalizedPageSize
-      : currentPage < totalPages
-    : false;
+  const canGoNextPage = pageModeEnabled && currentPage < totalPages;
   const totalPagesText = pageInfoLoading ? "Total ... pages" : `Total ${totalPages} pages`;
   const handlePrevPage = useCallback(() => {
     setCurrentPage((prev) => Math.max(1, prev - 1));
@@ -485,13 +481,14 @@ const SearchProductModalCore = forwardRef<
   }, []);
 
   const pageTokens = useMemo(() => {
-    if (!pageModeEnabled || pageInfoLoading) return [currentPage];
+    if (!pageModeEnabled) return [currentPage];
     const windowSize = 10;
+    const tokenTotalPages = Math.max(totalPages, currentPage);
     const windowStart = Math.floor((currentPage - 1) / windowSize) * windowSize + 1;
-    const windowEnd = Math.min(totalPages, windowStart + windowSize - 1);
+    const windowEnd = Math.min(tokenTotalPages, windowStart + windowSize - 1);
     const length = windowEnd - windowStart + 1;
     return Array.from({ length }, (_, i) => windowStart + i);
-  }, [currentPage, pageInfoLoading, pageModeEnabled, totalPages]);
+  }, [currentPage, pageModeEnabled, totalPages]);
 
   const renderProductRow = useCallback(
     ({ item, index }: ListRenderItemInfo<ProductView>) => (
@@ -666,6 +663,7 @@ const SearchProductModalCore = forwardRef<
                 data={filteredProducts}
                 keyExtractor={keyExtractor}
                 renderItem={renderProductRow}
+                extraData={currentPage}
                 showsVerticalScrollIndicator={false}
                 keyboardShouldPersistTaps="handled"
                 contentContainerStyle={{ paddingBottom: 20 }}
