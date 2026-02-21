@@ -16,6 +16,7 @@ import {
   Image,
   InteractionManager,
   ListRenderItemInfo,
+  Platform,
   Pressable,
   StyleSheet,
   Text,
@@ -23,8 +24,9 @@ import {
   useWindowDimensions,
   View,
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useRenderTrace } from "../utils/debug/useRenderTrace";
-import { useProducts } from "../utils/powersync/hooks";
+import { useProducts, useProductsPage } from "../utils/powersync/hooks";
 import type { ProductView } from "../utils/powersync/hooks/useProducts";
 
 export interface SearchProduct {
@@ -64,6 +66,8 @@ interface SearchProductModalProps {
     query: string;
     filterMs: number;
   }) => void;
+  paginationMode?: "none" | "page";
+  pageSize?: number;
 }
 
 interface SearchProductModalCoreProps extends SearchProductModalProps {
@@ -77,6 +81,8 @@ interface SearchProductModalWithDataProps extends SearchProductModalProps {
 
 const PANEL_WIDTH_RATIO = 0.5;
 const BACKDROP_MAX_OPACITY = 0.35;
+const DEFAULT_PAGE_SIZE = 10;
+const SEARCH_DEBOUNCE_MS = 150;
 let hiddenSkipCount = 0;
 
 const SearchProductModalCore = forwardRef<
@@ -98,6 +104,8 @@ const SearchProductModalCore = forwardRef<
     onOverlayLayout,
     onPanelLayout,
     onFilterReady,
+    paginationMode = "none",
+    pageSize = DEFAULT_PAGE_SIZE,
     allProducts,
     isLoading,
   },
@@ -105,10 +113,27 @@ const SearchProductModalCore = forwardRef<
 ) {
   const isControlled = typeof visible === "boolean";
   const controlledVisible = visible ?? false;
+  const insets = useSafeAreaInsets();
   const { width } = useWindowDimensions();
   const panelWidth = Math.max(1, Math.round(width * PANEL_WIDTH_RATIO));
+  const pageModeEnabled = paginationMode === "page";
+  const normalizedPageSize = Math.max(1, Math.floor(pageSize || DEFAULT_PAGE_SIZE));
+  const safeAreaPadding = useMemo(
+    () =>
+      Platform.OS === "android"
+        ? {
+            paddingTop: insets.top,
+            paddingBottom: insets.bottom,
+            paddingLeft: insets.left,
+            paddingRight: insets.right,
+          }
+        : null,
+    [insets.bottom, insets.left, insets.right, insets.top]
+  );
 
   const [searchQuery, setSearchQuery] = useState("");
+  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
   const progress = useRef(new Animated.Value(controlledVisible ? 1 : 0)).current;
   const isOpenRef = useRef(controlledVisible);
   const targetOpenRef = useRef(controlledVisible);
@@ -131,8 +156,43 @@ const SearchProductModalCore = forwardRef<
     searchQueryRef.current = searchQuery;
   }, [searchQuery]);
 
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      setDebouncedSearchQuery(searchQuery);
+    }, SEARCH_DEBOUNCE_MS);
+    return () => clearTimeout(timeoutId);
+  }, [searchQuery]);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [debouncedSearchQuery]);
+
+  const pagedProductsResult = useProductsPage({
+    query: debouncedSearchQuery,
+    page: currentPage,
+    pageSize: normalizedPageSize,
+    enabled: pageModeEnabled,
+  });
+
+  const pagedProducts = pagedProductsResult.products;
+  const totalPages = pagedProductsResult.totalPages;
+  const totalCount = pagedProductsResult.totalCount;
+
+  useEffect(() => {
+    if (!pageModeEnabled) return;
+    if (currentPage > totalPages) {
+      setCurrentPage(totalPages);
+    }
+  }, [currentPage, pageModeEnabled, totalPages]);
+
   const filteredResult = useMemo(() => {
     const start = Date.now();
+    if (pageModeEnabled) {
+      return {
+        items: pagedProducts,
+        filterMs: Number((Date.now() - start).toFixed(2)),
+      };
+    }
     const keyword = searchQuery.trim().toLowerCase();
     const items = keyword
       ? allProducts.filter((product) => {
@@ -147,8 +207,12 @@ const SearchProductModalCore = forwardRef<
       items,
       filterMs: Number((Date.now() - start).toFixed(2)),
     };
-  }, [allProducts, searchQuery]);
+  }, [allProducts, pageModeEnabled, pagedProducts, searchQuery]);
   const filteredProducts = filteredResult.items;
+  const listLoading = pageModeEnabled
+    ? pagedProductsResult.isListLoading && pagedProducts.length === 0
+    : isLoading;
+  const pageInfoLoading = pageModeEnabled ? pagedProductsResult.isCountLoading : false;
 
   const panelTranslateX = useMemo(
     () =>
@@ -211,17 +275,17 @@ const SearchProductModalCore = forwardRef<
   }, [onPanelLayout]);
 
   const maybeReportFilterReady = useCallback(() => {
-    if (!isOpenRef.current || isLoading || filterReadyReportedRef.current) return;
+    if (!isOpenRef.current || listLoading || filterReadyReportedRef.current) return;
     filterReadyReportedRef.current = true;
     onFilterReady?.({
       displayCount: filteredProducts.length,
       query: searchQueryRef.current.trim(),
       filterMs: filteredResult.filterMs,
     });
-  }, [filteredProducts.length, filteredResult.filterMs, isLoading, onFilterReady]);
+  }, [filteredProducts.length, filteredResult.filterMs, listLoading, onFilterReady]);
 
   const maybeReportFirstRowVisible = useCallback(() => {
-    if (!isOpenRef.current || isLoading || filteredProducts.length === 0 || firstItemReportedRef.current) {
+    if (!isOpenRef.current || listLoading || filteredProducts.length === 0 || firstItemReportedRef.current) {
       return;
     }
     firstItemReportedRef.current = true;
@@ -229,7 +293,7 @@ const SearchProductModalCore = forwardRef<
       displayCount: filteredProducts.length,
       query: searchQueryRef.current.trim(),
     });
-  }, [filteredProducts.length, isLoading, onFirstListItemVisible]);
+  }, [filteredProducts.length, listLoading, onFirstListItemVisible]);
 
   const scheduleOpenCallbacks = useCallback(() => {
     clearScheduledOpenCallbacks();
@@ -296,8 +360,10 @@ const SearchProductModalCore = forwardRef<
       } else {
         setTouchGateEnabled(false);
         onCloseEnd?.(reason);
+        setCurrentPage(1);
         if (searchQueryRef.current) {
           setSearchQuery("");
+          setDebouncedSearchQuery("");
         }
       }
     },
@@ -401,6 +467,32 @@ const SearchProductModalCore = forwardRef<
 
   const keyExtractor = useCallback((item: ProductView) => item.id, []);
 
+  const canGoPrevPage = pageModeEnabled && currentPage > 1;
+  const canGoNextPage = pageModeEnabled
+    ? pageInfoLoading
+      ? filteredProducts.length >= normalizedPageSize
+      : currentPage < totalPages
+    : false;
+  const totalPagesText = pageInfoLoading ? "Total ... pages" : `Total ${totalPages} pages`;
+  const handlePrevPage = useCallback(() => {
+    setCurrentPage((prev) => Math.max(1, prev - 1));
+  }, []);
+  const handleNextPage = useCallback(() => {
+    setCurrentPage((prev) => Math.min(totalPages, prev + 1));
+  }, [totalPages]);
+  const handleSelectPage = useCallback((page: number) => {
+    setCurrentPage(page);
+  }, []);
+
+  const pageTokens = useMemo(() => {
+    if (!pageModeEnabled || pageInfoLoading) return [currentPage];
+    const windowSize = 10;
+    const windowStart = Math.floor((currentPage - 1) / windowSize) * windowSize + 1;
+    const windowEnd = Math.min(totalPages, windowStart + windowSize - 1);
+    const length = windowEnd - windowStart + 1;
+    return Array.from({ length }, (_, i) => windowStart + i);
+  }, [currentPage, pageInfoLoading, pageModeEnabled, totalPages]);
+
   const renderProductRow = useCallback(
     ({ item, index }: ListRenderItemInfo<ProductView>) => (
       <Pressable
@@ -473,9 +565,14 @@ const SearchProductModalCore = forwardRef<
       controlled: isControlled,
       keepMountedHidden: !isOpenRef.current,
       searchQuery,
+      paginationMode,
+      pageSize: normalizedPageSize,
+      currentPage,
+      totalPages,
+      totalCount,
       allProductsLength: allProducts.length,
       filteredProductsLength: filteredProducts.length,
-      isLoading,
+      isLoading: listLoading,
       onClose,
       onSelectProduct,
       onVisible,
@@ -489,6 +586,7 @@ const SearchProductModalCore = forwardRef<
       onOverlayLayout,
       onPanelLayout,
       onFilterReady,
+      onFilterReadyQuery: debouncedSearchQuery,
     },
     { throttleMs: 100 }
   );
@@ -516,7 +614,7 @@ const SearchProductModalCore = forwardRef<
         ]}
         onLayout={handlePanelLayout}
       >
-        <View style={styles.panelTouchBlocker}>
+        <View style={[styles.panelTouchBlocker, safeAreaPadding]}>
           <View className="px-6 pt-6 pb-4 bg-white">
             <View className="flex-row items-center justify-between mb-4">
               <Text
@@ -551,7 +649,7 @@ const SearchProductModalCore = forwardRef<
             </View>
           </View>
 
-          {isLoading ? (
+          {listLoading ? (
             <View className="flex-1 items-center justify-center">
               <ActivityIndicator size="large" color="#EC1A52" />
             </View>
@@ -563,18 +661,75 @@ const SearchProductModalCore = forwardRef<
               </Text>
             </View>
           ) : (
-            <FlatList
-              data={filteredProducts}
-              keyExtractor={keyExtractor}
-              renderItem={renderProductRow}
-              showsVerticalScrollIndicator={false}
-              keyboardShouldPersistTaps="handled"
-              contentContainerStyle={{ paddingBottom: 20 }}
-              initialNumToRender={16}
-              maxToRenderPerBatch={16}
-              windowSize={7}
-              removeClippedSubviews
-            />
+            <View style={styles.listContainer}>
+              <FlatList
+                data={filteredProducts}
+                keyExtractor={keyExtractor}
+                renderItem={renderProductRow}
+                showsVerticalScrollIndicator={false}
+                keyboardShouldPersistTaps="handled"
+                contentContainerStyle={{ paddingBottom: 20 }}
+                initialNumToRender={16}
+                maxToRenderPerBatch={16}
+                windowSize={7}
+                removeClippedSubviews
+              />
+              {pageModeEnabled && (
+                <View style={styles.paginationContainer}>
+                  <Pressable
+                    accessibilityLabel="search-products-prev-page"
+                    onPress={handlePrevPage}
+                    disabled={!canGoPrevPage}
+                    style={[
+                      styles.paginationButton,
+                      !canGoPrevPage && styles.paginationButtonDisabled,
+                    ]}
+                  >
+                    <Text style={styles.paginationButtonText}>Prev</Text>
+                  </Pressable>
+
+                  <View style={styles.pageButtonsContainer}>
+                    {pageTokens.map((token) => {
+                      const isActive = token === currentPage;
+                      return (
+                        <Pressable
+                          key={`page-${token}`}
+                          accessibilityLabel={`search-products-page-${token}`}
+                          onPress={() => handleSelectPage(token)}
+                          style={[
+                            styles.pageButton,
+                            isActive && styles.pageButtonActive,
+                          ]}
+                        >
+                          <Text
+                            style={[
+                              styles.pageButtonText,
+                              isActive && styles.pageButtonTextActive,
+                            ]}
+                          >
+                            {token}
+                          </Text>
+                        </Pressable>
+                      );
+                    })}
+                  </View>
+
+                  <Text style={styles.totalPagesText}>{totalPagesText}</Text>
+
+                  <Pressable
+                    accessibilityLabel="search-products-next-page"
+                    onPress={handleNextPage}
+                    disabled={!canGoNextPage}
+                    style={[
+                      styles.paginationButton,
+                      !canGoNextPage && styles.paginationButtonDisabled,
+                    ]}
+                  >
+                    <Text style={styles.paginationButtonText}>Next</Text>
+                  </Pressable>
+                </View>
+              )}
+            </View>
           )}
         </View>
       </Animated.View>
@@ -619,6 +774,77 @@ const styles = StyleSheet.create({
   panelTouchBlocker: {
     flex: 1,
   },
+  listContainer: {
+    flex: 1,
+  },
+  paginationContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderColor: "#E5E7EB",
+    backgroundColor: "#FFFFFF",
+  },
+  paginationButton: {
+    backgroundColor: "#EC1A52",
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    minWidth: 72,
+    alignItems: "center",
+  },
+  paginationButtonDisabled: {
+    backgroundColor: "#F3A9BC",
+  },
+  paginationButtonText: {
+    color: "#FFFFFF",
+    fontFamily: "Montserrat",
+    fontWeight: "700",
+    fontSize: 13,
+  },
+  pageButtonsContainer: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 6,
+    paddingHorizontal: 12,
+  },
+  pageButton: {
+    minWidth: 34,
+    height: 36,
+    paddingHorizontal: 8,
+    borderRadius: 8,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: "#E5E7EB",
+    backgroundColor: "#FFFFFF",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  pageButtonActive: {
+    backgroundColor: "#EC1A52",
+    borderColor: "#EC1A52",
+  },
+  pageButtonText: {
+    color: "#111827",
+    fontFamily: "Montserrat",
+    fontSize: 12,
+    fontWeight: "700",
+    textAlign: "center",
+  },
+  pageButtonTextActive: {
+    color: "#FFFFFF",
+  },
+  totalPagesText: {
+    marginRight: 8,
+    color: "#6B7280",
+    fontFamily: "Montserrat",
+    fontSize: 11,
+    fontWeight: "600",
+    minWidth: 82,
+    textAlign: "right",
+  },
 });
 
 function SearchProductModalWithData({
@@ -640,6 +866,17 @@ const SearchProductModalImpl = forwardRef<
   SearchProductModalHandle,
   SearchProductModalProps
 >(function SearchProductModalImpl(props, ref) {
+  if (props.paginationMode === "page") {
+    return (
+      <SearchProductModalCore
+        ref={ref}
+        {...props}
+        allProducts={[]}
+        isLoading={false}
+      />
+    );
+  }
+
   if (props.products) {
     return (
       <SearchProductModalCore
@@ -683,6 +920,8 @@ function areSearchProductModalPropsEqual(
     prev.onSelectProduct === next.onSelectProduct &&
     prev.products === next.products &&
     prev.productsLoading === next.productsLoading &&
+    prev.paginationMode === next.paginationMode &&
+    prev.pageSize === next.pageSize &&
     prev.onVisible === next.onVisible &&
     prev.onOpenStart === next.onOpenStart &&
     prev.onOpenEnd === next.onOpenEnd &&

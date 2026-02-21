@@ -9,7 +9,6 @@ import {
   SearchProductModal,
   SearchProductModalHandle,
 } from "../SearchProductModal";
-import type { ProductView } from "../../utils/powersync/hooks/useProducts";
 import { useRenderTrace } from "../../utils/debug/useRenderTrace";
 
 export type SearchModalOpenSource = "top_bar" | "table_empty" | "sidebar";
@@ -27,17 +26,17 @@ export interface SearchProductModalControllerHandle {
 }
 
 interface SearchProductModalControllerProps {
-  products: ProductView[];
-  productsLoading: boolean;
   onSelectProduct: (product: SearchProduct) => void;
   onVisibleStateChange?: (visible: boolean) => void;
 }
+
+const SEARCH_PRODUCT_MODAL_PAGE_SIZE = 10;
 
 const SearchProductModalControllerInner = forwardRef<
   SearchProductModalControllerHandle,
   SearchProductModalControllerProps
 >(function SearchProductModalControllerInner(
-  { products, productsLoading, onSelectProduct, onVisibleStateChange },
+  { onSelectProduct, onVisibleStateChange },
   ref
 ) {
   const modalRef = useRef<SearchProductModalHandle>(null);
@@ -47,8 +46,6 @@ const SearchProductModalControllerInner = forwardRef<
     "SearchProductModalController",
     {
       visible: visibleRef.current,
-      productsLength: products.length,
-      productsLoading,
       onSelectProduct,
       onVisibleStateChange,
     },
@@ -57,7 +54,8 @@ const SearchProductModalControllerInner = forwardRef<
 
   const dismiss = useCallback(
     (reason: SearchModalDismissReason = "manual") => {
-      if (!modalRef.current?.isOpen() && !visibleRef.current) return;
+      const modalOpen = modalRef.current?.isOpen?.() ?? false;
+      if (!modalOpen && !visibleRef.current) return;
       modalRef.current?.close(reason);
       visibleRef.current = false;
       onVisibleStateChange?.(false);
@@ -67,7 +65,8 @@ const SearchProductModalControllerInner = forwardRef<
 
   const open = useCallback(
     (_source: SearchModalOpenSource = "top_bar") => {
-      if (visibleRef.current) return;
+      const modalOpen = modalRef.current?.isOpen?.() ?? false;
+      if (modalOpen && visibleRef.current) return;
       visibleRef.current = true;
       onVisibleStateChange?.(true);
       modalRef.current?.open();
@@ -117,8 +116,8 @@ const SearchProductModalControllerInner = forwardRef<
       ref={modalRef}
       onClose={handleModalCloseRequest}
       onSelectProduct={handleSelectProduct}
-      products={products}
-      productsLoading={productsLoading}
+      paginationMode="page"
+      pageSize={SEARCH_PRODUCT_MODAL_PAGE_SIZE}
     />
   );
 });

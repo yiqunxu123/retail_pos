@@ -948,8 +948,6 @@ export default function AddProductsScreen() {
       {/* Modals */}
       <SearchProductModalController
         ref={searchModalRef}
-        products={allProducts}
-        productsLoading={isProductsLoading}
         onSelectProduct={handleAddProductFromSearch}
         onVisibleStateChange={handleSearchModalVisibleStateChange}
       />

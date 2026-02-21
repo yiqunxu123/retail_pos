@@ -9,7 +9,7 @@
  *   const { product } = useProductById(id);
  */
 
-import { useMemo } from 'react';
+import { useCallback, useMemo } from 'react';
 import { useSyncStream } from '../useSyncStream';
 
 // ============================================================================
@@ -48,6 +48,10 @@ interface ProductJoinRow {
   category_name: string | null;
   // From brands join
   brand_name: string | null;
+}
+
+interface ProductCountRow {
+  total: number | string;
 }
 
 /** Product data as displayed in the UI */
@@ -239,4 +243,98 @@ export function useProductsByCategory(categoryId: string | null) {
   const products = useMemo(() => data.map(toProductView), [data]);
 
   return { products, isLoading, error };
+}
+
+interface UseProductsPageParams {
+  query: string;
+  page: number;
+  pageSize: number;
+  enabled?: boolean;
+}
+
+/** Get paged products filtered by name/SKU/UPC */
+export function useProductsPage({
+  query,
+  page,
+  pageSize,
+  enabled = true,
+}: UseProductsPageParams) {
+  const normalizedPageSize = Math.max(1, Math.floor(pageSize || 10));
+  const normalizedPage = Math.max(1, Math.floor(page || 1));
+  const normalizedQuery = query.trim();
+  const hasQuery = normalizedQuery.length > 0;
+  const searchTerm = `%${normalizedQuery}%`;
+  const offset = (normalizedPage - 1) * normalizedPageSize;
+
+  const whereClause = hasQuery
+    ? `WHERE p.name LIKE ? OR p.sku LIKE ? OR p.upc LIKE ?`
+    : ``;
+
+  const whereParams = hasQuery ? [searchTerm, searchTerm, searchTerm] : [];
+
+  const listQuery = `SELECT
+      p.*,
+      up.price,
+      up.cost,
+      up.base_cost,
+      c.name AS category_name,
+      b.name AS brand_name
+     FROM products p
+     LEFT JOIN unit_prices up ON p.id = up.product_id AND up.channel_id = 1
+     LEFT JOIN categories c ON p.main_category_id = c.id
+     LEFT JOIN brands b ON p.brand_id = b.id
+     ${whereClause}
+     ORDER BY p.name ASC
+     LIMIT ? OFFSET ?`;
+
+  const countQuery = `SELECT
+      COUNT(*) AS total
+     FROM products p
+     ${whereClause}`;
+
+  const listParams = [...whereParams, normalizedPageSize, offset];
+  const countParams = [...whereParams];
+
+  const listStream = useSyncStream<ProductJoinRow>(listQuery, listParams, {
+    enabled,
+    keepPreviousData: true,
+  });
+  const countStream = useSyncStream<ProductCountRow>(countQuery, countParams, {
+    enabled,
+    keepPreviousData: true,
+  });
+
+  const products = useMemo(() => listStream.data.map(toProductView), [listStream.data]);
+  const totalCount = useMemo(() => {
+    const raw = countStream.data[0]?.total ?? 0;
+    const numeric = Number(raw);
+    return Number.isFinite(numeric) ? numeric : 0;
+  }, [countStream.data]);
+  const totalPages = useMemo(
+    () => Math.max(1, Math.ceil(totalCount / normalizedPageSize)),
+    [normalizedPageSize, totalCount]
+  );
+  const isListLoading = listStream.isLoading;
+  const isCountLoading = countStream.isLoading;
+  const isLoading = isListLoading || isCountLoading;
+  const isStreaming = listStream.isStreaming || countStream.isStreaming;
+  const error = listStream.error ?? countStream.error;
+
+  const refresh = useCallback(async () => {
+    await Promise.all([listStream.refresh(), countStream.refresh()]);
+  }, [countStream, listStream]);
+
+  return {
+    products,
+    totalCount,
+    totalPages,
+    page: normalizedPage,
+    pageSize: normalizedPageSize,
+    isListLoading,
+    isCountLoading,
+    isLoading,
+    isStreaming,
+    error,
+    refresh,
+  };
 }

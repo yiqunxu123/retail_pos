@@ -26,7 +26,13 @@ export { useCategories } from './useCategories';
 export type { CategoryView } from './useCategories';
 
 // Product hooks
-export { useProductById, useProductSearch, useProducts, useProductsByCategory } from './useProducts';
+export {
+    useProductById,
+    useProductSearch,
+    useProducts,
+    useProductsByCategory,
+    useProductsPage
+} from './useProducts';
 export type { ProductView } from './useProducts';
 
 // Stock hooks
