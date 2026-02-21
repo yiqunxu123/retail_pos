@@ -8,7 +8,7 @@
  */
 
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons'
-import { useRouter, useLocalSearchParams } from 'expo-router'
+import { useLocalSearchParams, useRouter } from 'expo-router'
 import { useCallback, useEffect, useState } from 'react'
 import {
     ActivityIndicator,
@@ -24,12 +24,12 @@ import {
 } from 'react-native'
 import { PageHeader } from '../components'
 import { useClock } from '../contexts/ClockContext'
-import { usePowerSync, powerSyncDb } from '../utils/powersync/PowerSyncProvider'
+import { powerSyncDb, usePowerSync } from '../utils/powersync/PowerSyncProvider'
 import {
-  addPrinterListener,
-  getPrinters,
-  printToAll,
-  printToOne
+    addPrinterListener,
+    getPrinters,
+    printToAll,
+    printToOne
 } from '../utils/PrinterPoolManager'
 import {
     DEFAULT_DATASET_COUNTS,

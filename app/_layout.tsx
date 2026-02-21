@@ -37,9 +37,6 @@ function LayoutContent() {
       const hideNavBar = async () => {
         try {
           await NavigationBar.setVisibilityAsync("hidden");
-          await NavigationBar.setBehaviorAsync("inset-swipe");
-          // Set background to transparent to avoid white flash/bar
-          await NavigationBar.setBackgroundColorAsync("#00000000");
         } catch (e) {
           console.warn("Failed to hide navigation bar:", e);
         }
@@ -47,12 +44,10 @@ function LayoutContent() {
       
       // Hide immediately
       hideNavBar();
-      
-      // Re-hide periodically to handle cases where it reappears
-      // (e.g., keyboard show/hide, app resume from background)
-      const interval = setInterval(hideNavBar, 2000);
-      
-      return () => clearInterval(interval);
+
+      // One delayed retry after initial layout/app transitions settle.
+      const retryTimer = setTimeout(hideNavBar, 1200);
+      return () => clearTimeout(retryTimer);
     }
   }, []);
 

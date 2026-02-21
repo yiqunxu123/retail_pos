@@ -25,6 +25,13 @@ expo-env.d.ts
 npm-debug.*
 yarn-debug.*
 yarn-error.*
+metro_devtools_*.log
+render_*.log
+rendermark_*.log
+ttpl_*.log
+ttpl_*.csv
+ttpl_*.json
+uidump*.xml
 
 # macOS
 .DS_Store
