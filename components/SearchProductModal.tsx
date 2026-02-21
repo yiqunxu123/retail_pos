@@ -123,12 +123,11 @@ const SearchProductModalCore = forwardRef<
       Platform.OS === "android"
         ? {
             paddingTop: insets.top,
-            paddingBottom: insets.bottom,
             paddingLeft: insets.left,
             paddingRight: insets.right,
           }
         : null,
-    [insets.bottom, insets.left, insets.right, insets.top]
+    [insets.left, insets.right, insets.top]
   );
 
   const [searchQuery, setSearchQuery] = useState("");

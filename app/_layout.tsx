@@ -3,7 +3,17 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as NavigationBar from "expo-navigation-bar";
 import { Slot, usePathname, useRouter } from "expo-router";
 import { useEffect, useRef, useState } from "react";
-import { ActivityIndicator, Animated, PanResponder, Platform, Pressable, Text, View, useWindowDimensions } from "react-native";
+import {
+  ActivityIndicator,
+  Animated,
+  AppState,
+  PanResponder,
+  Platform,
+  Pressable,
+  Text,
+  View,
+  useWindowDimensions,
+} from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { ClockInModal } from "../components/ClockInModal";
 import { ClockOutModal } from "../components/ClockOutModal";
@@ -31,7 +41,7 @@ function LayoutContent() {
   const { isClockedIn, selectedPosLine, clockIn, clockOut, selectPosLine } = useClock();
   // ViewMode is now handled internally by DashboardSidebar
 
-  // Hide Android navigation bar (the white bar at the bottom)
+  // Keep Android system navigation bar hidden globally.
   useEffect(() => {
     if (Platform.OS === "android") {
       const hideNavBar = async () => {
@@ -41,15 +51,33 @@ function LayoutContent() {
           console.warn("Failed to hide navigation bar:", e);
         }
       };
-      
-      // Hide immediately
-      hideNavBar();
 
-      // One delayed retry after initial layout/app transitions settle.
-      const retryTimer = setTimeout(hideNavBar, 1200);
-      return () => clearTimeout(retryTimer);
+      hideNavBar();
+      const retry1 = setTimeout(hideNavBar, 240);
+      const retry2 = setTimeout(hideNavBar, 960);
+      const retry3 = setTimeout(hideNavBar, 2200);
+
+      const appStateSub = AppState.addEventListener("change", (state) => {
+        if (state === "active") {
+          void hideNavBar();
+        }
+      });
+
+      const visibilitySub = NavigationBar.addVisibilityListener((event) => {
+        if (event.visibility !== "hidden") {
+          void hideNavBar();
+        }
+      });
+
+      return () => {
+        clearTimeout(retry1);
+        clearTimeout(retry2);
+        clearTimeout(retry3);
+        appStateSub.remove();
+        visibilitySub.remove();
+      };
     }
-  }, []);
+  }, [pathname]);
 
   // Initialize printer pool globally
   useEffect(() => {
