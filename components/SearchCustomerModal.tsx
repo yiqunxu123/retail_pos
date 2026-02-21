@@ -1,17 +1,28 @@
 import { Ionicons } from "@expo/vector-icons";
-import { useCallback, useEffect, useMemo, useRef, useState, type ComponentProps } from "react";
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ComponentProps,
+} from "react";
 import {
   ActivityIndicator,
   Alert,
-  Modal,
+  BackHandler,
+  Platform,
   Pressable,
   ScrollView,
+  StyleSheet,
   Switch,
   Text,
   TextInput,
   TouchableOpacity,
+  useWindowDimensions,
   View,
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { searchCustomers, type CustomerEntity } from "../utils/api/customers";
 import { AddQuickCustomerModal, type QuickCustomerResult } from "./AddQuickCustomerModal";
 import { Dropdown } from "./Dropdown";
@@ -206,7 +217,7 @@ export interface SearchCustomerModalProps {
   }) => void;
 }
 
-export function SearchCustomerModal({
+function SearchCustomerModalImpl({
   visible,
   onClose,
   onSelectCustomer,
@@ -214,6 +225,21 @@ export function SearchCustomerModal({
   orderSettings,
   onOrderSettingsChange,
 }: SearchCustomerModalProps) {
+  const { width } = useWindowDimensions();
+  const insets = useSafeAreaInsets();
+  const panelWidth = Math.max(1, Math.min(650, Math.round(width * 0.45)));
+  const safeAreaPadding = useMemo(
+    () =>
+      Platform.OS === "android"
+        ? {
+            paddingTop: insets.top,
+            paddingBottom: insets.bottom,
+            paddingLeft: insets.left,
+            paddingRight: insets.right,
+          }
+        : null,
+    [insets.bottom, insets.left, insets.right, insets.top]
+  );
   const [showQuickCustomerModal, setShowQuickCustomerModal] = useState(false);
   const [quickModalCustomerId, setQuickModalCustomerId] = useState<number | null>(null);
   const [autoGenerate, setAutoGenerate] = useState(true);
@@ -251,6 +277,15 @@ export function SearchCustomerModal({
       });
     };
   }, []);
+
+  useEffect(() => {
+    if (!visible) return;
+    const subscription = BackHandler.addEventListener("hardwareBackPress", () => {
+      onClose();
+      return true;
+    });
+    return () => subscription.remove();
+  }, [onClose, visible]);
 
   const handleSearch = useCallback((text: string, fieldKey: SearchFieldKey) => {
     setSearchInputs((prev) => ({ ...prev, [fieldKey]: text }));
@@ -376,271 +411,282 @@ export function SearchCustomerModal({
     },
   ];
 
+  const handleDismiss = useCallback(() => {
+    onClose();
+  }, [onClose]);
+
   return (
-    <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
-      <View className="flex-1 flex-row bg-black/35">
+    <View pointerEvents="box-none" style={styles.rootContainer}>
+      <View
+        pointerEvents="none"
+        style={[styles.backdrop, { opacity: visible ? 0.35 : 0 }]}
+      />
+
+      <View pointerEvents={visible ? "auto" : "none"} style={styles.touchGate}>
         <View
-          className="bg-white h-full border-r border-gray-200 shadow-2xl rounded-tr-3xl rounded-br-3xl"
-          style={{ width: "45%", maxWidth: 650 }}
+          style={[
+            styles.panelHost,
+            { width: panelWidth, transform: [{ translateX: visible ? 0 : -panelWidth }] },
+          ]}
         >
-          {/* Header */}
-          <View className="px-6 pt-8 pb-4">
-            <Text 
-              style={{ fontFamily: 'Montserrat', fontSize: 24, fontWeight: '700', color: '#EC1A52' }}
-            >
-              Add Customer
-            </Text>
-            
-            {/* Close Button - Small size restored, hit test kept robust */}
-            <TouchableOpacity
-              onPress={onClose}
-              style={{
-                position: 'absolute',
-                top: 24,
-                right: 24,
-                width: 32,
-                height: 32,
-                borderRadius: 16,
-                backgroundColor: '#EC1A52',
-                alignItems: 'center',
-                justifyContent: 'center',
-                zIndex: 999,
-                elevation: 5,
-              }}
-              hitSlop={{ top: 20, bottom: 20, left: 20, right: 20 }}
-              activeOpacity={0.7}
-            >
-              <Ionicons name="close" size={20} color="white" />
-            </TouchableOpacity>
-
-            <Text 
-              style={{ fontFamily: 'Montserrat', fontSize: 16, fontWeight: '600', color: '#1A1A1A', marginTop: 12 }}
-            >
-              Search for Customer by:
-            </Text>
-          </View>
-
-          {/* Content */}
-          <ScrollView
-            className="flex-1"
-            contentContainerStyle={{ paddingHorizontal: 24, paddingBottom: 300 }}
-            showsVerticalScrollIndicator={false}
+          <View
+            className="bg-white h-full border-r border-gray-200 rounded-tr-3xl rounded-br-3xl"
+            style={[styles.panel, { width: panelWidth }, safeAreaPadding]}
           >
-            {searchFields.map((field) => {
-              const isActive = activeSearchField === field.key;
-              const isLoading = searchLoading === field.key;
-              const showDropdown = isActive && !!searchInputs[field.key].trim();
-
-              return (
-                <View key={field.key} style={{ zIndex: field.zIndex, marginBottom: 14 }}>
-                  <View className="flex-row items-center bg-white border border-[#E5E7EB] rounded-lg px-3 py-3 shadow-sm">
-                    <Ionicons name={field.icon} size={22} color="#9CA3AF" />
-                    <TextInput
-                      className="flex-1 ml-3 text-gray-800 text-[16px]"
-                      style={{ fontFamily: 'Montserrat', fontWeight: '500' }}
-                      placeholder={field.placeholder}
-                      placeholderTextColor="#D1D5DB"
-                      value={searchInputs[field.key]}
-                      keyboardType="default"
-                      autoCapitalize="none"
-                      onFocus={() => {
-                        if (searchInputs[field.key].trim()) {
-                          setActiveSearchField(field.key);
-                        }
-                      }}
-                      onChangeText={(text) => handleSearch(text, field.key)}
-                    />
-                    {isLoading && <ActivityIndicator size="small" color="#EC1A52" />}
-                  </View>
-
-                  {showDropdown && (
-                    <View
-                      className="absolute top-[52px] left-0 right-0 border border-[#E5E7EB] rounded-lg bg-white shadow-xl z-[100] overflow-hidden"
-                      style={{ maxHeight: 240 }}
-                    >
-                      {isLoading ? (
-                        <View style={{ paddingVertical: 16, alignItems: "center" }}>
-                          <ActivityIndicator size="small" color="#EC1A52" />
-                        </View>
-                      ) : searchResults.length > 0 ? (
-                        <ScrollView nestedScrollEnabled>
-                          <View className="p-2 gap-2">
-                            {searchResults.map((customer) => (
-                              <SearchResultCard
-                                key={customer.id}
-                                customer={customer}
-                                onSelect={handleSelectCustomer}
-                              />
-                            ))}
-                          </View>
-                        </ScrollView>
-                      ) : (
-                        <Text
-                          style={{
-                            padding: 12,
-                            color: "#9CA3AF",
-                            fontStyle: "italic",
-                            textAlign: "center",
-                            fontFamily: 'Montserrat'
-                          }}
-                        >
-                          No Data Found
-                        </Text>
-                      )}
-                    </View>
-                  )}
-                </View>
-              );
-            })}
-
-            {/* Order Settings - Always visible to match design */}
-            <View className="mb-4">
-              <Text style={{ fontFamily: 'Montserrat', fontSize: 14, fontWeight: '600', color: '#1A1A1A', marginBottom: 8 }}>
-                Payment Terms:
-              </Text>
-              <Dropdown
-                options={PAYMENT_TERMS_OPTIONS}
-                value={paymentTermValue}
-                onChange={handlePaymentTermChange}
-              />
-            </View>
-
-            <View className="mb-4">
-              <Text style={{ fontFamily: 'Montserrat', fontSize: 14, fontWeight: '600', color: '#1A1A1A', marginBottom: 8 }}>
-                Invoice Due Date
-              </Text>
-              <View className="flex-row items-center justify-between bg-white border border-[#E5E7EB] rounded-lg px-3 h-12 shadow-sm">
-                <Text style={{ fontFamily: 'Montserrat', color: '#1A1A1A', fontSize: 16 }}>
-                  {orderSettings?.invoiceDueDate || "DD/MM/YYYY"}
-                </Text>
-                <Ionicons name="calendar-outline" size={20} color="#9CA3AF" />
-              </View>
-            </View>
-
-            <View className="mb-4">
-              <Text style={{ fontFamily: 'Montserrat', fontSize: 14, fontWeight: '600', color: '#1A1A1A', marginBottom: 8 }}>
-                Order Number:
-              </Text>
-              <TextInput
-                className="bg-white border border-[#E5E7EB] rounded-lg px-3 h-12 text-gray-800 shadow-sm mb-3 text-[16px]"
-                style={{ fontFamily: 'Montserrat' }}
-                placeholder="Enter Order Number"
-                placeholderTextColor="#D1D5DB"
-                value={orderSettings?.orderNumber || ""}
-                editable={!autoGenerate}
-                onChangeText={(value) =>
-                  onOrderSettingsChange?.({ ...orderSettings, orderNumber: value })
-                }
-              />
-              <Pressable
-                className="flex-row items-center gap-2"
-                onPress={handleToggleAutoGenerate}
+            <View className="px-6 pt-8 pb-4">
+              <Text
+                style={{ fontFamily: "Montserrat", fontSize: 24, fontWeight: "700", color: "#EC1A52" }}
               >
-                <View
-                  className={`w-5 h-5 rounded border items-center justify-center ${
-                    autoGenerate ? "border-[#EC1A52] bg-[#EC1A52]" : "border-gray-300"
-                  }`}
-                >
-                  {autoGenerate && <Ionicons name="checkmark" size={14} color="white" />}
-                </View>
-                <Text style={{ fontFamily: 'Montserrat', color: '#1A1A1A', fontSize: 14, fontWeight: '500' }}>
-                  Auto Generate
-                </Text>
-              </Pressable>
-            </View>
-
-            <View className="mb-4">
-              <Text style={{ fontFamily: 'Montserrat', fontSize: 14, fontWeight: '600', color: '#1A1A1A', marginBottom: 8 }}>
-                Shipping Type
-              </Text>
-              <Dropdown
-                options={SHIPPING_TYPE_OPTIONS}
-                value={shippingTypeValue}
-                onChange={handleShippingTypeChange}
-              />
-            </View>
-
-            <View className="flex-row items-center justify-between mb-4">
-              <View className="flex-row items-center gap-2">
-                <Text style={{ fontFamily: 'Montserrat', color: '#1A1A1A', fontSize: 14, fontWeight: '600' }}>
-                  Skip MSA Eligibility check
-                </Text>
-                <Switch
-                  value={skipMsaCheck}
-                  onValueChange={setSkipMsaCheck}
-                  trackColor={{ false: "#E5E7EB", true: "#EC1A52" }}
-                  thumbColor="white"
-                />
-              </View>
-            </View>
-
-            <View className="mb-4">
-              <Text style={{ fontFamily: 'Montserrat', fontSize: 14, fontWeight: '600', color: '#1A1A1A', marginBottom: 8 }}>
-                Notes (Internal)
-              </Text>
-              <TextInput
-                className="bg-white border border-[#E5E7EB] rounded-lg px-3 py-3 text-gray-800 min-h-[100px] shadow-sm"
-                style={{ fontFamily: 'Montserrat', textAlignVertical: 'top' }}
-                placeholder="Notes"
-                placeholderTextColor="#D1D5DB"
-                value={orderSettings?.notesInternal || ""}
-                onChangeText={(value) =>
-                  onOrderSettingsChange?.({ ...orderSettings, notesInternal: value })
-                }
-                multiline
-              />
-            </View>
-
-            <View className="mb-4">
-              <Text style={{ fontFamily: 'Montserrat', fontSize: 14, fontWeight: '600', color: '#1A1A1A', marginBottom: 8 }}>
-                Notes (Print on Invoice)
-              </Text>
-              <TextInput
-                className="bg-white border border-[#E5E7EB] rounded-lg px-3 py-3 text-gray-800 min-h-[100px] shadow-sm"
-                style={{ fontFamily: 'Montserrat', textAlignVertical: 'top' }}
-                placeholder="Notes"
-                placeholderTextColor="#D1D5DB"
-                value={orderSettings?.notesInvoice || ""}
-                onChangeText={(value) =>
-                  onOrderSettingsChange?.({ ...orderSettings, notesInvoice: value })
-                }
-                multiline
-              />
-            </View>
-          </ScrollView>
-
-          {/* Footer Buttons - Height increased again (208px) */}
-          <View 
-            className="absolute bottom-0 left-0 right-0 flex-row gap-4 px-6 py-6 bg-white border-t border-gray-100 rounded-br-3xl"
-            style={{ zIndex: 10, elevation: 10 }}
-          >
-            <TouchableOpacity
-              onPress={() => {
-                setQuickModalCustomerId(null);
-                setShowQuickCustomerModal(true);
-              }}
-              className="flex-1 bg-[#FFF0F3] rounded-xl h-[208px] items-center justify-center flex-row gap-3"
-              activeOpacity={0.7}
-            >
-              <Ionicons name="add" size={40} color="#EC1A52" />
-              <Text style={{ fontFamily: 'Montserrat', color: '#EC1A52', fontSize: 20, fontWeight: '700' }}>
-                Add New Customer
-              </Text>
-            </TouchableOpacity>
-            
-            <TouchableOpacity
-              onPress={onClose}
-              className="flex-1 bg-[#EC1A52] rounded-xl h-[208px] items-center justify-center shadow-lg shadow-[#EC1A52]/30"
-              activeOpacity={0.8}
-            >
-              <Text style={{ fontFamily: 'Montserrat', color: 'white', fontSize: 20, fontWeight: '700' }}>
                 Add Customer
               </Text>
-            </TouchableOpacity>
+
+              <TouchableOpacity
+                onPress={handleDismiss}
+                style={{
+                  position: "absolute",
+                  top: 24,
+                  right: 24,
+                  width: 32,
+                  height: 32,
+                  borderRadius: 16,
+                  backgroundColor: "#EC1A52",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  zIndex: 999,
+                  elevation: 5,
+                }}
+                hitSlop={{ top: 20, bottom: 20, left: 20, right: 20 }}
+                activeOpacity={0.7}
+              >
+                <Ionicons name="close" size={20} color="white" />
+              </TouchableOpacity>
+
+              <Text
+                style={{ fontFamily: "Montserrat", fontSize: 16, fontWeight: "600", color: "#1A1A1A", marginTop: 12 }}
+              >
+                Search for Customer by:
+              </Text>
+            </View>
+
+            <ScrollView
+              className="flex-1"
+              contentContainerStyle={{ paddingHorizontal: 24, paddingBottom: 300 }}
+              showsVerticalScrollIndicator={false}
+            >
+              {searchFields.map((field) => {
+                const isActive = activeSearchField === field.key;
+                const isLoading = searchLoading === field.key;
+                const showDropdown = isActive && !!searchInputs[field.key].trim();
+
+                return (
+                  <View key={field.key} style={{ zIndex: field.zIndex, marginBottom: 14 }}>
+                    <View className="flex-row items-center bg-white border border-[#E5E7EB] rounded-lg px-3 py-3 shadow-sm">
+                      <Ionicons name={field.icon} size={22} color="#9CA3AF" />
+                      <TextInput
+                        className="flex-1 ml-3 text-gray-800 text-[16px]"
+                        style={{ fontFamily: "Montserrat", fontWeight: "500" }}
+                        placeholder={field.placeholder}
+                        placeholderTextColor="#D1D5DB"
+                        value={searchInputs[field.key]}
+                        keyboardType="default"
+                        autoCapitalize="none"
+                        onFocus={() => {
+                          if (searchInputs[field.key].trim()) {
+                            setActiveSearchField(field.key);
+                          }
+                        }}
+                        onChangeText={(text) => handleSearch(text, field.key)}
+                      />
+                      {isLoading && <ActivityIndicator size="small" color="#EC1A52" />}
+                    </View>
+
+                    {showDropdown && (
+                      <View
+                        className="absolute top-[52px] left-0 right-0 border border-[#E5E7EB] rounded-lg bg-white shadow-xl z-[100] overflow-hidden"
+                        style={{ maxHeight: 240 }}
+                      >
+                        {isLoading ? (
+                          <View style={{ paddingVertical: 16, alignItems: "center" }}>
+                            <ActivityIndicator size="small" color="#EC1A52" />
+                          </View>
+                        ) : searchResults.length > 0 ? (
+                          <ScrollView nestedScrollEnabled>
+                            <View className="p-2 gap-2">
+                              {searchResults.map((customer) => (
+                                <SearchResultCard
+                                  key={customer.id}
+                                  customer={customer}
+                                  onSelect={handleSelectCustomer}
+                                />
+                              ))}
+                            </View>
+                          </ScrollView>
+                        ) : (
+                          <Text
+                            style={{
+                              padding: 12,
+                              color: "#9CA3AF",
+                              fontStyle: "italic",
+                              textAlign: "center",
+                              fontFamily: "Montserrat",
+                            }}
+                          >
+                            No Data Found
+                          </Text>
+                        )}
+                      </View>
+                    )}
+                  </View>
+                );
+              })}
+
+              <View className="mb-4">
+                <Text style={{ fontFamily: "Montserrat", fontSize: 14, fontWeight: "600", color: "#1A1A1A", marginBottom: 8 }}>
+                  Payment Terms:
+                </Text>
+                <Dropdown
+                  options={PAYMENT_TERMS_OPTIONS}
+                  value={paymentTermValue}
+                  onChange={handlePaymentTermChange}
+                />
+              </View>
+
+              <View className="mb-4">
+                <Text style={{ fontFamily: "Montserrat", fontSize: 14, fontWeight: "600", color: "#1A1A1A", marginBottom: 8 }}>
+                  Invoice Due Date
+                </Text>
+                <View className="flex-row items-center justify-between bg-white border border-[#E5E7EB] rounded-lg px-3 h-12 shadow-sm">
+                  <Text style={{ fontFamily: "Montserrat", color: "#1A1A1A", fontSize: 16 }}>
+                    {orderSettings?.invoiceDueDate || "DD/MM/YYYY"}
+                  </Text>
+                  <Ionicons name="calendar-outline" size={20} color="#9CA3AF" />
+                </View>
+              </View>
+
+              <View className="mb-4">
+                <Text style={{ fontFamily: "Montserrat", fontSize: 14, fontWeight: "600", color: "#1A1A1A", marginBottom: 8 }}>
+                  Order Number:
+                </Text>
+                <TextInput
+                  className="bg-white border border-[#E5E7EB] rounded-lg px-3 h-12 text-gray-800 shadow-sm mb-3 text-[16px]"
+                  style={{ fontFamily: "Montserrat" }}
+                  placeholder="Enter Order Number"
+                  placeholderTextColor="#D1D5DB"
+                  value={orderSettings?.orderNumber || ""}
+                  editable={!autoGenerate}
+                  onChangeText={(value) =>
+                    onOrderSettingsChange?.({ ...orderSettings, orderNumber: value })
+                  }
+                />
+                <Pressable
+                  className="flex-row items-center gap-2"
+                  onPress={handleToggleAutoGenerate}
+                >
+                  <View
+                    className={`w-5 h-5 rounded border items-center justify-center ${
+                      autoGenerate ? "border-[#EC1A52] bg-[#EC1A52]" : "border-gray-300"
+                    }`}
+                  >
+                    {autoGenerate && <Ionicons name="checkmark" size={14} color="white" />}
+                  </View>
+                  <Text style={{ fontFamily: "Montserrat", color: "#1A1A1A", fontSize: 14, fontWeight: "500" }}>
+                    Auto Generate
+                  </Text>
+                </Pressable>
+              </View>
+
+              <View className="mb-4">
+                <Text style={{ fontFamily: "Montserrat", fontSize: 14, fontWeight: "600", color: "#1A1A1A", marginBottom: 8 }}>
+                  Shipping Type
+                </Text>
+                <Dropdown
+                  options={SHIPPING_TYPE_OPTIONS}
+                  value={shippingTypeValue}
+                  onChange={handleShippingTypeChange}
+                />
+              </View>
+
+              <View className="flex-row items-center justify-between mb-4">
+                <View className="flex-row items-center gap-2">
+                  <Text style={{ fontFamily: "Montserrat", color: "#1A1A1A", fontSize: 14, fontWeight: "600" }}>
+                    Skip MSA Eligibility check
+                  </Text>
+                  <Switch
+                    value={skipMsaCheck}
+                    onValueChange={setSkipMsaCheck}
+                    trackColor={{ false: "#E5E7EB", true: "#EC1A52" }}
+                    thumbColor="white"
+                  />
+                </View>
+              </View>
+
+              <View className="mb-4">
+                <Text style={{ fontFamily: "Montserrat", fontSize: 14, fontWeight: "600", color: "#1A1A1A", marginBottom: 8 }}>
+                  Notes (Internal)
+                </Text>
+                <TextInput
+                  className="bg-white border border-[#E5E7EB] rounded-lg px-3 py-3 text-gray-800 min-h-[100px] shadow-sm"
+                  style={{ fontFamily: "Montserrat", textAlignVertical: "top" }}
+                  placeholder="Notes"
+                  placeholderTextColor="#D1D5DB"
+                  value={orderSettings?.notesInternal || ""}
+                  onChangeText={(value) =>
+                    onOrderSettingsChange?.({ ...orderSettings, notesInternal: value })
+                  }
+                  multiline
+                />
+              </View>
+
+              <View className="mb-4">
+                <Text style={{ fontFamily: "Montserrat", fontSize: 14, fontWeight: "600", color: "#1A1A1A", marginBottom: 8 }}>
+                  Notes (Print on Invoice)
+                </Text>
+                <TextInput
+                  className="bg-white border border-[#E5E7EB] rounded-lg px-3 py-3 text-gray-800 min-h-[100px] shadow-sm"
+                  style={{ fontFamily: "Montserrat", textAlignVertical: "top" }}
+                  placeholder="Notes"
+                  placeholderTextColor="#D1D5DB"
+                  value={orderSettings?.notesInvoice || ""}
+                  onChangeText={(value) =>
+                    onOrderSettingsChange?.({ ...orderSettings, notesInvoice: value })
+                  }
+                  multiline
+                />
+              </View>
+            </ScrollView>
+
+            <View
+              className="absolute bottom-0 left-0 right-0 flex-row gap-4 px-6 py-6 bg-white border-t border-gray-100 rounded-br-3xl"
+              style={{ zIndex: 10, elevation: 10 }}
+            >
+              <TouchableOpacity
+                onPress={() => {
+                  setQuickModalCustomerId(null);
+                  setShowQuickCustomerModal(true);
+                }}
+                className="flex-1 bg-[#FFF0F3] rounded-xl h-[208px] items-center justify-center flex-row gap-3"
+                activeOpacity={0.7}
+              >
+                <Ionicons name="add" size={40} color="#EC1A52" />
+                <Text style={{ fontFamily: "Montserrat", color: "#EC1A52", fontSize: 20, fontWeight: "700" }}>
+                  Add New Customer
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                onPress={handleDismiss}
+                className="flex-1 bg-[#EC1A52] rounded-xl h-[208px] items-center justify-center shadow-lg shadow-[#EC1A52]/30"
+                activeOpacity={0.8}
+              >
+                <Text style={{ fontFamily: "Montserrat", color: "white", fontSize: 20, fontWeight: "700" }}>
+                  Add Customer
+                </Text>
+              </TouchableOpacity>
+            </View>
           </View>
         </View>
 
-        <Pressable className="flex-1" onPress={onClose} />
+        <Pressable style={styles.backdropPressArea} onPress={handleDismiss} />
       </View>
 
       <AddQuickCustomerModal
@@ -652,6 +698,58 @@ export function SearchCustomerModal({
         onSave={handleSaveQuickCustomer}
         customerId={quickModalCustomerId}
       />
-    </Modal>
+    </View>
   );
 }
+
+const styles = StyleSheet.create({
+  rootContainer: {
+    ...StyleSheet.absoluteFillObject,
+    zIndex: 1000,
+    elevation: 1000,
+  },
+  backdrop: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: "#000000",
+  },
+  touchGate: {
+    ...StyleSheet.absoluteFillObject,
+    flexDirection: "row",
+  },
+  panelHost: {
+    height: "100%",
+  },
+  panel: {
+    height: "100%",
+    shadowColor: "#000000",
+    shadowOpacity: 0.12,
+    shadowRadius: 8,
+    shadowOffset: { width: 2, height: 0 },
+    elevation: 8,
+  },
+  backdropPressArea: {
+    flex: 1,
+  },
+});
+
+function areSearchCustomerModalPropsEqual(
+  prev: SearchCustomerModalProps,
+  next: SearchCustomerModalProps
+): boolean {
+  if (!prev.visible && !next.visible) return true;
+
+  return (
+    prev.visible === next.visible &&
+    prev.onClose === next.onClose &&
+    prev.onSelectCustomer === next.onSelectCustomer &&
+    prev.currentCustomer === next.currentCustomer &&
+    prev.orderSettings === next.orderSettings &&
+    prev.onOrderSettingsChange === next.onOrderSettingsChange
+  );
+}
+
+export const SearchCustomerModal = React.memo(
+  SearchCustomerModalImpl,
+  areSearchCustomerModalPropsEqual
+);
+SearchCustomerModal.displayName = "SearchCustomerModal";

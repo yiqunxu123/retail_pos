@@ -10,6 +10,10 @@ import {
   SearchProductModalHandle,
 } from "../SearchProductModal";
 import { useRenderTrace } from "../../utils/debug/useRenderTrace";
+import {
+  ModalControllerHandle,
+  useModalVisibilityRef,
+} from "./modalVisibilityController";
 
 export type SearchModalOpenSource = "top_bar" | "table_empty" | "sidebar";
 type SearchModalDismissReason =
@@ -19,10 +23,8 @@ type SearchModalDismissReason =
   | "hardware_back"
   | "select_product";
 
-export interface SearchProductModalControllerHandle {
+export interface SearchProductModalControllerHandle extends ModalControllerHandle {
   open: (source?: SearchModalOpenSource) => void;
-  close: () => void;
-  isVisible: () => boolean;
 }
 
 interface SearchProductModalControllerProps {
@@ -40,7 +42,8 @@ const SearchProductModalControllerInner = forwardRef<
   ref
 ) {
   const modalRef = useRef<SearchProductModalHandle>(null);
-  const visibleRef = useRef(false);
+  const { visibleRef, setVisibleRef, isVisible } =
+    useModalVisibilityRef(onVisibleStateChange);
 
   useRenderTrace(
     "SearchProductModalController",
@@ -57,21 +60,19 @@ const SearchProductModalControllerInner = forwardRef<
       const modalOpen = modalRef.current?.isOpen?.() ?? false;
       if (!modalOpen && !visibleRef.current) return;
       modalRef.current?.close(reason);
-      visibleRef.current = false;
-      onVisibleStateChange?.(false);
+      setVisibleRef(false);
     },
-    [onVisibleStateChange]
+    [setVisibleRef, visibleRef]
   );
 
   const open = useCallback(
     (_source: SearchModalOpenSource = "top_bar") => {
       const modalOpen = modalRef.current?.isOpen?.() ?? false;
       if (modalOpen && visibleRef.current) return;
-      visibleRef.current = true;
-      onVisibleStateChange?.(true);
+      setVisibleRef(true);
       modalRef.current?.open();
     },
-    [onVisibleStateChange]
+    [setVisibleRef, visibleRef]
   );
 
   const handleSelectProduct = useCallback(
@@ -106,9 +107,9 @@ const SearchProductModalControllerInner = forwardRef<
     () => ({
       open,
       close: () => dismiss("manual"),
-      isVisible: () => visibleRef.current,
+      isVisible,
     }),
-    [dismiss, open]
+    [dismiss, isVisible, open]
   );
 
   return (

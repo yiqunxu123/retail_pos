@@ -6,7 +6,6 @@ import { Alert, Dimensions, Image, Modal, Pressable, ScrollView, Text, TextInput
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { captureRef } from "react-native-view-shot";
 import { AddDiscountModal } from "../../components/AddDiscountModal";
-import { BarcodePrintModal } from "../../components/BarcodePrintModal";
 import { type QuickCustomerResult } from "../../components/AddQuickCustomerModal";
 import { AddTaxModal } from "../../components/AddTaxModal";
 import { CashEntryModal } from "../../components/CashEntryModal";
@@ -23,12 +22,23 @@ import {
   SearchProductModalController,
   SearchProductModalControllerHandle,
 } from "../../components/order/SearchProductModalController";
+import {
+  SearchCustomerModalController,
+  SearchCustomerModalControllerHandle,
+} from "../../components/order/SearchCustomerModalController";
+import {
+  BarcodePrintModalController,
+  BarcodePrintModalControllerHandle,
+} from "../../components/order/BarcodePrintModalController";
+import {
+  ScanLogsModalController,
+  ScanLogsModalControllerHandle,
+} from "../../components/order/ScanLogsModalController";
 import { POSSidebar } from "../../components/POSSidebar";
 import { ProductSettingsModal } from "../../components/ProductSettingsModal";
 import { ProductTable } from "../../components/ProductTable";
 import { ReceiptData, ReceiptTemplate } from "../../components/ReceiptTemplate";
 import { SaleInvoiceModal } from "../../components/SaleInvoiceModal";
-import { SearchCustomerModal } from "../../components/SearchCustomerModal";
 import { SearchProduct } from "../../components/SearchProductModal";
 import { useAuth } from "../../contexts/AuthContext";
 import { OrderProduct, useOrder } from "../../contexts/OrderContext";
@@ -124,13 +134,16 @@ export default function AddProductsScreen() {
   }, [retrieveOrderId]);
 
   const [scanQty, setScanQty] = useState("1");
-  const [showScanLogModal, setShowScanLogModal] = useState(false);
-  const [showBarcodePrintModal, setShowBarcodePrintModal] = useState(false);
+  const scanLogModalVisibleRef = useRef(false);
+  const barcodePrintModalVisibleRef = useRef(false);
   const [scanLogs, setScanLogs] = useState<ScanLogEntry[]>([]);
   const scanBufferRef = useRef("");
   const scanTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const hiddenInputRef = useRef<TextInput>(null);
   const searchModalRef = useRef<SearchProductModalControllerHandle>(null);
+  const customerModalRef = useRef<SearchCustomerModalControllerHandle>(null);
+  const barcodePrintModalRef = useRef<BarcodePrintModalControllerHandle>(null);
+  const scanLogsModalRef = useRef<ScanLogsModalControllerHandle>(null);
   const searchModalVisibleRef = useRef(false);
   const { products: allProducts, isLoading: isProductsLoading } = useProducts();
   const [showCustomerModal, setShowCustomerModal] = useState(false);
@@ -249,6 +262,15 @@ export default function AddProductsScreen() {
   const handleSearchModalVisibleStateChange = useCallback((visible: boolean) => {
     searchModalVisibleRef.current = visible;
   }, []);
+  const handleCustomerModalVisibleStateChange = useCallback((visible: boolean) => {
+    setShowCustomerModal(visible);
+  }, []);
+  const handleScanLogModalVisibleStateChange = useCallback((visible: boolean) => {
+    scanLogModalVisibleRef.current = visible;
+  }, []);
+  const handleBarcodePrintModalVisibleStateChange = useCallback((visible: boolean) => {
+    barcodePrintModalVisibleRef.current = visible;
+  }, []);
 
   const handleOpenSearchModal = useCallback(
     (source: "top_bar" | "table_empty" | "sidebar" = "top_bar") => {
@@ -284,8 +306,8 @@ export default function AddProductsScreen() {
       selectedProductId: selectedProduct?.id ?? null,
       scanLogsLength: scanLogs.length,
       hasBlockingScanModal,
-      showScanLogModal,
-      showBarcodePrintModal,
+      showScanLogModal: scanLogModalVisibleRef.current,
+      showBarcodePrintModal: barcodePrintModalVisibleRef.current,
       showCustomerModal,
       showCashPaymentModal,
       showDiscountModal,
@@ -593,11 +615,11 @@ export default function AddProductsScreen() {
   }, []);
 
   const handleOpenScanLogModal = useCallback(() => {
-    setShowScanLogModal(true);
+    scanLogsModalRef.current?.open();
   }, []);
 
   const handleOpenBarcodePrintModal = useCallback(() => {
-    setShowBarcodePrintModal(true);
+    barcodePrintModalRef.current?.open();
   }, []);
 
   const handleOpenProductSettings = useCallback(() => {
@@ -611,7 +633,7 @@ export default function AddProductsScreen() {
   }, [products, selectedProduct]);
 
   const handleOpenCustomerModal = useCallback(() => {
-    setShowCustomerModal(true);
+    customerModalRef.current?.open();
   }, []);
 
   const handleRemoveCustomer = useCallback(() => {
@@ -952,26 +974,19 @@ export default function AddProductsScreen() {
         onVisibleStateChange={handleSearchModalVisibleStateChange}
       />
 
-      <SearchCustomerModal
-        visible={showCustomerModal}
-        onClose={() => setShowCustomerModal(false)}
+      <SearchCustomerModalController
+        ref={customerModalRef}
         onSelectCustomer={(customer) => {
-          if (customer) {
-            setSelectedCustomerData(customer);
-            updateOrder({
-              customerName: customer.business_name,
-              customerId: String(customer.id),
-            });
-          } else {
-            // null means "remove customer"
-            setSelectedCustomerData(null);
-            updateOrder({ customerName: "Guest Customer", customerId: null });
-          }
-          setShowCustomerModal(false);
+          setSelectedCustomerData(customer);
+          updateOrder({
+            customerName: customer.business_name,
+            customerId: String(customer.id),
+          });
         }}
         currentCustomer={selectedCustomerData}
         orderSettings={orderSettings}
         onOrderSettingsChange={setOrderSettings}
+        onVisibleStateChange={handleCustomerModalVisibleStateChange}
       />
 
       <CashPaymentModal
@@ -1078,15 +1093,13 @@ export default function AddProductsScreen() {
       />
 
       {/* Barcode Print Modal */}
-      {showBarcodePrintModal && (
-        <BarcodePrintModal
-          visible={showBarcodePrintModal}
-          onClose={() => setShowBarcodePrintModal(false)}
-          cartItems={barcodeCartItems}
-          products={allProducts}
-          productsLoading={isProductsLoading}
-        />
-      )}
+      <BarcodePrintModalController
+        ref={barcodePrintModalRef}
+        cartItems={barcodeCartItems}
+        products={allProducts}
+        productsLoading={isProductsLoading}
+        onVisibleStateChange={handleBarcodePrintModalVisibleStateChange}
+      />
 
       {/* Hidden receipt template for capture */}
       <View
@@ -1224,207 +1237,15 @@ export default function AddProductsScreen() {
         onSubmitEditing={handleScannerSubmit}
         onBlur={handleHiddenInputBlur}
       />
-
       {/* Scan Logs Modal */}
-      <Modal
-        visible={showScanLogModal}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setShowScanLogModal(false)}
-      >
-        <Pressable
-          style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.5)", justifyContent: "center", alignItems: "center" }}
-          onPress={() => setShowScanLogModal(false)}
-        >
-          <Pressable
-            style={{
-              backgroundColor: "#FFF",
-              borderRadius: 16,
-              width: 560,
-              maxHeight: "80%",
-              overflow: "hidden",
-            }}
-            onPress={() => {}}
-          >
-            {/* Header */}
-            <View style={{
-              flexDirection: "row",
-              alignItems: "center",
-              justifyContent: "space-between",
-              paddingHorizontal: 24,
-              paddingVertical: 18,
-              borderBottomWidth: 1,
-              borderBottomColor: "#F0F1F4",
-              backgroundColor: "#FAFAFA",
-            }}>
-              <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
-                <View style={{
-                  width: 40, height: 40, borderRadius: 12,
-                  backgroundColor: "#EC1A52", alignItems: "center", justifyContent: "center",
-                }}>
-                  <Ionicons name="barcode-outline" size={22} color="#FFF" />
-                </View>
-                <View>
-                  <Text style={{ fontFamily: "Montserrat", fontSize: 20, fontWeight: "700", color: "#1A1A1A" }}>
-                    Scan Logs
-                  </Text>
-                  <Text style={{ fontFamily: "Montserrat", fontSize: 13, color: "#9CA3AF", marginTop: 1 }}>
-                    {scanLogs.length} scan{scanLogs.length !== 1 ? "s" : ""} recorded
-                  </Text>
-                </View>
-              </View>
-              <TouchableOpacity
-                onPress={() => setShowScanLogModal(false)}
-                style={{
-                  width: 36, height: 36, borderRadius: 18,
-                  backgroundColor: "#F3F4F6", alignItems: "center", justifyContent: "center",
-                }}
-              >
-                <Ionicons name="close" size={20} color="#6B7280" />
-              </TouchableOpacity>
-            </View>
-
-            {/* Table Header */}
-            <View style={{
-              flexDirection: "row",
-              paddingHorizontal: 24,
-              paddingVertical: 12,
-              backgroundColor: "#F7F7F9",
-              borderBottomWidth: 1,
-              borderBottomColor: "#E5E7EB",
-            }}>
-              <Text style={{ width: 50, fontFamily: "Montserrat", fontSize: 12, fontWeight: "700", color: "#6B7280" }}>#</Text>
-              <Text style={{ flex: 1, fontFamily: "Montserrat", fontSize: 12, fontWeight: "700", color: "#6B7280" }}>BARCODE</Text>
-              <Text style={{ flex: 1.5, fontFamily: "Montserrat", fontSize: 12, fontWeight: "700", color: "#6B7280" }}>PRODUCT</Text>
-              <Text style={{ width: 70, fontFamily: "Montserrat", fontSize: 12, fontWeight: "700", color: "#6B7280", textAlign: "center" }}>STATUS</Text>
-              <Text style={{ width: 80, fontFamily: "Montserrat", fontSize: 12, fontWeight: "700", color: "#6B7280", textAlign: "right" }}>TIME</Text>
-            </View>
-
-            {/* Log Entries */}
-            {scanLogs.length === 0 ? (
-              <View style={{ paddingVertical: 60, alignItems: "center", justifyContent: "center" }}>
-                <Ionicons name="scan-outline" size={56} color="#D1D5DB" />
-                <Text style={{ fontFamily: "Montserrat", fontSize: 16, fontWeight: "600", color: "#9CA3AF", marginTop: 16 }}>
-                  No scans yet
-                </Text>
-                <Text style={{ fontFamily: "Montserrat", fontSize: 13, color: "#C4C8CF", marginTop: 6, textAlign: "center", paddingHorizontal: 40 }}>
-                  Scan a barcode with your QBT2500 scanner and it will appear here
-                </Text>
-              </View>
-            ) : (
-              <ScrollView style={{ maxHeight: 420 }} contentContainerStyle={{ paddingBottom: 8 }}>
-                {scanLogs.map((log, index) => (
-                  <View
-                    key={log.id}
-                    style={{
-                      flexDirection: "row",
-                      alignItems: "center",
-                      paddingHorizontal: 24,
-                      paddingVertical: 14,
-                      borderBottomWidth: 1,
-                      borderBottomColor: "#F3F4F6",
-                      backgroundColor: index % 2 === 0 ? "#FFFFFF" : "#FAFAFA",
-                    }}
-                  >
-                    <Text style={{ width: 50, fontFamily: "Montserrat", fontSize: 13, color: "#9CA3AF" }}>
-                      {scanLogs.length - index}
-                    </Text>
-                    <View style={{ flex: 1 }}>
-                      <Text
-                        style={{ fontFamily: "Montserrat", fontSize: 15, fontWeight: "700", color: "#1A1A1A", letterSpacing: 1.5 }}
-                        selectable
-                      >
-                        {log.code}
-                      </Text>
-                    </View>
-                    <View style={{ flex: 1.5 }}>
-                      <Text
-                        style={{
-                          fontFamily: "Montserrat",
-                          fontSize: 13,
-                          fontWeight: "500",
-                          color: log.matched ? "#1A1A1A" : "#9CA3AF",
-                        }}
-                        numberOfLines={1}
-                      >
-                        {log.matched ? log.productName : "—"}
-                      </Text>
-                    </View>
-                    <View style={{ width: 70, alignItems: "center" }}>
-                      <View style={{
-                        paddingHorizontal: 10,
-                        paddingVertical: 4,
-                        borderRadius: 20,
-                        backgroundColor: log.matched ? "#ECFDF5" : "#FEF2F2",
-                      }}>
-                        <Text style={{
-                          fontFamily: "Montserrat",
-                          fontSize: 11,
-                          fontWeight: "700",
-                          color: log.matched ? "#059669" : "#DC2626",
-                        }}>
-                          {log.matched ? "FOUND" : "MISS"}
-                        </Text>
-                      </View>
-                    </View>
-                    <Text style={{ width: 80, fontFamily: "Montserrat", fontSize: 12, color: "#9CA3AF", textAlign: "right" }}>
-                      {log.timestamp.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" })}
-                    </Text>
-                  </View>
-                ))}
-              </ScrollView>
-            )}
-
-            {/* Footer */}
-            <View style={{
-              flexDirection: "row",
-              alignItems: "center",
-              justifyContent: "space-between",
-              paddingHorizontal: 24,
-              paddingVertical: 16,
-              borderTopWidth: 1,
-              borderTopColor: "#F0F1F4",
-              backgroundColor: "#FAFAFA",
-            }}>
-              <View style={{ flexDirection: "row", alignItems: "center", gap: 16 }}>
-                <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
-                  <View style={{ width: 10, height: 10, borderRadius: 5, backgroundColor: "#059669" }} />
-                  <Text style={{ fontFamily: "Montserrat", fontSize: 13, color: "#6B7280" }}>
-                    {scanLogSummary.matched} matched
-                  </Text>
-                </View>
-                <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
-                  <View style={{ width: 10, height: 10, borderRadius: 5, backgroundColor: "#DC2626" }} />
-                  <Text style={{ fontFamily: "Montserrat", fontSize: 13, color: "#6B7280" }}>
-                    {scanLogSummary.missed} missed
-                  </Text>
-                </View>
-              </View>
-              {scanLogs.length > 0 && (
-                <TouchableOpacity
-                  onPress={() => setScanLogs([])}
-                  style={{
-                    flexDirection: "row",
-                    alignItems: "center",
-                    gap: 6,
-                    paddingHorizontal: 16,
-                    paddingVertical: 8,
-                    borderRadius: 8,
-                    borderWidth: 1,
-                    borderColor: "#E5E7EB",
-                    backgroundColor: "#FFF",
-                  }}
-                >
-                  <Ionicons name="trash-outline" size={16} color="#DC2626" />
-                  <Text style={{ fontFamily: "Montserrat", fontSize: 13, fontWeight: "600", color: "#DC2626" }}>
-                    Clear All
-                  </Text>
-                </TouchableOpacity>
-              )}
-            </View>
-          </Pressable>
-        </Pressable>
-      </Modal>
+      <ScanLogsModalController
+        ref={scanLogsModalRef}
+        logs={scanLogs}
+        summary={scanLogSummary}
+        onClearLogs={() => setScanLogs([])}
+        onVisibleStateChange={handleScanLogModalVisibleStateChange}
+      />
     </View>
   );
 }
+
