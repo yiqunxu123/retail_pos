@@ -13,6 +13,7 @@ import {
   View,
 } from "react-native";
 import TcpSocket from "react-native-tcp-socket";
+import { useRenderTrace } from "../utils/debug/useRenderTrace";
 import { ensurePrintersLoaded, getPrinters } from "../utils/PrinterPoolManager";
 import { useProducts } from "../utils/powersync/hooks";
 import type { ProductView } from "../utils/powersync/hooks/useProducts";
@@ -29,11 +30,18 @@ interface BarcodePrintModalProps {
   visible: boolean;
   onClose: () => void;
   cartItems?: CartItem[];
+  products?: ProductView[];
+  productsLoading?: boolean;
 }
 
 interface LabelItem {
   product: ProductView;
   labelQty: number;
+}
+
+interface BarcodePrintModalCoreProps extends BarcodePrintModalProps {
+  allProducts: ProductView[];
+  isLoading: boolean;
 }
 
 const ESC = "\x1b";
@@ -98,7 +106,11 @@ function sendRawEscPos(
         try { client.removeAllListeners(); client.destroy(); } catch {}
         client = null;
       }
-      success ? resolve() : reject(new Error(error || "Failed"));
+      if (success) {
+        resolve();
+      } else {
+        reject(new Error(error || "Failed"));
+      }
     };
 
     const timer = setTimeout(() => finish(false, "Timeout"), 3000);
@@ -128,11 +140,21 @@ function sendRawEscPos(
 
 const MODAL_HEIGHT = Math.round(Dimensions.get("window").height * 0.82);
 
-export function BarcodePrintModal({ visible, onClose, cartItems }: BarcodePrintModalProps) {
+function BarcodePrintModalCore({
+  visible,
+  onClose,
+  cartItems,
+  allProducts,
+  isLoading,
+}: BarcodePrintModalCoreProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [items, setItems] = useState<LabelItem[]>([]);
   const [printing, setPrinting] = useState(false);
-  const { products: allProducts, isLoading } = useProducts();
+  const productById = useMemo(() => {
+    const map = new Map<string, ProductView>();
+    allProducts.forEach((product) => map.set(product.id, product));
+    return map;
+  }, [allProducts]);
 
   // When modal opens with cart items, pre-populate from cart
   useEffect(() => {
@@ -140,13 +162,13 @@ export function BarcodePrintModal({ visible, onClose, cartItems }: BarcodePrintM
 
     const mapped: LabelItem[] = [];
     for (const ci of cartItems) {
-      const full = allProducts.find((p) => p.id === ci.productId);
+      const full = productById.get(ci.productId);
       if (full) {
         mapped.push({ product: full, labelQty: ci.quantity });
       }
     }
     if (mapped.length > 0) setItems(mapped);
-  }, [visible, cartItems, allProducts]);
+  }, [visible, cartItems, allProducts.length, productById]);
 
   const filteredProducts = useMemo(() => {
     const kw = searchQuery.trim().toLowerCase();
@@ -159,9 +181,13 @@ export function BarcodePrintModal({ visible, onClose, cartItems }: BarcodePrintM
     });
   }, [allProducts, searchQuery]);
 
+  const selectedProductIdSet = useMemo(
+    () => new Set(items.map((item) => item.product.id)),
+    [items]
+  );
   const isSelected = useCallback(
-    (id: string) => items.some((s) => s.product.id === id),
-    [items],
+    (id: string) => selectedProductIdSet.has(id),
+    [selectedProductIdSet]
   );
 
   const toggleProduct = useCallback((product: ProductView) => {
@@ -198,7 +224,11 @@ export function BarcodePrintModal({ visible, onClose, cartItems }: BarcodePrintM
       const enabledPrinters = getPrinters().filter((p) => p.enabled && p.ip);
 
       if (enabledPrinters.length === 0) {
-        Alert.alert("No Printer", "No enabled printers found. Check printer settings.");
+        Alert.alert(
+          "No Printer Configured", 
+          "No enabled network printers found.\n\nPlease go to Settings and add a printer with:\n• Printer Name\n• IP Address (e.g., 192.168.1.100)\n• Port (usually 9100)"
+        );
+        setPrinting(false);
         return;
       }
 
@@ -227,10 +257,16 @@ export function BarcodePrintModal({ visible, onClose, cartItems }: BarcodePrintM
       );
 
       const ok = results.filter((r) => r.status === "fulfilled").length;
+      const failed = results.filter((r) => r.status === "rejected");
+      
       if (ok > 0) {
         Alert.alert("Printed", `${totalLabels} label${totalLabels > 1 ? "s" : ""} sent to ${ok} printer${ok > 1 ? "s" : ""}.`);
       } else {
-        Alert.alert("Print Failed", "Could not reach any printer.");
+        const errors = failed.map((r: any) => r.reason?.message || "Unknown error").join("\n");
+        Alert.alert(
+          "Print Failed", 
+          `Could not reach any printer.\n\nCommon issues:\n• Printer is offline or turned off\n• Wrong IP address in Settings\n• Printer not on same network\n• Port blocked by firewall\n\nErrors: ${errors}`
+        );
       }
     } catch (err: any) {
       Alert.alert("Print Error", err?.message || String(err));
@@ -244,6 +280,22 @@ export function BarcodePrintModal({ visible, onClose, cartItems }: BarcodePrintM
     setItems([]);
     onClose();
   }, [onClose]);
+
+  useRenderTrace(
+    "BarcodePrintModal",
+    {
+      visible,
+      searchQuery,
+      itemsLength: items.length,
+      filteredProductsLength: filteredProducts.length,
+      allProductsLength: allProducts.length,
+      cartItemsLength: cartItems?.length ?? 0,
+      isLoading,
+      printing,
+      onClose,
+    },
+    { throttleMs: 100 }
+  );
 
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={handleClose}>
@@ -524,4 +576,28 @@ export function BarcodePrintModal({ visible, onClose, cartItems }: BarcodePrintM
       </Pressable>
     </Modal>
   );
+}
+
+function BarcodePrintModalWithData(props: BarcodePrintModalProps) {
+  const { products: allProducts, isLoading } = useProducts();
+  return (
+    <BarcodePrintModalCore
+      {...props}
+      allProducts={allProducts}
+      isLoading={isLoading}
+    />
+  );
+}
+
+export function BarcodePrintModal(props: BarcodePrintModalProps) {
+  if (props.products) {
+    return (
+      <BarcodePrintModalCore
+        {...props}
+        allProducts={props.products}
+        isLoading={props.productsLoading ?? false}
+      />
+    );
+  }
+  return <BarcodePrintModalWithData {...props} />;
 }

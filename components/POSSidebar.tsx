@@ -1,6 +1,7 @@
-import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
+import { Ionicons } from "@expo/vector-icons";
 import React from "react";
 import { ScrollView, View } from "react-native";
+import { useRenderTrace } from "../utils/debug/useRenderTrace";
 import { BrandingSection } from "./BrandingSection";
 import { SidebarButton } from "./SidebarButton";
 
@@ -26,7 +27,7 @@ interface POSSidebarProps {
 /**
  * POSSidebar - Matches the buttons in the reference image
  */
-export function POSSidebar({
+function POSSidebarComponent({
   isLandscape,
   onAddProduct,
   onCashPayment,
@@ -38,6 +39,19 @@ export function POSSidebar({
   onPaymentMethod3,
   hideNavButtons = false,
 }: POSSidebarProps & { onPaymentMethod1?: () => void; onPaymentMethod3?: () => void }) {
+  useRenderTrace("POSSidebar", {
+    isLandscape,
+    hideNavButtons,
+    onAddProduct,
+    onCashPayment,
+    onDeleteProduct,
+    onEmptyCart,
+    onPayLater,
+    onGoToMenu,
+    onPaymentMethod1,
+    onPaymentMethod3,
+  });
+
   return (
     <View
       className="bg-[#F7F7F9]"
@@ -148,3 +162,6 @@ export function POSSidebar({
     </View>
   );
 }
+
+export const POSSidebar = React.memo(POSSidebarComponent);
+POSSidebar.displayName = "POSSidebar";

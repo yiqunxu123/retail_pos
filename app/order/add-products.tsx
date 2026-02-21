@@ -15,13 +15,21 @@ import { CashResultModal } from "../../components/CashResultModal";
 import { DeclareCashModal } from "../../components/DeclareCashModal";
 import { ParkedOrdersModal } from "../../components/ParkedOrdersModal";
 import { ParkOrderModal } from "../../components/ParkOrderModal";
+import { AddProductsCustomerCard } from "../../components/order/AddProductsCustomerCard";
+import { AddProductsOrderSummary } from "../../components/order/AddProductsOrderSummary";
+import { AddProductsTopBar } from "../../components/order/AddProductsTopBar";
+import { HiddenScannerInput } from "../../components/order/HiddenScannerInput";
+import {
+  SearchProductModalController,
+  SearchProductModalControllerHandle,
+} from "../../components/order/SearchProductModalController";
 import { POSSidebar } from "../../components/POSSidebar";
 import { ProductSettingsModal } from "../../components/ProductSettingsModal";
 import { ProductTable } from "../../components/ProductTable";
 import { ReceiptData, ReceiptTemplate } from "../../components/ReceiptTemplate";
 import { SaleInvoiceModal } from "../../components/SaleInvoiceModal";
 import { SearchCustomerModal } from "../../components/SearchCustomerModal";
-import { SearchProduct, SearchProductModal } from "../../components/SearchProductModal";
+import { SearchProduct } from "../../components/SearchProductModal";
 import { useAuth } from "../../contexts/AuthContext";
 import { OrderProduct, useOrder } from "../../contexts/OrderContext";
 import { useProducts } from "../../utils/powersync/hooks";
@@ -40,9 +48,7 @@ import {
 } from "../../utils/PrinterPoolManager";
 import { printImageToAll } from "../../utils/receiptImagePrint";
 import { formatReceiptText } from "../../utils/receiptTextFormat";
-
-// Action button width
-const SIDEBAR_WIDTH = 440;
+import { useRenderTrace } from "../../utils/debug/useRenderTrace";
 
 function buildCustomerSnapshot(
   customerId: string | null,
@@ -118,14 +124,15 @@ export default function AddProductsScreen() {
   }, [retrieveOrderId]);
 
   const [scanQty, setScanQty] = useState("1");
-  const [showSearchModal, setShowSearchModal] = useState(false);
   const [showScanLogModal, setShowScanLogModal] = useState(false);
   const [showBarcodePrintModal, setShowBarcodePrintModal] = useState(false);
   const [scanLogs, setScanLogs] = useState<ScanLogEntry[]>([]);
   const scanBufferRef = useRef("");
   const scanTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const hiddenInputRef = useRef<TextInput>(null);
-  const { products: allProducts } = useProducts();
+  const searchModalRef = useRef<SearchProductModalControllerHandle>(null);
+  const searchModalVisibleRef = useRef(false);
+  const { products: allProducts, isLoading: isProductsLoading } = useProducts();
   const [showCustomerModal, setShowCustomerModal] = useState(false);
   const [showCashPaymentModal, setShowCashPaymentModal] = useState(false);
   const [showDiscountModal, setShowDiscountModal] = useState(false);
@@ -181,6 +188,119 @@ export default function AddProductsScreen() {
 
   const products = order.products;
   const summary = getOrderSummary();
+  const productLookupMap = useMemo(() => {
+    const map = new Map<string, (typeof allProducts)[number]>();
+    allProducts.forEach((product) => {
+      const sku = (product.sku || "").trim().toLowerCase();
+      const upc = (product.upc || "").trim().toLowerCase();
+      if (sku) map.set(sku, product);
+      if (upc) map.set(upc, product);
+    });
+    return map;
+  }, [allProducts]);
+  const barcodeCartItems = useMemo(
+    () =>
+      products.map((p) => ({
+        productId: p.productId,
+        name: p.name,
+        sku: p.sku,
+        salePrice: p.salePrice,
+        quantity: p.quantity,
+      })),
+    [products]
+  );
+  const scanLogSummary = useMemo(() => {
+    let matched = 0;
+    for (const log of scanLogs) {
+      if (log.matched) matched += 1;
+    }
+    return {
+      matched,
+      missed: scanLogs.length - matched,
+    };
+  }, [scanLogs]);
+  const hasBlockingScanModal = useMemo(
+    () =>
+      showCustomerModal ||
+      showCashPaymentModal ||
+      showDiscountModal ||
+      showProductSettingsModal ||
+      showParkOrderModal ||
+      showParkedOrdersModal ||
+      showDeclareCashModal ||
+      showCashEntryModal ||
+      showCashResultModal ||
+      showTaxModal ||
+      showInvoiceModal,
+    [
+      showCustomerModal,
+      showCashPaymentModal,
+      showDiscountModal,
+      showProductSettingsModal,
+      showParkOrderModal,
+      showParkedOrdersModal,
+      showDeclareCashModal,
+      showCashEntryModal,
+      showCashResultModal,
+      showTaxModal,
+      showInvoiceModal,
+    ]
+  );
+  const handleSearchModalVisibleStateChange = useCallback((visible: boolean) => {
+    searchModalVisibleRef.current = visible;
+  }, []);
+
+  const handleOpenSearchModal = useCallback(
+    (source: "top_bar" | "table_empty" | "sidebar" = "top_bar") => {
+      if (scanTimerRef.current) {
+        clearTimeout(scanTimerRef.current);
+        scanTimerRef.current = null;
+      }
+      hiddenInputRef.current?.blur();
+      searchModalRef.current?.open(source);
+    },
+    []
+  );
+
+  const handleOpenSearchFromTopBar = useCallback(() => {
+    handleOpenSearchModal("top_bar");
+  }, [handleOpenSearchModal]);
+
+  const handleOpenSearchFromTable = useCallback(() => {
+    handleOpenSearchModal("table_empty");
+  }, [handleOpenSearchModal]);
+
+  const handleOpenSearchFromSidebar = useCallback(() => {
+    handleOpenSearchModal("sidebar");
+  }, [handleOpenSearchModal]);
+
+  useRenderTrace(
+    "AddProductsScreen",
+    {
+      productsLength: products.length,
+      allProductsLength: allProducts.length,
+      isProductsLoading,
+      summaryTotal: summary.total,
+      selectedProductId: selectedProduct?.id ?? null,
+      scanLogsLength: scanLogs.length,
+      hasBlockingScanModal,
+      showScanLogModal,
+      showBarcodePrintModal,
+      showCustomerModal,
+      showCashPaymentModal,
+      showDiscountModal,
+      showParkOrderModal,
+      showParkedOrdersModal,
+      showDeclareCashModal,
+      showCashEntryModal,
+      showCashResultModal,
+      showTaxModal,
+      showInvoiceModal,
+      showProductSettingsModal,
+      showReceiptPreview,
+    },
+    { throttleMs: 100 }
+  );
 
   // Preview card / image dimensions based on screen short edge (stable across renders)
   const previewCardWidth = useMemo(() =>
@@ -197,11 +317,7 @@ export default function AddProductsScreen() {
     if (!trimmed) return;
 
     const keyword = trimmed.toLowerCase();
-    const matchedProduct = allProducts.find((p) => {
-      const sku = (p.sku || "").toLowerCase();
-      const upc = (p.upc || "").toLowerCase();
-      return sku === keyword || upc === keyword;
-    });
+    const matchedProduct = productLookupMap.get(keyword);
 
     const entry: ScanLogEntry = {
       id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
@@ -228,7 +344,7 @@ export default function AddProductsScreen() {
       };
       addProduct(newProduct);
     }
-  }, [allProducts, scanQty, addProduct]);
+  }, [productLookupMap, scanQty, addProduct]);
 
   // Scanner submits via Enter key (onSubmitEditing)
   const handleScannerSubmit = useCallback(() => {
@@ -240,9 +356,11 @@ export default function AddProductsScreen() {
     hiddenInputRef.current?.setNativeProps?.({ text: "" });
     setTimeout(() => {
       hiddenInputRef.current?.clear();
-      hiddenInputRef.current?.focus();
+      if (shouldRestoreScannerFocus()) {
+        hiddenInputRef.current?.focus();
+      }
     }, 50);
-  }, [handleScanComplete]);
+  }, [handleScanComplete, shouldRestoreScannerFocus]);
 
   // Track characters as they come in from the scanner
   const handleScannerInput = useCallback((text: string) => {
@@ -258,44 +376,35 @@ export default function AddProductsScreen() {
         hiddenInputRef.current?.setNativeProps?.({ text: "" });
         setTimeout(() => {
           hiddenInputRef.current?.clear();
-          hiddenInputRef.current?.focus();
+          if (shouldRestoreScannerFocus()) {
+            hiddenInputRef.current?.focus();
+          }
         }, 50);
       }
     }, 400);
-  }, [handleScanComplete]);
+  }, [handleScanComplete, shouldRestoreScannerFocus]);
 
   // Refocus hidden input whenever a modal closes
   // NOTE: Scan Log and Barcode Print modals should NOT block scanner input
+  const shouldRestoreScannerFocus = useCallback(
+    () => !hasBlockingScanModal && !searchModalVisibleRef.current,
+    [hasBlockingScanModal]
+  );
+
   useEffect(() => {
-    const blockingScanModal = showSearchModal || showCustomerModal ||
-      showCashPaymentModal || showDiscountModal || showProductSettingsModal ||
-      showParkOrderModal || showParkedOrdersModal || showDeclareCashModal ||
-      showCashEntryModal || showCashResultModal || showTaxModal || showInvoiceModal;
-    if (!blockingScanModal) {
+    if (shouldRestoreScannerFocus()) {
       setTimeout(() => hiddenInputRef.current?.focus(), 200);
     }
-  }, [showSearchModal, showCustomerModal, showCashPaymentModal,
-      showDiscountModal, showProductSettingsModal, showParkOrderModal,
-      showParkedOrdersModal, showDeclareCashModal, showCashEntryModal,
-      showCashResultModal, showTaxModal, showInvoiceModal]);
+  }, [shouldRestoreScannerFocus]);
 
-  // Periodic refocus: ensure scanner input always has focus (every 2s)
-  // Scan Log and Barcode Print modals allow scanning while open
-  useEffect(() => {
-    const interval = setInterval(() => {
-      const blockingScanModal = showSearchModal || showCustomerModal ||
-        showCashPaymentModal || showDiscountModal || showProductSettingsModal ||
-        showParkOrderModal || showParkedOrdersModal || showDeclareCashModal ||
-        showCashEntryModal || showCashResultModal || showTaxModal || showInvoiceModal;
-      if (!blockingScanModal) {
+  const handleHiddenInputBlur = useCallback(() => {
+    if (!shouldRestoreScannerFocus()) return;
+    setTimeout(() => {
+      if (shouldRestoreScannerFocus()) {
         hiddenInputRef.current?.focus();
       }
-    }, 2000);
-    return () => clearInterval(interval);
-  }, [showSearchModal, showCustomerModal, showCashPaymentModal,
-      showDiscountModal, showProductSettingsModal, showParkOrderModal,
-      showParkedOrdersModal, showDeclareCashModal, showCashEntryModal,
-      showCashResultModal, showTaxModal, showInvoiceModal]);
+    }, 80);
+  }, [shouldRestoreScannerFocus]);
 
   // Build receipt data from current cart (for live preview template)
   const receiptData = useMemo((): ReceiptData => {
@@ -465,10 +574,9 @@ export default function AddProductsScreen() {
       total: searchProduct.price * qty,
     };
     addProduct(newProduct);
-    setShowSearchModal(false);
   }, [scanQty, addProduct]);
 
-  const handleQuantityChange = (id: string, delta: number) => {
+  const handleQuantityChange = useCallback((id: string, delta: number) => {
     const product = products.find((p) => p.id === id);
     if (product) {
       const newQty = product.quantity + delta;
@@ -478,15 +586,46 @@ export default function AddProductsScreen() {
         updateProductQuantity(id, newQty);
       }
     }
-  };
+  }, [products, removeProduct, updateProductQuantity]);
 
-  const handleParkOrder = () => {
+  const handleSelectProductFromTable = useCallback((product: any) => {
+    setSelectedProduct(product as OrderProduct);
+  }, []);
+
+  const handleOpenScanLogModal = useCallback(() => {
+    setShowScanLogModal(true);
+  }, []);
+
+  const handleOpenBarcodePrintModal = useCallback(() => {
+    setShowBarcodePrintModal(true);
+  }, []);
+
+  const handleOpenProductSettings = useCallback(() => {
+    if (products.length === 0) {
+      Alert.alert("No Product", "Please add a product first");
+      return;
+    }
+    const productToEdit = selectedProduct || products[0];
+    setSelectedProduct(productToEdit);
+    setShowProductSettingsModal(true);
+  }, [products, selectedProduct]);
+
+  const handleOpenCustomerModal = useCallback(() => {
+    setShowCustomerModal(true);
+  }, []);
+
+  const handleRemoveCustomer = useCallback(() => {
+    setSelectedCustomerData(null);
+    updateOrder({ customerName: "Guest Customer", customerId: null });
+  }, [updateOrder]);
+
+  const handleParkOrder = useCallback(() => {
     if (products.length === 0) {
       Alert.alert("Error", "Please add products to cart first");
       return;
     }
     setShowParkOrderModal(true);
-  };
+  }, [products.length]);
 
   const handleConfirmParkOrder = async (note?: string) => {
     try {
@@ -582,29 +721,29 @@ export default function AddProductsScreen() {
     setShowProductSettingsModal(true);
   };
 
-  const handleEmptyCart = () => {
+  const handleEmptyCart = useCallback(() => {
     Alert.alert("Empty Cart", "Are you sure you want to remove all items?", [
       { text: "Cancel", style: "cancel" },
       { text: "Empty", style: "destructive", onPress: () => clearOrder() },
     ]);
-  };
+  }, [clearOrder]);
 
-  const handleDeleteProduct = () => {
+  const handleDeleteProduct = useCallback(() => {
     if (!selectedProduct) {
       Alert.alert("No Selection", "Please select a product to delete.");
       return;
     }
     removeProduct(selectedProduct.id);
     setSelectedProduct(null);
-  };
+  }, [removeProduct, selectedProduct]);
 
-  const handleGoToMenu = () => {
+  const handleGoToMenu = useCallback(() => {
     router.back();
-  };
+  }, [router]);
 
-  const handleAddNotes = () => {
+  const handleAddNotes = useCallback(() => {
     Alert.alert("Add Notes", "Feature coming soon");
-  };
+  }, []);
 
   // Place Order Logic - Now part of payment flow
   const executeOrderPlacement = useCallback(async (paymentType: number = 1) => {
@@ -710,15 +849,15 @@ export default function AddProductsScreen() {
     }
   }, [products, order, summary, user, selectedCustomerData, buildReceiptFromOrder, clearOrder, router]);
 
-  const handleCashPayment = () => {
+  const handleCashPayment = useCallback(() => {
     if (products.length === 0) {
       Alert.alert("Error", "Please add products to cart first");
       return;
     }
     setShowCashPaymentModal(true);
-  };
+  }, [products.length]);
 
-  const handleCardPayment = () => {
+  const handleCardPayment = useCallback(() => {
     if (products.length === 0) {
       Alert.alert("Error", "Please add products to cart first");
       return;
@@ -727,7 +866,11 @@ export default function AddProductsScreen() {
       { text: "Cancel", style: "cancel" },
       { text: "Confirm", onPress: () => executeOrderPlacement(2) }
     ]);
-  };
+  }, [products.length, summary.total, executeOrderPlacement]);
+
+  const handlePayLater = useCallback(() => {
+    Alert.alert("Pay Later", "Feature coming soon");
+  }, []);
 
   const handleCashPaymentConfirm = useCallback(async (amountReceived: number) => {
     await executeOrderPlacement(1); // 1 = Cash
@@ -751,222 +894,51 @@ export default function AddProductsScreen() {
     <View className="flex-1 flex-row bg-[#F7F7F9]">
       {/* Main Content Area */}
       <View className="flex-1">
-        {/* Top Bar */}
-        <View
-          className="flex-row items-end gap-3 bg-[#F7F7F9] border-b border-gray-200"
-          style={{ paddingTop: insets.top + 10, paddingHorizontal: 16, paddingBottom: 10 }}
-        >
-          {/* Search group: label on top, search bar below */}
-          <View className="flex-1">
-            <Text className="text-[#5A5F66] text-[18px] mb-1" style={{ fontFamily: 'Montserrat' }}>Add product by Name, SKU, UPC</Text>
-            <TouchableOpacity
-              onPress={() => setShowSearchModal(true)}
-              className="flex-row items-center bg-white border border-gray-300 rounded-xl px-3 py-3 shadow-sm"
-            >
-              <Ionicons name="search" size={20} color="#9ca3af" />
-              <Text className="flex-1 ml-2 text-gray-400 text-[18px]" style={{ fontFamily: 'Montserrat' }}>Search Products</Text>
-            </TouchableOpacity>
-          </View>
-
-          {/* Scan Qty group: label on top, input below */}
-          <View>
-            <Text className="text-[#5A5F66] text-[18px] mb-1" style={{ fontFamily: 'Montserrat' }}>Scan Qty</Text>
-            <TextInput
-              className="w-20 bg-white border border-gray-300 rounded-xl px-2 py-3 text-center text-gray-800 text-[18px] shadow-sm"
-              style={{ fontFamily: 'Montserrat' }}
-              keyboardType="numeric"
-              value={scanQty}
-              onChangeText={setScanQty}
-            />
-          </View>
-
-          {/* Refresh Button */}
-          <TouchableOpacity
-            className="h-11 px-6 rounded-xl flex-row items-center justify-center gap-1 shadow-sm"
-            style={{ backgroundColor: '#EC1A52' }}
-          >
-            <Ionicons name="refresh" size={16} color="white" />
-            <Text className="text-white font-medium">Refresh</Text>
-          </TouchableOpacity>
-
-          {/* Scan Logs Button */}
-          <TouchableOpacity
-            className="h-11 border border-red-500 bg-white px-6 rounded-xl flex-row items-center justify-center gap-2 shadow-sm"
-            onPress={() => setShowScanLogModal(true)}
-          >
-            <Ionicons name="barcode-outline" size={18} color="#EC1A52" />
-            <Text className="text-red-500 font-medium">Scan Logs</Text>
-            {scanLogs.length > 0 && (
-              <View style={{
-                backgroundColor: "#EC1A52",
-                borderRadius: 10,
-                minWidth: 20,
-                height: 20,
-                alignItems: "center",
-                justifyContent: "center",
-                paddingHorizontal: 6,
-              }}>
-                <Text style={{ color: "#FFF", fontSize: 11, fontWeight: "700" }}>{scanLogs.length}</Text>
-              </View>
-            )}
-          </TouchableOpacity>
-
-          {/* Print Barcode Button */}
-          <TouchableOpacity
-            className="h-11 bg-[#3B82F6] px-5 rounded-xl flex-row items-center justify-center gap-2 shadow-sm"
-            onPress={() => setShowBarcodePrintModal(true)}
-          >
-            <Ionicons name="barcode-outline" size={18} color="white" />
-            <Text className="text-white font-medium">Print Barcode</Text>
-          </TouchableOpacity>
-
-          {/* Settings Button */}
-          <TouchableOpacity 
-            className="bg-[#20232A] p-3 rounded-xl shadow-sm"
-            onPress={() => {
-              if (products.length === 0) {
-                Alert.alert("No Product", "Please add a product first");
-                return;
-              }
-              const productToEdit = selectedProduct || products[0];
-              setSelectedProduct(productToEdit);
-              setShowProductSettingsModal(true);
-            }}
-          >
-            <Ionicons name="settings-outline" size={20} color="white" />
-          </TouchableOpacity>
-        </View>
+        <AddProductsTopBar
+          insetTop={insets.top}
+          scanQty={scanQty}
+          onScanQtyChange={setScanQty}
+          scanLogsCount={scanLogs.length}
+          onOpenSearch={handleOpenSearchFromTopBar}
+          onOpenScanLogModal={handleOpenScanLogModal}
+          onOpenBarcodePrintModal={handleOpenBarcodePrintModal}
+          onOpenProductSettings={handleOpenProductSettings}
+        />
 
         {/* Products Table */}
         <ProductTable
           products={products}
           onQuantityChange={handleQuantityChange}
           selectedProductId={selectedProduct?.id}
-          onSelectProduct={(p) => setSelectedProduct(p as any)}
-          onAddProductPress={() => setShowSearchModal(true)}
+          onSelectProduct={handleSelectProductFromTable}
+          onAddProductPress={handleOpenSearchFromTable}
         />
 
-        {/* Bottom Section */}
         <View className="flex-row p-4 gap-4 bg-[#F7F7F9]">
-          {/* Customer Card (Left) */}
-          <View className="bg-[#FFC0D1] border border-[#FFB5C5] rounded-xl p-4 shadow-sm" style={{ width: 280, justifyContent: 'center' }}>
-            {selectedCustomerData ? (
-              <View>
-                <Text className="text-[#EC1A52] text-[14px] font-Montserrat font-medium mb-1 text-center">Current Status:</Text>
-                <Text className="text-[#1A1A1A] font-Montserrat font-bold text-[22px] mb-3 text-center">
-                  {selectedCustomerData.business_name}
-                </Text>
-                
-                {/* Loyalty Info */}
-                <View className="items-center mb-4">
-                  <View className="bg-[#FFF0F3] border border-[#FECACA] rounded-full px-4 py-1.5 mb-2">
-                    <Text className="text-[#EC1A52] text-[12px] font-Montserrat font-semibold">Loyalty Member</Text>
-                  </View>
-                  <View className="bg-[#20232A] rounded-full px-4 py-1.5">
-                    <Text className="text-white text-[12px] font-Montserrat">Loyalty Points: 760</Text>
-                  </View>
-                </View>
-
-                {/* Action Buttons */}
-                <View className="flex-row gap-2">
-                  <TouchableOpacity
-                    onPress={() => setShowCustomerModal(true)}
-                    className="flex-1 bg-[#EC1A52] rounded-lg py-3 items-center shadow-sm"
-                  >
-                    <Text className="text-white text-[13px] font-Montserrat font-semibold text-center">Change{'\n'}Customer</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    onPress={() => {
-                      setSelectedCustomerData(null);
-                      updateOrder({ customerName: "Guest Customer", customerId: null });
-                    }}
-                    className="flex-1 bg-[#FEE2E2] rounded-lg py-3 items-center border border-[#FECACA]"
-                  >
-                    <Text className="text-[#EC1A52] text-[13px] font-Montserrat font-semibold text-center">Remove{'\n'}Customer</Text>
-                  </TouchableOpacity>
-                </View>
-              </View>
-            ) : (
-              <View className="items-center">
-                <Text className="text-[#EC1A52] text-[16px] font-Montserrat font-medium mb-1">Current Status:</Text>
-                <Text className="text-[#1A1A1A] font-Montserrat font-bold text-[24px] mb-6">Guest Customer</Text>
-                <TouchableOpacity
-                  onPress={() => setShowCustomerModal(true)}
-                  className="w-full bg-[#EC1A52] rounded-xl py-4 items-center justify-center shadow-md"
-                >
-                  <View className="items-center">
-                    <Ionicons name="add" size={32} color="white" />
-                    <Text className="text-white font-Montserrat font-bold text-[18px] mt-1">Add Quick Customer</Text>
-                  </View>
-                </TouchableOpacity>
-              </View>
-            )}
-          </View>
-
-          {/* Order Summary Table (Right) */}
-          <View className="flex-1 bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm">
-            <View className="flex-row">
-              {/* Left Summary Column */}
-              <View className="flex-1 border-r border-gray-100">
-                <View className="flex-row justify-between px-5 py-4 border-b border-gray-100">
-                  <Text className="text-[#5A5F66] text-[16px] font-Montserrat font-medium">Total Products</Text>
-                  <Text className="text-[#1A1A1A] text-[18px] font-Montserrat font-bold">{products.length}</Text>
-                </View>
-                <View className="flex-row justify-between px-5 py-4 border-b border-gray-100">
-                  <Text className="text-[#5A5F66] text-[16px] font-Montserrat font-medium">Total Quantity</Text>
-                  <Text className="text-[#1A1A1A] text-[18px] font-Montserrat font-bold">{summary.totalQuantity}</Text>
-                </View>
-                <View className="flex-row justify-between px-5 py-4 border-b border-gray-100">
-                  <Text className="text-[#5A5F66] text-[16px] font-Montserrat font-medium">Sub Total</Text>
-                  <Text className="text-[#1A1A1A] text-[18px] font-Montserrat font-bold">${summary.subTotal.toFixed(2)}</Text>
-                </View>
-                <View className="flex-row justify-between px-5 py-4">
-                  <Text className="text-[#5A5F66] text-[16px] font-Montserrat font-medium">Loyalty Credit</Text>
-                  <Text className="text-[#1A1A1A] text-[18px] font-Montserrat font-bold">-$10.00</Text>
-                </View>
-              </View>
-
-              {/* Right Summary Column */}
-              <View className="flex-1">
-                <View className="flex-row justify-between px-5 py-4 border-b border-gray-100">
-                  <Text className="text-[#5A5F66] text-[16px] font-Montserrat font-medium">Additional Discount</Text>
-                  <Text className="text-[#1A1A1A] text-[18px] font-Montserrat font-bold">
-                    {order.discountType === 2
-                      ? `${order.additionalDiscount}%`
-                      : `$${order.additionalDiscount.toFixed(2)}`}
-                  </Text>
-                </View>
-                <View className="flex-row justify-between px-5 py-4 border-b border-gray-100">
-                  <Text className="text-[#5A5F66] text-[16px] font-Montserrat font-medium">Delivery Charges</Text>
-                  <Text className="text-[#1A1A1A] text-[18px] font-Montserrat font-bold">$0.00</Text>
-                </View>
-                <View className="flex-row justify-between px-5 py-4 border-b border-gray-100">
-                  <Text className="text-[#5A5F66] text-[16px] font-Montserrat font-medium">Tax</Text>
-                  <Text className="text-[#1A1A1A] text-[18px] font-Montserrat font-bold">${summary.tax.toFixed(2)}</Text>
-                </View>
-                <View className="flex-row justify-between px-5 py-4">
-                  <Text className="text-[#5A5F66] text-[16px] font-Montserrat font-medium">Loyalty Earned</Text>
-                  <Text className="text-[#1A1A1A] text-[18px] font-Montserrat font-bold">120</Text>
-                </View>
-              </View>
-            </View>
-
-            {/* Total Bar */}
-            <View className="flex-row justify-between items-center bg-[#FFF0F3] border-t border-[#FEE2E2] px-6 py-4">
-              <Text className="text-[#EC1A52] text-[24px] font-Montserrat font-bold">Total</Text>
-              <Text className="text-[#EC1A52] text-[32px] font-Montserrat font-bold">${summary.total.toFixed(2)}</Text>
-            </View>
-          </View>
+          <AddProductsCustomerCard
+            customer={selectedCustomerData}
+            onOpenCustomerModal={handleOpenCustomerModal}
+            onRemoveCustomer={handleRemoveCustomer}
+          />
+          <AddProductsOrderSummary
+            productsCount={products.length}
+            totalQuantity={summary.totalQuantity}
+            subTotal={summary.subTotal}
+            tax={summary.tax}
+            total={summary.total}
+            additionalDiscount={order.additionalDiscount}
+            discountType={order.discountType}
+          />
         </View>
       </View>
 
       {/* Right Action Panel */}
       <POSSidebar
         isLandscape={true}
-        onAddProduct={() => setShowSearchModal(true)}
+        onAddProduct={handleOpenSearchFromSidebar}
         onCashPayment={handleCashPayment}
         onCardPayment={handleCardPayment}
-        onPayLater={() => Alert.alert("Pay Later", "Feature coming soon")}
+        onPayLater={handlePayLater}
         onDeleteProduct={handleDeleteProduct}
         onEmptyCart={handleEmptyCart}
         onGoToMenu={handleGoToMenu}
@@ -974,10 +946,12 @@ export default function AddProductsScreen() {
       />
 
       {/* Modals */}
-      <SearchProductModal
-        visible={showSearchModal}
-        onClose={() => setShowSearchModal(false)}
+      <SearchProductModalController
+        ref={searchModalRef}
+        products={allProducts}
+        productsLoading={isProductsLoading}
         onSelectProduct={handleAddProductFromSearch}
+        onVisibleStateChange={handleSearchModalVisibleStateChange}
       />
 
       <SearchCustomerModal
@@ -1106,17 +1080,15 @@ export default function AddProductsScreen() {
       />
 
       {/* Barcode Print Modal */}
-      <BarcodePrintModal
-        visible={showBarcodePrintModal}
-        onClose={() => setShowBarcodePrintModal(false)}
-        cartItems={products.map((p) => ({
-          productId: p.productId,
-          name: p.name,
-          sku: p.sku,
-          salePrice: p.salePrice,
-          quantity: p.quantity,
-        }))}
-      />
+      {showBarcodePrintModal && (
+        <BarcodePrintModal
+          visible={showBarcodePrintModal}
+          onClose={() => setShowBarcodePrintModal(false)}
+          cartItems={barcodeCartItems}
+          products={allProducts}
+          productsLoading={isProductsLoading}
+        />
+      )}
 
       {/* Hidden receipt template for capture */}
       <View
@@ -1248,24 +1220,11 @@ export default function AddProductsScreen() {
           </Pressable>
         </Pressable>
       </Modal>
-      {/* Hidden TextInput for QBT2500 scanner HID input */}
-      <TextInput
-        ref={hiddenInputRef}
-        style={{
-          position: "absolute",
-          width: 1,
-          height: 1,
-          opacity: 0,
-          top: 0,
-          left: 0,
-        }}
-        autoFocus
-        blurOnSubmit={false}
-        returnKeyType="done"
+      <HiddenScannerInput
+        inputRef={hiddenInputRef}
         onChangeText={handleScannerInput}
         onSubmitEditing={handleScannerSubmit}
-        showSoftInputOnFocus={false}
-        caretHidden
+        onBlur={handleHiddenInputBlur}
       />
 
       {/* Scan Logs Modal */}
@@ -1433,13 +1392,13 @@ export default function AddProductsScreen() {
                 <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
                   <View style={{ width: 10, height: 10, borderRadius: 5, backgroundColor: "#059669" }} />
                   <Text style={{ fontFamily: "Montserrat", fontSize: 13, color: "#6B7280" }}>
-                    {scanLogs.filter((l) => l.matched).length} matched
+                    {scanLogSummary.matched} matched
                   </Text>
                 </View>
                 <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
                   <View style={{ width: 10, height: 10, borderRadius: 5, backgroundColor: "#DC2626" }} />
                   <Text style={{ fontFamily: "Montserrat", fontSize: 13, color: "#6B7280" }}>
-                    {scanLogs.filter((l) => !l.matched).length} missed
+                    {scanLogSummary.missed} missed
                   </Text>
                 </View>
               </View>

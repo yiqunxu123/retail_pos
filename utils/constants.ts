@@ -206,6 +206,38 @@ export const StockStatus = {
 export type StockStatus = typeof StockStatus[keyof typeof StockStatus];
 
 // ============================================================================
+// Render Trace Debug
+// ============================================================================
+
+/**
+ * Component render tracing is disabled by default.
+ * Enable in dev by setting this to true, or from console:
+ *   globalThis.__RENDER_TRACE_ENABLED__ = true
+ */
+export const RENDER_TRACE_ENABLED = true;
+
+/**
+ * Verbose mode prints before/after snapshots for changed keys.
+ * Can also be toggled in dev console:
+ *   globalThis.__RENDER_TRACE_VERBOSE__ = true
+ */
+export const RENDER_TRACE_VERBOSE = false;
+
+/**
+ * Default log throttle per component (ms).
+ * Prevents noisy floods while typing in controlled inputs.
+ */
+export const RENDER_TRACE_THROTTLE_MS = 120;
+
+/**
+ * TTPL = Time To Product List.
+ * Measures: click "Add Product" -> first product row visible.
+ * Enable in dev by setting this to true, or from console:
+ *   globalThis.__TTPL_TRACE_ENABLED__ = true
+ */
+export const TTPL_TRACE_ENABLED = true;
+
+// ============================================================================
 // Helper Functions
 // ============================================================================
 
