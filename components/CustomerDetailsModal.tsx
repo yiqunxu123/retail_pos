@@ -1,6 +1,7 @@
-import { colors, iconSize } from '@/utils/theme';
+import { buttonSize, colors, iconSize } from '@/utils/theme';
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
-import { Modal, ScrollView, Text, TouchableOpacity, View } from "react-native";
+import { Modal, Pressable, ScrollView, Text, TouchableOpacity, View } from "react-native";
+import { ThemedButton } from "./ThemedButton";
 
 interface CustomerOrder {
   id: string;
@@ -98,9 +99,9 @@ export function CustomerDetailsModal({
                 )}
               </View>
             </View>
-            <TouchableOpacity onPress={onClose}>
+            <Pressable onPress={onClose} style={{ width: buttonSize.md.height, height: buttonSize.md.height, alignItems: 'center', justifyContent: 'center' }}>
               <Ionicons name="close" size={iconSize.xl} color="white" />
-            </TouchableOpacity>
+            </Pressable>
           </View>
 
           <ScrollView className="flex-1">
@@ -150,7 +151,7 @@ export function CustomerDetailsModal({
                       <Ionicons name="mail-outline" size={iconSize.md} color={colors.info} />
                     </View>
                     <View>
-                      <Text className="text-gray-500 text-xs">Email</Text>
+                      <Text className="text-gray-500 text-sm">Email</Text>
                       <Text className="text-gray-800">{customer.email}</Text>
                     </View>
                   </View>
@@ -161,7 +162,7 @@ export function CustomerDetailsModal({
                       <Ionicons name="call-outline" size={iconSize.md} color={colors.success} />
                     </View>
                     <View>
-                      <Text className="text-gray-500 text-xs">Phone</Text>
+                      <Text className="text-gray-500 text-sm">Phone</Text>
                       <Text className="text-gray-800">{customer.phone}</Text>
                     </View>
                   </View>
@@ -172,7 +173,7 @@ export function CustomerDetailsModal({
                       <Ionicons name="location-outline" size={iconSize.md} color={colors.purple} />
                     </View>
                     <View className="flex-1">
-                      <Text className="text-gray-500 text-xs">Address</Text>
+                      <Text className="text-gray-500 text-sm">Address</Text>
                       <Text className="text-gray-800">
                         {customer.address}
                         {customer.city && `, ${customer.city}`}
@@ -190,15 +191,15 @@ export function CustomerDetailsModal({
               <Text className="text-gray-800 font-semibold mb-3">Business Information</Text>
               <View className="flex-row gap-4">
                 <View className="flex-1 rounded-lg p-3 shadow-sm" style={{ backgroundColor: colors.backgroundTertiary }}>
-                  <Text className="text-gray-500 text-xs">Customer Type</Text>
+                  <Text className="text-gray-500 text-sm">Customer Type</Text>
                   <Text className="text-gray-800 font-medium">{customer.customerType}</Text>
                 </View>
                 <View className="flex-1 rounded-lg p-3 shadow-sm" style={{ backgroundColor: colors.backgroundTertiary }}>
-                  <Text className="text-gray-500 text-xs">Class of Trades</Text>
+                  <Text className="text-gray-500 text-sm">Class of Trades</Text>
                   <Text className="text-gray-800 font-medium">{customer.classOfTrades}</Text>
                 </View>
                 <View className="flex-1 rounded-lg p-3 shadow-sm" style={{ backgroundColor: colors.backgroundTertiary }}>
-                  <Text className="text-gray-500 text-xs">Customer Since</Text>
+                  <Text className="text-gray-500 text-sm">Customer Since</Text>
                   <Text className="text-gray-800 font-medium">{formatDate(customer.createdAt)}</Text>
                 </View>
               </View>
@@ -240,7 +241,7 @@ export function CustomerDetailsModal({
                           }}
                         >
                           <Text
-                            className="text-xs font-medium"
+                            className="text-sm font-medium"
                             style={{
                               color:
                                 order.status === "completed"
@@ -273,29 +274,31 @@ export function CustomerDetailsModal({
 
           {/* Footer Actions */}
           <View className="flex-row gap-4 px-6 py-4 border-t border-gray-200">
-            <TouchableOpacity
+            <ThemedButton
+              title="Close"
+              variant="outline"
               onPress={onClose}
-              className="flex-1 border border-gray-300 rounded-lg py-3 items-center"
-            >
-              <Text className="text-gray-700 font-medium">Close</Text>
-            </TouchableOpacity>
+              fullWidth
+            />
             {onEdit && (
-              <TouchableOpacity
+              <ThemedButton
+                title="Edit"
+                icon="pencil-outline"
+                variant="outline"
                 onPress={onEdit}
-                className="flex-1 border border-red-500 rounded-lg py-3 flex-row items-center justify-center gap-2"
-              >
-                <Ionicons name="pencil-outline" size={iconSize.md} color={colors.primary} />
-                <Text className="text-red-500 font-medium">Edit</Text>
-              </TouchableOpacity>
+                fullWidth
+                style={{ flex: 1, borderColor: colors.primary, borderWidth: 1 }}
+                textStyle={{ color: colors.primary }}
+              />
             )}
             {onAddOrder && (
-              <TouchableOpacity
+              <ThemedButton
+                title="New Order"
+                icon="add"
                 onPress={onAddOrder}
-                className="flex-1 bg-red-500 rounded-lg py-3 flex-row items-center justify-center gap-2"
-              >
-                <Ionicons name="add" size={iconSize.md} color="white" />
-                <Text className="text-white font-medium">New Order</Text>
-              </TouchableOpacity>
+                fullWidth
+                style={{ flex: 1, backgroundColor: colors.primary }}
+              />
             )}
           </View>
         </TouchableOpacity>

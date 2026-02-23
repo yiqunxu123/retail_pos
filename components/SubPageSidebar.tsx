@@ -27,7 +27,7 @@ export function SubPageSidebar({
   onClockInLongPress,
   onClockOutPress,
 }: SubPageSidebarProps) {
-  const { pathname, navigateTo } = useAppNavigation();
+  const { pathname, navigateTo, router } = useAppNavigation();
   const insets = useSafeAreaInsets();
   const { isClockedIn } = useClock();
   const { isStaffMode, setViewMode } = useViewMode();
@@ -66,7 +66,11 @@ export function SubPageSidebar({
         title: "Add Customer",
         icon: <Ionicons name="person-add-outline" size={iconSize['2xl']} />,
         variant: "primary",
-        onPress: () => Alert.alert("Add Customer", "Feature coming soon"),
+        onPress: () =>
+          router.replace({
+            pathname: "/sale/customers",
+            params: { openAddCustomer: String(Date.now()) },
+          }),
       };
     } else if (pathname.includes("/sale/reports")) {
       return {

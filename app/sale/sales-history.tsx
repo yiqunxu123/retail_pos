@@ -5,7 +5,7 @@
  * Uses the unified DataTable component.
  */
 
-import { buttonSize, colors, fontSize, fontWeight, iconSize } from '@/utils/theme';
+import { buttonSize, colors, iconSize } from '@/utils/theme';
 import { Ionicons } from "@expo/vector-icons";
 import React, { useCallback, useMemo, useState } from "react";
 import { Alert, Pressable, Text, View } from "react-native";
@@ -44,8 +44,8 @@ const CompactStatCard = React.memo(({ title, count, color }: { title: string; co
         elevation: 2
       }}
     >
-      <Text className="text-white font-Montserrat font-semibold text-[16px]">{title}</Text>
-      <Text className="text-white font-Montserrat font-bold text-[20px]">{count}</Text>
+      <Text className="text-white font-semibold text-base">{title}</Text>
+      <Text className="text-white font-bold text-xl">{count}</Text>
     </View>
   );
 });
@@ -67,7 +67,7 @@ const OrderStatusBadge = React.memo(({ status }: { status: number }) => {
 
   return (
     <View className="px-3 py-1 rounded-full self-start" style={{ backgroundColor: config.bg }}>
-      <Text style={{ color: config.text, fontSize: fontSize.md, fontWeight: fontWeight.semibold, fontFamily: "Montserrat" }}>
+      <Text className="text-sm font-semibold" style={{ color: config.text }}>
         {statusText}
       </Text>
     </View>
@@ -88,7 +88,7 @@ const InvoiceStatusBadge = React.memo(({ status }: { status: number }) => {
 
   return (
     <View className="px-3 py-1 rounded-full self-start" style={{ backgroundColor: color }}>
-      <Text className="text-white text-[14px] font-Montserrat font-semibold">{text}</Text>
+      <Text className="text-white text-sm font-semibold">{text}</Text>
     </View>
   );
 });
@@ -102,8 +102,8 @@ const ActionButton = React.memo(({
 }) => {
   return (
     <Pressable 
-      className="bg-red-50 rounded-lg items-center justify-center" 
-      style={{ width: buttonSize.md.height, height: buttonSize.md.height }}
+      className="rounded-lg items-center justify-center"
+      style={{ width: buttonSize.md.height, height: buttonSize.md.height, backgroundColor: colors.primaryLight, borderRadius: buttonSize.md.borderRadius }}
       onPress={onPress}
     >
       <Ionicons name={icon} size={iconSize.md} color={colors.primary} />
@@ -203,7 +203,7 @@ export default function SalesHistoryScreen() {
       visible: true,
       hideable: false,
       render: (item) => (
-        <Text className="text-[#2196F3] text-[18px] font-Montserrat font-semibold" numberOfLines={1}>
+        <Text className="text-[#2196F3] text-lg font-semibold" numberOfLines={1}>
           {item.orderNo || item.id.slice(0, 8)}
         </Text>
       ),
@@ -214,7 +214,7 @@ export default function SalesHistoryScreen() {
       width: 240,
       visible: true,
       render: (item) => (
-        <Text className="text-[#1A1A1A] text-[16px] font-Montserrat">
+        <Text className="text-[#1A1A1A] text-base">
           {item.orderDateFormatted || "-"}
         </Text>
       ),
@@ -225,7 +225,7 @@ export default function SalesHistoryScreen() {
       width: "flex",
       visible: true,
       render: (item) => (
-        <Text className="text-[#2196F3] text-[18px] font-Montserrat font-medium" numberOfLines={1}>
+        <Text className="text-[#2196F3] text-lg font-medium" numberOfLines={1}>
           {item.businessName || item.customerName || "Test Customer Name"}
         </Text>
       ),
@@ -236,7 +236,7 @@ export default function SalesHistoryScreen() {
       width: 140,
       visible: true,
       render: (item) => (
-        <Text className="text-[#1A1A1A] text-[16px] font-Montserrat">
+        <Text className="text-[#1A1A1A] text-base">
           {item.createdByName || 'User 1'}
         </Text>
       ),
@@ -247,7 +247,7 @@ export default function SalesHistoryScreen() {
       width: 140,
       visible: true,
       render: (item) => (
-        <Text className="text-[#EC1A52] text-[18px] font-Montserrat font-bold">
+        <Text className="text-[#EC1A52] text-lg font-bold">
           ${(item.totalPrice || 0).toFixed(2)}
         </Text>
       ),

@@ -1,6 +1,6 @@
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { Modal, Pressable, ScrollView, Text, TouchableOpacity, View } from "react-native";
-import { fontWeight, colors } from '@/utils/theme';
+import { colors } from '@/utils/theme';
 import type { SaleOrderEntity } from "../utils/api/orders";
 import {
     InvoiceStatus,
@@ -118,8 +118,8 @@ function getStampStyle(order: SaleOrderEntity) {
 function InfoRow({ label, value }: { label: string; value: string }) {
   return (
     <View style={{ flexDirection: "row", marginBottom: 3 }}>
-      <Text style={{ width: 90, fontSize: 11, color: colors.textSecondary, fontWeight: fontWeight.semibold }}>{label}</Text>
-      <Text style={{ flex: 1, fontSize: 11, color: colors.textDark }}>{value}</Text>
+      <Text style={{ width: 90, fontSize: 14, color: colors.textSecondary, fontWeight: '600' }}>{label}</Text>
+      <Text style={{ flex: 1, fontSize: 14, color: colors.textDark }}>{value}</Text>
     </View>
   );
 }
@@ -127,10 +127,10 @@ function InfoRow({ label, value }: { label: string; value: string }) {
 function SummaryRow({ label, value, bold }: { label: string; value: string; bold?: boolean }) {
   return (
     <View style={{ flexDirection: "row", justifyContent: "space-between", paddingVertical: 3 }}>
-      <Text style={{ fontSize: 12, color: bold ? colors.textDark : colors.textSecondary, fontWeight: bold ? fontWeight.bold : fontWeight.regular }}>
+      <Text style={{ fontSize: 14, color: bold ? colors.textDark : colors.textSecondary, fontWeight: bold ? '700' : '400' }}>
         {label}
       </Text>
-      <Text style={{ fontSize: 12, color: bold ? colors.textDark : colors.textMedium, fontWeight: bold ? fontWeight.bold : fontWeight.medium }}>
+      <Text style={{ fontSize: 14, color: bold ? colors.textDark : colors.textMedium, fontWeight: bold ? '700' : '500' }}>
         {value}
       </Text>
     </View>
@@ -200,7 +200,7 @@ export function SaleInvoiceModal({
           >
             <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
               <MaterialCommunityIcons name="file-document-outline" size={22} color={colors.primary} />
-              <Text style={{ fontSize: 18, fontWeight: fontWeight.bold, color: colors.textDark }}>Sale Invoice</Text>
+              <Text className="text-lg font-bold" style={{ color: colors.textDark }}>Sale Invoice</Text>
             </View>
             <Pressable onPress={onClose} hitSlop={8}>
               <Ionicons name="close" size={24} color={colors.textSecondary} />
@@ -213,7 +213,7 @@ export function SaleInvoiceModal({
             {/* Stamp Watermark */}
             {stamp && (
               <View style={{ position: "absolute", top: 40, right: 30, zIndex: 10, opacity: 0.13, transform: [{ rotate: "-15deg" }] }}>
-                <Text style={{ fontSize: 56, fontWeight: fontWeight.bold, color: stamp.color, letterSpacing: 6 }}>
+                <Text className="text-5xl font-bold" style={{ color: stamp.color, letterSpacing: 6 }}>
                   {stamp.label}
                 </Text>
               </View>
@@ -263,7 +263,7 @@ export function SaleInvoiceModal({
                   borderColor: colors.border,
                 }}
               >
-                <Text style={{ fontSize: 11, fontWeight: fontWeight.semibold, color: colors.textTertiary, marginBottom: 4, letterSpacing: 0.5 }}>
+                <Text style={{ fontSize: 14, fontWeight: '600', color: colors.textTertiary, marginBottom: 4, letterSpacing: 0.5 }}>
                   BILL TO
                 </Text>
                 <InfoRow label="Business:" value={customer.business_name || "-"} />
@@ -302,17 +302,17 @@ export function SaleInvoiceModal({
                   alignItems: "center",
                 }}
               >
-                <Text style={{ width: 24, fontSize: 9, fontWeight: fontWeight.bold, color: colors.textSecondary }}>Sr.</Text>
-                <Text style={{ flex: 1, fontSize: 9, fontWeight: fontWeight.bold, color: colors.textSecondary }}>Name</Text>
-                <Text style={{ width: 32, fontSize: 9, fontWeight: fontWeight.bold, color: colors.textSecondary, textAlign: "center" }}>Qty</Text>
-                <Text style={{ width: 68, fontSize: 9, fontWeight: fontWeight.bold, color: colors.textSecondary }}>SKU</Text>
-                <Text style={{ width: 72, fontSize: 9, fontWeight: fontWeight.bold, color: colors.textSecondary }}>UPC Number</Text>
-                <Text style={{ width: 42, fontSize: 9, fontWeight: fontWeight.bold, color: colors.textSecondary }}>Unit</Text>
-                <Text style={{ width: 55, fontSize: 9, fontWeight: fontWeight.bold, color: colors.textSecondary, textAlign: "right" }}>Price</Text>
-                <Text style={{ width: 55, fontSize: 9, fontWeight: fontWeight.bold, color: colors.textSecondary, textAlign: "right" }}>MSRP</Text>
-                <Text style={{ width: 42, fontSize: 9, fontWeight: fontWeight.bold, color: colors.textSecondary, textAlign: "right" }}>Disc.</Text>
-                <Text style={{ width: 38, fontSize: 9, fontWeight: fontWeight.bold, color: colors.textSecondary, textAlign: "right" }}>Tax</Text>
-                <Text style={{ width: 58, fontSize: 9, fontWeight: fontWeight.bold, color: colors.textSecondary, textAlign: "right" }}>Total</Text>
+                <Text style={{ width: 24, fontSize: 14, fontWeight: '700', color: colors.textSecondary }}>Sr.</Text>
+                <Text style={{ flex: 1, fontSize: 14, fontWeight: '700', color: colors.textSecondary }}>Name</Text>
+                <Text style={{ width: 32, fontSize: 14, fontWeight: '700', color: colors.textSecondary, textAlign: "center" }}>Qty</Text>
+                <Text style={{ width: 68, fontSize: 14, fontWeight: '700', color: colors.textSecondary }}>SKU</Text>
+                <Text style={{ width: 72, fontSize: 14, fontWeight: '700', color: colors.textSecondary }}>UPC Number</Text>
+                <Text style={{ width: 42, fontSize: 14, fontWeight: '700', color: colors.textSecondary }}>Unit</Text>
+                <Text style={{ width: 55, fontSize: 14, fontWeight: '700', color: colors.textSecondary, textAlign: "right" }}>Price</Text>
+                <Text style={{ width: 55, fontSize: 14, fontWeight: '700', color: colors.textSecondary, textAlign: "right" }}>MSRP</Text>
+                <Text style={{ width: 42, fontSize: 14, fontWeight: '700', color: colors.textSecondary, textAlign: "right" }}>Disc.</Text>
+                <Text style={{ width: 38, fontSize: 14, fontWeight: '700', color: colors.textSecondary, textAlign: "right" }}>Tax</Text>
+                <Text style={{ width: 58, fontSize: 14, fontWeight: '700', color: colors.textSecondary, textAlign: "right" }}>Total</Text>
               </View>
 
               {/* Table Body */}
@@ -349,37 +349,37 @@ export function SaleInvoiceModal({
                         alignItems: "center",
                       }}
                     >
-                      <Text style={{ width: 24, fontSize: 9, color: colors.textSecondary }}>{idx + 1}</Text>
+                      <Text style={{ width: 24, fontSize: 14, color: colors.textSecondary }}>{idx + 1}</Text>
                       <View style={{ flex: 1, paddingRight: 4 }}>
-                        <Text style={{ fontSize: 9, color: colors.textDark, fontWeight: fontWeight.medium }} numberOfLines={2}>
+                        <Text style={{ fontSize: 14, color: colors.textDark, fontWeight: '500' }} numberOfLines={2}>
                           {productName}
                         </Text>
                       </View>
-                      <Text style={{ width: 32, fontSize: 9, color: colors.textDark, textAlign: "center" }}>
+                      <Text style={{ width: 32, fontSize: 14, color: colors.textDark, textAlign: "center" }}>
                         {Math.floor(item.qty)}
                       </Text>
-                      <Text style={{ width: 68, fontSize: 9, color: colors.textSecondary }} numberOfLines={1}>
+                      <Text style={{ width: 68, fontSize: 14, color: colors.textSecondary }} numberOfLines={1}>
                         {sku}
                       </Text>
-                      <Text style={{ width: 72, fontSize: 9, color: colors.textSecondary }} numberOfLines={1}>
+                      <Text style={{ width: 72, fontSize: 14, color: colors.textSecondary }} numberOfLines={1}>
                         {upc}
                       </Text>
-                      <Text style={{ width: 42, fontSize: 9, color: colors.textSecondary }}>
+                      <Text style={{ width: 42, fontSize: 14, color: colors.textSecondary }}>
                         {getUnitLabel(item.unit)}
                       </Text>
-                      <Text style={{ width: 55, fontSize: 9, color: colors.textDark, textAlign: "right" }}>
+                      <Text style={{ width: 55, fontSize: 14, color: colors.textDark, textAlign: "right" }}>
                         {formatCurrency(unitPrice)}
                       </Text>
-                      <Text style={{ width: 55, fontSize: 9, color: colors.textSecondary, textAlign: "right" }}>
+                      <Text style={{ width: 55, fontSize: 14, color: colors.textSecondary, textAlign: "right" }}>
                         {msrp > 0 ? formatCurrency(msrp) : "-"}
                       </Text>
-                      <Text style={{ width: 42, fontSize: 9, color: colors.textSecondary, textAlign: "right" }}>
+                      <Text style={{ width: 42, fontSize: 14, color: colors.textSecondary, textAlign: "right" }}>
                         {discountVal > 0 ? discountStr : "$0"}
                       </Text>
-                      <Text style={{ width: 38, fontSize: 9, color: colors.textSecondary, textAlign: "right" }}>
+                      <Text style={{ width: 38, fontSize: 14, color: colors.textSecondary, textAlign: "right" }}>
                         {lineTaxAmount > 0 ? formatCurrency(lineTaxAmount) : "$0"}
                       </Text>
-                      <Text style={{ width: 58, fontSize: 9, color: colors.textDark, fontWeight: fontWeight.semibold, textAlign: "right" }}>
+                      <Text style={{ width: 58, fontSize: 14, color: colors.textDark, fontWeight: '600', textAlign: "right" }}>
                         {formatCurrency(total)}
                       </Text>
                     </View>
@@ -392,7 +392,7 @@ export function SaleInvoiceModal({
                         paddingTop: 0,
                         backgroundColor: idx % 2 === 0 ? "#fff" : colors.backgroundLight,
                       }}>
-                        <Text style={{ fontSize: 8, color: colors.textTertiary, fontStyle: "italic" }}>{category}</Text>
+                        <Text style={{ fontSize: 14, color: colors.textTertiary, fontStyle: "italic" }}>{category}</Text>
                       </View>
                     ) : null}
                   </View>
@@ -413,10 +413,10 @@ export function SaleInvoiceModal({
                     alignItems: "center",
                   }}
                 >
-                  <Text style={{ fontSize: 10, fontWeight: fontWeight.bold, color: colors.textMedium, marginRight: 12 }}>
+                  <Text style={{ fontSize: 14, fontWeight: '700', color: colors.textMedium, marginRight: 12 }}>
                     Qty: {totalQuantity}
                   </Text>
-                  <Text style={{ fontSize: 10, fontWeight: fontWeight.bold, color: colors.textMedium }}>
+                  <Text style={{ fontSize: 14, fontWeight: '700', color: colors.textMedium }}>
                     Total: {formatCurrency(subTotal)}
                   </Text>
                 </View>
@@ -426,7 +426,7 @@ export function SaleInvoiceModal({
             {/* ── Payment Details ── */}
             {payments.length > 0 && (
               <View style={{ marginBottom: 14 }}>
-                <Text style={{ fontSize: 12, fontWeight: fontWeight.bold, color: colors.textMedium, marginBottom: 6 }}>
+                <Text style={{ fontSize: 14, fontWeight: '700', color: colors.textMedium, marginBottom: 6 }}>
                   Payment Details
                 </Text>
                 <View
@@ -446,11 +446,11 @@ export function SaleInvoiceModal({
                       paddingHorizontal: 10,
                     }}
                   >
-                    <Text style={{ width: 24, fontSize: 9, fontWeight: fontWeight.bold, color: colors.textSecondary }}>#</Text>
-                    <Text style={{ flex: 1, fontSize: 9, fontWeight: fontWeight.bold, color: colors.textSecondary }}>Payment Type</Text>
-                    <Text style={{ width: 70, fontSize: 9, fontWeight: fontWeight.bold, color: colors.textSecondary }}>Ref No.</Text>
-                    <Text style={{ width: 65, fontSize: 9, fontWeight: fontWeight.bold, color: colors.textSecondary }}>Date</Text>
-                    <Text style={{ width: 70, fontSize: 9, fontWeight: fontWeight.bold, color: colors.textSecondary, textAlign: "right" }}>Amount</Text>
+                    <Text style={{ width: 24, fontSize: 14, fontWeight: '700', color: colors.textSecondary }}>#</Text>
+                    <Text style={{ flex: 1, fontSize: 14, fontWeight: '700', color: colors.textSecondary }}>Payment Type</Text>
+                    <Text style={{ width: 70, fontSize: 14, fontWeight: '700', color: colors.textSecondary }}>Ref No.</Text>
+                    <Text style={{ width: 65, fontSize: 14, fontWeight: '700', color: colors.textSecondary }}>Date</Text>
+                    <Text style={{ width: 70, fontSize: 14, fontWeight: '700', color: colors.textSecondary, textAlign: "right" }}>Amount</Text>
                   </View>
                   {payments.map((p, idx) => (
                     <View
@@ -464,17 +464,17 @@ export function SaleInvoiceModal({
                         borderTopColor: colors.border,
                       }}
                     >
-                      <Text style={{ width: 24, fontSize: 9, color: colors.textSecondary }}>{idx + 1}</Text>
-                      <Text style={{ flex: 1, fontSize: 9, color: colors.textDark }}>
+                      <Text style={{ width: 24, fontSize: 14, color: colors.textSecondary }}>{idx + 1}</Text>
+                      <Text style={{ flex: 1, fontSize: 14, color: colors.textDark }}>
                         {getPaymentTypeLabel(p.payment_type)}
                       </Text>
-                      <Text style={{ width: 70, fontSize: 9, color: colors.textSecondary }}>
+                      <Text style={{ width: 70, fontSize: 14, color: colors.textSecondary }}>
                         {p.reference_number || "-"}
                       </Text>
-                      <Text style={{ width: 65, fontSize: 9, color: colors.textSecondary }}>
+                      <Text style={{ width: 65, fontSize: 14, color: colors.textSecondary }}>
                         {formatDate(p.payment_date)}
                       </Text>
-                      <Text style={{ width: 70, fontSize: 9, color: colors.textDark, fontWeight: fontWeight.semibold, textAlign: "right" }}>
+                      <Text style={{ width: 70, fontSize: 14, color: colors.textDark, fontWeight: '600', textAlign: "right" }}>
                         {formatCurrency(p.paid_amount)}
                       </Text>
                     </View>
@@ -487,7 +487,7 @@ export function SaleInvoiceModal({
             {((order.sale_order_level_taxes?.length ?? 0) > 0 ||
               (order.sale_order_li_total_taxes?.length ?? 0) > 0) && (
               <View style={{ marginBottom: 8 }}>
-                <Text style={{ fontSize: 12, fontWeight: fontWeight.bold, color: colors.textMedium, marginBottom: 4 }}>Taxes</Text>
+                <Text style={{ fontSize: 14, fontWeight: '700', color: colors.textMedium, marginBottom: 4 }}>Taxes</Text>
                 {order.sale_order_level_taxes?.map((t, i) => (
                   <SummaryRow key={`solt-${i}`} label={t.tax.name} value={formatCurrency(t.amount)} />
                 ))}
@@ -554,7 +554,7 @@ export function SaleInvoiceModal({
 
             {/* ── Powered By ── */}
             <View style={{ marginTop: 14, alignItems: "flex-start" }}>
-              <Text style={{ fontSize: 9, color: colors.textTertiary }}>Powered by Kommerce Hub.</Text>
+              <Text style={{ fontSize: 14, color: colors.textTertiary }}>Powered by Kommerce Hub.</Text>
             </View>
 
           </ScrollView>
@@ -587,7 +587,7 @@ export function SaleInvoiceModal({
                 }}
               >
                 <Ionicons name="print-outline" size={18} color={colors.primary} />
-                <Text style={{ color: colors.primary, fontWeight: fontWeight.semibold, fontSize: 14 }}>Print Receipt</Text>
+                <Text style={{ color: colors.primary, fontWeight: '600', fontSize: 14 }}>Print Receipt</Text>
               </TouchableOpacity>
             )}
             <TouchableOpacity
@@ -604,7 +604,7 @@ export function SaleInvoiceModal({
               }}
             >
               <Ionicons name="add-circle-outline" size={18} color="#fff" />
-              <Text style={{ color: "#fff", fontWeight: fontWeight.semibold, fontSize: 14 }}>New Order</Text>
+              <Text style={{ color: "#fff", fontWeight: '600', fontSize: 14 }}>New Order</Text>
             </TouchableOpacity>
           </View>
         </Pressable>

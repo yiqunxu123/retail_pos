@@ -1,4 +1,5 @@
-import { buttonSize, colors, fontSize, fontWeight, iconSize } from '@/utils/theme';
+import { buttonSize, colors, iconSize } from '@/utils/theme';
+import { ThemedButton } from './ThemedButton';
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { useState } from "react";
 import { Modal, Pressable, ScrollView, Text, TouchableOpacity, View } from "react-native";
@@ -102,8 +103,8 @@ export function OrderDetailsModal({
       className="flex-1 border border-gray-200 rounded-lg p-3 min-w-[120px] shadow-sm"
       style={bgColor ? { backgroundColor: bgColor } : { backgroundColor: colors.backgroundTertiary }}
     >
-      <Text className="text-gray-600 text-xs mb-1">{label}</Text>
-      <Text style={{ color: valueColor, fontWeight: fontWeight.medium, fontSize: fontSize.base }} numberOfLines={1}>
+      <Text className="text-gray-600 text-sm mb-1">{label}</Text>
+      <Text className="text-base font-medium" style={{ color: valueColor }} numberOfLines={1}>
         {value}
       </Text>
     </View>
@@ -119,7 +120,7 @@ export function OrderDetailsModal({
     const color = colors_map[status] || colors_map.Unpaid;
     return (
       <View className="px-3 py-1 rounded" style={{ backgroundColor: color.bg }}>
-        <Text style={{ color: color.text, fontWeight: fontWeight.semibold, fontSize: fontSize.md }}>{status}</Text>
+        <Text className="text-sm font-semibold" style={{ color: color.text }}>{status}</Text>
       </View>
     );
   };
@@ -200,13 +201,13 @@ export function OrderDetailsModal({
                   className="flex-1 border border-gray-200 rounded-lg p-3 min-w-[120px]"
                   style={{ backgroundColor: "#FEF08A" }}
                 >
-                  <Text className="text-gray-600 text-xs mb-1">Total</Text>
-                  <Text style={{ color: colors.success, fontWeight: fontWeight.bold, fontSize: fontSize.base }}>
+                  <Text className="text-gray-600 text-sm mb-1">Total</Text>
+                  <Text className="text-base font-bold" style={{ color: colors.success }}>
                     ${order.total.toFixed(2)}
                   </Text>
                 </View>
                 <View className="flex-1 border border-gray-200 rounded-lg p-3 min-w-[120px]" style={{ backgroundColor: colors.backgroundTertiary }}>
-                  <Text className="text-gray-600 text-xs mb-1">Invoice Status</Text>
+                  <Text className="text-gray-600 text-sm mb-1">Invoice Status</Text>
                   <InvoiceStatusBadge status={order.invoiceStatus || "Paid"} />
                 </View>
                 <InfoCard 
@@ -231,8 +232,8 @@ export function OrderDetailsModal({
                       <Text 
                         style={{ 
                           color: isActive ? colors.text : colors.textTertiary, 
-                          fontWeight: isActive ? fontWeight.semibold : fontWeight.regular,
-                          fontSize: fontSize.base,
+                          fontWeight: isActive ? '600' : '400',
+                          fontSize: 16,
                         }}
                       >
                         {tab}
@@ -259,15 +260,15 @@ export function OrderDetailsModal({
                     <>
                       {/* Table Header */}
                       <View className="flex-row px-3 py-3 rounded-t-lg border border-gray-200 shadow-sm" style={{ backgroundColor: colors.backgroundTertiary }}>
-                        <Text className="w-12 text-gray-600 text-xs font-semibold">Sr No</Text>
-                        <Text className="flex-1 text-gray-600 text-xs font-semibold">Product Name</Text>
-                        <Text className="w-24 text-gray-600 text-xs font-semibold">SKU/UPC</Text>
-                        <Text className="w-20 text-gray-600 text-xs font-semibold text-center">Ordered Qty</Text>
-                        <Text className="w-16 text-gray-600 text-xs font-semibold text-center">Unit</Text>
-                        <Text className="w-20 text-gray-600 text-xs font-semibold text-center">Delivered Qty</Text>
-                        <Text className="w-20 text-gray-600 text-xs font-semibold text-center">Remaining Qty</Text>
-                        <Text className="w-20 text-gray-600 text-xs font-semibold text-right">Sale Price</Text>
-                        <Text className="w-16 text-gray-600 text-xs font-semibold text-right">Discount</Text>
+                        <Text className="w-12 text-gray-600 text-sm font-semibold">Sr No</Text>
+                        <Text className="flex-1 text-gray-600 text-sm font-semibold">Product Name</Text>
+                        <Text className="w-24 text-gray-600 text-sm font-semibold">SKU/UPC</Text>
+                        <Text className="w-20 text-gray-600 text-sm font-semibold text-center">Ordered Qty</Text>
+                        <Text className="w-16 text-gray-600 text-sm font-semibold text-center">Unit</Text>
+                        <Text className="w-20 text-gray-600 text-sm font-semibold text-center">Delivered Qty</Text>
+                        <Text className="w-20 text-gray-600 text-sm font-semibold text-center">Remaining Qty</Text>
+                        <Text className="w-20 text-gray-600 text-sm font-semibold text-right">Sale Price</Text>
+                        <Text className="w-16 text-gray-600 text-sm font-semibold text-right">Discount</Text>
                       </View>
 
                       {/* Table Body */}
@@ -371,22 +372,19 @@ export function OrderDetailsModal({
 
           {/* Footer Actions */}
           <View className="flex-row gap-4 px-6 py-4 border-t border-gray-200 justify-end">
-            <TouchableOpacity
+            <ThemedButton
+              title="Close"
+              variant="outline"
               onPress={onClose}
-              className="border border-gray-300 rounded-lg px-8 items-center justify-center"
-              style={{ height: buttonSize.md.height }}
-            >
-              <Text className="text-gray-700 font-medium">Close</Text>
-            </TouchableOpacity>
+            />
             {onPrintReceipt && (
-              <TouchableOpacity
+              <ThemedButton
+                title="Print"
+                icon="print"
                 onPress={onPrintReceipt}
-                className="rounded-lg px-8 flex-row items-center justify-center gap-2"
-                style={{ height: buttonSize.md.height, backgroundColor: "#FCD34D" }}
-              >
-                <Ionicons name="print" size={iconSize.md} color={colors.text} />
-                <Text className="text-gray-900 font-medium">Print</Text>
-              </TouchableOpacity>
+                style={{ backgroundColor: colors.warning }}
+                textStyle={{ color: colors.text }}
+              />
             )}
           </View>
         </View>

@@ -1,6 +1,5 @@
 import { LinearGradient } from "expo-linear-gradient";
-import { View, Text } from "react-native";
-import { fontSize, fontFamily, fontWeight } from '@/utils/theme';
+import { Text, View } from "react-native";
 
 export interface StatsBarItem {
   label: string;
@@ -34,11 +33,9 @@ export function StatsBar({ items }: StatsBarProps) {
               style={{ height: 115 }}
             >
               <Text
+                className="text-xl font-semibold"
                 style={{
                   color: "rgba(255,255,255,0.9)",
-                  fontSize: fontSize.xl,
-                  fontWeight: fontWeight.semibold,
-                  fontFamily: fontFamily.primary,
                   letterSpacing: -0.4,
                   lineHeight: 24,
                 }}
@@ -46,12 +43,10 @@ export function StatsBar({ items }: StatsBarProps) {
                 {item.label}
               </Text>
               <Text
+                className="text-4xl font-bold"
                 style={{
                   color: "white",
-                  fontSize: fontSize['3xl'],
-                  fontWeight: fontWeight.bold,
-                  fontFamily: fontFamily.primary,
-                  lineHeight: 36,
+                  lineHeight: 44,
                   marginTop: 4,
                 }}
               >

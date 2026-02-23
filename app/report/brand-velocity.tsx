@@ -61,7 +61,7 @@ function MarginBadge({ percentage }: { percentage: number }) {
   const colors = getMarginColorClasses(percentage);
   return (
     <View className={`px-3 py-1 rounded ${colors.bg}`}>
-      <Text className={`font-Montserrat font-bold text-[16px] ${colors.text}`}>
+      <Text className={`font-bold text-base ${colors.text}`}>
         {percentage.toFixed(1)}%
       </Text>
     </View>
@@ -178,7 +178,7 @@ export default function BrandVelocityReportScreen() {
       title: "Brand Name",
       width: 300,
       render: (item) => (
-        <Text className="text-[#1A1A1A] text-[18px] font-Montserrat font-medium pr-2" numberOfLines={2}>
+        <Text className="text-[#1A1A1A] text-lg font-medium pr-2" numberOfLines={2}>
           {item.brandName}
         </Text>
       ),
@@ -189,7 +189,7 @@ export default function BrandVelocityReportScreen() {
       width: 120,
       align: "center",
       render: (item) => (
-        <Text className="text-[#1A1A1A] text-[18px] font-Montserrat text-center">{item.qtySold}</Text>
+        <Text className="text-[#1A1A1A] text-lg text-center">{item.qtySold}</Text>
       ),
     },
     {
@@ -198,7 +198,7 @@ export default function BrandVelocityReportScreen() {
       width: 150,
       align: "right",
       render: (item) => (
-        <Text className="text-[#1A1A1A] text-[18px] font-Montserrat text-right">{formatCurrency(item.salesRevenue)}</Text>
+        <Text className="text-[#1A1A1A] text-lg text-right">{formatCurrency(item.salesRevenue)}</Text>
       ),
     },
     {
@@ -207,7 +207,7 @@ export default function BrandVelocityReportScreen() {
       width: 150,
       align: "right",
       render: (item) => (
-        <Text className="text-[#1A1A1A] text-[18px] font-Montserrat text-right">{formatCurrency(item.cost)}</Text>
+        <Text className="text-[#1A1A1A] text-lg text-right">{formatCurrency(item.cost)}</Text>
       ),
     },
     {
@@ -216,7 +216,7 @@ export default function BrandVelocityReportScreen() {
       width: 150,
       align: "right",
       render: (item) => (
-        <Text className="text-green-600 text-[18px] font-Montserrat font-bold text-right">{formatCurrency(item.margin)}</Text>
+        <Text className="text-green-600 text-lg font-bold text-right">{formatCurrency(item.margin)}</Text>
       ),
     },
     {
@@ -235,22 +235,22 @@ export default function BrandVelocityReportScreen() {
   const renderTableFooter = () => (
     <View className="flex-row items-center py-4 px-5 bg-gray-100 border-t-2 border-gray-300">
       <View className="w-[300px]">
-        <Text className="text-[#1A1A1A] text-[18px] font-Montserrat font-bold">TOTAL ({filteredReports.length} brands)</Text>
+        <Text className="text-[#1A1A1A] text-lg font-bold">TOTAL ({filteredReports.length} brands)</Text>
       </View>
       <View className="w-[120px]">
-        <Text className="text-[#1A1A1A] text-[18px] font-Montserrat font-bold text-center">{totals.qtySold}</Text>
+        <Text className="text-[#1A1A1A] text-lg font-bold text-center">{totals.qtySold}</Text>
       </View>
       <View className="w-[150px]">
-        <Text className="text-[#1A1A1A] text-[18px] font-Montserrat font-bold text-right">{formatCurrency(totals.revenue)}</Text>
+        <Text className="text-[#1A1A1A] text-lg font-bold text-right">{formatCurrency(totals.revenue)}</Text>
       </View>
       <View className="w-[150px]">
-        <Text className="text-[#1A1A1A] text-[18px] font-Montserrat font-bold text-right">{formatCurrency(totals.cost)}</Text>
+        <Text className="text-[#1A1A1A] text-lg font-bold text-right">{formatCurrency(totals.cost)}</Text>
       </View>
       <View className="w-[150px]">
-        <Text className="text-green-600 text-[18px] font-Montserrat font-bold text-right">{formatCurrency(totals.margin)}</Text>
+        <Text className="text-green-600 text-lg font-bold text-right">{formatCurrency(totals.margin)}</Text>
       </View>
       <View className="w-[150px]">
-        <Text className="text-blue-600 text-[18px] font-Montserrat font-bold text-center">{avgMarginPercentage.toFixed(1)}%</Text>
+        <Text className="text-blue-600 text-lg font-bold text-center">{avgMarginPercentage.toFixed(1)}%</Text>
       </View>
     </View>
   );

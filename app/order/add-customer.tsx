@@ -1,4 +1,4 @@
-import { colors, iconSize } from '@/utils/theme';
+import { buttonSize, colors, iconSize } from '@/utils/theme';
 import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import {
@@ -23,6 +23,7 @@ import {
     AddQuickCustomerModal,
     type QuickCustomerResult,
 } from "../../components/AddQuickCustomerModal";
+import { ThemedButton } from "../../components/ThemedButton";
 import { Dropdown } from "../../components/Dropdown";
 import { EditableStateInput } from "../../components/EditableStateInput";
 import { useOrder } from "../../contexts/OrderContext";
@@ -179,21 +180,21 @@ function SearchResultCard({
         {customer.business_name}
         {customer.name ? `, ${customer.name}` : ""}
       </Text>
-      <Text className="text-gray-600 text-xs mt-1">
+      <Text className="text-gray-600 text-sm mt-1">
         Phone: {customer.business_phone_no || "N/A"}
       </Text>
-      <Text className="text-gray-600 text-xs">Email: {customer.email || "N/A"}</Text>
+      <Text className="text-gray-600 text-sm">Email: {customer.email || "N/A"}</Text>
       {formatBillingAddress(customer.customer_billing_details) !== "" && (
-        <Text className="text-gray-600 text-xs">
+        <Text className="text-gray-600 text-sm">
           Address: {formatBillingAddress(customer.customer_billing_details)}
         </Text>
       )}
-      <Text className="text-gray-600 text-xs">Customer No: {customer.no || "N/A"}</Text>
-      <Text className="text-gray-600 text-xs">
+      <Text className="text-gray-600 text-sm">Customer No: {customer.no || "N/A"}</Text>
+      <Text className="text-gray-600 text-sm">
         Customer Type: {getCustomerTypeLabel(customer.customer_type ?? null)}
       </Text>
       {customer.is_active === false && (
-        <Text className="text-red-500 text-xs mt-0.5 font-medium">Inactive</Text>
+        <Text className="text-red-500 text-sm mt-0.5 font-medium">Inactive</Text>
       )}
     </Pressable>
   );
@@ -484,16 +485,15 @@ export default function AddCustomerScreen() {
       >
         <View className="px-5 pt-4 pb-3 border-b border-gray-200">
           <View className="flex-row items-center justify-between">
-            <Text className="text-[#40444D] text-[20px] leading-[24px] font-semibold">
+            <Text className="text-[#40444D] text-xl leading-[24px] font-semibold">
               Search for Customer by:
             </Text>
-            <Pressable
+            <ThemedButton
+              title="Save"
               onPress={() => router.back()}
-              className="bg-[#D61F55] rounded-lg h-10 px-5 items-center justify-center"
-              style={({ pressed }) => ({ opacity: pressed ? 0.85 : 1 })}
-            >
-              <Text className="text-white text-base font-semibold">Save</Text>
-            </Pressable>
+              size="md"
+              style={{ backgroundColor: colors.primary }}
+            />
           </View>
         </View>
         <ScrollView
@@ -566,17 +566,16 @@ export default function AddCustomerScreen() {
             })}
 
             {!order.customerId && (
-              <Pressable
+              <ThemedButton
+                title="Add New Customer"
+                icon="add"
                 onPress={() => {
                   setQuickModalCustomerId(null);
                   setShowQuickCustomerModal(true);
                 }}
-                className="mb-4 bg-[#FBEAEC] border border-[#F6D4DA] rounded-lg h-11 items-center justify-center flex-row gap-1.5"
-                style={({ pressed }) => ({ opacity: pressed ? 0.8 : 1 })}
-              >
-                <Ionicons name="add" size={iconSize.sm} color="#C33A59" />
-                <Text className="text-[#C33A59] text-base font-medium">Add New Customer</Text>
-              </Pressable>
+                style={{ marginBottom: 16, backgroundColor: colors.primaryLight, borderWidth: 1, borderColor: colors.primary }}
+                textStyle={{ color: colors.primary }}
+              />
             )}
 
             <View className="bg-[#FFF8FA] border border-[#F5D4DF] rounded-xl px-4 py-3 mb-4">
@@ -596,40 +595,38 @@ export default function AddCustomerScreen() {
                 </View>
               ) : activeCustomer ? (
                 <>
-                  <Text className="text-[#4B5563] text-xs">
+                  <Text className="text-[#4B5563] text-sm">
                     Phone: {activeCustomer.business_phone_no || "N/A"}
                   </Text>
-                  <Text className="text-[#4B5563] text-xs">
+                  <Text className="text-[#4B5563] text-sm">
                     Email: {activeCustomer.email || "N/A"}
                   </Text>
-                  <Text className="text-[#4B5563] text-xs">
+                  <Text className="text-[#4B5563] text-sm">
                     Address: {formatBillingAddress(activeCustomer.customer_billing_details) || "N/A"}
                   </Text>
-                  <Text className="text-[#4B5563] text-xs">
+                  <Text className="text-[#4B5563] text-sm">
                     Customer No: {activeCustomer.no || "N/A"}
                   </Text>
-                  <Text className="text-[#4B5563] text-xs mb-3">
+                  <Text className="text-[#4B5563] text-sm mb-3">
                     Customer Type: {getCustomerTypeLabel(activeCustomer.customer_type)}
                   </Text>
 
                   <View className="flex-row gap-2">
-                    <Pressable
+                    <ThemedButton
+                      title="Change Customer"
                       onPress={() => {
                         setQuickModalCustomerId(activeCustomer.id);
                         setShowQuickCustomerModal(true);
                       }}
-                      className="flex-1 bg-[#D71E55] rounded-lg h-11 items-center justify-center"
-                      style={({ pressed }) => ({ opacity: pressed ? 0.8 : 1 })}
-                    >
-                      <Text className="text-white font-medium">Change Customer</Text>
-                    </Pressable>
-                    <Pressable
+                      fullWidth
+                      style={{ flex: 1, backgroundColor: colors.primary }}
+                    />
+                    <ThemedButton
+                      title="Remove Customer"
                       onPress={handleRemoveCustomer}
-                      className="flex-1 bg-[#D71E55] rounded-lg h-11 items-center justify-center"
-                      style={({ pressed }) => ({ opacity: pressed ? 0.8 : 1 })}
-                    >
-                      <Text className="text-white font-medium">Remove Customer</Text>
-                    </Pressable>
+                      fullWidth
+                      style={{ flex: 1, backgroundColor: colors.primary }}
+                    />
                   </View>
                 </>
               ) : customerDetailsError ? (
@@ -674,9 +671,11 @@ export default function AddCustomerScreen() {
                 onPress={handleToggleAutoGenerate}
               >
                 <View
-                  className={`w-5 h-5 rounded border-2 items-center justify-center ${
-                    autoGenerate ? "border-red-500 bg-red-500" : "border-gray-300"
-                  }`}
+                  className="w-5 h-5 rounded border-2 items-center justify-center"
+                  style={{
+                    borderColor: autoGenerate ? colors.primary : colors.border,
+                    backgroundColor: autoGenerate ? colors.primary : "transparent",
+                  }}
                 >
                   {autoGenerate && <Ionicons name="checkmark" size={iconSize.xs} color="white" />}
                 </View>
@@ -698,8 +697,8 @@ export default function AddCustomerScreen() {
               <Switch
                 value={skipMsaCheck}
                 onValueChange={setSkipMsaCheck}
-                trackColor={{ false: colors.borderMedium, true: "#fca5a5" }}
-                thumbColor={skipMsaCheck ? colors.error : "#f4f4f5"}
+                trackColor={{ false: colors.borderMedium, true: colors.primaryLight }}
+                thumbColor={skipMsaCheck ? colors.primary : colors.background}
               />
             </View>
 

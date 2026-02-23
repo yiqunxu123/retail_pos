@@ -17,7 +17,7 @@ import {
     View,
 } from "react-native";
 import { getLocalToday } from "../utils/powersync/sqlFilters";
-import { fontSize, fontWeight, colors, iconSize, buttonSize } from '@/utils/theme';
+import { colors, iconSize, buttonSize } from '@/utils/theme';
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -144,52 +144,45 @@ export function DateRangePickerModal({
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
       <Pressable
-        style={{
-          flex: 1,
-          justifyContent: "center",
-          alignItems: "center",
-          backgroundColor: "rgba(0,0,0,0.5)",
-        }}
+        className="flex-1 bg-black/45 justify-center items-center px-4"
         onPress={onClose}
       >
         <Pressable
+          className="bg-white rounded-xl overflow-hidden"
           style={{
-            backgroundColor: "#fff",
-            borderRadius: 16,
-            paddingVertical: 20,
-            paddingHorizontal: 16,
-            width: 360,
-            maxWidth: "90%",
+            width: "92%",
+            maxWidth: 664,
             maxHeight: "88%",
+            borderWidth: 1,
+            borderColor: colors.border,
+            shadowColor: "#000",
+            shadowOffset: { width: 0, height: 8 },
+            shadowOpacity: 0.18,
+            shadowRadius: 20,
+            elevation: 8,
           }}
-          onPress={() => {}}
+          onPress={(e) => e.stopPropagation()}
         >
-          <ScrollView showsVerticalScrollIndicator={false} bounces={false}>
-            <Text
-              style={{
-                fontSize: fontSize.lg,
-                fontWeight: fontWeight.bold,
-                color: colors.textDark,
-                marginBottom: 16,
-                paddingHorizontal: 4,
-              }}
-            >
-              Select Date Range
-            </Text>
+          <View className="flex-row justify-between items-center px-5 py-4 border-b border-[#E4E7EC]">
+            <Text className="text-2xl font-semibold" style={{ color: colors.text }}>Select Date Range</Text>
+            <Pressable onPress={onClose} style={({ pressed }) => ({ opacity: pressed ? 0.55 : 1 })}>
+              <Ionicons name="close" size={iconSize['2xl']} color={colors.textDark} />
+            </Pressable>
+          </View>
 
+          <ScrollView className="px-4 pt-4 pb-5" showsVerticalScrollIndicator={false} bounces={false}>
             <Text
+              className="text-lg font-bold"
               style={{
-                fontSize: fontSize.md,
-                fontWeight: fontWeight.bold,
                 color: colors.textMedium,
-                marginBottom: 8,
+                marginBottom: 10,
                 paddingHorizontal: 4,
               }}
             >
               Custom Range
             </Text>
 
-            <View style={{ flexDirection: "row", gap: 8 }}>
+            <View style={{ flexDirection: "row", gap: 12 }}>
               <TouchableOpacity
                 onPress={() => openPicker("start")}
                 style={{
@@ -199,18 +192,18 @@ export function DateRangePickerModal({
                   justifyContent: "space-between",
                   borderWidth: 1,
                   borderColor: pickerTarget === "start" ? colors.primary : colors.border,
-                  borderRadius: 10,
-                  paddingHorizontal: 12,
-                  paddingVertical: 10,
-                  backgroundColor: "#fff",
+                  borderRadius: 12,
+                  paddingHorizontal: 16,
+                  paddingVertical: 14,
+                  backgroundColor: "#F4F5F7",
                 }}
                 activeOpacity={0.8}
               >
                 <View>
-                  <Text style={{ fontSize: fontSize.md, color: colors.textSecondary, marginBottom: 2 }}>Start Date</Text>
-                  <Text style={{ fontSize: fontSize.base, color: colors.text, fontWeight: fontWeight.semibold }}>{customStartDate}</Text>
+                  <Text className="text-base font-medium" style={{ color: colors.textSecondary, marginBottom: 4 }}>Start Date</Text>
+                  <Text className="text-lg font-semibold" style={{ color: colors.text }}>{customStartDate}</Text>
                 </View>
-                <Ionicons name="calendar-outline" size={iconSize.md} color={colors.textSecondary} />
+                <Ionicons name="calendar-outline" size={iconSize.xl} color={colors.textSecondary} />
               </TouchableOpacity>
 
               <TouchableOpacity
@@ -222,18 +215,18 @@ export function DateRangePickerModal({
                   justifyContent: "space-between",
                   borderWidth: 1,
                   borderColor: pickerTarget === "end" ? colors.primary : colors.border,
-                  borderRadius: 10,
-                  paddingHorizontal: 12,
-                  paddingVertical: 10,
-                  backgroundColor: "#fff",
+                  borderRadius: 12,
+                  paddingHorizontal: 16,
+                  paddingVertical: 14,
+                  backgroundColor: "#F4F5F7",
                 }}
                 activeOpacity={0.8}
               >
                 <View>
-                  <Text style={{ fontSize: fontSize.md, color: colors.textSecondary, marginBottom: 2 }}>End Date</Text>
-                  <Text style={{ fontSize: fontSize.base, color: colors.text, fontWeight: fontWeight.semibold }}>{customEndDate}</Text>
+                  <Text className="text-base font-medium" style={{ color: colors.textSecondary, marginBottom: 4 }}>End Date</Text>
+                  <Text className="text-lg font-semibold" style={{ color: colors.text }}>{customEndDate}</Text>
                 </View>
-                <Ionicons name="calendar-outline" size={iconSize.md} color={colors.textSecondary} />
+                <Ionicons name="calendar-outline" size={iconSize.xl} color={colors.textSecondary} />
               </TouchableOpacity>
             </View>
 
@@ -248,12 +241,11 @@ export function DateRangePickerModal({
                 }}
               >
                 <Text
+                  className="text-sm font-semibold"
                   style={{
                     paddingHorizontal: 12,
                     paddingTop: 10,
-                    fontSize: fontSize.md,
                     color: colors.textSecondary,
-                    fontWeight: fontWeight.semibold,
                   }}
                 >
                   {pickerTarget === "start" ? "Select Start Date" : "Select End Date"}
@@ -265,8 +257,8 @@ export function DateRangePickerModal({
                   theme={{
                     todayTextColor: colors.primary,
                     arrowColor: colors.primary,
-                    textMonthFontWeight: fontWeight.bold,
-                    textDayHeaderFontWeight: fontWeight.semibold,
+                    textMonthFontWeight: '700',
+                    textDayHeaderFontWeight: '600',
                   }}
                 />
               </View>
@@ -275,16 +267,16 @@ export function DateRangePickerModal({
             <TouchableOpacity
               onPress={applyCustomRange}
               style={{
-                marginTop: 12,
+                marginTop: 16,
                 borderRadius: buttonSize.md.borderRadius,
-                height: buttonSize.md.height,
+                height: buttonSize.lg.height,
                 alignItems: "center",
                 justifyContent: "center",
                 backgroundColor: colors.primary,
               }}
               activeOpacity={0.85}
             >
-              <Text style={{ color: "#fff", fontSize: fontSize.base, fontWeight: fontWeight.bold }}>Apply Range</Text>
+              <Text className="text-lg font-bold" style={{ color: "#fff" }}>Apply Range</Text>
             </TouchableOpacity>
 
             <View
@@ -296,18 +288,17 @@ export function DateRangePickerModal({
             />
 
             <Text
+              className="text-lg font-bold"
               style={{
-                fontSize: fontSize.md,
-                fontWeight: fontWeight.bold,
                 color: colors.textMedium,
-                marginBottom: 10,
+                marginBottom: 12,
                 paddingHorizontal: 4,
               }}
             >
               Quick Ranges
             </Text>
 
-            <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
+            <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 10 }}>
               {DATE_RANGE_PRESETS.map((preset, index) => {
                 const isActive = activePresetIndex === index;
                 return (
@@ -315,19 +306,19 @@ export function DateRangePickerModal({
                     key={preset.label}
                     onPress={() => handlePreset(index)}
                     style={{
-                      paddingVertical: 8,
-                      paddingHorizontal: 12,
+                      paddingVertical: 12,
+                      paddingHorizontal: 16,
                       borderRadius: 999,
                       borderWidth: 1,
                       borderColor: isActive ? colors.primary : colors.border,
-                      backgroundColor: isActive ? "#FDE8EE" : "#fff",
+                      backgroundColor: isActive ? "#FDE8EE" : "#F4F5F7",
                     }}
                     activeOpacity={0.8}
                   >
                     <Text
+                      className="text-base"
                       style={{
-                        fontSize: fontSize.md,
-                        fontWeight: isActive ? fontWeight.bold : fontWeight.medium,
+                        fontWeight: isActive ? '700' : '500',
                         color: isActive ? colors.primary : "#4B5563",
                       }}
                     >

@@ -6,7 +6,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useCallback, useMemo, useState } from "react";
 import { Pressable, Text, View } from "react-native";
-import { buttonSize, iconSize } from "@/utils/theme";
+import { buttonSize, colors, iconSize } from "@/utils/theme";
 import { ColumnDefinition, DataTable, FilterDefinition, PageHeader } from "../../components";
 import { PAYMENT_STATUS, PAYMENT_TYPE, PaymentView, usePayments } from "../../utils/powersync/hooks";
 
@@ -66,7 +66,7 @@ export default function PaymentsHistoryScreen() {
       visible: true,
       hideable: false,
       render: (item) => (
-        <Text className="text-blue-600 font-medium text-[18px] font-Montserrat">{item.paymentNo || '-'}</Text>
+        <Text className="text-blue-600 font-medium text-lg">{item.paymentNo || '-'}</Text>
       ),
     },
     {
@@ -76,8 +76,8 @@ export default function PaymentsHistoryScreen() {
       visible: true,
       render: (item) => (
         <View>
-          <Text className="text-[#1A1A1A] text-[18px] font-Montserrat" numberOfLines={1}>{item.businessName || '-'}</Text>
-          <Text className="text-blue-600 text-[14px] font-Montserrat" numberOfLines={1}>{item.customerName || '-'}</Text>
+          <Text className="text-[#1A1A1A] text-lg" numberOfLines={1}>{item.businessName || '-'}</Text>
+          <Text className="text-blue-600 text-sm" numberOfLines={1}>{item.customerName || '-'}</Text>
         </View>
       ),
     },
@@ -88,7 +88,7 @@ export default function PaymentsHistoryScreen() {
       visible: true,
       render: (item) => {
         const typeText = PAYMENT_TYPE[item.paymentType as keyof typeof PAYMENT_TYPE] || 'Unknown';
-        return <Text className="text-[#1A1A1A] text-[18px] font-Montserrat">{typeText}</Text>;
+        return <Text className="text-[#1A1A1A] text-lg">{typeText}</Text>;
       },
     },
     {
@@ -98,7 +98,7 @@ export default function PaymentsHistoryScreen() {
       align: "center",
       visible: true,
       render: (item) => (
-        <Text className="text-[#1A1A1A] text-[18px] font-Montserrat font-bold">{formatCurrency(item.amount)}</Text>
+        <Text className="text-[#1A1A1A] text-lg font-bold">{formatCurrency(item.amount)}</Text>
       ),
     },
     {
@@ -112,7 +112,7 @@ export default function PaymentsHistoryScreen() {
         const statusText = PAYMENT_STATUS[item.status as keyof typeof PAYMENT_STATUS] || 'Unknown';
         return (
           <View className={`px-3 py-1 rounded ${statusColor.bg}`}>
-            <Text className={`text-[14px] font-Montserrat font-bold ${statusColor.text}`}>{statusText}</Text>
+            <Text className={`text-sm font-bold ${statusColor.text}`}>{statusText}</Text>
           </View>
         );
       },
@@ -124,7 +124,7 @@ export default function PaymentsHistoryScreen() {
       align: "center",
       visible: true,
       render: (item) => (
-        <Text className="text-gray-600 text-[18px] font-Montserrat">{formatDate(item.paymentDate)}</Text>
+        <Text className="text-gray-600 text-lg">{formatDate(item.paymentDate)}</Text>
       ),
     },
     {
@@ -133,7 +133,7 @@ export default function PaymentsHistoryScreen() {
       width: 200,
       visible: true,
       render: (item) => (
-        <Text className="text-gray-500 text-[14px] font-Montserrat" numberOfLines={1}>{item.memo || '-'}</Text>
+        <Text className="text-gray-500 text-sm" numberOfLines={1}>{item.memo || '-'}</Text>
       ),
     },
     {
@@ -144,10 +144,10 @@ export default function PaymentsHistoryScreen() {
       visible: true,
       render: () => (
         <Pressable 
-          className="bg-red-50 rounded-lg items-center justify-center"
-          style={{ width: buttonSize.md.height, height: buttonSize.md.height }}
+          className="rounded-lg items-center justify-center"
+          style={{ width: buttonSize.md.height, height: buttonSize.md.height, backgroundColor: colors.primaryLight, borderRadius: buttonSize.md.borderRadius }}
         >
-          <Ionicons name="eye" size={iconSize.md} color="#EC1A52" />
+          <Ionicons name="eye" size={iconSize.md} color={colors.primary} />
         </Pressable>
       ),
     },

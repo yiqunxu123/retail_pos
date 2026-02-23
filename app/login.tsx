@@ -15,9 +15,10 @@ import {
     View,
     useWindowDimensions,
 } from "react-native";
+import { ThemedButton } from "../components/ThemedButton";
 import { useAuth } from "../contexts/AuthContext";
 import { usePowerSync } from "../utils/powersync/PowerSyncProvider";
-import { fontSize, fontWeight, colors, iconSize, spacing, radius } from '@/utils/theme';
+import { buttonSize, colors, iconSize, spacing, radius } from '@/utils/theme';
 
 /**
  * LoginScreen - Authentication screen with split layout
@@ -132,14 +133,15 @@ export default function LoginScreen() {
                 {/* POS System Title */}
                 <View className="mt-4">
                   <Text 
-                    className="text-white font-bold mb-4"
-                    style={{ fontSize: 40, lineHeight: 44, letterSpacing: -0.5 }}
+                    className="text-white font-bold mb-4 text-4xl leading-[44px]"
+                    style={{ letterSpacing: -0.5 }}
                   >
                     POS System
                   </Text>
                   <Text 
                     className="text-white font-medium"
-                    style={{ fontSize: fontSize.base, lineHeight: 20 }}
+                    className="text-base"
+                style={{ lineHeight: 20 }}
                   >
                     A unified interface for managing customers, items, payments, and loyalty during checkout.
                   </Text>
@@ -148,16 +150,16 @@ export default function LoginScreen() {
 
               {/* Bottom: Footer Links - Wrap to prevent overflow */}
               <View className="flex-row flex-wrap items-center" style={{ gap: 12 }}>
-                <Text className="text-white font-bold" style={{ fontSize: fontSize.base }}>
+                <Text className="text-base text-white font-bold">
                   © 2026 Kommerce Hub
                 </Text>
-                <Text className="text-white font-medium" style={{ fontSize: fontSize.base }}>
+                <Text className="text-base text-white font-medium">
                   Privacy
                 </Text>
-                <Text className="text-white font-medium" style={{ fontSize: fontSize.base }}>
+                <Text className="text-base text-white font-medium">
                   Legal
                 </Text>
-                <Text className="text-white font-medium" style={{ fontSize: fontSize.base }}>
+                <Text className="text-base text-white font-medium">
                   Contact
                 </Text>
               </View>
@@ -182,11 +184,12 @@ export default function LoginScreen() {
                 <View className="items-center mb-8">
                   <Text 
                     className="text-gray-800 font-semibold mb-2 text-center"
-                    style={{ fontSize: fontSize['3xl'], lineHeight: 40, letterSpacing: -0.5 }}
+                    className="text-3xl"
+                    style={{ lineHeight: 40, letterSpacing: -0.5 }}
                   >
                     Login to Your Account
                   </Text>
-                  <Text className="text-gray-500 text-center" style={{ fontSize: fontSize.lg }}>
+                  <Text className="text-lg text-gray-500 text-center">
                     Enter your username and password
                   </Text>
                 </View>
@@ -196,8 +199,7 @@ export default function LoginScreen() {
                   {/* Email/Username Input */}
                   <View>
                     <Text 
-                      className="text-gray-600 font-medium mb-2"
-                      style={{ fontSize: fontSize.lg }}
+                      className="text-gray-600 font-medium mb-2 text-lg"
                     >
                       Email Address
                     </Text>
@@ -215,8 +217,7 @@ export default function LoginScreen() {
                       }}
                     >
                       <TextInput
-                        className={`px-4 py-4 ${isLoading ? "text-gray-400" : "text-gray-800"}`}
-                        style={{ fontSize: fontSize.lg }}
+                        className={`px-4 py-4 text-lg ${isLoading ? "text-gray-400" : "text-gray-800"}`}
                         placeholder="Enter your email address"
                         placeholderTextColor={isLoading ? "#B8BEC8" : colors.textTertiary}
                         value={username}
@@ -233,8 +234,7 @@ export default function LoginScreen() {
                   {/* Password Input */}
                   <View>
                     <Text 
-                      className="text-gray-600 font-medium mb-2"
-                      style={{ fontSize: fontSize.lg }}
+                      className="text-gray-600 font-medium mb-2 text-lg"
                     >
                       Password
                     </Text>
@@ -252,8 +252,7 @@ export default function LoginScreen() {
                       }}
                     >
                       <TextInput
-                        className={`flex-1 px-4 py-4 ${isLoading ? "text-gray-400" : "text-gray-800"}`}
-                        style={{ fontSize: fontSize.lg }}
+                        className={`flex-1 px-4 py-4 text-lg ${isLoading ? "text-gray-400" : "text-gray-800"}`}
                         placeholder="Enter your password"
                         placeholderTextColor={isLoading ? "#B8BEC8" : colors.textTertiary}
                         value={password}
@@ -286,8 +285,8 @@ export default function LoginScreen() {
                       disabled={isLoading}
                     >
                       <Text 
-                        className="font-semibold"
-                        style={{ fontSize: fontSize.lg, color: "#EA1E51" }}
+                        className="text-lg font-semibold"
+                        style={{ color: colors.primary }}
                       >
                         Forgot your password?
                       </Text>
@@ -295,32 +294,23 @@ export default function LoginScreen() {
                   </View>
 
                   {/* Login Button */}
-                  <Pressable
+                  <ThemedButton
+                    title={isLoading ? "Logging in..." : "Login"}
                     onPress={handleLogin}
                     disabled={isButtonDisabled}
-                    className="py-4 rounded-lg items-center flex-row justify-center mt-4"
+                    loading={isLoading}
+                    size="lg"
+                    fullWidth
                     style={{
-                      backgroundColor: isButtonDisabled ? "#F48BA3" : colors.primary,
+                      marginTop: 16,
+                      backgroundColor: isButtonDisabled ? colors.primaryLight : colors.primary,
                       shadowColor: "#000",
                       shadowOffset: { width: 0, height: 2 },
                       shadowOpacity: 0.15,
                       shadowRadius: 4,
                       elevation: 4,
                     }}
-                  >
-                    {isLoading ? (
-                      <>
-                        <ActivityIndicator size="small" color="#ffffff" />
-                        <Text className="text-white font-semibold ml-2" style={{ fontSize: fontSize.xl }}>
-                          Logging in...
-                        </Text>
-                      </>
-                    ) : (
-                      <Text className="text-white font-semibold" style={{ fontSize: fontSize.xl }}>
-                        Login
-                      </Text>
-                    )}
-                  </Pressable>
+                  />
                 </View>
               </View>
             </TouchableWithoutFeedback>
@@ -347,7 +337,7 @@ export default function LoginScreen() {
           style={{ width: 100, height: 38 }}
           resizeMode="contain"
         />
-        <Text className="text-white font-bold mt-3" style={{ fontSize: fontSize['2xl'] }}>
+        <Text className="text-2xl text-white font-bold mt-3">
           POS System
         </Text>
       </View>
@@ -364,11 +354,12 @@ export default function LoginScreen() {
             <View className="items-center mb-6">
               <Text 
                 className="text-gray-800 font-semibold mb-2 text-center"
-                style={{ fontSize: 28, lineHeight: 34 }}
+                className="text-2xl"
+                    style={{ lineHeight: 34 }}
               >
                 Login to Your Account
               </Text>
-              <Text className="text-gray-500 text-center" style={{ fontSize: fontSize.base }}>
+              <Text className="text-base text-gray-500 text-center">
                 Enter your username and password
               </Text>
             </View>
@@ -377,7 +368,7 @@ export default function LoginScreen() {
             <View style={{ gap: 16 }}>
               {/* Email/Username Input */}
               <View>
-                <Text className="text-gray-600 font-medium mb-2" style={{ fontSize: fontSize.base }}>
+                <Text className="text-base text-gray-600 font-medium mb-2">
                   Email Address
                 </Text>
                 <View
@@ -389,8 +380,7 @@ export default function LoginScreen() {
                   }}
                 >
                   <TextInput
-                    className={`px-4 py-3 ${isLoading ? "text-gray-400" : "text-gray-800"}`}
-                    style={{ fontSize: fontSize.lg }}
+                    className={`px-4 py-3 text-lg ${isLoading ? "text-gray-400" : "text-gray-800"}`}
                     placeholder="Enter your email address"
                     placeholderTextColor={isLoading ? "#B8BEC8" : colors.textTertiary}
                     value={username}
@@ -406,7 +396,7 @@ export default function LoginScreen() {
 
               {/* Password Input */}
               <View>
-                <Text className="text-gray-600 font-medium mb-2" style={{ fontSize: fontSize.base }}>
+                <Text className="text-base text-gray-600 font-medium mb-2">
                   Password
                 </Text>
                 <View
@@ -418,8 +408,7 @@ export default function LoginScreen() {
                   }}
                 >
                   <TextInput
-                    className={`flex-1 px-4 py-3 ${isLoading ? "text-gray-400" : "text-gray-800"}`}
-                    style={{ fontSize: fontSize.lg }}
+                    className={`flex-1 px-4 py-3 text-lg ${isLoading ? "text-gray-400" : "text-gray-800"}`}
                     placeholder="Enter your password"
                     placeholderTextColor={isLoading ? "#B8BEC8" : colors.textTertiary}
                     value={password}
@@ -451,7 +440,8 @@ export default function LoginScreen() {
                 >
                   <Text 
                     className="font-semibold"
-                    style={{ fontSize: fontSize.base, color: "#EA1E51" }}
+                    className="text-base font-semibold"
+                    style={{ color: colors.primary }}
                   >
                     Forgot your password?
                   </Text>
@@ -459,40 +449,31 @@ export default function LoginScreen() {
               </View>
 
               {/* Login Button */}
-              <Pressable
+              <ThemedButton
+                title={isLoading ? "Logging in..." : "Login"}
                 onPress={handleLogin}
                 disabled={isButtonDisabled}
-                className="py-4 rounded-lg items-center flex-row justify-center mt-2"
+                loading={isLoading}
+                size="lg"
+                fullWidth
                 style={{
-                  backgroundColor: isButtonDisabled ? "#F48BA3" : colors.primary,
+                  marginTop: 8,
+                  backgroundColor: isButtonDisabled ? colors.primaryLight : colors.primary,
                   shadowColor: colors.black,
                   shadowOffset: { width: 0, height: 2 },
                   shadowOpacity: 0.15,
                   shadowRadius: 4,
                   elevation: 4,
                 }}
-              >
-                {isLoading ? (
-                  <>
-                    <ActivityIndicator size="small" color="#ffffff" />
-                    <Text className="text-white font-semibold ml-2" style={{ fontSize: fontSize.lg }}>
-                      Logging in...
-                    </Text>
-                  </>
-                ) : (
-                  <Text className="text-white font-semibold" style={{ fontSize: fontSize.lg }}>
-                    Login
-                  </Text>
-                )}
-              </Pressable>
+              />
             </View>
 
             {/* Server Info */}
             <View className="mt-6 bg-gray-200 rounded-lg p-3">
-              <Text className="text-gray-500 text-xs text-center">
+              <Text className="text-gray-500 text-sm text-center">
                 Connected to KHUB Backend
               </Text>
-              <Text className="text-gray-400 text-xs text-center mt-1">
+              <Text className="text-gray-400 text-sm text-center mt-1">
                 {process.env.EXPO_PUBLIC_KHUB_API_URL || "http://localhost:5002"}
               </Text>
             </View>

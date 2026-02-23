@@ -1,4 +1,4 @@
-import { colors, iconSize } from '@/utils/theme';
+import { buttonSize, colors, iconSize } from '@/utils/theme';
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { useCallback, useState } from "react";
@@ -11,6 +11,7 @@ import {
     useWindowDimensions,
     View,
 } from "react-native";
+import { ThemedButton } from "../../components/ThemedButton";
 import { SearchProduct, SearchProductModal } from "../../components/SearchProductModal";
 import { OrderCustomer, OrderProduct } from "../../types";
 
@@ -105,9 +106,9 @@ export default function AddQuickOrderScreen() {
   // Dropdown component
   const Dropdown = ({ label, value, options }: { label: string; value: string; options: string[] }) => (
     <View className="mb-4">
-      <Text className="text-[#5A5F66] text-[18px] mb-1.5" style={{ fontFamily: 'Montserrat' }}>{label}</Text>
+      <Text className="text-[#5A5F66] text-lg mb-1.5">{label}</Text>
       <Pressable className="flex-row items-center bg-white border border-gray-200 rounded-xl px-3 py-3 shadow-sm">
-        <Text className="flex-1 text-gray-800 text-[18px]" style={{ fontFamily: 'Montserrat' }}>{value}</Text>
+        <Text className="flex-1 text-gray-800 text-lg">{value}</Text>
         <Ionicons name="chevron-down" size={iconSize.base} color={colors.textTertiary} />
       </Pressable>
     </View>
@@ -116,10 +117,9 @@ export default function AddQuickOrderScreen() {
   // Input component
   const FormInput = ({ label, value, onChangeText, placeholder, keyboardType = "default" }: any) => (
     <View className="mb-4">
-      <Text className="text-[#5A5F66] text-[18px] mb-1.5" style={{ fontFamily: 'Montserrat' }}>{label}</Text>
+      <Text className="text-[#5A5F66] text-lg mb-1.5">{label}</Text>
       <TextInput
-        className="bg-white border border-gray-200 rounded-xl px-3 py-3 text-gray-800 text-[18px] shadow-sm"
-        style={{ fontFamily: 'Montserrat' }}
+        className="bg-white border border-gray-200 rounded-xl px-3 py-3 text-gray-800 text-lg shadow-sm"
         placeholder={placeholder}
         placeholderTextColor={colors.textTertiary}
         value={value}
@@ -140,10 +140,12 @@ export default function AddQuickOrderScreen() {
           <Text className="text-xl font-bold text-gray-800">Add Quick Order</Text>
         </View>
         <View className="flex-row gap-2">
-          <Pressable className="bg-blue-500 px-4 py-2.5 rounded-lg flex-row items-center gap-2">
-            <Ionicons name="save-outline" size={iconSize.md} color="white" />
-            <Text className="text-white font-medium">Save Order</Text>
-          </Pressable>
+          <ThemedButton
+            title="Save Order"
+            icon="save-outline"
+            onPress={() => {}}
+            style={{ backgroundColor: colors.info }}
+          />
         </View>
       </View>
 
@@ -202,7 +204,7 @@ export default function AddQuickOrderScreen() {
 
             {/* MSA Check Toggle */}
             <View className="flex-row items-center justify-between mb-4">
-              <Text className="text-[#5A5F66] text-[18px]" style={{ fontFamily: 'Montserrat' }}>Skip MSA Eligibility Check</Text>
+              <Text className="text-[#5A5F66] text-lg">Skip MSA Eligibility Check</Text>
               <Switch
                 value={skipMSA}
                 onValueChange={setSkipMSA}
@@ -213,11 +215,10 @@ export default function AddQuickOrderScreen() {
 
             {/* Notes Section */}
             <View>
-              <Text className="text-blue-500 font-medium mb-2 text-[18px]" style={{ fontFamily: 'Montserrat' }}>Notes</Text>
-              <Text className="text-[#5A5F66] text-[18px] mb-1.5" style={{ fontFamily: 'Montserrat' }}>Notes (Internal)</Text>
+              <Text className="text-blue-500 font-medium mb-2 text-lg">Notes</Text>
+              <Text className="text-[#5A5F66] text-lg mb-1.5">Notes (Internal)</Text>
               <TextInput
-                className="bg-white border border-gray-200 rounded-xl px-3 py-3 text-gray-800 text-[18px] h-24 shadow-sm"
-                style={{ fontFamily: 'Montserrat' }}
+                className="bg-white border border-gray-200 rounded-xl px-3 py-3 text-gray-800 text-lg h-24 shadow-sm"
                 placeholder="Enter notes..."
                 placeholderTextColor={colors.textTertiary}
                 value={notes}
@@ -225,7 +226,7 @@ export default function AddQuickOrderScreen() {
                 multiline
                 textAlignVertical="top"
               />
-              <Text className="text-gray-400 text-[14px] mt-1" style={{ fontFamily: 'Montserrat' }}>{500 - notes.length} Character(s) out of 500 remaining</Text>
+              <Text className="text-gray-400 text-sm mt-1">{500 - notes.length} Character(s) out of 500 remaining</Text>
             </View>
           </View>
 
@@ -236,58 +237,58 @@ export default function AddQuickOrderScreen() {
             {/* Store Channel & Search */}
             <View className="flex-row items-end gap-3 mb-4">
               <View className="flex-1">
-                <Text className="text-[#5A5F66] text-[18px] mb-1.5" style={{ fontFamily: 'Montserrat' }}>Please select the Store Channel*</Text>
+                <Text className="text-[#5A5F66] text-lg mb-1.5">Please select the Store Channel*</Text>
                 <Pressable className="flex-row items-center bg-white border border-gray-200 rounded-xl px-3 py-3 shadow-sm">
-                  <Text className="flex-1 text-gray-800 text-[18px]" style={{ fontFamily: 'Montserrat' }}>{storeChannel}</Text>
+                  <Text className="flex-1 text-gray-800 text-lg">{storeChannel}</Text>
                   <Ionicons name="chevron-down" size={iconSize.base} color={colors.textTertiary} />
                 </Pressable>
               </View>
-              <Pressable className="bg-blue-500 px-4 py-3 rounded-lg">
-                <Text className="text-white font-medium">Bulk Add & Edit</Text>
-              </Pressable>
+              <ThemedButton
+                title="Bulk Add & Edit"
+                onPress={() => {}}
+                style={{ backgroundColor: colors.info }}
+              />
             </View>
 
             {/* Product Search Bar */}
             <View className="flex-row items-end gap-3 mb-4">
               <View className="flex-1">
-                <Text className="text-[#5A5F66] text-[18px] mb-1.5" style={{ fontFamily: 'Montserrat' }}>Add product by Name, SKU, UPC</Text>
+                <Text className="text-[#5A5F66] text-lg mb-1.5">Add product by Name, SKU, UPC</Text>
                 <Pressable 
                   onPress={() => setShowSearchModal(true)}
                   className="flex-row items-center bg-white border border-gray-200 rounded-lg px-3 py-3 shadow-sm"
                 >
                   <Ionicons name="search" size={iconSize.base} color={colors.textTertiary} />
-                  <Text className="flex-1 ml-2 text-gray-400 text-[18px]" style={{ fontFamily: 'Montserrat' }}>Search Products</Text>
+                  <Text className="flex-1 ml-2 text-gray-400 text-lg">Search Products</Text>
                 </Pressable>
               </View>
               <View>
-                <Text className="text-[#5A5F66] text-[18px] mb-1.5 text-center" style={{ fontFamily: 'Montserrat' }}>Scan Qty</Text>
+                <Text className="text-[#5A5F66] text-lg mb-1.5 text-center">Scan Qty</Text>
                 <TextInput
-                  className="w-20 bg-white border border-gray-200 rounded-lg px-3 py-3 text-center text-gray-800 text-[18px] shadow-sm"
-                  style={{ fontFamily: 'Montserrat' }}
+                  className="w-20 bg-white border border-gray-200 rounded-lg px-3 py-3 text-center text-gray-800 text-lg shadow-sm"
                   keyboardType="numeric"
                   value={scanQty}
                   onChangeText={setScanQty}
                 />
               </View>
-              <Pressable className="bg-red-500 px-4 py-3 rounded-lg flex-row items-center gap-2">
-                <Ionicons name="scan" size={iconSize.md} color="white" />
-                <Text className="text-white font-medium">Scan Logs</Text>
-              </Pressable>
-              <Pressable className="bg-gray-100 p-3 rounded-lg">
-                <Ionicons name="settings-outline" size={iconSize.base} color={colors.textMedium} />
-              </Pressable>
+              <ThemedButton
+                icon="settings-outline"
+                onPress={() => {}}
+                variant="ghost"
+                style={{ width: buttonSize.md.height, height: buttonSize.md.height, backgroundColor: colors.backgroundSecondary }}
+              />
             </View>
 
             {/* Products Table */}
             <View className="border border-gray-200 rounded-lg overflow-hidden">
               {/* Table Header */}
               <View className="flex-row bg-gray-50 px-4 py-3 border-b border-gray-200" style={{ backgroundColor: colors.backgroundTertiary }}>
-                <Text className="w-24 text-gray-500 text-xs font-semibold uppercase">SKU</Text>
-                <Text className="flex-1 text-gray-500 text-xs font-semibold uppercase">Product Name</Text>
-                <Text className="w-20 text-gray-500 text-xs font-semibold uppercase text-center">Price</Text>
-                <Text className="w-24 text-gray-500 text-xs font-semibold uppercase text-center">Qty</Text>
-                <Text className="w-20 text-gray-500 text-xs font-semibold uppercase text-center">Total</Text>
-                <Text className="w-16 text-gray-500 text-xs font-semibold uppercase text-center">Action</Text>
+                <Text className="w-24 text-gray-500 text-sm font-semibold uppercase">SKU</Text>
+                <Text className="flex-1 text-gray-500 text-sm font-semibold uppercase">Product Name</Text>
+                <Text className="w-20 text-gray-500 text-sm font-semibold uppercase text-center">Price</Text>
+                <Text className="w-24 text-gray-500 text-sm font-semibold uppercase text-center">Qty</Text>
+                <Text className="w-20 text-gray-500 text-sm font-semibold uppercase text-center">Total</Text>
+                <Text className="w-16 text-gray-500 text-sm font-semibold uppercase text-center">Action</Text>
               </View>
 
               {/* Empty State or Products */}
@@ -295,13 +296,11 @@ export default function AddQuickOrderScreen() {
                 <View className="py-16 items-center">
                   <Ionicons name="cart-outline" size={iconSize['5xl']} color={colors.borderMedium} />
                   <Text className="text-gray-400 text-lg mt-4">Nothing in cart!</Text>
-                  <Pressable 
+                  <ThemedButton
+                    title="+ Add Products"
                     onPress={() => setShowSearchModal(true)}
-                    className="mt-4 px-6 py-3 rounded-lg"
-                    style={{ backgroundColor: colors.info }}
-                  >
-                    <Text className="text-white font-medium">+ Add Products</Text>
-                  </Pressable>
+                    style={{ marginTop: 16, backgroundColor: colors.info }}
+                  />
                 </View>
               ) : (
                 <ScrollView style={{ maxHeight: 300 }}>
@@ -311,25 +310,25 @@ export default function AddQuickOrderScreen() {
                       <Text className="flex-1 text-gray-800 text-sm pr-2" numberOfLines={2}>{product.name}</Text>
                       <Text className="w-20 text-gray-800 text-sm text-center">${product.price.toFixed(2)}</Text>
                       <View className="w-24 flex-row items-center justify-center gap-1">
-                        <Pressable
+                        <ThemedButton
+                          icon="remove"
                           onPress={() => handleQuantityChange(product.id, -1)}
-                          className="w-7 h-7 bg-red-500 rounded items-center justify-center"
-                        >
-                          <Ionicons name="remove" size={iconSize.sm} color="white" />
-                        </Pressable>
+                          size="xs"
+                          style={{ width: 28, height: 28, minWidth: 28, backgroundColor: colors.primary, borderRadius: 6 }}
+                        />
                         <Text className="w-8 text-center text-gray-800 font-medium">{product.quantity}</Text>
-                        <Pressable
+                        <ThemedButton
+                          icon="add"
                           onPress={() => handleQuantityChange(product.id, 1)}
-                          className="w-7 h-7 bg-green-500 rounded items-center justify-center"
-                        >
-                          <Ionicons name="add" size={iconSize.sm} color="white" />
-                        </Pressable>
+                          size="xs"
+                          style={{ width: 28, height: 28, minWidth: 28, backgroundColor: colors.success, borderRadius: 6 }}
+                        />
                       </View>
                       <Text className="w-20 text-gray-800 text-sm text-center font-medium">${product.total.toFixed(2)}</Text>
                       <View className="w-16 items-center">
                         <Pressable
                           onPress={() => removeProduct(product.id)}
-                          className="p-2 bg-red-100 rounded-lg"
+                          style={{ padding: 8, backgroundColor: colors.primaryLight, borderRadius: buttonSize.md.borderRadius }}
                         >
                           <Ionicons name="trash-outline" size={iconSize.sm} color={colors.error} />
                         </Pressable>
@@ -348,16 +347,16 @@ export default function AddQuickOrderScreen() {
             {/* Order Type & Date */}
             <View className="flex-row gap-3 mb-4">
               <View className="flex-1">
-                <Text className="text-[#5A5F66] text-[18px] mb-1.5" style={{ fontFamily: 'Montserrat' }}>Order Type</Text>
+                <Text className="text-[#5A5F66] text-lg mb-1.5">Order Type</Text>
                 <Pressable className="flex-row items-center bg-white border border-gray-200 rounded-xl px-3 py-3 shadow-sm">
-                  <Text className="flex-1 text-gray-800 text-[18px]" style={{ fontFamily: 'Montserrat' }}>{orderType}</Text>
+                  <Text className="flex-1 text-gray-800 text-lg">{orderType}</Text>
                   <Ionicons name="chevron-down" size={iconSize.base} color={colors.textTertiary} />
                 </Pressable>
               </View>
               <View className="flex-1">
-                <Text className="text-[#5A5F66] text-[18px] mb-1.5" style={{ fontFamily: 'Montserrat' }}>Order Date</Text>
+                <Text className="text-[#5A5F66] text-lg mb-1.5">Order Date</Text>
                 <View className="flex-row items-center bg-white border border-gray-200 rounded-xl px-3 py-3 shadow-sm">
-                  <Text className="flex-1 text-gray-800 text-[18px]" style={{ fontFamily: 'Montserrat' }}>{orderDate}</Text>
+                  <Text className="flex-1 text-gray-800 text-lg">{orderDate}</Text>
                   <Ionicons name="calendar-outline" size={iconSize.base} color={colors.textTertiary} />
                 </View>
               </View>
@@ -365,17 +364,24 @@ export default function AddQuickOrderScreen() {
 
             {/* Action Buttons */}
             <View className="gap-2 mb-4">
-              <Pressable 
+              <ThemedButton
+                title="Empty Cart"
+                icon="trash-outline"
                 onPress={emptyCart}
-                className="bg-red-50 py-3 rounded-lg flex-row items-center justify-center gap-2"
-              >
-                <Ionicons name="trash-outline" size={iconSize.md} color={colors.primary} />
-                <Text style={{ color: colors.primary }} className="font-medium">Empty Cart</Text>
-              </Pressable>
-              <Pressable className="bg-red-50 py-3 rounded-lg flex-row items-center justify-center gap-2">
-                <Ionicons name="bookmark-outline" size={iconSize.md} color={colors.primary} />
-                <Text style={{ color: colors.primary }} className="font-medium">Park Order</Text>
-              </Pressable>
+                variant="outline"
+                fullWidth
+                style={{ backgroundColor: colors.primaryLight, borderColor: colors.primary }}
+                textStyle={{ color: colors.primary }}
+              />
+              <ThemedButton
+                title="Park Order"
+                icon="bookmark-outline"
+                onPress={() => {}}
+                variant="outline"
+                fullWidth
+                style={{ backgroundColor: colors.primaryLight, borderColor: colors.primary }}
+                textStyle={{ color: colors.primary }}
+              />
             </View>
 
             {/* Sale Order / Sale Return */}
@@ -402,35 +408,34 @@ export default function AddQuickOrderScreen() {
 
             {/* Dispatch Date */}
             <View className="mb-4">
-              <Text className="text-[#5A5F66] text-[18px] mb-1.5" style={{ fontFamily: 'Montserrat' }}>Dispatch Date</Text>
+              <Text className="text-[#5A5F66] text-lg mb-1.5">Dispatch Date</Text>
               <View className="flex-row items-center bg-white border border-gray-200 rounded-xl px-3 py-3 shadow-sm">
-                <Text className="flex-1 text-gray-800 text-[18px]" style={{ fontFamily: 'Montserrat' }}>{dispatchDate}</Text>
+                <Text className="flex-1 text-gray-800 text-lg">{dispatchDate}</Text>
                 <Ionicons name="calendar-outline" size={iconSize.base} color={colors.textTertiary} />
               </View>
             </View>
 
             {/* Sales Rep */}
             <View className="mb-4">
-              <Text className="text-[#5A5F66] text-[18px] mb-1.5" style={{ fontFamily: 'Montserrat' }}>Please select the Sales Rep</Text>
+              <Text className="text-[#5A5F66] text-lg mb-1.5">Please select the Sales Rep</Text>
               <Pressable className="flex-row items-center bg-white border border-gray-200 rounded-xl px-3 py-3 shadow-sm">
-                <Text className="flex-1 text-gray-400 text-[18px]" style={{ fontFamily: 'Montserrat' }}>Please Select</Text>
+                <Text className="flex-1 text-gray-400 text-lg">Please Select</Text>
                 <Ionicons name="chevron-down" size={iconSize.base} color={colors.textTertiary} />
               </Pressable>
             </View>
 
             {/* Additional Discount */}
             <View className="mb-4">
-              <Text className="text-[#5A5F66] text-[18px] mb-1.5" style={{ fontFamily: 'Montserrat' }}>Additional Discount</Text>
+              <Text className="text-[#5A5F66] text-lg mb-1.5">Additional Discount</Text>
               <View className="flex-row gap-2">
                 <TextInput
-                  className="flex-1 bg-white border border-gray-200 rounded-xl px-3 py-3 text-gray-800 text-[18px] shadow-sm"
-                  style={{ fontFamily: 'Montserrat' }}
+                  className="flex-1 bg-white border border-gray-200 rounded-xl px-3 py-3 text-gray-800 text-lg shadow-sm"
                   keyboardType="numeric"
                   value={additionalDiscount}
                   onChangeText={setAdditionalDiscount}
                 />
                 <Pressable className="flex-row items-center bg-white border border-gray-200 rounded-xl px-3 py-3 shadow-sm">
-                  <Text className="text-gray-800 text-[18px]" style={{ fontFamily: 'Montserrat' }}>{discountType}</Text>
+                  <Text className="text-gray-800 text-lg">{discountType}</Text>
                   <Ionicons name="chevron-down" size={iconSize.base} color={colors.textTertiary} />
                 </Pressable>
               </View>
@@ -438,10 +443,9 @@ export default function AddQuickOrderScreen() {
 
             {/* Delivery Charges */}
             <View className="mb-4">
-              <Text className="text-[#5A5F66] text-[18px] mb-1.5" style={{ fontFamily: 'Montserrat' }}>Delivery Charges</Text>
+              <Text className="text-[#5A5F66] text-lg mb-1.5">Delivery Charges</Text>
               <TextInput
-                className="bg-white border border-gray-200 rounded-xl px-3 py-3 text-gray-800 text-[18px] shadow-sm"
-                style={{ fontFamily: 'Montserrat' }}
+                className="bg-white border border-gray-200 rounded-xl px-3 py-3 text-gray-800 text-lg shadow-sm"
                 placeholder="Enter Amount"
                 placeholderTextColor={colors.textTertiary}
                 keyboardType="numeric"
@@ -479,10 +483,13 @@ export default function AddQuickOrderScreen() {
             </View>
 
             {/* Preview Button */}
-            <Pressable className="bg-gray-800 py-3 rounded-lg mt-4 flex-row items-center justify-center gap-2">
-              <Ionicons name="eye-outline" size={iconSize.md} color="white" />
-              <Text className="text-white font-medium">Preview</Text>
-            </Pressable>
+            <ThemedButton
+              title="Preview"
+              icon="eye-outline"
+              onPress={() => {}}
+              fullWidth
+              style={{ marginTop: 16, backgroundColor: colors.surfaceDark }}
+            />
           </View>
         </View>
       </ScrollView>

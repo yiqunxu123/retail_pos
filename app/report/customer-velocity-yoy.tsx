@@ -63,7 +63,7 @@ function MarginBadge({ percentage }: { percentage: number }) {
   const colors = getMarginColorClasses(percentage);
   return (
     <View className={`px-3 py-1 rounded ${colors.bg}`}>
-      <Text className={`font-Montserrat font-bold text-[16px] ${colors.text}`}>
+      <Text className={`font-bold text-base ${colors.text}`}>
         {percentage.toFixed(1)}%
       </Text>
     </View>
@@ -185,7 +185,7 @@ export default function CustomerVelocityScreen() {
       title: "No",
       width: 120,
       render: (item) => (
-        <Text className="text-gray-600 text-[18px] font-Montserrat">{item.customerNo || '-'}</Text>
+        <Text className="text-gray-600 text-lg">{item.customerNo || '-'}</Text>
       ),
     },
     {
@@ -194,8 +194,8 @@ export default function CustomerVelocityScreen() {
       width: 250,
       render: (item) => (
         <View>
-          <Text className="text-[#1A1A1A] text-[18px] font-Montserrat font-medium" numberOfLines={1}>{item.customerName || '-'}</Text>
-          <Text className="text-blue-600 text-[14px] font-Montserrat" numberOfLines={1}>{item.businessName || '-'}</Text>
+          <Text className="text-[#1A1A1A] text-lg font-medium" numberOfLines={1}>{item.customerName || '-'}</Text>
+          <Text className="text-blue-600 text-sm" numberOfLines={1}>{item.businessName || '-'}</Text>
         </View>
       ),
     },
@@ -205,7 +205,7 @@ export default function CustomerVelocityScreen() {
       width: 100,
       align: "center",
       render: (item) => (
-        <Text className="text-[#1A1A1A] text-[18px] font-Montserrat text-center">{item.qtySold}</Text>
+        <Text className="text-[#1A1A1A] text-lg text-center">{item.qtySold}</Text>
       ),
     },
     {
@@ -214,7 +214,7 @@ export default function CustomerVelocityScreen() {
       width: 150,
       align: "right",
       render: (item) => (
-        <Text className="text-[#1A1A1A] text-[18px] font-Montserrat text-right">{formatCurrency(item.salesRevenue)}</Text>
+        <Text className="text-[#1A1A1A] text-lg text-right">{formatCurrency(item.salesRevenue)}</Text>
       ),
     },
     {
@@ -223,7 +223,7 @@ export default function CustomerVelocityScreen() {
       width: 150,
       align: "right",
       render: (item) => (
-        <Text className="text-[#1A1A1A] text-[18px] font-Montserrat text-right">{formatCurrency(item.cost)}</Text>
+        <Text className="text-[#1A1A1A] text-lg text-right">{formatCurrency(item.cost)}</Text>
       ),
     },
     {
@@ -232,7 +232,7 @@ export default function CustomerVelocityScreen() {
       width: 150,
       align: "right",
       render: (item) => (
-        <Text className="text-green-600 text-[18px] font-Montserrat font-bold text-right">{formatCurrency(item.margin)}</Text>
+        <Text className="text-green-600 text-lg font-bold text-right">{formatCurrency(item.margin)}</Text>
       ),
     },
     {
@@ -251,25 +251,25 @@ export default function CustomerVelocityScreen() {
   const renderTableFooter = () => (
     <View className="flex-row items-center py-4 px-5 bg-gray-100 border-t-2 border-gray-300">
       <View className="w-[120px]">
-        <Text className="text-[#1A1A1A] text-[18px] font-Montserrat font-bold">TOTAL</Text>
+        <Text className="text-[#1A1A1A] text-lg font-bold">TOTAL</Text>
       </View>
       <View className="w-[250px]">
-        <Text className="text-[#1A1A1A] text-[18px] font-Montserrat font-bold">{filteredData.length} customers</Text>
+        <Text className="text-[#1A1A1A] text-lg font-bold">{filteredData.length} customers</Text>
       </View>
       <View className="w-[100px]">
-        <Text className="text-[#1A1A1A] text-[18px] font-Montserrat font-bold text-center">{totals.qtySold}</Text>
+        <Text className="text-[#1A1A1A] text-lg font-bold text-center">{totals.qtySold}</Text>
       </View>
       <View className="w-[150px]">
-        <Text className="text-[#1A1A1A] text-[18px] font-Montserrat font-bold text-right">{formatCurrency(totals.revenue)}</Text>
+        <Text className="text-[#1A1A1A] text-lg font-bold text-right">{formatCurrency(totals.revenue)}</Text>
       </View>
       <View className="w-[150px]">
-        <Text className="text-[#1A1A1A] text-[18px] font-Montserrat font-bold text-right">{formatCurrency(totals.cost)}</Text>
+        <Text className="text-[#1A1A1A] text-lg font-bold text-right">{formatCurrency(totals.cost)}</Text>
       </View>
       <View className="w-[150px]">
-        <Text className="text-green-600 text-[18px] font-Montserrat font-bold text-right">{formatCurrency(totals.margin)}</Text>
+        <Text className="text-green-600 text-lg font-bold text-right">{formatCurrency(totals.margin)}</Text>
       </View>
       <View className="w-[120px]">
-        <Text className="text-blue-600 text-[18px] font-Montserrat font-bold text-center">{avgMarginPercentage.toFixed(1)}%</Text>
+        <Text className="text-blue-600 text-lg font-bold text-center">{avgMarginPercentage.toFixed(1)}%</Text>
       </View>
     </View>
   );

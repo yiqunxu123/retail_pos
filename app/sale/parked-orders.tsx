@@ -10,7 +10,7 @@
  * - Resume: navigate to order form with retrieveOrderId
  */
 
-import { buttonSize, iconSize } from "@/utils/theme";
+import { buttonSize, colors, iconSize } from "@/utils/theme";
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import { useCallback, useMemo } from "react";
@@ -112,7 +112,7 @@ export default function ParkedOrdersScreen() {
       visible: true,
       hideable: false,
       render: (item) => (
-        <Text className="text-blue-600 text-[18px] font-Montserrat font-medium" numberOfLines={1}>
+        <Text className="text-blue-600 text-lg font-medium" numberOfLines={1}>
           {item.orderNo}
         </Text>
       ),
@@ -123,7 +123,7 @@ export default function ParkedOrdersScreen() {
       width: 200,
       visible: true,
       render: (item) => (
-        <Text className="text-gray-600 text-[18px] font-Montserrat">
+        <Text className="text-gray-600 text-lg">
           {formatDate(item.orderDate)}
         </Text>
       ),
@@ -134,7 +134,7 @@ export default function ParkedOrdersScreen() {
       width: "flex",
       visible: true,
       render: (item) => (
-        <Text className="text-blue-600 text-[18px] font-Montserrat" numberOfLines={1}>
+        <Text className="text-blue-600 text-lg" numberOfLines={1}>
           {item.customerName || "Guest Customer"}
         </Text>
       ),
@@ -145,7 +145,7 @@ export default function ParkedOrdersScreen() {
       width: 140,
       visible: true,
       render: (item) => (
-        <Text className="text-gray-600 text-[18px] font-Montserrat">{item.createdByName}</Text>
+        <Text className="text-gray-600 text-lg">{item.createdByName}</Text>
       ),
     },
     {
@@ -155,7 +155,7 @@ export default function ParkedOrdersScreen() {
       visible: true,
       render: (item) => (
         <View className="bg-pink-100 px-3 py-1 rounded self-start">
-          <Text className="text-pink-600 text-[14px] font-Montserrat font-medium">
+          <Text className="text-pink-600 text-sm font-medium">
             {item.channelName}
           </Text>
         </View>
@@ -168,7 +168,7 @@ export default function ParkedOrdersScreen() {
       align: "center",
       visible: true,
       render: (item) => (
-        <Text className="text-gray-600 text-[18px] font-Montserrat">{item.itemCount}</Text>
+        <Text className="text-gray-600 text-lg">{item.itemCount}</Text>
       ),
     },
     {
@@ -177,7 +177,7 @@ export default function ParkedOrdersScreen() {
       width: 140,
       visible: true,
       render: (item) => (
-        <Text className="text-red-600 text-[18px] font-Montserrat font-bold">
+        <Text className="text-red-600 text-lg font-bold">
           {formatCurrency(item.totalPrice)}
         </Text>
       ),
@@ -189,7 +189,7 @@ export default function ParkedOrdersScreen() {
       visible: true,
       render: (item) => (
         <View className="bg-purple-100 px-3 py-1 rounded self-start">
-          <Text className="text-purple-700 text-[14px] font-Montserrat font-medium">
+          <Text className="text-purple-700 text-sm font-medium">
             {getSaleOrderStatusLabel(item.status)}
           </Text>
         </View>
@@ -204,18 +204,18 @@ export default function ParkedOrdersScreen() {
       render: (item) => (
         <View className="flex-row gap-4">
           <Pressable
-            className="bg-red-50 rounded-lg items-center justify-center"
-            style={{ width: buttonSize.md.height, height: buttonSize.md.height }}
+            className="rounded-lg items-center justify-center"
+            style={{ width: buttonSize.md.height, height: buttonSize.md.height, backgroundColor: colors.primaryLight, borderRadius: buttonSize.md.borderRadius }}
             onPress={() => handleResumeOrder(item)}
           >
-            <Ionicons name="play-outline" size={iconSize.md} color="#EC1A52" />
+            <Ionicons name="play-outline" size={iconSize.md} color={colors.primary} />
           </Pressable>
           <Pressable
-            className="bg-red-50 rounded-lg items-center justify-center"
-            style={{ width: buttonSize.md.height, height: buttonSize.md.height }}
+            className="rounded-lg items-center justify-center"
+            style={{ width: buttonSize.md.height, height: buttonSize.md.height, backgroundColor: colors.primaryLight, borderRadius: buttonSize.md.borderRadius }}
             onPress={() => handleDeleteOrder(item)}
           >
-            <Ionicons name="trash-outline" size={iconSize.md} color="#EC1A52" />
+            <Ionicons name="trash-outline" size={iconSize.md} color={colors.primary} />
           </Pressable>
         </View>
       ),

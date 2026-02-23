@@ -3,6 +3,7 @@
  * Uses the unified DataTable component
  */
 
+import { colors } from "@/utils/theme";
 import { useCallback, useMemo, useState } from "react";
 import { Pressable, Text, View } from "react-native";
 import { ColumnDefinition, DataTable, FilterDefinition, PageHeader } from "../../components";
@@ -35,15 +36,14 @@ function PickerBadge({ isAssigned, details }: { isAssigned: boolean; details: st
   return (
     <View className="flex-row items-center justify-center gap-2">
       <View
-        className={`w-7 h-7 rounded-full items-center justify-center ${
-          isAssigned ? "bg-red-500" : "bg-gray-300"
-        }`}
+        className="w-7 h-7 rounded-full items-center justify-center"
+        style={{ backgroundColor: isAssigned ? colors.primary : colors.borderMedium }}
       >
-        <Text className="text-white text-[14px] font-bold">
+        <Text className="text-white text-sm font-bold">
           {isAssigned ? "D" : "?"}
         </Text>
       </View>
-      <Text className="text-gray-600 text-[18px] font-Montserrat" numberOfLines={1}>
+      <Text className="text-gray-600 text-lg" numberOfLines={1}>
         {details}
       </Text>
     </View>
@@ -69,9 +69,9 @@ export default function FulfillmentsScreen() {
       hideable: false,
       render: (item) => (
         <View>
-          <Text className="text-blue-600 font-medium text-[18px] font-Montserrat">{item.businessName}</Text>
+          <Text className="text-blue-600 font-medium text-lg">{item.businessName}</Text>
           {item.customerName && (
-            <Text className="text-blue-500 text-[14px] font-Montserrat">{item.customerName}</Text>
+            <Text className="text-blue-500 text-sm">{item.customerName}</Text>
           )}
         </View>
       ),
@@ -82,7 +82,7 @@ export default function FulfillmentsScreen() {
       width: 180,
       align: "center",
       visible: true,
-      render: (item) => <Text className="text-blue-600 text-[18px] font-Montserrat">{item.orderNo}</Text>,
+      render: (item) => <Text className="text-blue-600 text-lg">{item.orderNo}</Text>,
     },
     {
       key: "shippingType",
@@ -90,7 +90,7 @@ export default function FulfillmentsScreen() {
       width: 140,
       align: "center",
       visible: true,
-      render: (item) => <Text className="text-gray-600 text-[18px] font-Montserrat">{item.shippingType}</Text>,
+      render: (item) => <Text className="text-gray-600 text-lg">{item.shippingType}</Text>,
     },
     {
       key: "pickerDetails",

@@ -1,4 +1,4 @@
-import { colors, iconSize } from "@/utils/theme";
+import { buttonSize, colors, iconSize } from "@/utils/theme";
 import { Ionicons } from "@expo/vector-icons";
 import { Pressable, Text, TextInput, View } from "react-native";
 
@@ -8,7 +8,6 @@ interface ProductSearchProps {
   scanQty: string;
   onScanQtyChange: (text: string) => void;
   onRefresh?: () => void;
-  onScanLogs?: () => void;
   onSearchFocus?: () => void;
 }
 
@@ -22,7 +21,6 @@ export function ProductSearch({
   scanQty,
   onScanQtyChange,
   onRefresh,
-  onScanLogs,
   onSearchFocus,
 }: ProductSearchProps) {
   return (
@@ -30,7 +28,7 @@ export function ProductSearch({
       <View className="flex-row items-center gap-4">
         {/* Search Input */}
         <View className="flex-1">
-          <Text className="text-[#5A5F66] text-[18px] mb-2" style={{ fontFamily: 'Montserrat' }}>
+          <Text className="text-[#5A5F66] text-lg mb-2">
             Add product by Name, SKU, UPC
           </Text>
           <Pressable
@@ -39,8 +37,7 @@ export function ProductSearch({
           >
             <Ionicons name="search" size={iconSize.base} color={colors.textTertiary} />
             <TextInput
-              className="flex-1 ml-2 text-gray-800 text-[18px]"
-              style={{ fontFamily: 'Montserrat' }}
+              className="flex-1 ml-2 text-gray-800 text-lg"
               placeholder="Search Products"
               placeholderTextColor="#9ca3af"
               value={searchQuery}
@@ -52,10 +49,9 @@ export function ProductSearch({
 
         {/* Scan Qty */}
         <View>
-          <Text className="text-[#5A5F66] text-[18px] mb-2" style={{ fontFamily: 'Montserrat' }}>Scan Qty</Text>
+          <Text className="text-[#5A5F66] text-lg mb-2">Scan Qty</Text>
           <TextInput
-            className="w-20 bg-white border border-gray-200 rounded-lg px-3 py-3 text-center text-gray-800 text-[18px] shadow-sm"
-            style={{ fontFamily: 'Montserrat' }}
+            className="w-20 bg-white border border-gray-200 rounded-lg px-3 py-3 text-center text-gray-800 text-lg shadow-sm"
             keyboardType="numeric"
             value={scanQty}
             onChangeText={onScanQtyChange}
@@ -65,20 +61,16 @@ export function ProductSearch({
         {/* Refresh Button */}
         <Pressable
           onPress={onRefresh}
-          className="bg-red-500 px-4 py-3 rounded-lg flex-row items-center gap-2 mt-5"
-          style={({ pressed }) => ({ opacity: pressed ? 0.8 : 1 })}
+          className="px-4 rounded-lg flex-row items-center gap-2 mt-5"
+          style={({ pressed }) => ({ 
+            height: buttonSize.md.height, 
+            backgroundColor: colors.primary, 
+            borderRadius: buttonSize.md.borderRadius, 
+            opacity: pressed ? 0.8 : 1 
+          })}
         >
           <Ionicons name="refresh" size={iconSize.md} color="white" />
           <Text className="text-white font-medium">Refresh</Text>
-        </Pressable>
-
-        {/* Scan Logs Button */}
-        <Pressable
-          onPress={onScanLogs}
-          className="bg-white border border-gray-300 px-4 py-3 rounded-lg mt-5"
-          style={({ pressed }) => ({ opacity: pressed ? 0.8 : 1 })}
-        >
-          <Text className="text-gray-700 font-medium">Scan Logs</Text>
         </Pressable>
       </View>
     </View>

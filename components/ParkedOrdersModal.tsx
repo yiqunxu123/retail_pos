@@ -1,6 +1,7 @@
 import { buttonSize, colors, iconSize } from "@/utils/theme";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
-import { Alert, Modal, ScrollView, Text, TouchableOpacity, View } from "react-native";
+import { Alert, Modal, Pressable, ScrollView, Text, TouchableOpacity, View } from "react-native";
+import { ThemedButton } from "./ThemedButton";
 import { ParkedOrder } from "../contexts/ParkedOrderContext";
 
 interface ParkedOrdersModalProps {
@@ -76,9 +77,9 @@ export function ParkedOrdersModal({
                 </Text>
               </View>
             </View>
-            <TouchableOpacity onPress={onClose}>
+            <Pressable onPress={onClose} style={{ width: buttonSize.md.height, height: buttonSize.md.height, alignItems: 'center', justifyContent: 'center' }}>
               <Ionicons name="close" size={iconSize.xl} color={colors.textSecondary} />
-            </TouchableOpacity>
+            </Pressable>
           </View>
 
           {/* Content */}
@@ -94,12 +95,12 @@ export function ParkedOrdersModal({
             <ScrollView className="max-h-96">
               {/* Table Header */}
               <View className="flex-row bg-[#F7F7F9] px-4 py-3 border-b border-gray-200">
-                <Text className="w-24 text-gray-600 text-xs font-semibold">Order ID</Text>
-                <Text className="flex-1 text-gray-600 text-xs font-semibold">Customer</Text>
-                <Text className="w-16 text-gray-600 text-xs font-semibold text-center">Items</Text>
-                <Text className="w-24 text-gray-600 text-xs font-semibold text-right">Total</Text>
-                <Text className="w-32 text-gray-600 text-xs font-semibold text-center">Parked At</Text>
-                <Text className="w-24 text-gray-600 text-xs font-semibold text-center">Actions</Text>
+                <Text className="w-24 text-gray-600 text-sm font-semibold">Order ID</Text>
+                <Text className="flex-1 text-gray-600 text-sm font-semibold">Customer</Text>
+                <Text className="w-16 text-gray-600 text-sm font-semibold text-center">Items</Text>
+                <Text className="w-24 text-gray-600 text-sm font-semibold text-right">Total</Text>
+                <Text className="w-32 text-gray-600 text-sm font-semibold text-center">Parked At</Text>
+                <Text className="w-24 text-gray-600 text-sm font-semibold text-center">Actions</Text>
               </View>
 
               {/* Table Body */}
@@ -113,7 +114,7 @@ export function ParkedOrdersModal({
                   <View className="w-24">
                     <Text className="text-red-500 text-sm font-medium">{order.id}</Text>
                     {order.note && (
-                      <Text className="text-gray-400 text-xs" numberOfLines={1}>
+                      <Text className="text-gray-400 text-sm" numberOfLines={1}>
                         {order.note}
                       </Text>
                     )}
@@ -125,24 +126,22 @@ export function ParkedOrdersModal({
                   <Text className="w-24 text-red-500 text-sm font-medium text-right">
                     ${order.total.toFixed(2)}
                   </Text>
-                  <Text className="w-32 text-gray-600 text-xs text-center">
+                  <Text className="w-32 text-gray-600 text-sm text-center">
                     {formatTime(order.parkedAt)}
                   </Text>
                   <View className="flex-row justify-center gap-4" style={{ minWidth: 140 }}>
-                    <TouchableOpacity
+                    <ThemedButton
+                      title="Resume"
                       onPress={() => onResumeOrder(order.id)}
-                      className="bg-green-500 rounded-lg items-center justify-center"
-                      style={{ minWidth: 72, height: buttonSize.md.height, paddingHorizontal: 12 }}
-                    >
-                      <Text className="text-white font-medium">Resume</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity
+                      style={{ minWidth: 72, backgroundColor: colors.success }}
+                    />
+                    <ThemedButton
+                      icon="trash-outline"
                       onPress={() => handleDelete(order.id)}
-                      className="bg-red-100 rounded-lg items-center justify-center"
-                      style={{ minWidth: buttonSize.md.height, height: buttonSize.md.height, paddingHorizontal: 12 }}
-                    >
-                      <Ionicons name="trash-outline" size={iconSize.md} color={colors.error} />
-                    </TouchableOpacity>
+                      variant="outline"
+                      style={{ minWidth: buttonSize.md.height, borderColor: colors.error }}
+                      textStyle={{ color: colors.error }}
+                    />
                   </View>
                 </View>
               ))}
@@ -151,13 +150,13 @@ export function ParkedOrdersModal({
 
           {/* Footer */}
           <View className="px-6 py-4 border-t border-gray-200">
-            <TouchableOpacity
+            <ThemedButton
+              title="Close"
+              variant="outline"
               onPress={onClose}
-              className="bg-gray-100 rounded-lg items-center justify-center"
-              style={{ height: buttonSize.md.height }}
-            >
-              <Text className="text-gray-700 font-medium">Close</Text>
-            </TouchableOpacity>
+              fullWidth
+              style={{ backgroundColor: colors.backgroundSecondary }}
+            />
           </View>
         </TouchableOpacity>
       </TouchableOpacity>

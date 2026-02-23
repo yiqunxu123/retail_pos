@@ -30,28 +30,28 @@ export default function StockAlertsScreen() {
       width: "flex",
       visible: true,
       hideable: false,
-      render: (item) => <Text className="text-[#1A1A1A] text-[18px] font-Montserrat">{item.productName}</Text>,
+      render: (item) => <Text className="text-[#1A1A1A] text-lg">{item.productName}</Text>,
     },
     {
       key: "skuUpc",
       title: "SKU/UPC",
       width: 180,
       visible: true,
-      render: (item) => <Text className="text-gray-600 text-[18px] font-Montserrat">{item.skuUpc}</Text>,
+      render: (item) => <Text className="text-gray-600 text-lg">{item.skuUpc}</Text>,
     },
     {
       key: "channelName",
       title: "Channel Name",
       width: 140,
       visible: true,
-      render: (item) => <Text className="text-gray-600 text-[18px] font-Montserrat">{item.channelName}</Text>,
+      render: (item) => <Text className="text-gray-600 text-lg">{item.channelName}</Text>,
     },
     {
       key: "categoryName",
       title: "Category Name",
       width: 150,
       visible: true,
-      render: (item) => <Text className="text-gray-600 text-[18px] font-Montserrat">{item.categoryName}</Text>,
+      render: (item) => <Text className="text-gray-600 text-lg">{item.categoryName}</Text>,
     },
     {
       key: "availableQty",
@@ -63,7 +63,7 @@ export default function StockAlertsScreen() {
         const isCritical = item.availableQty === 0;
         const isBelowMin = item.availableQty < item.minQty;
         const colorClass = isCritical ? "text-red-600" : isBelowMin ? "text-orange-600" : "text-[#1A1A1A]";
-        return <Text className={`font-Montserrat font-bold text-[18px] ${colorClass}`}>{item.availableQty}</Text>;
+        return <Text className={`font-bold text-lg ${colorClass}`}>{item.availableQty}</Text>;
       },
     },
     {
@@ -72,7 +72,7 @@ export default function StockAlertsScreen() {
       width: 120,
       align: "center",
       visible: true,
-      render: (item) => <Text className="text-[#1A1A1A] text-[18px] font-Montserrat">{item.backOrderQty}</Text>,
+      render: (item) => <Text className="text-[#1A1A1A] text-lg">{item.backOrderQty}</Text>,
     },
     {
       key: "totalQty",
@@ -80,7 +80,7 @@ export default function StockAlertsScreen() {
       width: 100,
       align: "center",
       visible: true,
-      render: (item) => <Text className="text-[#1A1A1A] text-[18px] font-Montserrat">{item.totalQty}</Text>,
+      render: (item) => <Text className="text-[#1A1A1A] text-lg">{item.totalQty}</Text>,
     },
     {
       key: "minQty",
@@ -88,7 +88,7 @@ export default function StockAlertsScreen() {
       width: 100,
       align: "center",
       visible: true,
-      render: (item) => <Text className="text-blue-600 text-[18px] font-Montserrat font-bold">{item.minQty}</Text>,
+      render: (item) => <Text className="text-blue-600 text-lg font-bold">{item.minQty}</Text>,
     },
     {
       key: "maxQty",
@@ -96,7 +96,7 @@ export default function StockAlertsScreen() {
       width: 100,
       align: "center",
       visible: true,
-      render: (item) => <Text className="text-blue-600 text-[18px] font-Montserrat font-bold">{item.maxQty}</Text>,
+      render: (item) => <Text className="text-blue-600 text-lg font-bold">{item.maxQty}</Text>,
     },
   ];
 

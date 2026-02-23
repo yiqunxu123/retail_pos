@@ -1,4 +1,5 @@
 import { useRouter } from "expo-router";
+import { colors } from "@/utils/theme";
 import { Alert, Pressable, ScrollView, Text, TextInput, View } from "react-native";
 import { FormInput } from "../../components/FormInput";
 import { StepNavigation } from "../../components/StepNavigation";
@@ -80,15 +81,14 @@ export default function CheckoutScreen() {
             <View className="flex-row gap-4">
               {/* Additional Discount */}
               <View className="flex-1">
-                <Text className="text-[#5A5F66] text-[18px] mb-1.5" style={{ fontFamily: 'Montserrat' }}>Additional Discount</Text>
+                <Text className="text-[#5A5F66] text-lg mb-1.5">Additional Discount</Text>
                 <View className="flex-row items-center gap-2">
                   <View className="flex-row items-center bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm">
-                    <Pressable className="bg-red-500 px-3 py-3">
-                      <Text className="text-white font-medium text-[18px]" style={{ fontFamily: 'Montserrat' }}>$</Text>
+                    <Pressable style={{ paddingHorizontal: 12, paddingVertical: 12, backgroundColor: colors.primary, alignItems: 'center', justifyContent: 'center' }}>
+                      <Text className="text-white font-medium text-lg">$</Text>
                     </Pressable>
                     <TextInput
-                      className="flex-1 px-3 py-3 text-gray-800 text-[18px]"
-                      style={{ fontFamily: 'Montserrat' }}
+                      className="flex-1 px-3 py-3 text-gray-800 text-lg"
                       keyboardType="numeric"
                       value={order.additionalDiscount.toString()}
                       onChangeText={(v) => updateOrder({ additionalDiscount: parseFloat(v) || 0 })}
@@ -98,15 +98,14 @@ export default function CheckoutScreen() {
               </View>
               {/* Shipping Charges */}
               <View className="flex-1">
-                <Text className="text-[#5A5F66] text-[18px] mb-1.5" style={{ fontFamily: 'Montserrat' }}>Shipping Charges</Text>
+                <Text className="text-[#5A5F66] text-lg mb-1.5">Shipping Charges</Text>
                 <View className="flex-row items-center gap-2">
                   <View className="flex-row items-center bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm">
-                    <Pressable className="bg-red-500 px-3 py-3">
-                      <Text className="text-white font-medium text-[18px]" style={{ fontFamily: 'Montserrat' }}>$</Text>
+                    <Pressable style={{ paddingHorizontal: 12, paddingVertical: 12, backgroundColor: colors.primary, alignItems: 'center', justifyContent: 'center' }}>
+                      <Text className="text-white font-medium text-lg">$</Text>
                     </Pressable>
                     <TextInput
-                      className="flex-1 px-3 py-3 text-gray-800 text-[18px]"
-                      style={{ fontFamily: 'Montserrat' }}
+                      className="flex-1 px-3 py-3 text-gray-800 text-lg"
                       keyboardType="numeric"
                       value={order.shippingCharges.toString()}
                       onChangeText={(v) => updateOrder({ shippingCharges: parseFloat(v) || 0 })}

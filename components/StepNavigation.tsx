@@ -65,13 +65,8 @@ export function StepNavigation({ onConfirm, showConfirm }: StepNavigationProps) 
             >
               {/* Step Circle */}
               <View
-                className={`w-8 h-8 rounded-full items-center justify-center ${
-                  isActive
-                    ? "bg-red-500"
-                    : isCompleted
-                    ? "bg-green-500"
-                    : "bg-gray-300"
-                }`}
+                className="w-8 h-8 rounded-full items-center justify-center"
+                style={{ backgroundColor: isActive ? colors.primary : isCompleted ? colors.success : colors.borderMedium }}
               >
                 {isCompleted ? (
                   <Ionicons name="checkmark" size={iconSize.sm} color="white" />
@@ -81,9 +76,8 @@ export function StepNavigation({ onConfirm, showConfirm }: StepNavigationProps) 
               </View>
               {/* Step Label */}
               <Text
-                className={`text-sm font-medium ${
-                  isActive ? "text-red-500" : "text-gray-600"
-                }`}
+                className="text-sm font-medium"
+                style={{ color: isActive ? colors.primary : colors.textSecondary }}
               >
                 {step.label}
               </Text>
@@ -100,8 +94,8 @@ export function StepNavigation({ onConfirm, showConfirm }: StepNavigationProps) 
       {showConfirm ? (
         <Pressable
           onPress={onConfirm}
-          className="bg-red-500 px-6 py-3 rounded-lg"
-          style={({ pressed }) => ({ opacity: pressed ? 0.8 : 1 })}
+          className="px-6 py-3 rounded-lg"
+          style={({ pressed }) => ({ backgroundColor: colors.primary, opacity: pressed ? 0.8 : 1, borderRadius: 8 })}
         >
           <Text className="text-white font-semibold">Confirm</Text>
         </Pressable>

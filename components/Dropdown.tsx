@@ -51,7 +51,7 @@ export function Dropdown({
     <View>
       {/* Label */}
       {label && (
-        <Text className="text-[#5A5F66] text-[18px] mb-1.5" style={{ fontFamily: 'Montserrat' }}>{label}</Text>
+        <Text className="text-[#5A5F66] text-lg mb-1.5">{label}</Text>
       )}
 
       {/* Trigger Button */}
@@ -65,8 +65,7 @@ export function Dropdown({
         style={({ pressed }) => ({ opacity: disabled ? 0.5 : pressed ? 0.7 : 1 })}
       >
         <Text
-          className={`text-[18px] ${selectedOption ? "text-gray-800" : "text-gray-400"}`}
-          style={{ fontFamily: 'Montserrat' }}
+          className={`text-lg ${selectedOption ? "text-gray-800" : "text-gray-400"}`}
           numberOfLines={1}
         >
           {selectedOption?.label || placeholder}
@@ -114,10 +113,9 @@ export function Dropdown({
                   >
                     <View className="flex-row items-center justify-between">
                       <Text
-                        className={`text-[18px] ${
+                        className={`text-lg ${
                           option.value === value ? "text-red-500 font-medium" : "text-gray-700"
                         }`}
-                        style={{ fontFamily: 'Montserrat' }}
                       >
                         {option.label}
                       </Text>

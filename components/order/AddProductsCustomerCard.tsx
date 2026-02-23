@@ -34,21 +34,21 @@ function AddProductsCustomerCardComponent({
     >
       {customer ? (
         <View>
-          <Text style={{ color: colors.primary }} className="text-[14px] font-Montserrat font-medium mb-1 text-center">
+          <Text style={{ color: colors.primary }} className="text-sm font-medium mb-1 text-center">
             Current Status:
           </Text>
-          <Text style={{ color: colors.text }} className="font-Montserrat font-bold text-[22px] mb-3 text-center">
+          <Text style={{ color: colors.text }} className="font-bold text-xl mb-3 text-center">
             {customer.business_name}
           </Text>
 
           <View className="items-center mb-4">
             <View style={{ backgroundColor: colors.primaryLight }} className="border border-[#FECACA] rounded-full px-4 py-1.5 mb-2">
-              <Text style={{ color: colors.primary }} className="text-[12px] font-Montserrat font-semibold">
+              <Text style={{ color: colors.primary }} className="text-sm font-semibold">
                 Loyalty Member
               </Text>
             </View>
             <View className="bg-[#20232A] rounded-full px-4 py-1.5">
-              <Text className="text-white text-[12px] font-Montserrat">Loyalty Points: 760</Text>
+              <Text className="text-white text-sm">Loyalty Points: 760</Text>
             </View>
           </View>
 
@@ -58,7 +58,7 @@ function AddProductsCustomerCardComponent({
               className="flex-1 rounded-lg py-3 items-center shadow-sm"
               style={{ backgroundColor: colors.primary }}
             >
-              <Text className="text-white text-[13px] font-Montserrat font-semibold text-center">
+              <Text className="text-white text-sm font-semibold text-center">
                 Change{"\n"}Customer
               </Text>
             </TouchableOpacity>
@@ -66,7 +66,7 @@ function AddProductsCustomerCardComponent({
               onPress={onRemoveCustomer}
               className="flex-1 bg-[#FEE2E2] rounded-lg py-3 items-center border border-[#FECACA]"
             >
-              <Text style={{ color: colors.primary }} className="text-[13px] font-Montserrat font-semibold text-center">
+              <Text style={{ color: colors.primary }} className="text-sm font-semibold text-center">
                 Remove{"\n"}Customer
               </Text>
             </TouchableOpacity>
@@ -74,10 +74,10 @@ function AddProductsCustomerCardComponent({
         </View>
       ) : (
         <View className="items-center">
-          <Text style={{ color: colors.primary }} className="text-[16px] font-Montserrat font-medium mb-1">
+          <Text style={{ color: colors.primary }} className="text-base font-medium mb-1">
             Current Status:
           </Text>
-          <Text style={{ color: colors.text }} className="font-Montserrat font-bold text-[24px] mb-6">
+          <Text style={{ color: colors.text }} className="font-bold text-2xl mb-6">
             Guest Customer
           </Text>
           <TouchableOpacity
@@ -87,7 +87,7 @@ function AddProductsCustomerCardComponent({
           >
             <View className="items-center">
               <Ionicons name="add" size={iconSize['2xl']} color="white" />
-              <Text className="text-white font-Montserrat font-bold text-[18px] mt-1">
+              <Text className="text-white font-bold text-lg mt-1">
                 Add Quick Customer
               </Text>
             </View>

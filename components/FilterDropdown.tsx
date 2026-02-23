@@ -100,12 +100,13 @@ export function FilterDropdown(props: FilterDropdownProps) {
     props.onChange(null);
   };
 
-  // Variant styles
-  const containerStyles = {
-    default: "bg-[#F7F7F9] border border-gray-200 shadow-sm",
-    primary: "bg-blue-500",
-    danger: "bg-red-500",
+  // Variant styles — use theme colors
+  const getContainerStyle = () => {
+    if (variant === "primary") return { backgroundColor: colors.info };
+    if (variant === "danger") return { backgroundColor: colors.error };
+    return undefined;
   };
+  const containerClass = variant === "default" ? "bg-[#F7F7F9] border border-gray-200 shadow-sm" : "border-0";
 
   const textStyles = {
     default: hasValue ? "text-gray-800" : "text-gray-400",
@@ -115,19 +116,20 @@ export function FilterDropdown(props: FilterDropdownProps) {
 
   const iconColor = {
     default: colors.textTertiary,
-    primary: "white",
-    danger: "white",
+    primary: colors.textWhite,
+    danger: colors.textWhite,
   };
 
   return (
     <View style={width ? { width } : undefined} className={!width ? "flex-1" : ""}>
-      {label && <Text className="text-[#5A5F66] text-[16px] mb-1" style={{ fontFamily: 'Montserrat' }}>{label}</Text>}
+      {label && <Text className="text-[#5A5F66] text-base mb-1">{label}</Text>}
       
       <Pressable
         onPress={() => setIsOpen(true)}
-        className={`${containerStyles[variant]} rounded-xl px-3 py-2.5 flex-row items-center justify-between`}
+        style={getContainerStyle()}
+        className={`${containerClass} rounded-xl px-3 py-2.5 flex-row items-center justify-between`}
       >
-        <Text className={`${textStyles[variant]} flex-1 text-[16px]`} style={{ fontFamily: 'Montserrat' }} numberOfLines={1}>
+        <Text className={`${textStyles[variant]} flex-1 text-base`} numberOfLines={1}>
           {displayText}
         </Text>
         {allowClear && hasValue && variant === "default" ? (
@@ -175,15 +177,14 @@ export function FilterDropdown(props: FilterDropdownProps) {
                   <Pressable
                     key={option.value}
                     onPress={() => handleSelect(option.value)}
-                    className={`px-4 py-3 border-b border-gray-100 flex-row items-center justify-between ${
-                      isSelected ? "bg-blue-50" : ""
-                    }`}
+                    style={isSelected ? { backgroundColor: colors.primaryLight } : undefined}
+                    className="px-4 py-3 border-b border-gray-100 flex-row items-center justify-between"
                   >
-                    <Text className={isSelected ? "text-blue-600 font-medium" : "text-gray-800"}>
+                    <Text className={isSelected ? "font-medium" : ""} style={{ color: isSelected ? colors.primary : colors.text }}>
                       {option.label}
                     </Text>
                     {isSelected && (
-                      <Ionicons name="checkmark" size={iconSize.md} color="#2563eb" />
+                      <Ionicons name="checkmark" size={iconSize.md} color={colors.primary} />
                     )}
                   </Pressable>
                 );

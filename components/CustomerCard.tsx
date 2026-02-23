@@ -1,4 +1,4 @@
-import { iconSize } from "@/utils/theme";
+import { colors, iconSize } from "@/utils/theme";
 import { Ionicons } from "@expo/vector-icons";
 import { useState } from "react";
 import { Pressable, Text, View } from "react-native";
@@ -30,7 +30,7 @@ export function CustomerCard({ customerName, customerId, onCustomerAdded }: Cust
       <View className="bg-[#F7F7F9] rounded-lg p-4 w-48 shadow-sm">
         {/* Current Status */}
         <View className="items-center mb-3">
-          <Text className="text-red-500 text-xs font-medium">Current Status:</Text>
+          <Text className="text-red-500 text-sm font-medium">Current Status:</Text>
           <Text className="text-gray-800 text-lg font-bold mt-1">
             {currentCustomer}
           </Text>
@@ -39,8 +39,11 @@ export function CustomerCard({ customerName, customerId, onCustomerAdded }: Cust
         {/* Add Customer Button */}
         <Pressable
           onPress={() => setShowModal(true)}
-          className="bg-red-500 rounded-lg py-3 items-center"
-          style={({ pressed }) => ({ opacity: pressed ? 0.8 : 1 })}
+          className="rounded-lg py-3 items-center"
+          style={({ pressed }) => ({
+            opacity: pressed ? 0.8 : 1,
+            backgroundColor: colors.primary,
+          })}
         >
           <Ionicons name="add" size={iconSize.xl} color="white" />
           <Text className="text-white font-medium mt-1">Add Quick Customer</Text>

@@ -3,7 +3,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as NavigationBar from "expo-navigation-bar";
 import { Slot, usePathname, useRouter } from "expo-router";
 import { useEffect, useRef, useState } from "react";
-import { fontSize, fontWeight, colors, iconSize, buttonSize } from '@/utils/theme';
+import { colors, iconSize, buttonSize } from '@/utils/theme';
 import {
   ActivityIndicator,
   Animated,
@@ -317,7 +317,8 @@ function DevToolsFab() {
         }}
       >
         <Ionicons name="bug-outline" size={iconSize.md} color="#22D3EE" />
-        <Text style={{ color: "#22D3EE", fontSize: fontSize.md, fontWeight: fontWeight.bold, letterSpacing: 1.5, marginTop: 1 }}>DEV</Text>
+        <Text className="text-sm font-bold"
+            style={{ color: "#22D3EE", letterSpacing: 1.5, marginTop: 1 }}>DEV</Text>
       </Pressable>
     </Animated.View>
   );

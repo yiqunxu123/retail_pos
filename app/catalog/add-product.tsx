@@ -5,7 +5,7 @@
  * Based on kapp web UI design.
  */
 
-import { colors, fontSize, fontWeight, iconSize } from '@/utils/theme';
+import { colors, iconSize } from '@/utils/theme';
 import { Ionicons } from "@expo/vector-icons";
 import type { AxiosError } from "axios";
 import { useRouter } from "expo-router";
@@ -1061,15 +1061,15 @@ export default function AddProductScreen() {
               className="flex-row items-center flex-1"
               onPress={() => toggleCategorySelection(cat)}
             >
-              <View className={`w-4 h-4 rounded border mr-2 items-center justify-center ${isSelected ? "bg-red-500 border-red-500" : "border-gray-300"}`}>
+              <View className="w-4 h-4 rounded border mr-2 items-center justify-center" style={{ borderColor: isSelected ? colors.primary : colors.border, backgroundColor: isSelected ? colors.primary : "transparent" }}>
                 {isSelected && <Ionicons name="checkmark" size={12} color="white" />}
               </View>
               <Text className={`text-sm flex-1 ${isSelected ? "text-gray-800 font-medium" : "text-gray-600"}`} numberOfLines={1}>
                 {cat.name}
               </Text>
               {isMain && (
-                <View className="bg-red-500 rounded px-1.5 py-0.5 ml-2">
-                  <Text className="text-white text-[10px] font-bold">Main</Text>
+                <View className="rounded px-1.5 py-0.5 ml-2" style={{ backgroundColor: colors.primary }}>
+                  <Text className="text-white text-sm font-bold">Main</Text>
                 </View>
               )}
             </Pressable>
@@ -1193,7 +1193,7 @@ export default function AddProductScreen() {
               className="flex-row items-center mt-1"
               onPress={() => setAutoGenerateSku(!autoGenerateSku)}
             >
-              <View className={`w-4 h-4 rounded border mr-2 items-center justify-center ${autoGenerateSku ? 'bg-red-500 border-red-500' : 'border-gray-300'}`}>
+              <View className="w-4 h-4 rounded border mr-2 items-center justify-center" style={{ borderColor: autoGenerateSku ? colors.primary : colors.border, backgroundColor: autoGenerateSku ? colors.primary : "transparent" }}>
                 {autoGenerateSku && <Ionicons name="checkmark" size={iconSize.md} color="white" />}
               </View>
               <Text className="text-gray-600 text-sm">Auto generated SKU</Text>
@@ -1211,7 +1211,7 @@ export default function AddProductScreen() {
                   onChangeText={setWeight}
                   keyboardType="decimal-pad"
                 />
-                <Pressable className="bg-gray-100 border border-l-0 border-gray-200 rounded-r-lg px-3 flex-row items-center">
+                <Pressable className="border border-l-0 border-gray-200 rounded-r-lg px-3 flex-row items-center" style={{ backgroundColor: colors.backgroundSecondary }}>
                   <Text className="text-gray-600 mr-1">lb</Text>
                   <Ionicons name="chevron-down" size={iconSize.md} color={colors.textSecondary} />
                 </Pressable>
@@ -1244,7 +1244,7 @@ export default function AddProductScreen() {
               </Pressable>
               {selectedBrandId && (
                 <Pressable className="mt-1" onPress={() => setSelectedBrandId(null)}>
-                  <Text className="text-red-400 text-xs">Clear</Text>
+                  <Text className="text-red-400 text-sm">Clear</Text>
                 </Pressable>
               )}
             </View>
@@ -1265,7 +1265,7 @@ export default function AddProductScreen() {
               className="flex-row items-center mt-1"
               onPress={() => setAutoFetchImage(!autoFetchImage)}
             >
-              <View className={`w-4 h-4 rounded border mr-2 items-center justify-center ${autoFetchImage ? 'bg-red-500 border-red-500' : 'border-gray-300'}`}>
+              <View className="w-4 h-4 rounded border mr-2 items-center justify-center" style={{ borderColor: autoFetchImage ? colors.primary : colors.border, backgroundColor: autoFetchImage ? colors.primary : "transparent" }}>
                 {autoFetchImage && <Ionicons name="checkmark" size={iconSize.md} color="white" />}
               </View>
               <Text className="text-gray-600 text-sm">Auto fetch image</Text>
@@ -1343,7 +1343,7 @@ export default function AddProductScreen() {
               </Pressable>
               {selectedManufacturerIds.length > 0 && (
                 <Pressable className="mt-1" onPress={() => setSelectedManufacturerIds([])}>
-                  <Text className="text-red-400 text-xs">Clear</Text>
+                  <Text className="text-red-400 text-sm">Clear</Text>
                 </Pressable>
               )}
             </View>
@@ -1372,7 +1372,7 @@ export default function AddProductScreen() {
               </Pressable>
               {selectedSupplierIds.length > 0 && (
                 <Pressable className="mt-1" onPress={() => setSelectedSupplierIds([])}>
-                  <Text className="text-red-400 text-xs">Clear</Text>
+                  <Text className="text-red-400 text-sm">Clear</Text>
                 </Pressable>
               )}
             </View>
@@ -1570,7 +1570,8 @@ export default function AddProductScreen() {
                   <Text className="w-20 text-gray-700">{item.unit}</Text>
                   <View className="w-40 flex-row items-center">
                     <TextInput
-                      className={`border rounded-lg px-3 py-2 w-20 shadow-sm ${index !== 0 ? "bg-white border-gray-200 text-gray-800" : "bg-gray-100 border-gray-300 text-gray-400"}`}
+                      className={`border rounded-lg px-3 py-2 w-20 shadow-sm ${index !== 0 ? "bg-white border-gray-200 text-gray-800" : "border-gray-300 text-gray-400"}`}
+                    style={index === 0 ? { backgroundColor: colors.backgroundSecondary } : undefined}
                       placeholder={index === 0 ? "1" : "Enter Q..."}
                       placeholderTextColor={index !== 0 ? colors.textTertiary : "#B8BEC8"}
                       value={item.qty}
@@ -1689,20 +1690,20 @@ export default function AddProductScreen() {
               <View>
                 {/* Header */}
                 <View className="flex-row py-3 border-b border-gray-200 bg-[#F7F7F9] shadow-sm">
-                  <Text className="w-16 text-gray-600 text-xs font-medium">Unit</Text>
-                  <Text className="w-28 text-gray-600 text-xs font-medium">Packaging Quantity</Text>
-                  <Text className="w-24 text-gray-600 text-xs font-medium">Base Cost Price* ($)</Text>
-                  <Text className="w-24 text-gray-600 text-xs font-medium">Net Cost Price* ($)</Text>
-                  <Text className="w-20 text-gray-600 text-xs font-medium">Sale Price* ($)</Text>
-                  <Text className="w-20 text-gray-600 text-xs font-medium">Margin* ($)</Text>
-                  <Text className="w-16 text-gray-600 text-xs font-medium">MSRP</Text>
-                  <Text className="w-20 text-gray-600 text-xs font-medium">Lowest Selling Price</Text>
-                  <Text className="w-20 text-gray-600 text-xs font-medium">Ecom Price</Text>
-                  <Text className="w-20 text-gray-600 text-xs font-medium">Tier 1 SP ($)</Text>
-                  <Text className="w-20 text-gray-600 text-xs font-medium">Tier 2 SP ($)</Text>
-                  <Text className="w-20 text-gray-600 text-xs font-medium">Tier 3 SP ($)</Text>
-                  <Text className="w-20 text-gray-600 text-xs font-medium">Tier 4 SP ($)</Text>
-                  <Text className="w-20 text-gray-600 text-xs font-medium">Tier 5 SP ($)</Text>
+                  <Text className="w-16 text-gray-600 text-sm font-medium">Unit</Text>
+                  <Text className="w-28 text-gray-600 text-sm font-medium">Packaging Quantity</Text>
+                  <Text className="w-24 text-gray-600 text-sm font-medium">Base Cost Price* ($)</Text>
+                  <Text className="w-24 text-gray-600 text-sm font-medium">Net Cost Price* ($)</Text>
+                  <Text className="w-20 text-gray-600 text-sm font-medium">Sale Price* ($)</Text>
+                  <Text className="w-20 text-gray-600 text-sm font-medium">Margin* ($)</Text>
+                  <Text className="w-16 text-gray-600 text-sm font-medium">MSRP</Text>
+                  <Text className="w-20 text-gray-600 text-sm font-medium">Lowest Selling Price</Text>
+                  <Text className="w-20 text-gray-600 text-sm font-medium">Ecom Price</Text>
+                  <Text className="w-20 text-gray-600 text-sm font-medium">Tier 1 SP ($)</Text>
+                  <Text className="w-20 text-gray-600 text-sm font-medium">Tier 2 SP ($)</Text>
+                  <Text className="w-20 text-gray-600 text-sm font-medium">Tier 3 SP ($)</Text>
+                  <Text className="w-20 text-gray-600 text-sm font-medium">Tier 4 SP ($)</Text>
+                  <Text className="w-20 text-gray-600 text-sm font-medium">Tier 5 SP ($)</Text>
                 </View>
                 
                 {/* Rows */}
@@ -1717,7 +1718,8 @@ export default function AddProductScreen() {
                     <Text className="w-16 text-gray-700 text-sm">{item.unit}</Text>
                     <View className="w-28 flex-row items-center">
                       <TextInput
-                        className={`border rounded px-2 py-1.5 w-12 text-sm ${index !== 0 ? "bg-white border-gray-200 text-gray-800" : "bg-gray-100 border-gray-300 text-gray-400"}`}
+                        className={`border rounded px-2 py-1.5 w-12 text-sm ${index !== 0 ? "bg-white border-gray-200 text-gray-800" : "border-gray-300 text-gray-400"}`}
+                        style={index === 0 ? { backgroundColor: colors.backgroundSecondary } : undefined}
                         placeholder={index === 0 ? "1" : "Qty"}
                         placeholderTextColor={index !== 0 ? colors.textTertiary : "#B8BEC8"}
                         value={item.qty}
@@ -1726,7 +1728,7 @@ export default function AddProductScreen() {
                         keyboardType="numeric"
                       />
                       {item.qtyLabel && (
-                        <Text className="text-gray-400 text-xs ml-1">= {item.qtyLabel}</Text>
+                        <Text className="text-gray-400 text-sm ml-1">= {item.qtyLabel}</Text>
                       )}
                     </View>
                     <TextInput className="w-24 bg-white border border-gray-200 rounded px-2 py-1.5 text-sm" placeholder="Base ..." placeholderTextColor={colors.borderMedium} value={item.baseCost} onChangeText={(v) => updatePricing("baseCost", v)} keyboardType="decimal-pad" />
@@ -1734,8 +1736,8 @@ export default function AddProductScreen() {
                     <TextInput className="w-20 bg-white border border-gray-200 rounded px-2 py-1.5 text-sm ml-1" placeholder="Price" placeholderTextColor={colors.borderMedium} value={item.salePrice} onChangeText={(v) => updatePricing("salePrice", v)} keyboardType="decimal-pad" />
                     <View className="w-20 flex-row items-center ml-1">
                       <TextInput className="flex-1 bg-white border border-gray-200 rounded-l px-2 py-1.5 text-sm" placeholder="Margin" placeholderTextColor={colors.borderMedium} value={item.margin} onChangeText={(v) => updatePricing("margin", v)} keyboardType="decimal-pad" />
-                      <Pressable className="bg-gray-100 border border-l-0 border-gray-200 rounded-r px-1 py-1.5">
-                        <Text className="text-gray-500 text-xs">$</Text>
+                      <Pressable className="border border-l-0 border-gray-200 rounded-r px-1 py-1.5" style={{ backgroundColor: colors.backgroundSecondary }}>
+                        <Text className="text-gray-500 text-sm">$</Text>
                       </Pressable>
                     </View>
                     <TextInput className="w-16 bg-white border border-gray-200 rounded px-2 py-1.5 text-sm ml-1" placeholder="MSRP" placeholderTextColor={colors.borderMedium} value={item.msrp} onChangeText={(v) => updatePricing("msrp", v)} keyboardType="decimal-pad" />
@@ -1774,13 +1776,13 @@ export default function AddProductScreen() {
               <View>
                 {/* Header */}
                 <View className="flex-row py-3 border-b border-gray-200 bg-[#F7F7F9] shadow-sm">
-                  <Text className="w-16 text-gray-600 text-xs font-medium">Sr no.</Text>
-                  <Text className="w-40 text-gray-600 text-xs font-medium">Warehouses/Storefront</Text>
-                  <Text className="w-24 text-gray-600 text-xs font-medium">Available Qty</Text>
-                  <Text className="w-24 text-gray-600 text-xs font-medium">On hold Qty</Text>
-                  <Text className="w-24 text-gray-600 text-xs font-medium">Damaged Qty</Text>
-                  <Text className="w-24 text-gray-600 text-xs font-medium">Back Order Qty</Text>
-                  <Text className="w-28 text-gray-600 text-xs font-medium">Coming Soon Qty</Text>
+                  <Text className="w-16 text-gray-600 text-sm font-medium">Sr no.</Text>
+                  <Text className="w-40 text-gray-600 text-sm font-medium">Warehouses/Storefront</Text>
+                  <Text className="w-24 text-gray-600 text-sm font-medium">Available Qty</Text>
+                  <Text className="w-24 text-gray-600 text-sm font-medium">On hold Qty</Text>
+                  <Text className="w-24 text-gray-600 text-sm font-medium">Damaged Qty</Text>
+                  <Text className="w-24 text-gray-600 text-sm font-medium">Back Order Qty</Text>
+                  <Text className="w-28 text-gray-600 text-sm font-medium">Coming Soon Qty</Text>
                 </View>
                 
                 {/* Rows */}
@@ -1789,7 +1791,8 @@ export default function AddProductScreen() {
                     <Text className="w-16 text-gray-700 text-sm">{item.srNo}</Text>
                     <View className="w-40">
                       <TextInput
-                        className="bg-gray-100 border border-gray-200 rounded px-3 py-2 text-sm"
+                        className="border border-gray-200 rounded px-3 py-2 text-sm"
+                        style={{ backgroundColor: colors.backgroundSecondary }}
                         value={item.warehouse}
                         editable={false}
                       />
@@ -1807,7 +1810,8 @@ export default function AddProductScreen() {
                       }}
                     />
                     <TextInput
-                      className="w-24 bg-gray-100 border border-gray-200 rounded px-3 py-2 text-sm ml-1"
+                      className="w-24 border border-gray-200 rounded px-3 py-2 text-sm ml-1"
+                      style={{ backgroundColor: colors.backgroundSecondary }}
                       placeholder="0"
                       placeholderTextColor={colors.textTertiary}
                       value={item.onHoldQty}
@@ -1826,13 +1830,15 @@ export default function AddProductScreen() {
                       }}
                     />
                     <TextInput
-                      className="w-24 bg-gray-100 border border-gray-200 rounded px-3 py-2 text-sm ml-1"
+                      className="w-24 border border-gray-200 rounded px-3 py-2 text-sm ml-1"
+                      style={{ backgroundColor: colors.backgroundSecondary }}
                       placeholder="Back Order"
                       placeholderTextColor={colors.borderMedium}
                       editable={false}
                     />
                     <TextInput
-                      className="w-28 bg-gray-100 border border-gray-200 rounded px-3 py-2 text-sm ml-1"
+                      className="w-28 border border-gray-200 rounded px-3 py-2 text-sm ml-1"
+                      style={{ backgroundColor: colors.backgroundSecondary }}
                       placeholder="Coming Soon"
                       placeholderTextColor={colors.borderMedium}
                       editable={false}
@@ -1867,7 +1873,7 @@ export default function AddProductScreen() {
             value={seoSlug}
             onChangeText={setSeoSlug}
           />
-          <Text className="text-gray-400 text-xs mt-1 text-right">{seoSlug.length} character(s)</Text>
+          <Text className="text-gray-400 text-sm mt-1 text-right">{seoSlug.length} character(s)</Text>
         </View>
 
         {/* Meta Title */}
@@ -1883,7 +1889,7 @@ export default function AddProductScreen() {
             numberOfLines={3}
             style={{ minHeight: 80, textAlignVertical: 'top' }}
           />
-          <Text className="text-gray-400 text-xs mt-1 text-right">{metaTitle.length} character(s)</Text>
+          <Text className="text-gray-400 text-sm mt-1 text-right">{metaTitle.length} character(s)</Text>
         </View>
 
         {/* Meta Description */}
@@ -1899,7 +1905,7 @@ export default function AddProductScreen() {
             numberOfLines={3}
             style={{ minHeight: 80, textAlignVertical: 'top' }}
           />
-          <Text className="text-gray-400 text-xs mt-1 text-right">{metaDescription.length} character(s)</Text>
+          <Text className="text-gray-400 text-sm mt-1 text-right">{metaDescription.length} character(s)</Text>
         </View>
       </View>
     </ScrollView>
@@ -2004,7 +2010,7 @@ export default function AddProductScreen() {
                             }}
                             onPress={() => toggleStatusFilter(st.value)}
                           >
-                            <Text style={{ color: selected ? st.textColor : colors.textSecondary, fontWeight: selected ? fontWeight.semibold : fontWeight.regular }}>
+                            <Text style={{ color: selected ? st.textColor : colors.textSecondary, fontWeight: selected ? '600' : '400' }}>
                               {st.name}
                             </Text>
                           </Pressable>
@@ -2020,7 +2026,7 @@ export default function AddProductScreen() {
                         const badge = getStatusBadge(v);
                         return badge ? (
                           <View key={v} className="flex-row items-center px-2 py-1 rounded-full" style={{ backgroundColor: badge.color }}>
-                            <Text style={{ color: badge.textColor, fontSize: fontSize.md }}>{badge.name}</Text>
+                            <Text className="text-sm" style={{ color: badge.textColor }}>{badge.name}</Text>
                             <Pressable onPress={() => toggleStatusFilter(v)} className="ml-1">
                               <Ionicons name="close-circle" size={iconSize.md} color={badge.textColor} />
                             </Pressable>
@@ -2075,16 +2081,16 @@ export default function AddProductScreen() {
                   <View style={{ minWidth: 1100 }}>
                     {/* Table Header – mirrors kapp columns */}
                     <View className="flex-row bg-[#F7F7F9] py-3 px-4 border-b border-gray-200 shadow-sm">
-                      <Text className="text-gray-500 text-xs font-semibold uppercase" style={{ width: 180 }}>Promotion Name</Text>
-                      <Text className="text-gray-500 text-xs font-semibold uppercase" style={{ width: 150 }}>Promo Price</Text>
-                      <Text className="text-gray-500 text-xs font-semibold uppercase text-center" style={{ width: 100 }}>Applied To</Text>
-                      <Text className="text-gray-500 text-xs font-semibold uppercase text-center" style={{ width: 80 }}>Unit</Text>
-                      <Text className="text-gray-500 text-xs font-semibold uppercase text-center" style={{ width: 130 }}>Start Date</Text>
-                      <Text className="text-gray-500 text-xs font-semibold uppercase text-center" style={{ width: 130 }}>End Date</Text>
-                      <Text className="text-gray-500 text-xs font-semibold uppercase text-center" style={{ width: 90 }}>Total Qty</Text>
-                      <Text className="text-gray-500 text-xs font-semibold uppercase text-center" style={{ width: 80 }}>POS Qty</Text>
-                      <Text className="text-gray-500 text-xs font-semibold uppercase text-center" style={{ width: 90 }}>Ecom Qty</Text>
-                      <Text className="text-gray-500 text-xs font-semibold uppercase text-center" style={{ width: 80 }}>Status</Text>
+                      <Text className="text-gray-500 text-sm font-semibold uppercase" style={{ width: 180 }}>Promotion Name</Text>
+                      <Text className="text-gray-500 text-sm font-semibold uppercase" style={{ width: 150 }}>Promo Price</Text>
+                      <Text className="text-gray-500 text-sm font-semibold uppercase text-center" style={{ width: 100 }}>Applied To</Text>
+                      <Text className="text-gray-500 text-sm font-semibold uppercase text-center" style={{ width: 80 }}>Unit</Text>
+                      <Text className="text-gray-500 text-sm font-semibold uppercase text-center" style={{ width: 130 }}>Start Date</Text>
+                      <Text className="text-gray-500 text-sm font-semibold uppercase text-center" style={{ width: 130 }}>End Date</Text>
+                      <Text className="text-gray-500 text-sm font-semibold uppercase text-center" style={{ width: 90 }}>Total Qty</Text>
+                      <Text className="text-gray-500 text-sm font-semibold uppercase text-center" style={{ width: 80 }}>POS Qty</Text>
+                      <Text className="text-gray-500 text-sm font-semibold uppercase text-center" style={{ width: 90 }}>Ecom Qty</Text>
+                      <Text className="text-gray-500 text-sm font-semibold uppercase text-center" style={{ width: 80 }}>Status</Text>
                     </View>
 
                     {/* Empty State */}
@@ -2104,15 +2110,15 @@ export default function AddProductScreen() {
                           <Text className="text-gray-700 text-sm" style={{ width: 150 }}>{formatPromoValue(row)}</Text>
                           <Text className="text-gray-700 text-sm text-center" style={{ width: 100 }}>{formatApplicableFor(row.applicable_for)}</Text>
                           <Text className="text-gray-700 text-sm text-center" style={{ width: 80 }}>{UNIT_NAMES[row.unit_price?.unit ?? 0] || ""}</Text>
-                          <Text className="text-gray-600 text-xs text-center" style={{ width: 130 }}>{formatDT(row.start_datetime)}</Text>
-                          <Text className="text-gray-600 text-xs text-center" style={{ width: 130 }}>{formatDT(row.end_datetime)}</Text>
+                          <Text className="text-gray-600 text-sm text-center" style={{ width: 130 }}>{formatDT(row.start_datetime)}</Text>
+                          <Text className="text-gray-600 text-sm text-center" style={{ width: 130 }}>{formatDT(row.end_datetime)}</Text>
                           <Text className="text-gray-700 text-sm text-center" style={{ width: 90 }}>{Number(row.total_sold)}</Text>
                           <Text className="text-gray-700 text-sm text-center" style={{ width: 80 }}>{Number(row.total_tenant_sold)}</Text>
                           <Text className="text-gray-700 text-sm text-center" style={{ width: 90 }}>{Number(row.total_ecom_sold)}</Text>
                           <View style={{ width: 80, alignItems: "center" }}>
                             {badge ? (
                               <View className="px-2 py-1 rounded" style={{ backgroundColor: badge.color }}>
-                                <Text style={{ color: badge.textColor, fontSize: fontSize.md, fontWeight: fontWeight.semibold }}>{badge.name}</Text>
+                                <Text className="text-sm font-semibold" style={{ color: badge.textColor }}>{badge.name}</Text>
                               </View>
                             ) : null}
                           </View>

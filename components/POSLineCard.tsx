@@ -33,11 +33,11 @@ export function POSLineCard({
     return colors.textTertiary; // gray
   };
 
-  // Determine header background color
+  // Determine header background color — use theme
   const getHeaderBgColor = () => {
-    if (isActive) return "bg-green-500";
-    if (isSelected) return "bg-blue-500";
-    return "bg-red-500";
+    if (isActive) return colors.success;
+    if (isSelected) return colors.info;
+    return colors.primary;
   };
 
   return (
@@ -52,7 +52,7 @@ export function POSLineCard({
       })}
     >
       {/* Header - Line number with colored background */}
-      <View className={`${getHeaderBgColor()} px-3 py-2`}>
+      <View className="px-3 py-2" style={{ backgroundColor: getHeaderBgColor() }}>
         <Text className="text-white font-bold text-base">
           POS Line {lineNumber}
         </Text>
@@ -75,13 +75,13 @@ export function POSLineCard({
           // Selected state - show check mark
           <View className="items-center">
             <Ionicons name="checkmark-circle" size={iconSize['2xl']} color={colors.info} />
-            <Text className="text-blue-600 text-xs mt-2 font-medium">Selected</Text>
+            <Text className="text-blue-600 text-sm mt-2 font-medium">Selected</Text>
           </View>
         ) : (
           // Empty state - show placeholder
           <View className="items-center">
             <Ionicons name="add-circle-outline" size={iconSize['2xl']} color={colors.borderMedium} />
-            <Text className="text-gray-400 text-xs mt-2">Tap to select</Text>
+            <Text className="text-gray-400 text-sm mt-2">Tap to select</Text>
           </View>
         )}
       </View>

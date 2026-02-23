@@ -12,7 +12,7 @@
  * - Real-time sync indicator
  */
 
-import { buttonSize, colors, fontSize, fontWeight, iconSize } from '@/utils/theme';
+import { buttonSize, colors, iconSize } from '@/utils/theme';
 import { Ionicons } from "@expo/vector-icons";
 import React, { ReactElement, ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
@@ -293,6 +293,13 @@ const rowStyles = StyleSheet.create({
   flexCol: {
     flex: 1,
   },
+  cellPadding: {
+    paddingHorizontal: 12,
+  },
+  alignLeft: {
+    alignItems: 'flex-start',
+    justifyContent: 'center',
+  },
   alignCenter: {
     alignItems: 'center',
   },
@@ -301,8 +308,6 @@ const rowStyles = StyleSheet.create({
   },
   defaultCellText: {
     color: colors.text,
-    fontSize: fontSize.xl,
-    fontFamily: 'Montserrat',
   },
   loadingOverlay: {
     position: "absolute",
@@ -322,6 +327,8 @@ const ROW_STYLE = rowStyles.row;
 const ROW_STYLE_SELECTED = rowStyles.rowSelected;
 const CHECKBOX_CONTAINER_STYLE = rowStyles.checkboxContainer;
 const FLEX_COL_STYLE = rowStyles.flexCol;
+const CELL_PADDING_STYLE = rowStyles.cellPadding;
+const ALIGN_LEFT_STYLE = rowStyles.alignLeft;
 const ALIGN_CENTER_STYLE = rowStyles.alignCenter;
 const ALIGN_RIGHT_STYLE = rowStyles.alignRight;
 const DEFAULT_CELL_TEXT_STYLE = rowStyles.defaultCellText;
@@ -346,10 +353,11 @@ function TableCheckbox({
         width: buttonSize.md.height,
         height: buttonSize.md.height,
         borderRadius: buttonSize.md.borderRadius,
+        borderWidth: 1,
+        borderColor: checked || indeterminate ? colors.primary : colors.border,
+        backgroundColor: checked || indeterminate ? colors.primary : "transparent",
       }}
-      className={`border items-center justify-center ${
-        checked || indeterminate ? "bg-red-500 border-red-500" : "border-gray-300"
-      } ${disabled ? "opacity-50" : ""}`}
+      className={`border items-center justify-center ${disabled ? "opacity-50" : ""}`}
     >
       {checked && <Ionicons name="checkmark" size={iconSize.md} color="white" />}
       {!checked && indeterminate && <Ionicons name="remove" size={iconSize.md} color="white" />}
@@ -418,7 +426,7 @@ const DataTableRow = React.memo(function DataTableRow({
           ? ALIGN_CENTER_STYLE 
           : col.align === "right" 
             ? ALIGN_RIGHT_STYLE 
-            : undefined;
+            : ALIGN_LEFT_STYLE;
         const cellRenderStartMs = __DEV__ ? getNowMs() : 0;
         const cellContent = col.render ? (
           col.render(item)
@@ -445,7 +453,7 @@ const DataTableRow = React.memo(function DataTableRow({
         }
         
         return (
-          <View key={col.key} style={alignStyle ? [colStyle, alignStyle] : colStyle}>
+          <View key={col.key} style={[colStyle, CELL_PADDING_STYLE, alignStyle]}>
             {cellContent}
           </View>
         );
@@ -878,16 +886,16 @@ export function DataTable<T = any>(props: DataTableProps<T>) {
         return (
           <View 
             key={col.key} 
-            style={colWidth}
+            style={[colWidth, { paddingHorizontal: 12 }]}
             className={`flex-row items-center ${
-              align === "center" ? "justify-center" : align === "right" ? "justify-end" : ""
+              align === "center" ? "justify-center" : align === "right" ? "justify-end" : "justify-start"
             }`}
           >
             <Pressable 
               onPress={() => isSortable && handleSortPress(col.key)}
               className="flex-row items-center"
             >
-              <Text style={{ color: colors.textSecondary }} className="font-Montserrat font-medium text-[16px] uppercase mr-1">
+              <Text style={{ color: colors.textSecondary }} className="font-medium text-base uppercase mr-1">
                 {col.title}
               </Text>
               {isSortable && (
@@ -964,7 +972,7 @@ export function DataTable<T = any>(props: DataTableProps<T>) {
       <View className="flex-1" style={{ backgroundColor: colors.backgroundTertiary, ...containerStyle }}>
         <View className="flex-1 justify-center items-center">
           <ActivityIndicator size="large" color={colors.primary} />
-          <Text style={{ fontFamily: 'Montserrat' }} className="mt-4 text-gray-600">Loading...</Text>
+          <Text className="mt-4 text-gray-600">Loading...</Text>
         </View>
       </View>
     );
@@ -986,8 +994,7 @@ export function DataTable<T = any>(props: DataTableProps<T>) {
                 style={{ position: "absolute", left: 16, top: 12, zIndex: 10 }} 
               />
               <TextInput
-                className="bg-white border border-gray-200 rounded-xl pl-12 pr-4 py-3 text-[18px] shadow-sm"
-                style={{ fontFamily: 'Montserrat' }}
+                className="bg-white border border-gray-200 rounded-xl pl-12 pr-4 py-3 text-lg shadow-sm"
                 placeholder={searchPlaceholder}
                 placeholderTextColor={colors.textTertiary}
                 value={searchQuery}
@@ -1001,14 +1008,16 @@ export function DataTable<T = any>(props: DataTableProps<T>) {
 
           {showBulkActionInToolbar && (
             <Pressable
-              className={`px-4 rounded-lg flex-row items-center justify-center gap-4 ${
-                onBulkActionPress && selectedRows.length === 0 ? "bg-red-300" : "bg-red-500"
-              }`}
-              style={{ height: buttonSize.md.height }}
+              className="px-4 rounded-lg flex-row items-center justify-center gap-4"
+              style={{ 
+                height: buttonSize.md.height, 
+                backgroundColor: onBulkActionPress && selectedRows.length === 0 ? colors.primaryLight : colors.primary,
+                borderRadius: buttonSize.md.borderRadius 
+              }}
               onPress={() => onBulkActionPress?.(selectedRows)}
               disabled={!!onBulkActionPress && selectedRows.length === 0}
             >
-              <Text style={{ fontFamily: 'Montserrat' }} className="text-white font-medium">
+              <Text className="text-white font-medium">
                 {bulkActionText}
                 {selectedRows.length > 0 ? ` (${selectedRows.length})` : ""}
               </Text>
@@ -1047,14 +1056,16 @@ export function DataTable<T = any>(props: DataTableProps<T>) {
           <View className="flex-row flex-wrap items-center gap-4 mt-4">
             {showLegacyBulkActionRow && (
               <Pressable
-                className={`px-4 rounded-lg flex-row items-center justify-center gap-4 ${
-                  onBulkActionPress && selectedRows.length === 0 ? "bg-red-300" : "bg-red-500"
-                }`}
-                style={{ height: buttonSize.md.height }}
+                className="px-4 rounded-lg flex-row items-center justify-center gap-4"
+                style={{ 
+                  height: buttonSize.md.height, 
+                  backgroundColor: onBulkActionPress && selectedRows.length === 0 ? colors.primaryLight : colors.primary,
+                  borderRadius: buttonSize.md.borderRadius 
+                }}
                 onPress={() => onBulkActionPress?.(selectedRows)}
                 disabled={!!onBulkActionPress && selectedRows.length === 0}
               >
-                <Text style={{ fontFamily: 'Montserrat' }} className="text-white font-medium">
+                <Text className="text-white font-medium">
                   {bulkActionText}
                   {selectedRows.length > 0 ? ` (${selectedRows.length})` : ""}
                 </Text>
@@ -1064,10 +1075,10 @@ export function DataTable<T = any>(props: DataTableProps<T>) {
             {addButton && onAddPress && (
               <Pressable 
                 className="px-4 rounded-lg flex-row items-center gap-4"
-                style={{ height: buttonSize.md.height, backgroundColor: colors.info }}
+                style={{ height: buttonSize.md.height, backgroundColor: colors.info, borderRadius: buttonSize.md.borderRadius }}
                 onPress={onAddPress}
               >
-                <Text style={{ fontFamily: 'Montserrat' }} className="text-white font-medium">{addButtonText}</Text>
+                <Text className="text-white font-medium">{addButtonText}</Text>
               </Pressable>
             )}
           </View>
@@ -1106,7 +1117,7 @@ export function DataTable<T = any>(props: DataTableProps<T>) {
             {filteredData.length === 0 ? (
               <View className="py-16 items-center">
                 <Ionicons name={emptyIcon} size={iconSize['4xl']} color={colors.borderMedium} />
-                <Text style={{ fontFamily: 'Montserrat' }} className="text-gray-400 mt-2">{emptyText}</Text>
+                <Text className="text-gray-400 mt-2">{emptyText}</Text>
               </View>
             ) : (
               renderedRows
@@ -1160,7 +1171,7 @@ export function DataTable<T = any>(props: DataTableProps<T>) {
                 }}
                 onPress={() => changePage(pageNum)}
               >
-                <Text className={`font-Montserrat font-medium ${pageNum === effectiveCurrentPage ? "text-white" : ""}`} style={pageNum !== effectiveCurrentPage ? { color: colors.textSecondary } : undefined}>
+                <Text className={`font-medium ${pageNum === effectiveCurrentPage ? "text-white" : ""}`} style={pageNum !== effectiveCurrentPage ? { color: colors.textSecondary } : undefined}>
                   {pageNum}
                 </Text>
               </Pressable>
@@ -1177,13 +1188,13 @@ export function DataTable<T = any>(props: DataTableProps<T>) {
             <Ionicons name="chevron-forward" size={iconSize.md} color={effectiveCurrentPage === totalPages ? colors.borderMedium : colors.textSecondary} />
           </Pressable>
           
-          <Text className="ml-2 text-gray-400 font-Montserrat text-[12px]">
+          <Text className="ml-2 text-gray-400 text-sm">
             Page {effectiveCurrentPage} of {totalPages} ({totalItems} total)
           </Text>
         </View>
 
         <View className="flex-row items-center gap-4 border border-gray-200 rounded px-3 py-1.5 bg-white shadow-sm">
-          <Text className="font-Montserrat text-[14px]" style={{ color: colors.text }}>{effectivePageSize}/Page</Text>
+          <Text className="text-sm" style={{ color: colors.text }}>{effectivePageSize}/Page</Text>
           <Ionicons name="chevron-down" size={iconSize.md} color={colors.textSecondary} />
         </View>
       </View>
@@ -1204,13 +1215,8 @@ export function DataTable<T = any>(props: DataTableProps<T>) {
               {/* Header */}
               <View className="flex-row items-center justify-between px-6 py-6 border-b border-gray-200">
                 <Text 
-                  style={{ 
-                    fontSize: fontSize['3xl'], 
-                    fontWeight: fontWeight.semibold, 
-                    fontFamily: "Montserrat", 
-                    color: colors.text,
-                    letterSpacing: -0.64
-                  }}
+                  className="text-3xl font-semibold"
+                  style={{ color: colors.text, letterSpacing: -0.64 }}
                 >
                   Select Columns
                 </Text>
@@ -1227,12 +1233,8 @@ export function DataTable<T = any>(props: DataTableProps<T>) {
                       className="flex-row items-center justify-between py-2 mb-2"
                     >
                       <Text
-                        style={{
-                          fontSize: fontSize['2xl'],
-                          fontWeight: fontWeight.semibold,
-                          fontFamily: "Montserrat",
-                          color: colors.text,
-                        }}
+                        className="text-2xl font-semibold"
+                        style={{ color: colors.text }}
                       >
                         Column Selection
                       </Text>
@@ -1249,9 +1251,7 @@ export function DataTable<T = any>(props: DataTableProps<T>) {
                           <View className="flex-row items-center gap-4">
                             <Text 
                               style={{ 
-                                fontSize: fontSize.base, 
                                 color: colors.textSecondary, 
-                                fontFamily: "Montserrat",
                                 fontStyle: "italic" 
                               }}
                             >
@@ -1276,7 +1276,7 @@ export function DataTable<T = any>(props: DataTableProps<T>) {
                               return (
                                 <View key={col.key} className="flex-row justify-between items-center py-4" style={{ borderBottomWidth: 1, borderBottomColor: colors.border }}>
                                   <Text 
-                                    style={{ fontFamily: 'Montserrat', fontSize: fontSize.lg, color: colors.text }}
+                                    style={{   color: colors.text }}
                                     className={`flex-1 mr-4 ${!isHideable ? 'text-gray-400 font-medium italic' : ''}`}
                                     numberOfLines={1}
                                   >
@@ -1302,7 +1302,7 @@ export function DataTable<T = any>(props: DataTableProps<T>) {
                               return (
                                 <View key={col.key} className="flex-row justify-between items-center py-4" style={{ borderBottomWidth: 1, borderBottomColor: colors.border }}>
                                   <Text 
-                                    style={{ fontFamily: 'Montserrat', fontSize: fontSize.lg, color: colors.text }}
+                                    style={{   color: colors.text }}
                                     className={`flex-1 mr-4 ${!isHideable ? 'text-gray-400 font-medium italic' : ''}`}
                                     numberOfLines={1}
                                   >
@@ -1337,17 +1337,17 @@ export function DataTable<T = any>(props: DataTableProps<T>) {
                 <View className="flex-row justify-center gap-4 p-6 border-t border-gray-200">
                   <Pressable
                     onPress={() => setShowColumnsModal(false)}
-                    className="flex-1 rounded-lg items-center justify-center border border-red-100"
-                    style={{ height: buttonSize.md.height, backgroundColor: colors.primaryLight }}
+                    className="flex-1 rounded-lg items-center justify-center border border-[#E4E7EC]"
+                    style={{ height: buttonSize.lg.height, backgroundColor: colors.primaryLight }}
                   >
-                    <Text style={{ fontFamily: 'Montserrat' }} className="text-red-500 font-semibold">Cancel</Text>
+                    <Text className="text-xl font-semibold" style={{ color: colors.primary }}>Cancel</Text>
                   </Pressable>
                   <Pressable
                     onPress={() => setShowColumnsModal(false)}
                     className="flex-1 rounded-lg items-center justify-center shadow-sm"
-                    style={{ height: buttonSize.md.height, backgroundColor: colors.primary }}
+                    style={{ height: buttonSize.lg.height, backgroundColor: colors.primary, borderRadius: buttonSize.lg.borderRadius }}
                   >
-                    <Text style={{ fontFamily: 'Montserrat' }} className="text-white font-semibold">Apply</Text>
+                    <Text className="text-xl font-semibold text-white">Apply</Text>
                   </Pressable>
                 </View>
               )}

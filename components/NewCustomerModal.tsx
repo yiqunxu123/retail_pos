@@ -1,8 +1,15 @@
-import { buttonSize } from "@/utils/theme";
+import { colors, iconSize } from "@/utils/theme";
+import { ThemedButton } from "./ThemedButton";
 import { Ionicons } from "@expo/vector-icons";
 import { useEffect, useState } from "react";
-import { KeyboardAvoidingView, Modal, Platform, ScrollView, Switch, Text, TextInput, TouchableOpacity, View } from "react-native";
+import {
+  Switch,
+  Text,
+  TextInput,
+  View,
+} from "react-native";
 import { Dropdown } from "./Dropdown";
+import { SlidePanelModal } from "./SlidePanelModal";
 
 interface NewCustomerData {
   businessName: string;
@@ -153,59 +160,49 @@ export function NewCustomerModal({
     children: React.ReactNode;
     error?: string;
   }) => (
-    <View className="mb-4">
+    <View className="mb-3">
       <Text className="text-gray-700 font-medium mb-1">
         {label}
         {required && <Text className="text-red-500"> *</Text>}
       </Text>
       {children}
-      {error && <Text className="text-red-500 text-xs mt-1">{error}</Text>}
+      {error && <Text className="text-red-500 text-sm mt-1">{error}</Text>}
     </View>
   );
 
   return (
-    <Modal
+    <SlidePanelModal
       visible={visible}
-      transparent
-      animationType="fade"
-      onRequestClose={onClose}
+      onClose={onClose}
+      title={isEditing ? "Edit Customer" : "New Customer"}
+      scrollable={true}
+      contentPadding={{ horizontal: 24, bottom: 100 }}
+      footer={
+        <View className="flex-row gap-4 flex-1">
+          <ThemedButton
+            title="Cancel"
+            variant="outline"
+            onPress={onClose}
+            fullWidth
+            size="lg"
+            textStyle={{ fontSize: 16 }}
+          />
+          <ThemedButton
+            title={isEditing ? "Save Changes" : "Create Customer"}
+            onPress={handleSave}
+            fullWidth
+            style={{ flex: 1, backgroundColor: colors.primary }}
+          />
+        </View>
+      }
     >
-      <KeyboardAvoidingView
-        behavior={Platform.OS === "ios" ? "padding" : "height"}
-        className="flex-1"
-      >
-        <TouchableOpacity
-          className="flex-1 bg-black/50 justify-center items-center"
-          activeOpacity={1}
-          onPress={onClose}
-        >
-          <View
-            className="bg-white rounded-xl overflow-hidden"
-            style={{ width: 650, height: 680, maxHeight: "90%" }}
-          >
-          {/* Header */}
-          <View className="flex-row justify-between items-center px-6 py-4 border-b border-gray-200">
-            <View className="flex-row items-center gap-3">
-              <View className="w-10 h-10 bg-red-100 rounded-full items-center justify-center">
-                <Ionicons name={isEditing ? "pencil" : "person-add"} size={24} color="#EC1A52" />
-              </View>
-              <Text className="text-xl font-semibold text-gray-800">
-                {isEditing ? "Edit Customer" : "New Customer"}
-              </Text>
-            </View>
-            <TouchableOpacity onPress={onClose}>
-              <Ionicons name="close" size={24} color="#6b7280" />
-            </TouchableOpacity>
-          </View>
-
-          <ScrollView className="flex-1 px-6 py-4">
-            {/* Basic Information */}
-            <Text className="text-gray-800 font-semibold mb-3 text-lg">Basic Information</Text>
+                {/* Basic Information */}
+                <Text className="text-gray-800 font-semibold mb-2 text-base">Basic Information</Text>
             <View className="flex-row gap-4">
               <View className="flex-1">
                 <FormField label="Business Name" required error={errors.businessName}>
                   <TextInput
-                    className={`bg-gray-50 border rounded-lg px-4 py-3 ${
+                    className={`bg-gray-50 border rounded-lg px-3 py-2 ${
                       errors.businessName ? "border-red-500" : "border-gray-200"
                     }`}
                     placeholder="Enter business name"
@@ -218,7 +215,7 @@ export function NewCustomerModal({
               <View className="flex-1">
                 <FormField label="Contact Name">
                   <TextInput
-                    className="bg-gray-50 border border-gray-200 rounded-lg px-4 py-3"
+                    className="bg-gray-50 border border-gray-200 rounded-lg px-3 py-2"
                     placeholder="Enter contact name"
                     placeholderTextColor="#9ca3af"
                     value={formData.contactName}
@@ -232,7 +229,7 @@ export function NewCustomerModal({
               <View className="flex-1">
                 <FormField label="Email" error={errors.email}>
                   <TextInput
-                    className={`bg-gray-50 border rounded-lg px-4 py-3 ${
+                    className={`bg-gray-50 border rounded-lg px-3 py-2 ${
                       errors.email ? "border-red-500" : "border-gray-200"
                     }`}
                     placeholder="email@example.com"
@@ -247,7 +244,7 @@ export function NewCustomerModal({
               <View className="flex-1">
                 <FormField label="Phone" required error={errors.phone}>
                   <TextInput
-                    className={`bg-gray-50 border rounded-lg px-4 py-3 ${
+                    className={`bg-gray-50 border rounded-lg px-3 py-2 ${
                       errors.phone ? "border-red-500" : "border-gray-200"
                     }`}
                     placeholder="(555) 555-5555"
@@ -260,11 +257,11 @@ export function NewCustomerModal({
               </View>
             </View>
 
-            {/* Address */}
-            <Text className="text-gray-800 font-semibold mb-3 mt-4 text-lg">Address</Text>
+                {/* Address */}
+                <Text className="text-gray-800 font-semibold mb-2 mt-3 text-base">Address</Text>
             <FormField label="Street Address">
               <TextInput
-                className="bg-gray-50 border border-gray-200 rounded-lg px-4 py-3"
+                className="bg-gray-50 border border-gray-200 rounded-lg px-3 py-2"
                 placeholder="Enter street address"
                 placeholderTextColor="#9ca3af"
                 value={formData.address}
@@ -276,7 +273,7 @@ export function NewCustomerModal({
               <View className="flex-1">
                 <FormField label="City">
                   <TextInput
-                    className="bg-gray-50 border border-gray-200 rounded-lg px-4 py-3"
+                    className="bg-gray-50 border border-gray-200 rounded-lg px-3 py-2"
                     placeholder="City"
                     placeholderTextColor="#9ca3af"
                     value={formData.city}
@@ -297,7 +294,7 @@ export function NewCustomerModal({
               <View style={{ width: 120 }}>
                 <FormField label="ZIP Code">
                   <TextInput
-                    className="bg-gray-50 border border-gray-200 rounded-lg px-4 py-3"
+                    className="bg-gray-50 border border-gray-200 rounded-lg px-3 py-2"
                     placeholder="ZIP"
                     placeholderTextColor="#9ca3af"
                     keyboardType="number-pad"
@@ -308,8 +305,8 @@ export function NewCustomerModal({
               </View>
             </View>
 
-            {/* Business Details */}
-            <Text className="text-gray-800 font-semibold mb-3 mt-4 text-lg">Business Details</Text>
+                {/* Business Details */}
+                <Text className="text-gray-800 font-semibold mb-2 mt-3 text-base">Business Details</Text>
             <View className="flex-row gap-4">
               <View className="flex-1">
                 <FormField label="Customer Type" required error={errors.customerType}>
@@ -318,7 +315,6 @@ export function NewCustomerModal({
                     options={CUSTOMER_TYPE_OPTIONS}
                     onChange={(value) => updateField("customerType", value)}
                     placeholder="Select type"
-                    error={!!errors.customerType}
                   />
                 </FormField>
               </View>
@@ -344,16 +340,16 @@ export function NewCustomerModal({
               </View>
             </View>
 
-            {/* Tax & Credit */}
-            <Text className="text-gray-800 font-semibold mb-3 mt-4 text-lg">Tax & Credit</Text>
+                {/* Tax & Credit */}
+                <Text className="text-gray-800 font-semibold mb-2 mt-3 text-base">Tax & Credit</Text>
             <View className="flex-row gap-4 items-start">
               <View className="flex-1">
-                <View className="flex-row items-center justify-between bg-gray-50 border border-gray-200 rounded-lg px-4 py-3">
+                <View className="flex-row items-center justify-between bg-gray-50 border border-gray-200 rounded-lg px-3 py-2">
                   <Text className="text-gray-700">Tax Exempt</Text>
                   <Switch
                     value={formData.taxExempt}
                     onValueChange={(value) => updateField("taxExempt", value)}
-                    trackColor={{ false: "#d1d5db", true: "#EC1A52" }}
+                    trackColor={{ false: colors.borderMedium, true: colors.primary }}
                     thumbColor="#ffffff"
                   />
                 </View>
@@ -361,7 +357,7 @@ export function NewCustomerModal({
               <View className="flex-1">
                 <FormField label="Tax ID">
                   <TextInput
-                    className={`border rounded-lg px-4 py-3 ${formData.taxExempt ? "bg-gray-50 border-gray-200 text-gray-800" : "bg-gray-100 border-gray-300 text-gray-400"}`}
+                    className={`border rounded-lg px-3 py-2 ${formData.taxExempt ? "bg-gray-50 border-gray-200 text-gray-800" : "bg-gray-100 border-gray-300 text-gray-400"}`}
                     placeholder="Tax ID number"
                     placeholderTextColor={formData.taxExempt ? "#9ca3af" : "#B8BEC8"}
                     value={formData.taxId}
@@ -373,9 +369,9 @@ export function NewCustomerModal({
               <View className="flex-1">
                 <FormField label="Credit Limit">
                   <View className="flex-row items-center bg-gray-50 border border-gray-200 rounded-lg">
-                    <Text className="pl-4 text-gray-500">$</Text>
+                    <Text className="pl-3 text-gray-500">$</Text>
                     <TextInput
-                      className="flex-1 px-2 py-3"
+                      className="flex-1 px-2 py-2"
                       placeholder="0.00"
                       placeholderTextColor="#9ca3af"
                       keyboardType="decimal-pad"
@@ -387,44 +383,20 @@ export function NewCustomerModal({
               </View>
             </View>
 
-            {/* Notes */}
-            <Text className="text-gray-800 font-semibold mb-3 mt-4 text-lg">Notes</Text>
+                {/* Notes */}
+                <Text className="text-gray-800 font-semibold mb-2 mt-3 text-base">Notes</Text>
             <FormField label="Internal Notes">
               <TextInput
-                className="bg-gray-50 border border-gray-200 rounded-lg px-4 py-3"
+                className="bg-gray-50 border border-gray-200 rounded-lg px-4 py-2"
                 placeholder="Add any notes about this customer..."
                 placeholderTextColor="#9ca3af"
                 multiline
-                numberOfLines={3}
+                numberOfLines={2}
                 textAlignVertical="top"
                 value={formData.notes}
                 onChangeText={(text) => updateField("notes", text)}
               />
             </FormField>
-          </ScrollView>
-
-          {/* Footer */}
-          <View className="flex-row gap-4 px-6 py-4 border-t border-gray-200">
-            <TouchableOpacity
-              onPress={onClose}
-              className="flex-1 border border-gray-300 rounded-lg items-center justify-center"
-              style={{ height: buttonSize.md.height }}
-            >
-              <Text className="text-gray-700 font-medium">Cancel</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              onPress={handleSave}
-              className="flex-1 bg-red-500 rounded-lg items-center justify-center"
-              style={{ height: buttonSize.md.height }}
-            >
-              <Text className="text-white font-medium">
-                {isEditing ? "Save Changes" : "Create Customer"}
-              </Text>
-            </TouchableOpacity>
-            </View>
-          </View>
-        </TouchableOpacity>
-      </KeyboardAvoidingView>
-    </Modal>
+    </SlidePanelModal>
   );
 }

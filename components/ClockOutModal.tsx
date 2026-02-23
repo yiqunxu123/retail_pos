@@ -1,6 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import { Modal, Pressable, Text, View } from "react-native";
 import { iconSize, colors, buttonSize } from "@/utils/theme";
+import { ThemedButton } from "./ThemedButton";
 
 interface ClockOutModalProps {
   visible: boolean;
@@ -43,36 +44,36 @@ export function ClockOutModal({
           </View>
 
           <View className="px-8 pt-14 pb-12">
-            <Text className="text-center text-[#4B5563] text-[17px] leading-7 font-medium">
+            <Text className="text-center text-[#4B5563] text-lg leading-7 font-medium">
               If you have not declared cash for this shift, you must complete cash declaration before clocking out.
             </Text>
-            <Text className="text-center text-[#4B5563] text-[17px] leading-7 font-medium mt-2">
+            <Text className="text-center text-[#4B5563] text-lg leading-7 font-medium mt-2">
               If cash has already been declared, you may proceed to clock out.
             </Text>
           </View>
 
           <View className="flex-row gap-4 px-5 pb-5">
-            <Pressable
+            <ThemedButton
+              title="Cancel"
+              variant="outline"
               onPress={onClose}
-              className="flex-1 rounded-lg items-center justify-center bg-[#F7E8EA]"
-              style={({ pressed }) => ({ height: buttonSize.md.height, opacity: pressed ? 0.7 : 1 })}
-            >
-              <Text className="text-[#D93E66] text-[17px] font-medium">Cancel</Text>
-            </Pressable>
-            <Pressable
+              fullWidth
+              size="lg"
+              style={{ flex: 1, backgroundColor: colors.primaryLight, borderColor: colors.primary }}
+              textStyle={{ color: colors.primary, fontSize: 18 }}
+            />
+            <ThemedButton
+              title="Declare Cash"
               onPress={onDeclareCash}
-              className="flex-1 rounded-lg items-center justify-center bg-[#4C47B8]"
-              style={({ pressed }) => ({ height: buttonSize.md.height, opacity: pressed ? 0.8 : 1 })}
-            >
-              <Text className="text-white text-[17px] font-medium">Declare Cash</Text>
-            </Pressable>
-            <Pressable
+              fullWidth
+              style={{ flex: 1, backgroundColor: colors.purple }}
+            />
+            <ThemedButton
+              title="Clock Out"
               onPress={onClockOut}
-              className="flex-1 rounded-lg items-center justify-center"
-              style={({ pressed }) => ({ height: buttonSize.md.height, backgroundColor: colors.primary, opacity: pressed ? 0.8 : 1 })}
-            >
-              <Text className="text-white text-[17px] font-medium">Clock Out</Text>
-            </Pressable>
+              fullWidth
+              style={{ flex: 1, backgroundColor: colors.primary }}
+            />
           </View>
         </Pressable>
       </Pressable>

@@ -1,9 +1,9 @@
 import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { iconSize } from '@/utils/theme';
+import { buttonSize, colors, iconSize } from '@/utils/theme';
 import { useEffect, useState } from "react";
-import { Alert, Modal, ScrollView, Switch, Text, TextInput, TouchableOpacity, View } from "react-native";
-import { PageHeader } from "../components";
+import { Alert, Modal, Pressable, ScrollView, Switch, Text, TextInput, TouchableOpacity, View } from "react-native";
+import { PageHeader, ThemedButton } from "../components";
 import {
     addPrinter,
     getPrinters,
@@ -296,12 +296,12 @@ export default function SettingsScreen() {
           <View className="flex-row justify-between items-center px-6 py-4 border-b border-gray-200 bg-gray-50">
             <View className="flex-row items-center gap-3">
               <View className="w-10 h-10 bg-blue-100 rounded-full items-center justify-center">
-                <Ionicons name="print-outline" size={iconSize.xl} color="#3b82f6" />
+                <Ionicons name="print-outline" size={iconSize.xl} color={colors.info} />
               </View>
               <Text className="text-xl font-semibold text-gray-800">Print Format</Text>
             </View>
             <TouchableOpacity onPress={() => setShowPrintFormatPicker(false)}>
-              <Ionicons name="close" size={iconSize.xl} color="#6b7280" />
+              <Ionicons name="close" size={iconSize.xl} color={colors.textSecondary} />
             </TouchableOpacity>
           </View>
 
@@ -326,7 +326,7 @@ export default function SettingsScreen() {
                     <Ionicons
                       name={opt.icon as any}
                       size={iconSize.xl}
-                      color={isSelected ? "#3b82f6" : "#6b7280"}
+                      color={isSelected ? colors.info : colors.textSecondary}
                     />
                   </View>
                   <View className="flex-1">
@@ -337,10 +337,10 @@ export default function SettingsScreen() {
                     >
                       {opt.label}
                     </Text>
-                    <Text className="text-gray-400 text-xs mt-0.5">{opt.desc}</Text>
+                    <Text className="text-gray-400 text-sm mt-0.5">{opt.desc}</Text>
                   </View>
                   {isSelected && (
-                    <Ionicons name="checkmark-circle" size={iconSize.lg} color="#3b82f6" />
+                    <Ionicons name="checkmark-circle" size={iconSize.lg} color={colors.info} />
                   )}
                 </TouchableOpacity>
               );
@@ -373,7 +373,7 @@ export default function SettingsScreen() {
             <Ionicons 
               name={getPrinterTypeIcon(printer.type) as any} 
               size={iconSize.xl} 
-              color={printer.enabled ? "#3b82f6" : "#9ca3af"} 
+              color={printer.enabled ? colors.info : colors.textTertiary} 
             />
           </View>
           <View className="flex-1">
@@ -388,7 +388,7 @@ export default function SettingsScreen() {
                 className="w-2 h-2 rounded-full" 
                 style={{ backgroundColor: getStatusColor(printer.status) }}
               />
-              <Text className="text-gray-400 text-xs">
+              <Text className="text-gray-400 text-sm">
                 {getStatusText(printer.status)} · Completed {printer.jobsCompleted} jobs
               </Text>
             </View>
@@ -399,21 +399,21 @@ export default function SettingsScreen() {
           <Switch
             value={printer.enabled}
             onValueChange={() => handleToggleEnabled(printer)}
-            trackColor={{ false: "#d1d5db", true: "#3b82f6" }}
+            trackColor={{ false: colors.borderMedium, true: colors.info }}
             thumbColor="#ffffff"
           />
-          <TouchableOpacity 
+          <Pressable
             onPress={() => handleEditPrinter(printer)}
-            className="p-2"
+            style={{ width: buttonSize.md.height, height: buttonSize.md.height, alignItems: 'center', justifyContent: 'center' }}
           >
-            <Ionicons name="pencil" size={iconSize.base} color="#6b7280" />
-          </TouchableOpacity>
-          <TouchableOpacity 
+            <Ionicons name="pencil" size={iconSize.base} color={colors.textSecondary} />
+          </Pressable>
+          <Pressable
             onPress={() => handleDeletePrinter(printer)}
-            className="p-2"
+            style={{ width: buttonSize.md.height, height: buttonSize.md.height, alignItems: 'center', justifyContent: 'center' }}
           >
-            <Ionicons name="trash-outline" size={iconSize.base} color="#ef4444" />
-          </TouchableOpacity>
+            <Ionicons name="trash-outline" size={iconSize.base} color={colors.error} />
+          </Pressable>
         </View>
       </View>
     </View>
@@ -441,14 +441,14 @@ export default function SettingsScreen() {
           <View className="flex-row justify-between items-center px-6 py-4 border-b border-gray-200 bg-gray-50">
             <View className="flex-row items-center gap-3">
               <View className="w-10 h-10 bg-blue-100 rounded-full items-center justify-center">
-                <Ionicons name={editingPrinter ? "pencil" : "add"} size={iconSize.xl} color="#3b82f6" />
+                <Ionicons name={editingPrinter ? "pencil" : "add"} size={iconSize.xl} color={colors.info} />
               </View>
               <Text className="text-xl font-semibold text-gray-800">
                 {editingPrinter ? "Edit Printer" : "Add Printer"}
               </Text>
             </View>
             <TouchableOpacity onPress={() => setIsModalVisible(false)}>
-              <Ionicons name="close" size={iconSize.xl} color="#6b7280" />
+              <Ionicons name="close" size={iconSize.xl} color={colors.textSecondary} />
             </TouchableOpacity>
           </View>
 
@@ -482,7 +482,7 @@ export default function SettingsScreen() {
                     <Ionicons 
                       name={type.icon as any} 
                       size={iconSize.xl} 
-                      color={formType === type.value ? "#3b82f6" : "#6b7280"} 
+                      color={formType === type.value ? colors.info : colors.textSecondary} 
                     />
                     <Text className={`mt-2 text-sm font-medium ${
                       formType === type.value ? 'text-blue-600' : 'text-gray-600'
@@ -569,7 +569,7 @@ export default function SettingsScreen() {
                   />
                 </View>
                 <View className="bg-blue-50 rounded-xl p-4 mb-5 flex-row items-start gap-3">
-                  <Ionicons name="information-circle" size={iconSize.base} color="#3b82f6" />
+                  <Ionicons name="information-circle" size={iconSize.base} color={colors.info} />
                   <Text className="text-blue-700 text-sm flex-1">
                     Please pair the Bluetooth printer in system settings first, then enter the printer MAC address.
                   </Text>
@@ -588,7 +588,7 @@ export default function SettingsScreen() {
                 onChangeText={setFormPrintWidth}
                 keyboardType="number-pad"
               />
-              <Text className="text-gray-400 text-xs mt-1">
+              <Text className="text-gray-400 text-sm mt-1">
                 58mm paper ≈ 384, 80mm paper ≈ 576. Check printer self-test page for exact value.
               </Text>
             </View>
@@ -596,20 +596,19 @@ export default function SettingsScreen() {
 
           {/* Modal Footer */}
           <View className="flex-row gap-4 px-6 py-4 border-t border-gray-200">
-            <TouchableOpacity
+            <ThemedButton
+              title="Cancel"
+              variant="outline"
               onPress={() => setIsModalVisible(false)}
-              className="flex-1 border border-gray-300 rounded-xl py-3 items-center"
-            >
-              <Text className="text-gray-700 font-medium">Cancel</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
+              fullWidth
+              size="lg"
+              textStyle={{ fontSize: 18 }}
+            />
+            <ThemedButton
+              title={editingPrinter ? "Save Changes" : "Add Printer"}
               onPress={handleSavePrinter}
-              className="flex-1 bg-blue-500 rounded-xl py-3 items-center"
-            >
-              <Text className="text-white font-medium">
-                {editingPrinter ? "Save Changes" : "Add Printer"}
-              </Text>
-            </TouchableOpacity>
+              style={{ flex: 1, backgroundColor: colors.info }}
+            />
           </View>
         </View>
       </TouchableOpacity>
@@ -627,7 +626,7 @@ export default function SettingsScreen() {
           <View className="bg-gray-50 px-5 py-4 border-b border-gray-200 flex-row items-center justify-between">
             <View className="flex-row items-center gap-3">
               <View className="bg-blue-100 p-2 rounded-lg">
-                <Ionicons name="print" size={iconSize.xl} color="#3b82f6" />
+                <Ionicons name="print" size={iconSize.xl} color={colors.info} />
               </View>
               <View>
                 <Text className="text-lg font-semibold text-gray-800">Printer Management</Text>
@@ -636,20 +635,19 @@ export default function SettingsScreen() {
                 </Text>
               </View>
             </View>
-            <TouchableOpacity
+            <ThemedButton
+              title="Add Printer"
+              icon="add"
               onPress={handleAddPrinter}
-              className="bg-blue-500 px-4 py-2 rounded-lg flex-row items-center gap-2"
-            >
-              <Ionicons name="add" size={iconSize.base} color="white" />
-              <Text className="text-white font-medium">Add Printer</Text>
-            </TouchableOpacity>
+              style={{ backgroundColor: colors.info }}
+            />
           </View>
 
           {/* Printer List */}
           <View className="p-4">
             {printers.length === 0 ? (
               <View className="items-center py-10">
-                <Ionicons name="print-outline" size={iconSize['4xl']} color="#d1d5db" />
+                <Ionicons name="print-outline" size={iconSize['4xl']} color={colors.borderMedium} />
                 <Text className="text-gray-400 mt-3 text-base">No printers yet</Text>
                 <Text className="text-gray-400 text-sm">Click the button above to add a printer</Text>
               </View>
@@ -665,19 +663,19 @@ export default function SettingsScreen() {
                 <Text className="text-gray-600 font-medium mb-2">Printer Pool Status</Text>
                 <View className="flex-row flex-wrap gap-4">
                   <View className="flex-row items-center gap-2">
-                    <View className="w-3 h-3 rounded-full bg-green-500" />
+                    <View className="w-3 h-3 rounded-full" style={{ backgroundColor: colors.success }} />
                     <Text className="text-gray-600 text-sm">
                       Idle: {printers.filter(p => p.enabled && p.status === 'idle').length}
                     </Text>
                   </View>
                   <View className="flex-row items-center gap-2">
-                    <View className="w-3 h-3 rounded-full bg-amber-500" />
+                    <View className="w-3 h-3 rounded-full" style={{ backgroundColor: colors.warning }} />
                     <Text className="text-gray-600 text-sm">
                       Printing: {printers.filter(p => p.status === 'busy').length}
                     </Text>
                   </View>
                   <View className="flex-row items-center gap-2">
-                    <View className="w-3 h-3 rounded-full bg-gray-400" />
+                    <View className="w-3 h-3 rounded-full" style={{ backgroundColor: colors.textTertiary }} />
                     <Text className="text-gray-600 text-sm">
                       Disabled: {printers.filter(p => !p.enabled).length}
                     </Text>
@@ -691,8 +689,8 @@ export default function SettingsScreen() {
         {/* App Settings Card */}
         <View className="bg-white rounded-xl border border-gray-200 overflow-hidden">
           <View className="bg-gray-50 px-5 py-4 border-b border-gray-200 flex-row items-center gap-3">
-            <View className="bg-purple-100 p-2 rounded-lg">
-              <Ionicons name="apps" size={iconSize.xl} color="#9333ea" />
+            <View className="p-2 rounded-lg" style={{ backgroundColor: colors.primaryLight }}>
+              <Ionicons name="apps" size={iconSize.xl} color={colors.purple} />
             </View>
             <View>
               <Text className="text-lg font-semibold text-gray-800">App Settings</Text>
@@ -707,23 +705,23 @@ export default function SettingsScreen() {
               className="flex-row items-center justify-between py-4 border-b border-gray-100"
             >
               <View className="flex-row items-center gap-3">
-                <Ionicons name="print-outline" size={iconSize.xl} color="#3b82f6" />
+                <Ionicons name="print-outline" size={iconSize.xl} color={colors.info} />
                 <View>
                   <Text className="text-gray-700 text-base">Print Format</Text>
-                  <Text className="text-gray-400 text-xs mt-0.5">Select A4 Invoice or Receipt format</Text>
+                  <Text className="text-gray-400 text-sm mt-0.5">Select A4 Invoice or Receipt format</Text>
                 </View>
               </View>
               <View className="flex-row items-center gap-2">
                 <Text className="text-blue-600 text-sm font-medium">
                   {printFormat === "a4" ? "A4 Invoice" : "Receipt"}
                 </Text>
-                <Ionicons name="chevron-forward" size={iconSize.md} color="#9ca3af" />
+                <Ionicons name="chevron-forward" size={iconSize.md} color={colors.textTertiary} />
               </View>
             </TouchableOpacity>
 
             <View className="flex-row items-center justify-between py-4 border-b border-gray-100">
               <View className="flex-row items-center gap-3">
-                <Ionicons name="information-circle-outline" size={iconSize.xl} color="#6b7280" />
+                <Ionicons name="information-circle-outline" size={iconSize.xl} color={colors.textSecondary} />
                 <Text className="text-gray-700 text-base">App Version</Text>
               </View>
               <Text className="text-gray-500 text-base">1.0.0</Text>
@@ -731,7 +729,7 @@ export default function SettingsScreen() {
 
             <View className="flex-row items-center justify-between py-4">
               <View className="flex-row items-center gap-3">
-                <Ionicons name="code-slash-outline" size={iconSize.xl} color="#6b7280" />
+                <Ionicons name="code-slash-outline" size={iconSize.xl} color={colors.textSecondary} />
                 <Text className="text-gray-700 text-base">Build Number</Text>
               </View>
               <Text className="text-gray-500 text-base">2026.01.26</Text>

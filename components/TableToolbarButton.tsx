@@ -50,7 +50,6 @@ export function TableToolbarButton({
       {title && (
         <Text style={{
           color: colors.textWhite,
-          fontFamily: "Montserrat",
           fontWeight: token.fontWeight,
           fontSize: token.fontSize,
         }}>

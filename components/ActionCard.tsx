@@ -1,7 +1,7 @@
 import { LinearGradient } from "expo-linear-gradient";
 import React, { ReactNode } from "react";
 import { Text, TouchableOpacity, View } from "react-native";
-import { fontSize, fontWeight, colors } from '@/utils/theme';
+import { colors } from '@/utils/theme';
 
 interface ActionCardProps {
   title: string;
@@ -55,10 +55,8 @@ export function ActionCard({
         </View>
       )}
       <Text 
+        className="text-2xl font-semibold"
         style={{ 
-          fontSize: fontSize['2xl'], 
-          fontWeight: fontWeight.semibold,
-          fontFamily: "Montserrat",
           color: isGrayedOut ? grayText : (outline ? color : "#FFFFFF"),
           textAlign: "center"
         }}

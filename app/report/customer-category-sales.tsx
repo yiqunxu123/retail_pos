@@ -136,7 +136,7 @@ export default function CustomerCategorySalesReportScreen() {
       title: "Date",
       width: 150,
       render: (item) => (
-        <Text className="text-[#1A1A1A] text-[18px] font-Montserrat">{formatDate(item.orderDate)}</Text>
+        <Text className="text-[#1A1A1A] text-lg">{formatDate(item.orderDate)}</Text>
       ),
     },
     {
@@ -144,7 +144,7 @@ export default function CustomerCategorySalesReportScreen() {
       title: "Order No",
       width: 180,
       render: (item) => (
-        <Text className="text-blue-600 text-[18px] font-Montserrat font-medium">{item.orderNo || '-'}</Text>
+        <Text className="text-blue-600 text-lg font-medium">{item.orderNo || '-'}</Text>
       ),
     },
     {
@@ -152,7 +152,7 @@ export default function CustomerCategorySalesReportScreen() {
       title: "Customer Name",
       width: 250,
       render: (item) => (
-        <Text className="text-[#1A1A1A] text-[18px] font-Montserrat font-medium" numberOfLines={1}>
+        <Text className="text-[#1A1A1A] text-lg font-medium" numberOfLines={1}>
           {item.customerName || '-'}
         </Text>
       ),
@@ -162,7 +162,7 @@ export default function CustomerCategorySalesReportScreen() {
       title: "Business Name",
       width: 250,
       render: (item) => (
-        <Text className="text-blue-600 text-[18px] font-Montserrat" numberOfLines={1}>
+        <Text className="text-blue-600 text-lg" numberOfLines={1}>
           {item.businessName || '-'}
         </Text>
       ),
@@ -172,7 +172,7 @@ export default function CustomerCategorySalesReportScreen() {
       title: "City",
       width: 150,
       render: (item) => (
-        <Text className="text-[#1A1A1A] text-[18px] font-Montserrat">{item.city || '-'}</Text>
+        <Text className="text-[#1A1A1A] text-lg">{item.city || '-'}</Text>
       ),
     },
     {
@@ -181,7 +181,7 @@ export default function CustomerCategorySalesReportScreen() {
       width: 150,
       align: "right",
       render: (item) => (
-        <Text className="text-green-600 text-[18px] font-Montserrat font-bold text-right">
+        <Text className="text-green-600 text-lg font-bold text-right">
           {formatCurrency(item.totalAmount)}
         </Text>
       ),
@@ -194,16 +194,16 @@ export default function CustomerCategorySalesReportScreen() {
   const renderTableFooter = () => (
     <View className="flex-row items-center py-4 px-5 bg-gray-100 border-t-2 border-gray-300">
       <View className="w-[150px]">
-        <Text className="text-[#1A1A1A] text-[18px] font-Montserrat font-bold">TOTAL</Text>
+        <Text className="text-[#1A1A1A] text-lg font-bold">TOTAL</Text>
       </View>
       <View className="w-[180px]">
-        <Text className="text-[#1A1A1A] text-[18px] font-Montserrat font-bold">{filteredReports.length} orders</Text>
+        <Text className="text-[#1A1A1A] text-lg font-bold">{filteredReports.length} orders</Text>
       </View>
       <View className="w-[250px]" />
       <View className="w-[250px]" />
       <View className="w-[150px]" />
       <View className="w-[150px]">
-        <Text className="text-green-600 text-[18px] font-Montserrat font-bold text-right">{formatCurrency(totalAmount)}</Text>
+        <Text className="text-green-600 text-lg font-bold text-right">{formatCurrency(totalAmount)}</Text>
       </View>
     </View>
   );

@@ -1,3 +1,4 @@
+import { colors } from "@/utils/theme";
 import { Pressable, Text, View } from "react-native";
 
 interface RadioOption {
@@ -27,12 +28,13 @@ export function RadioGroup({ label, options, value, onChange }: RadioGroupProps)
             className="flex-row items-center gap-2"
           >
             <View
-              className={`w-5 h-5 rounded-full border-2 items-center justify-center ${
-                value === option.value ? "border-red-500" : "border-gray-300"
-              }`}
+              className="w-5 h-5 rounded-full border-2 items-center justify-center"
+              style={{
+                borderColor: value === option.value ? colors.primary : colors.border,
+              }}
             >
               {value === option.value && (
-                <View className="w-2.5 h-2.5 rounded-full bg-red-500" />
+                <View className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: colors.primary }} />
               )}
             </View>
             <Text className="text-gray-700">{option.label}</Text>

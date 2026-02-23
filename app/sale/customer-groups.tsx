@@ -33,9 +33,9 @@ export default function CustomerGroupsScreen() {
       hideable: false,
       render: (item) => (
         <View>
-          <Text className="text-[18px] font-Montserrat font-medium" style={{ color: colors.text }}>{item.name || "-"}</Text>
+          <Text className="text-lg font-medium" style={{ color: colors.text }}>{item.name || "-"}</Text>
           {item.description && (
-            <Text className="text-gray-500 text-[14px] font-Montserrat" numberOfLines={1}>{item.description}</Text>
+            <Text className="text-gray-500 text-sm" numberOfLines={1}>{item.description}</Text>
           )}
         </View>
       ),
@@ -46,7 +46,7 @@ export default function CustomerGroupsScreen() {
       width: 100,
       align: "center",
       visible: true,
-      render: () => <Text className="text-gray-400 text-[18px] font-Montserrat">-</Text>,
+      render: () => <Text className="text-gray-400 text-lg">-</Text>,
     },
     {
       key: "customerCount",
@@ -54,7 +54,7 @@ export default function CustomerGroupsScreen() {
       width: 140,
       align: "center",
       visible: true,
-      render: (item) => <Text className="text-[18px] font-Montserrat font-bold" style={{ color: colors.text }}>{item.customerCount}</Text>,
+      render: (item) => <Text className="text-lg font-bold" style={{ color: colors.text }}>{item.customerCount}</Text>,
     },
     {
       key: "products",
@@ -62,7 +62,7 @@ export default function CustomerGroupsScreen() {
       width: 120,
       align: "center",
       visible: true,
-      render: () => <Text className="text-gray-400 text-[18px] font-Montserrat">-</Text>,
+      render: () => <Text className="text-gray-400 text-lg">-</Text>,
     },
     {
       key: "actions",

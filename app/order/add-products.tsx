@@ -1,4 +1,4 @@
-import { colors, fontSize, fontWeight, iconSize } from '@/utils/theme';
+import { colors, iconSize } from '@/utils/theme';
 import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useLocalSearchParams, useRouter } from "expo-router";
@@ -16,13 +16,7 @@ import { DeclareCashModal } from "../../components/DeclareCashModal";
 import { AddProductsCustomerCard } from "../../components/order/AddProductsCustomerCard";
 import { AddProductsOrderSummary } from "../../components/order/AddProductsOrderSummary";
 import { AddProductsTopBar } from "../../components/order/AddProductsTopBar";
-import {
-  BarcodePrintModalControllerHandle
-} from "../../components/order/BarcodePrintModalController";
 import { HiddenScannerInput } from "../../components/order/HiddenScannerInput";
-import {
-  ScanLogsModalControllerHandle
-} from "../../components/order/ScanLogsModalController";
 import {
   SearchCustomerModalController,
   SearchCustomerModalControllerHandle,
@@ -56,6 +50,7 @@ import {
   openCashDrawer,
   printToAllWithFormat,
 } from "../../utils/PrinterPoolManager";
+import { printBarcodeLabelsForCart } from "../../utils/barcodePrint";
 import { printImageToAll } from "../../utils/receiptImagePrint";
 import { formatReceiptText } from "../../utils/receiptTextFormat";
 
@@ -80,14 +75,6 @@ function buildCustomerSnapshot(
     customer_billing_details: null,
     sale_agent_obj: { label: "Please Select", value: null },
   };
-}
-
-interface ScanLogEntry {
-  id: string;
-  code: string;
-  timestamp: Date;
-  matched: boolean;
-  productName?: string;
 }
 
 /**
@@ -152,16 +139,12 @@ function AddProductsHeavy() {
     }, 350);
     return () => clearTimeout(id);
   }, [modalsReady]);
-  const scanLogModalVisibleRef = useRef(false);
-  const barcodePrintModalVisibleRef = useRef(false);
   const scanBufferRef = useRef("");
   const scanQueueRef = useRef<string[]>([]);  // Queue for pending scans
   const processingTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const hiddenInputRef = useRef<TextInput>(null!);
   const searchProductModalRef = useRef<SearchProductModalControllerHandle>(null);
   const customerModalRef = useRef<SearchCustomerModalControllerHandle>(null);
-  const barcodePrintModalRef = useRef<BarcodePrintModalControllerHandle>(null);
-  const scanLogsModalRef = useRef<ScanLogsModalControllerHandle>(null);
   const customerModalVisibleRef = useRef(false);
   const { products: allProducts, isLoading: isProductsLoading } = useProducts({ enabled: modalsReady });
   const [showSearchProductModal, setShowSearchProductModal] = useState(false);
@@ -296,14 +279,6 @@ function AddProductsHeavy() {
     }
     setShowCustomerModal(visible);
   }, []);
-  // TEMP: Disabled for performance testing
-  // const handleScanLogModalVisibleStateChange = useCallback((visible: boolean) => {
-  //   scanLogModalVisibleRef.current = visible;
-  // }, []);
-  // const handleBarcodePrintModalVisibleStateChange = useCallback((visible: boolean) => {
-  //   barcodePrintModalVisibleRef.current = visible;
-  // }, []);
-
   const handleSearchProductModalVisibleStateChange = useCallback((visible: boolean) => {
     console.log(`[Modal] SearchProduct visible=${visible}`);
     if (visible) {
@@ -330,8 +305,6 @@ function AddProductsHeavy() {
       selectedProductId: selectedProduct?.id ?? null,
       // scanLogsLength: scanLogs.length,
       hasBlockingScanModal,
-      showScanLogModal: scanLogModalVisibleRef.current,
-      showBarcodePrintModal: barcodePrintModalVisibleRef.current,
       showCustomerModal,
       showCashPaymentModal,
       showDiscountModal,
@@ -661,16 +634,9 @@ function AddProductsHeavy() {
     setSelectedProduct(product as OrderProduct);
   }, []);
 
-  // TEMP: Disabled for performance testing
-  // const handleOpenScanLogModal = useCallback(() => {
-  //   scanLogsModalRef.current?.open();
-  // }, []);
-
-  // const handleOpenBarcodePrintModal = useCallback(() => {
-  //   barcodePrintModalRef.current?.open();
-  // }, []);
-  const handleOpenScanLogModal = useCallback(() => {}, []);
-  const handleOpenBarcodePrintModal = useCallback(() => {}, []);
+  const handleOpenBarcodePrintModal = useCallback(async () => {
+    await printBarcodeLabelsForCart(barcodeCartItems, allProducts);
+  }, [barcodeCartItems, allProducts]);
 
   const handleOpenProductSettings = useCallback(() => {
     if (productsRef.current.length === 0) {
@@ -1008,8 +974,6 @@ function AddProductsHeavy() {
       <View className="flex-1">
         <AddProductsTopBar
           insetTop={insets.top}
-          scanLogsCount={0}
-          onOpenScanLogModal={handleOpenScanLogModal}
           onOpenBarcodePrintModal={handleOpenBarcodePrintModal}
           onOpenProductSettings={handleOpenProductSettings}
         />
@@ -1181,15 +1145,6 @@ function AddProductsHeavy() {
         order={invoiceOrder}
       />
 
-      {/* TEMP: Disabled for performance testing */}
-      {/* Barcode Print Modal */}
-      {/* {controllersReady && (<BarcodePrintModalController
-        ref={barcodePrintModalRef}
-        cartItems={barcodeCartItems}
-        products={allProducts}
-        productsLoading={isProductsLoading}
-        onVisibleStateChange={handleBarcodePrintModalVisibleStateChange}
-      />)} */}
       </>)}
 
       {/* Hidden receipt template for capture */}
@@ -1241,7 +1196,7 @@ function AddProductsHeavy() {
           >
             {/* Header */}
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
-              <Text style={{ fontSize: fontSize.lg, fontWeight: fontWeight.bold, color: '#111' }}>Print Preview</Text>
+              <Text className="text-lg font-bold" style={{ color: '#111' }}>Print Preview</Text>
               <TouchableOpacity
                 onPress={() => {
                   setShowReceiptPreview(false);
@@ -1290,7 +1245,7 @@ function AddProductsHeavy() {
                 }}
               >
                 <Ionicons name="print" size={iconSize.sm} color="#FFF" />
-                <Text style={{ color: '#FFF', fontWeight: fontWeight.bold, fontSize: fontSize.base }}>
+                <Text className="text-base font-bold" style={{ color: '#FFF' }}>
                   {sendingToPrinter ? 'Sending...' : 'Print'}
                 </Text>
               </TouchableOpacity>
@@ -1315,7 +1270,7 @@ function AddProductsHeavy() {
                   }}
                 >
                   <Ionicons name="add-circle-outline" size={iconSize.sm} color="#FFF" />
-                  <Text style={{ color: '#FFF', fontWeight: fontWeight.bold, fontSize: fontSize.base }}>New Order</Text>
+                  <Text className="text-base font-bold" style={{ color: '#FFF' }}>New Order</Text>
                 </TouchableOpacity>
               )}
             </View>
@@ -1329,15 +1284,6 @@ function AddProductsHeavy() {
         onFocus={handleHiddenInputFocus}
         onBlur={handleHiddenInputBlur}
       />)}
-      {/* TEMP: Disabled for performance testing */}
-      {/* Scan Logs Modal */}
-      {/* {controllersReady && (<ScanLogsModalController
-        ref={scanLogsModalRef}
-        logs={scanLogs}
-        summary={scanLogSummary}
-        onClearLogs={() => setScanLogs([])}
-        onVisibleStateChange={handleScanLogModalVisibleStateChange}
-      />)} */}
     </View>
   );
 }
@@ -1375,8 +1321,6 @@ function AddProductsContent() {
         <View style={{ flex: 1 }}>
           <AddProductsTopBar
             insetTop={insets.top}
-            scanLogsCount={0}
-            onOpenScanLogModal={noop}
             onOpenBarcodePrintModal={noop}
             onOpenProductSettings={noop}
           />

@@ -1,16 +1,17 @@
-import { buttonSize, colors, iconSize } from "@/utils/theme";
+import { colors, iconSize } from "@/utils/theme";
+import { ThemedButton } from "./ThemedButton";
 import { Ionicons } from "@expo/vector-icons";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
-  Modal,
   Pressable,
   ScrollView,
   Text,
   TextInput,
   View,
 } from "react-native";
+import { SlidePanelModal } from "./SlidePanelModal";
 import {
   createQuickCustomer,
   fetchSalesReps,
@@ -330,57 +331,62 @@ export function AddQuickCustomerModal({
   const canSave = data.business_name.trim().length > 0 && !isLoading;
 
   return (
-    <Modal visible={visible} transparent animationType="fade" onRequestClose={handleClose}>
-      <View className="flex-1 bg-black/45 items-center justify-center px-4">
-        <Pressable
-          className="bg-[#F8F8F9] border border-[#E6E8EE] rounded-xl overflow-hidden"
-          style={{ width: "74%", maxWidth: 980 }}
-          onPress={() => {}}
-        >
-          <View className="flex-row items-center justify-between px-6 py-4 border-b border-[#ECEFF3]">
-            <Text className="text-[#24262B] text-[36px] leading-[38px] font-semibold">
-              {isEditMode ? "Edit Customer" : "Add New Customer"}
+    <SlidePanelModal
+      visible={visible}
+      onClose={handleClose}
+      title={isEditMode ? "Edit Customer" : "Add New Customer"}
+      scrollable={true}
+      contentPadding={{ horizontal: 24, bottom: 20 }}
+      footer={
+        <View className="flex-row gap-4 flex-1">
+          <ThemedButton
+            title="Cancel"
+            variant="outline"
+            onPress={handleClose}
+            disabled={isLoading}
+            fullWidth
+            size="lg"
+            style={{ flex: 1, borderColor: colors.primary }}
+            textStyle={{ color: colors.primary, fontSize: 18 }}
+          />
+          <ThemedButton
+            title="Save"
+            onPress={handleSave}
+            disabled={!canSave}
+            fullWidth
+            size="lg"
+            style={{ flex: 1, backgroundColor: colors.primary }}
+            textStyle={{ fontSize: 18 }}
+          />
+        </View>
+      }
+    >
+      {serverErrors.length > 0 && (
+        <View className="mb-4 bg-red-50 border border-red-200 rounded-lg p-3">
+          {serverErrors.map((msg, i) => (
+            <Text key={i} className="text-red-600 text-sm">
+              {msg}
             </Text>
-            <Pressable
-              onPress={handleClose}
-              className="w-8 h-8 items-center justify-center"
-              style={({ pressed }) => ({ opacity: pressed ? 0.55 : 1 })}
-            >
-              <Ionicons name="close" size={iconSize.lg} color="#4B5563" />
-            </Pressable>
-          </View>
+          ))}
+        </View>
+      )}
 
-          {serverErrors.length > 0 && (
-            <View className="mx-6 mt-4 bg-red-50 border border-red-200 rounded-lg p-3">
-              {serverErrors.map((msg, i) => (
-                <Text key={i} className="text-red-600 text-sm">
-                  {msg}
-                </Text>
-              ))}
-            </View>
-          )}
+      {isLoading && (
+        <View className="absolute inset-0 bg-white/70 z-10 items-center justify-center">
+          <ActivityIndicator size="large" color="#E11D48" />
+        </View>
+      )}
 
-          {isLoading && (
-            <View className="absolute inset-0 bg-white/70 z-10 items-center justify-center">
-              <ActivityIndicator size="large" color="#E11D48" />
-            </View>
-          )}
-
-          <ScrollView
-            className="px-6 py-4"
-            contentContainerStyle={{ paddingBottom: 10 }}
-            style={{ maxHeight: 470 }}
-          >
+      <View>
             <View className="flex-row gap-3 mb-3">
               <View className="flex-1">
-                <Text className="text-[#5A5F66] text-[18px] mb-1.5" style={{ fontFamily: 'Montserrat' }}>
+                <Text className="text-[#5A5F66] text-lg mb-1.5">
                   Business Name <Text className="text-red-500">*</Text>
                 </Text>
                 <TextInput
-                  className={`bg-white border rounded-xl px-3 py-3 text-gray-800 text-[18px] shadow-sm ${
+                  className={`bg-white border rounded-xl px-3 py-3 text-gray-800 text-lg shadow-sm ${
                     errors.business_name ? "border-red-400" : "border-gray-200"
                   }`}
-                  style={{ fontFamily: 'Montserrat' }}
                   placeholder="Business Name"
                   placeholderTextColor={colors.textTertiary}
                   value={data.business_name}
@@ -389,17 +395,16 @@ export function AddQuickCustomerModal({
                   maxLength={100}
                 />
                 {errors.business_name && (
-                  <Text className="text-red-500 text-[14px] mt-1" style={{ fontFamily: 'Montserrat' }}>{errors.business_name}</Text>
+                  <Text className="text-red-500 text-sm mt-1">{errors.business_name}</Text>
                 )}
               </View>
 
               <View className="flex-1">
-                <Text className="text-[#5A5F66] text-[18px] mb-1.5" style={{ fontFamily: 'Montserrat' }}>Email Address</Text>
+                <Text className="text-[#5A5F66] text-lg mb-1.5">Email Address</Text>
                 <TextInput
-                  className={`bg-white border rounded-xl px-3 py-3 text-gray-800 text-[18px] shadow-sm ${
+                  className={`bg-white border rounded-xl px-3 py-3 text-gray-800 text-lg shadow-sm ${
                     errors.email ? "border-red-400" : "border-gray-200"
                   }`}
-                  style={{ fontFamily: 'Montserrat' }}
                   placeholder="Email"
                   placeholderTextColor={colors.textTertiary}
                   keyboardType="email-address"
@@ -407,7 +412,7 @@ export function AddQuickCustomerModal({
                   value={data.email || ""}
                   onChangeText={(value) => updateField("email", value || null)}
                 />
-                {errors.email && <Text className="text-red-500 text-[14px] mt-1" style={{ fontFamily: 'Montserrat' }}>{errors.email}</Text>}
+                {errors.email && <Text className="text-red-500 text-sm mt-1">{errors.email}</Text>}
               </View>
             </View>
 
@@ -435,21 +440,21 @@ export function AddQuickCustomerModal({
                           {customer.business_name}
                           {customer.name ? `, ${customer.name}` : ""}
                         </Text>
-                        <Text className="text-gray-600 text-xs mt-0.5">
+                        <Text className="text-gray-600 text-sm mt-0.5">
                           Phone: {customer.business_phone_no || "N/A"} | Email: {customer.email || "N/A"}
                         </Text>
                         {customer.no && (
-                          <Text className="text-gray-600 text-xs">Customer No: {customer.no}</Text>
+                          <Text className="text-gray-600 text-sm">Customer No: {customer.no}</Text>
                         )}
                         {customer.is_active === false && (
-                          <Text className="text-red-500 text-xs font-medium mt-0.5">Inactive</Text>
+                          <Text className="text-red-500 text-sm font-medium mt-0.5">Inactive</Text>
                         )}
                       </Pressable>
                     ))}
                   </ScrollView>
                 ) : (
                   <View style={{ paddingVertical: 12, alignItems: "center" }}>
-                    <Text className="text-gray-400 text-xs italic">No existing customer found</Text>
+                    <Text className="text-gray-400 text-sm italic">No existing customer found</Text>
                   </View>
                 )}
               </View>
@@ -457,12 +462,11 @@ export function AddQuickCustomerModal({
 
             <View className="flex-row gap-3 mb-3">
               <View className="flex-1">
-                <Text className="text-[#5A5F66] text-[18px] mb-1.5" style={{ fontFamily: 'Montserrat' }}>Business Phone Number</Text>
+                <Text className="text-[#5A5F66] text-lg mb-1.5">Business Phone Number</Text>
                 <TextInput
-                  className={`bg-white border rounded-xl px-3 py-3 text-gray-800 text-[18px] shadow-sm ${
+                  className={`bg-white border rounded-xl px-3 py-3 text-gray-800 text-lg shadow-sm ${
                     errors.business_phone_no ? "border-red-400" : "border-gray-200"
                   }`}
-                  style={{ fontFamily: 'Montserrat' }}
                   placeholder="+123 456 789"
                   placeholderTextColor={colors.textTertiary}
                   keyboardType="phone-pad"
@@ -470,7 +474,7 @@ export function AddQuickCustomerModal({
                   onChangeText={(value) => updateField("business_phone_no", value || null)}
                 />
                 {errors.business_phone_no && (
-                  <Text className="text-red-500 text-[14px] mt-1" style={{ fontFamily: 'Montserrat' }}>{errors.business_phone_no}</Text>
+                  <Text className="text-red-500 text-sm mt-1">{errors.business_phone_no}</Text>
                 )}
               </View>
               <View className="flex-1">
@@ -481,7 +485,7 @@ export function AddQuickCustomerModal({
                   onChange={(value) => updateField("class_of_trades", value)}
                 />
                 {errors.class_of_trades && (
-                  <Text className="text-red-500 text-[14px] mt-1" style={{ fontFamily: 'Montserrat' }}>{errors.class_of_trades}</Text>
+                  <Text className="text-red-500 text-sm mt-1">{errors.class_of_trades}</Text>
                 )}
               </View>
             </View>
@@ -514,32 +518,7 @@ export function AddQuickCustomerModal({
                 />
               </View>
             </View>
-          </ScrollView>
-
-          <View className="flex-row gap-4 px-6 py-4 border-t border-[#ECEFF3]">
-            <Pressable
-              onPress={handleClose}
-              disabled={isLoading}
-              className="flex-1 bg-[#F8E7EA] rounded-lg items-center justify-center"
-              style={({ pressed }) => ({ height: buttonSize.md.height, opacity: pressed ? 0.75 : 1 })}
-            >
-              <Text className="text-[#CC4A66] text-xl font-semibold">Cancel</Text>
-            </Pressable>
-            <Pressable
-              onPress={handleSave}
-              disabled={!canSave}
-              className={`flex-1 rounded-lg items-center justify-center ${
-                canSave ? "bg-[#DF2E58]" : "bg-[#DF2E58]"
-              }`}
-              style={({ pressed }) => ({ height: buttonSize.md.height, opacity: pressed && canSave ? 0.82 : 1 })}
-            >
-              <Text className={canSave ? "text-white text-xl font-semibold" : "text-white font-semibold"}>
-                Save
-              </Text>
-            </Pressable>
-          </View>
-        </Pressable>
       </View>
-    </Modal>
+    </SlidePanelModal>
   );
 }

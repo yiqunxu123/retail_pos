@@ -7,7 +7,7 @@
  * 3. Quick Actions Tab - one-click generate full POS test dataset
  */
 
-import { iconSize } from '@/utils/theme'
+import { colors, iconSize } from '@/utils/theme'
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons'
 import { useLocalSearchParams, useRouter } from 'expo-router'
 import { useCallback, useEffect, useState } from 'react'
@@ -180,7 +180,7 @@ function TableSelector({
 
   return (
     <View className="mb-4">
-      <Text className="text-gray-600 text-xs font-medium mb-1">Select Table</Text>
+      <Text className="text-gray-600 text-sm font-medium mb-1">Select Table</Text>
       <TouchableOpacity
         onPress={() => setIsOpen(!isOpen)}
         className="bg-white border border-gray-300 rounded-lg px-4 py-3 flex-row items-center justify-between"
@@ -316,9 +316,8 @@ function GenerateTab({ initialTable }: { initialTable?: string }) {
         <TouchableOpacity
           onPress={handleGenerate}
           disabled={isGenerating}
-          className={`flex-row items-center gap-2 px-5 py-2.5 rounded-lg ${
-            isGenerating ? 'bg-gray-400' : 'bg-blue-500'
-          }`}
+          className="flex-row items-center gap-2 px-5 py-2.5 rounded-lg"
+          style={{ backgroundColor: isGenerating ? colors.borderMedium : colors.info, borderRadius: 8 }}
         >
           {isGenerating ? (
             <ActivityIndicator size="small" color="white" />
@@ -370,7 +369,7 @@ function GenerateTab({ initialTable }: { initialTable?: string }) {
                 <Text className="text-gray-800 text-sm font-medium">
                   {col.label}
                 </Text>
-                <Text className="text-gray-400 text-xs">
+                <Text className="text-gray-400 text-sm">
                   {col.name} ({col.type})
                 </Text>
               </View>
@@ -624,7 +623,7 @@ function BrowseTab({ initialTable }: { initialTable?: string }) {
       <View className="flex-row items-center bg-white border-b border-gray-100 px-3 py-2">
         {displayColumns.map((col) => (
           <View key={col} className="flex-1 px-1">
-            <Text className="text-xs text-gray-700" numberOfLines={1}>
+            <Text className="text-sm text-gray-700" numberOfLines={1}>
               {item[col] === null || item[col] === undefined
                 ? '-'
                 : col === 'id'
@@ -690,7 +689,7 @@ function BrowseTab({ initialTable }: { initialTable?: string }) {
 
             {/* ID (read-only) */}
             <View className="px-5 pt-4 pb-2">
-              <Text className="text-gray-400 text-xs">ID (read-only)</Text>
+              <Text className="text-gray-400 text-sm">ID (read-only)</Text>
               <Text className="text-gray-500 text-sm font-mono">
                 {editingRow.id}
               </Text>
@@ -700,7 +699,7 @@ function BrowseTab({ initialTable }: { initialTable?: string }) {
             <ScrollView className="px-5 pb-4" keyboardShouldPersistTaps="handled">
               {config.columns.map((col) => (
                 <View key={col.name} className="mb-3">
-                  <Text className="text-gray-600 text-xs font-medium mb-1">
+                  <Text className="text-gray-600 text-sm font-medium mb-1">
                     {col.label}
                     <Text className="text-gray-400"> ({col.name}, {col.type})</Text>
                   </Text>
@@ -728,16 +727,16 @@ function BrowseTab({ initialTable }: { initialTable?: string }) {
             <View className="flex-row gap-3 px-5 py-4 border-t border-gray-200">
               <TouchableOpacity
                 onPress={() => setEditingRow(null)}
-                className="flex-1 border border-gray-300 rounded-xl py-3 items-center"
+                className="flex-1 rounded-xl py-3 items-center"
+                style={{ borderWidth: 1, borderColor: colors.borderMedium, borderRadius: 12 }}
               >
-                <Text className="text-gray-700 font-medium">Cancel</Text>
+                <Text className="font-medium" style={{ color: colors.textMedium }}>Cancel</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 onPress={handleSaveEdit}
                 disabled={isSaving}
-                className={`flex-1 rounded-xl py-3 items-center ${
-                  isSaving ? 'bg-gray-400' : 'bg-blue-500'
-                }`}
+                className="flex-1 rounded-xl py-3 items-center"
+                style={{ backgroundColor: isSaving ? colors.borderMedium : colors.info, borderRadius: 12 }}
               >
                 {isSaving ? (
                   <ActivityIndicator size="small" color="white" />
@@ -760,14 +759,16 @@ function BrowseTab({ initialTable }: { initialTable?: string }) {
       <View className="flex-row items-center gap-3 mb-3">
         <TouchableOpacity
           onPress={loadData}
-          className="flex-row items-center gap-1 bg-blue-500 px-4 py-2 rounded-lg"
+          className="flex-row items-center gap-1 px-4 py-2 rounded-lg"
+          style={{ backgroundColor: colors.info, borderRadius: 8 }}
         >
           <Ionicons name="refresh" size={iconSize.sm} color="white" />
           <Text className="text-white font-medium text-sm">Refresh</Text>
         </TouchableOpacity>
         <TouchableOpacity
           onPress={handleClearTable}
-          className="flex-row items-center gap-1 bg-red-500 px-4 py-2 rounded-lg"
+          className="flex-row items-center gap-1 px-4 py-2 rounded-lg"
+          style={{ backgroundColor: colors.error, borderRadius: 8 }}
         >
           <Ionicons name="trash" size={iconSize.sm} color="white" />
           <Text className="text-white font-medium text-sm">Clear Table</Text>
@@ -782,13 +783,13 @@ function BrowseTab({ initialTable }: { initialTable?: string }) {
       {config && (
         <View className="flex-row flex-wrap items-center gap-1.5 mb-3">
           <TouchableOpacity onPress={selectAllColumns} className="mr-1">
-            <Text className="text-blue-500 text-xs font-medium">All</Text>
+            <Text className="text-blue-500 text-sm font-medium">All</Text>
           </TouchableOpacity>
           <TouchableOpacity onPress={deselectAllColumns} className="mr-2">
-            <Text className="text-gray-400 text-xs font-medium">Reset</Text>
+            <Text className="text-gray-400 text-sm font-medium">Reset</Text>
           </TouchableOpacity>
           <View className="bg-blue-100 rounded px-2 py-1">
-            <Text className="text-blue-700 text-xs">id</Text>
+            <Text className="text-blue-700 text-sm">id</Text>
           </View>
           {config.columns.map((col) => {
             const isOn = selectedColumns.includes(col.name)
@@ -796,9 +797,14 @@ function BrowseTab({ initialTable }: { initialTable?: string }) {
               <TouchableOpacity
                 key={col.name}
                 onPress={() => toggleColumn(col.name)}
-                className={`rounded px-2 py-1 ${isOn ? 'bg-blue-500' : 'bg-gray-100'}`}
+                style={{
+                  borderRadius: 4,
+                  paddingHorizontal: 8,
+                  paddingVertical: 4,
+                  backgroundColor: isOn ? colors.info : colors.backgroundSecondary,
+                }}
               >
-                <Text className={`text-xs ${isOn ? 'text-white' : 'text-gray-500'}`}>
+                <Text className={`text-sm ${isOn ? 'text-white' : 'text-gray-500'}`}>
                   {col.label}
                 </Text>
               </TouchableOpacity>
@@ -813,7 +819,7 @@ function BrowseTab({ initialTable }: { initialTable?: string }) {
           const colDef = config?.columns.find((c) => c.name === col)
           return (
             <View key={col} className="flex-1 px-1">
-              <Text className="text-xs text-gray-500 font-semibold" numberOfLines={1}>
+              <Text className="text-sm text-gray-500 font-semibold" numberOfLines={1}>
                 {colDef?.label || col}
               </Text>
             </View>
@@ -963,7 +969,7 @@ function QuickActionsTab() {
               Object.keys(counts) as Array<keyof FullDatasetCounts>
             ).map((key) => (
               <View key={key} className="w-[30%] mb-2">
-                <Text className="text-gray-600 text-xs mb-1">{key}</Text>
+                <Text className="text-gray-600 text-sm mb-1">{key}</Text>
                 <TextInput
                   className="bg-gray-50 border border-gray-200 rounded-lg px-3 py-1.5 text-sm text-center"
                   keyboardType="number-pad"
@@ -986,9 +992,8 @@ function QuickActionsTab() {
         <TouchableOpacity
           onPress={handleGenerateFullDataset}
           disabled={isRunning}
-          className={`flex-row items-center gap-3 p-4 rounded-xl ${
-            isRunning ? 'bg-gray-400' : 'bg-blue-500'
-          }`}
+          className="flex-row items-center gap-3 p-4 rounded-xl"
+          style={{ backgroundColor: isRunning ? colors.borderMedium : colors.info, borderRadius: 12 }}
         >
           {isRunning ? (
             <ActivityIndicator size="small" color="white" />
@@ -999,7 +1004,7 @@ function QuickActionsTab() {
             <Text className="text-white font-bold text-base">
               One-click Generate Full POS Dataset
             </Text>
-            <Text className="text-blue-100 text-xs">
+            <Text className="text-blue-100 text-sm">
               Categories + Brands + Products + Customers + Orders + Payments, auto-linked foreign keys
             </Text>
           </View>
@@ -1009,7 +1014,8 @@ function QuickActionsTab() {
           <TouchableOpacity
             onPress={handleCountAll}
             disabled={isRunning}
-            className="flex-1 flex-row items-center justify-center gap-2 bg-purple-500 p-3 rounded-xl"
+            className="flex-1 flex-row items-center justify-center gap-2 p-3 rounded-xl"
+            style={{ backgroundColor: colors.purple, borderRadius: 12 }}
           >
             <Ionicons name="stats-chart" size={iconSize.md} color="white" />
             <Text className="text-white font-medium">Count All Tables</Text>
@@ -1018,7 +1024,8 @@ function QuickActionsTab() {
           <TouchableOpacity
             onPress={handleClearAll}
             disabled={isRunning}
-            className="flex-1 flex-row items-center justify-center gap-2 bg-red-500 p-3 rounded-xl"
+            className="flex-1 flex-row items-center justify-center gap-2 p-3 rounded-xl"
+            style={{ backgroundColor: colors.error, borderRadius: 12 }}
           >
             <Ionicons name="nuclear" size={iconSize.md} color="white" />
             <Text className="text-white font-medium">Clear All Tables</Text>
@@ -1030,16 +1037,16 @@ function QuickActionsTab() {
       {logs.length > 0 && (
         <View className="bg-gray-900 rounded-xl overflow-hidden mb-4">
           <View className="px-4 py-2 bg-gray-800 flex-row items-center justify-between">
-            <Text className="text-gray-300 text-xs font-mono">Output Log</Text>
+            <Text className="text-gray-300 text-sm font-mono">Output Log</Text>
             <TouchableOpacity onPress={() => setLogs([])}>
-              <Text className="text-gray-400 text-xs">Clear</Text>
+              <Text className="text-gray-400 text-sm">Clear</Text>
             </TouchableOpacity>
           </View>
           <ScrollView className="p-3 max-h-80">
             {logs.map((log, i) => (
               <Text
                 key={i}
-                className={`text-xs font-mono leading-5 ${
+                className={`text-sm font-mono leading-5 ${
                   log.includes('Error') || log.includes('Warning')
                     ? 'text-yellow-400'
                     : log.includes('done') || log.includes('complete')
@@ -1159,7 +1166,7 @@ function SystemTab() {
           <View className="flex-row items-center justify-between bg-gray-50 p-3 rounded-lg">
             <View>
               <Text className="text-gray-700 font-medium">Sync Status</Text>
-              <Text className={isConnected ? "text-green-600 text-xs" : "text-red-600 text-xs"}>
+              <Text className={isConnected ? "text-green-600 text-sm" : "text-red-600 text-sm"}>
                 {isConnected ? "Connected (Online)" : "Disconnected (Offline)"}
               </Text>
             </View>
@@ -1168,7 +1175,8 @@ function SystemTab() {
 
           <TouchableOpacity
             onPress={() => router.push("/test-sync")}
-            className="flex-row items-center justify-center gap-2 bg-blue-500 p-4 rounded-xl"
+            className="flex-row items-center justify-center gap-2 p-4 rounded-xl"
+            style={{ backgroundColor: colors.info, borderRadius: 12 }}
           >
             <Ionicons name="analytics" size={iconSize.base} color="white" />
             <Text className="text-white font-bold">Open Sync Monitor (Test Sync)</Text>
@@ -1185,10 +1193,11 @@ function SystemTab() {
                 ]
               )
             }}
-            className="flex-row items-center justify-center gap-2 bg-red-50 border border-red-200 p-3 rounded-xl"
+            className="flex-row items-center justify-center gap-2 p-3 rounded-xl"
+            style={{ backgroundColor: colors.primaryLight, borderWidth: 1, borderColor: colors.primary, borderRadius: 12 }}
           >
-            <Ionicons name="refresh" size={iconSize.md} color="#ef4444" />
-            <Text className="text-red-600 font-medium">Force Clear & Resync Database</Text>
+            <Ionicons name="refresh" size={iconSize.md} color={colors.error} />
+            <Text className="font-medium" style={{ color: colors.error }}>Force Clear & Resync Database</Text>
           </TouchableOpacity>
         </View>
       </View>

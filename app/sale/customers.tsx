@@ -5,9 +5,10 @@
  * Uses the unified DataTable component.
  */
 
-import { buttonSize, colors, fontSize, fontWeight, iconSize } from '@/utils/theme';
+import { buttonSize, colors, iconSize } from '@/utils/theme';
 import { Ionicons } from "@expo/vector-icons";
-import React, { useCallback, useMemo, useState } from "react";
+import { useLocalSearchParams } from "expo-router";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { Alert, Pressable, Text, View } from "react-native";
 import { ColumnDefinition, DataTable, PageHeader } from "../../components";
 import { NewCustomerModal } from "../../components/NewCustomerModal";
@@ -23,7 +24,7 @@ const formatCurrency = (value: number): string => {
 
 const EcomStatusBadge = React.memo(({ allowed }: { allowed: boolean }) => {
   return (
-    <Text style={{ color: allowed ? colors.success : colors.primary, fontWeight: fontWeight.semibold, fontSize: fontSize.lg, fontFamily: "Montserrat" }}>
+    <Text className="text-lg font-semibold" style={{ color: allowed ? colors.success : colors.primary }}>
       {allowed ? "Allowed" : "Not Allowed"}
     </Text>
   );
@@ -35,7 +36,7 @@ const StatusBadge = React.memo(({ isActive }: { isActive: boolean }) => {
       className="px-3 py-1 rounded-full self-start"
       style={{ backgroundColor: isActive ? colors.success : colors.warning }}
     >
-      <Text className="text-white text-[14px] font-Montserrat font-semibold">
+      <Text className="text-white text-sm font-semibold">
         {isActive ? "Active" : "InActive"}
       </Text>
     </View>
@@ -51,8 +52,8 @@ const ActionButton = React.memo(({
 }) => {
   return (
     <Pressable 
-      className="bg-red-50 rounded-lg items-center justify-center" 
-      style={{ width: buttonSize.md.height, height: buttonSize.md.height }}
+      className="rounded-lg items-center justify-center"
+      style={{ width: buttonSize.md.height, height: buttonSize.md.height, backgroundColor: colors.primaryLight, borderRadius: buttonSize.md.borderRadius }}
       onPress={onPress}
     >
       <Ionicons name={icon} size={iconSize.md} color={colors.primary} />
@@ -67,10 +68,16 @@ const ActionButton = React.memo(({
 export default function CustomersScreen() {
   const _mountMs = __DEV__ ? performance.now() : 0;
   const { customers, isLoading, refresh, count } = useCustomers();
+  const params = useLocalSearchParams<{ openAddCustomer?: string }>();
   if (__DEV__) console.log(`[CustPerf] hook: ${(performance.now() - _mountMs).toFixed(1)}ms, rows=${count}`);
-  
-  // Modal States
+
+  // Modal States — open when sidebar "Add Customer" triggers via URL param
   const [showAddCustomerModal, setShowAddCustomerModal] = useState(false);
+  useEffect(() => {
+    if (params.openAddCustomer) {
+      setShowAddCustomerModal(true);
+    }
+  }, [params.openAddCustomer]);
   const [selectedCustomer, setSelectedCustomer] = useState<CustomerView | null>(null);
 
   const handleViewCustomer = useCallback((customer: CustomerView) => {
@@ -94,7 +101,7 @@ export default function CustomersScreen() {
       visible: true,
       hideable: false,
       render: (item) => (
-        <Text className="text-blue-600 text-[18px] font-Montserrat font-medium pr-4" numberOfLines={1}>
+        <Text className="text-blue-600 text-lg font-medium pr-4" numberOfLines={1}>
           {item.businessName || item.name || "-"}
         </Text>
       ),
@@ -112,7 +119,7 @@ export default function CustomersScreen() {
       width: "flex",
       visible: true,
       render: (item) => (
-        <Text className="text-blue-600 text-[18px] font-Montserrat pr-4" numberOfLines={1}>
+        <Text className="text-blue-600 text-lg pr-4" numberOfLines={1}>
           {item.name || "-"}
         </Text>
       ),
@@ -123,7 +130,7 @@ export default function CustomersScreen() {
       width: 120,
       visible: true,
       render: (item) => (
-        <Text className="text-gray-600 text-[18px] font-Montserrat">{item.id.slice(0, 8)}</Text>
+        <Text className="text-gray-600 text-lg">{item.id.slice(0, 8)}</Text>
       ),
     },
     {
@@ -132,7 +139,7 @@ export default function CustomersScreen() {
       width: 120,
       visible: true,
       render: (item) => (
-        <Text className="text-red-600 text-[18px] font-Montserrat font-bold">
+        <Text className="text-red-600 text-lg font-bold">
           {formatCurrency(item.balance)}
         </Text>
       ),
@@ -191,9 +198,6 @@ export default function CustomersScreen() {
         columnSelector
         horizontalScroll
         minWidth={1050}
-        addButton
-        addButtonText="Add Customer"
-        onAddPress={() => setShowAddCustomerModal(true)}
         isLoading={isLoading}
         onRefresh={refresh}
         emptyIcon="people-outline"

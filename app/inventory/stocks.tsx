@@ -4,7 +4,7 @@
  * Aligned with KHUB web Stocks columns configuration.
  */
 
-import { buttonSize, colors, fontSize, fontWeight as fw, iconSize, radius } from '@/utils/theme';
+import { buttonSize, colors, iconSize, radius } from '@/utils/theme';
 import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -47,17 +47,17 @@ import { useSyncStream } from "../../utils/powersync/useSyncStream";
 
 const formatCurrency = (value: number) => (value > 0 ? `$${value.toFixed(2)}` : "-");
 const formatQty = (value: number | null | undefined) => (value === null || value === undefined ? "-" : String(value));
-const qtyValueTextStyle = { fontSize: fontSize.md, lineHeight: 16, fontWeight: fw.regular, color: colors.textMedium };
+const qtyValueTextStyle = { fontSize: 14, lineHeight: 16, fontWeight: '400', color: colors.textMedium };
 const qtyInputTextStyle = {
-  fontSize: fontSize.md,
+  fontSize: 14,
   lineHeight: 16,
-  fontWeight: fw.regular,
+  fontWeight: '400',
   color: colors.textMedium,
   paddingVertical: 0,
   textAlign: "center" as const,
   includeFontPadding: false,
 };
-const qtyUnitTextStyle = { fontSize: fontSize.md, lineHeight: 14, fontWeight: fw.regular, color: colors.textSecondary };
+const qtyUnitTextStyle = { fontSize: 14, lineHeight: 14, fontWeight: '400', color: colors.textSecondary };
 const parseQtyInput = (value: string, fallback = 0) => {
   const parsed = parseInt(value, 10);
   if (Number.isNaN(parsed)) return fallback;
@@ -359,18 +359,18 @@ function distributeStock(
 function ActionButton({
   icon,
   iconColor,
-  bgColor,
+  backgroundColor,
   onPress,
 }: {
   icon: keyof typeof Ionicons.glyphMap;
   iconColor: string;
-  bgColor: string;
+  backgroundColor: string;
   onPress?: () => void;
 }) {
   return (
     <Pressable 
-      className={`${bgColor} rounded-lg items-center justify-center`} 
-      style={{ width: buttonSize.md.height, height: buttonSize.md.height }}
+      className="rounded-lg items-center justify-center"
+      style={{ width: buttonSize.md.height, height: buttonSize.md.height, backgroundColor, borderRadius: buttonSize.md.borderRadius }}
       onPress={onPress}
     >
       <Ionicons name={icon} size={iconSize.md} color={iconColor} />
@@ -1124,10 +1124,10 @@ export default function StocksScreen() {
         hideable: false,
         render: (item) => (
           <View>
-            <Text className="text-blue-600 text-[18px] font-Montserrat font-medium" numberOfLines={1}>
+            <Text className="text-blue-600 text-lg  font-medium" numberOfLines={1}>
               {item.productName || "-"}
             </Text>
-            <Text className="text-gray-500 text-[14px] font-Montserrat" numberOfLines={1}>
+            <Text className="text-gray-500 text-sm " numberOfLines={1}>
               Bin: {item.bin || "-"}
             </Text>
           </View>
@@ -1140,8 +1140,8 @@ export default function StocksScreen() {
         visible: true,
         render: (item) => (
           <View>
-            <Text className="text-[#1A1A1A] text-[18px] font-Montserrat">{item.sku || "-"}</Text>
-            <Text className="text-gray-500 text-[14px] font-Montserrat">{item.upc || "-"}</Text>
+            <Text className="text-[#1A1A1A] text-lg ">{item.sku || "-"}</Text>
+            <Text className="text-gray-500 text-sm ">{item.upc || "-"}</Text>
           </View>
         ),
       },
@@ -1150,21 +1150,21 @@ export default function StocksScreen() {
         title: "Channel Name",
         width: 160,
         visible: false,
-        render: (item) => <Text className="text-[#1A1A1A] text-[18px] font-Montserrat">{item.channelName || "-"}</Text>,
+        render: (item) => <Text className="text-[#1A1A1A] text-lg ">{item.channelName || "-"}</Text>,
       },
       {
         key: "categoryName",
         title: "Category",
         width: 160,
         visible: true,
-        render: (item) => <Text className="text-[#1A1A1A] text-[18px] font-Montserrat">{item.categoryName || "-"}</Text>,
+        render: (item) => <Text className="text-[#1A1A1A] text-lg ">{item.categoryName || "-"}</Text>,
       },
       {
         key: "brandName",
         title: "Brand",
         width: 160,
         visible: true,
-        render: (item) => <Text className="text-[#1A1A1A] text-[18px] font-Montserrat">{item.brandName || "-"}</Text>,
+        render: (item) => <Text className="text-[#1A1A1A] text-lg ">{item.brandName || "-"}</Text>,
       },
       {
         key: "baseCostPrice",
@@ -1172,7 +1172,7 @@ export default function StocksScreen() {
         width: 150,
         align: "center",
         visible: false,
-        render: (item) => <Text className="text-[#1A1A1A] text-[18px] font-Montserrat">{formatCurrency(item.baseCostPrice)}</Text>,
+        render: (item) => <Text className="text-[#1A1A1A] text-lg ">{formatCurrency(item.baseCostPrice)}</Text>,
       },
       {
         key: "costPrice",
@@ -1180,7 +1180,7 @@ export default function StocksScreen() {
         width: 150,
         align: "center",
         visible: false,
-        render: (item) => <Text className="text-[#1A1A1A] text-[18px] font-Montserrat">{formatCurrency(item.costPrice)}</Text>,
+        render: (item) => <Text className="text-[#1A1A1A] text-lg ">{formatCurrency(item.costPrice)}</Text>,
       },
       {
         key: "salePrice",
@@ -1188,7 +1188,7 @@ export default function StocksScreen() {
         width: 150,
         align: "center",
         visible: false,
-        render: (item) => <Text className="text-green-600 font-bold text-[18px] font-Montserrat">{formatCurrency(item.salePrice)}</Text>,
+        render: (item) => <Text className="text-green-600 font-bold text-lg ">{formatCurrency(item.salePrice)}</Text>,
       },
       {
         key: "availableQty",
@@ -1197,7 +1197,7 @@ export default function StocksScreen() {
         align: "center",
         visible: true,
         render: (item) => (
-          <Text className={`font-bold text-[18px] font-Montserrat ${item.availableQty > 0 ? "text-green-600" : "text-red-500"}`}>
+          <Text className={`font-bold text-lg  ${item.availableQty > 0 ? "text-green-600" : "text-red-500"}`}>
             {formatQty(item.availableQty)}
           </Text>
         ),
@@ -1208,7 +1208,7 @@ export default function StocksScreen() {
         width: 120,
         align: "center",
         visible: false,
-        render: (item) => <Text className="text-[#1A1A1A] text-[18px] font-Montserrat">{formatQty(item.onHoldQty)}</Text>,
+        render: (item) => <Text className="text-[#1A1A1A] text-lg ">{formatQty(item.onHoldQty)}</Text>,
       },
       {
         key: "backOrderQty",
@@ -1216,7 +1216,7 @@ export default function StocksScreen() {
         width: 150,
         align: "center",
         visible: false,
-        render: (item) => <Text className="text-[#1A1A1A] text-[18px] font-Montserrat">{formatQty(item.backOrderQty)}</Text>,
+        render: (item) => <Text className="text-[#1A1A1A] text-lg ">{formatQty(item.backOrderQty)}</Text>,
       },
       {
         key: "comingSoonQty",
@@ -1224,7 +1224,7 @@ export default function StocksScreen() {
         width: 160,
         align: "center",
         visible: false,
-        render: (item) => <Text className="text-[#1A1A1A] text-[18px] font-Montserrat">{formatQty(item.comingSoonQty)}</Text>,
+        render: (item) => <Text className="text-[#1A1A1A] text-lg ">{formatQty(item.comingSoonQty)}</Text>,
       },
       {
         key: "deliveredWithoutStockQty",
@@ -1232,7 +1232,7 @@ export default function StocksScreen() {
         width: 200,
         align: "center",
         visible: false,
-        render: (item) => <Text className="text-[#1A1A1A] text-[18px] font-Montserrat">{formatQty(item.deliveredWithoutStockQty)}</Text>,
+        render: (item) => <Text className="text-[#1A1A1A] text-lg ">{formatQty(item.deliveredWithoutStockQty)}</Text>,
       },
       {
         key: "damagedQty",
@@ -1240,7 +1240,7 @@ export default function StocksScreen() {
         width: 140,
         align: "center",
         visible: false,
-        render: (item) => <Text className="text-[#1A1A1A] text-[18px] font-Montserrat">{formatQty(item.damagedQty)}</Text>,
+        render: (item) => <Text className="text-[#1A1A1A] text-lg ">{formatQty(item.damagedQty)}</Text>,
       },
       {
         key: "totalQty",
@@ -1248,7 +1248,7 @@ export default function StocksScreen() {
         width: 150,
         align: "center",
         visible: true,
-        render: (item) => <Text className="text-[#1A1A1A] text-[18px] font-Montserrat">{formatQty(item.totalQty)}</Text>,
+        render: (item) => <Text className="text-[#1A1A1A] text-lg ">{formatQty(item.totalQty)}</Text>,
       },
       {
         key: "totalCost",
@@ -1256,7 +1256,7 @@ export default function StocksScreen() {
         width: 150,
         align: "center",
         visible: true,
-        render: (item) => <Text className="text-[#1A1A1A] text-[18px] font-Montserrat">{formatCurrency(item.totalCost)}</Text>,
+        render: (item) => <Text className="text-[#1A1A1A] text-lg ">{formatCurrency(item.totalCost)}</Text>,
       },
       {
         key: "actions",
@@ -1270,7 +1270,7 @@ export default function StocksScreen() {
             <ActionButton
               icon="pencil"
               iconColor={colors.primary}
-              bgColor="bg-red-50"
+              backgroundColor={colors.primaryLight}
               onPress={() => handleEdit(item)}
             />
           </View>
@@ -1441,10 +1441,8 @@ export default function StocksScreen() {
   const advanceFiltersContent = (
     <View>
       <Text 
+        className="text-2xl font-semibold"
         style={{ 
-          fontSize: fontSize['2xl'], 
-          fontWeight: fw.semibold, 
-          fontFamily: "Montserrat", 
           color: colors.text,
           marginBottom: 16, 
         }}
@@ -1455,7 +1453,7 @@ export default function StocksScreen() {
       <View className="gap-3">
         <View className="flex-row gap-4">
           <View className="flex-1">
-            <Text className="text-xs font-medium text-gray-700 mb-1">Channel Name</Text>
+            <Text className="text-sm font-medium text-gray-700 mb-1">Channel Name</Text>
             <FilterDropdown
               label=""
               value={toStringIds(advancedFiltersDraft.channelIds)}
@@ -1466,7 +1464,7 @@ export default function StocksScreen() {
             />
           </View>
           <View className="flex-1">
-            <Text className="text-xs font-medium text-gray-700 mb-1">Brand</Text>
+            <Text className="text-sm font-medium text-gray-700 mb-1">Brand</Text>
             <FilterDropdown
               label=""
               value={toStringIds(advancedFiltersDraft.brandIds)}
@@ -1480,7 +1478,7 @@ export default function StocksScreen() {
 
         <View className="flex-row gap-4">
           <View className="flex-1">
-            <Text className="text-xs font-medium text-gray-700 mb-1">Supplier</Text>
+            <Text className="text-sm font-medium text-gray-700 mb-1">Supplier</Text>
             <FilterDropdown
               label=""
               value={toStringIds(advancedFiltersDraft.supplierIds)}
@@ -1491,7 +1489,7 @@ export default function StocksScreen() {
             />
           </View>
           <View className="flex-1">
-            <Text className="text-xs font-medium text-gray-700 mb-1">Category</Text>
+            <Text className="text-sm font-medium text-gray-700 mb-1">Category</Text>
             <FilterDropdown
               label=""
               value={toStringIds(advancedFiltersDraft.categoryIds)}
@@ -1505,10 +1503,10 @@ export default function StocksScreen() {
 
         <View className="flex-row gap-4">
           <View className="flex-1">
-            <Text className="text-xs font-medium text-gray-700 mb-1">Zone</Text>
+            <Text className="text-sm font-medium text-gray-700 mb-1">Zone</Text>
             <TextInput
               className="bg-gray-50 border border-gray-200 rounded-lg px-3"
-              style={{ height: buttonSize.md.height, fontSize: fontSize.base }}
+              style={{ height: buttonSize.md.height, fontSize: 16 }}
               placeholder="Search Zone"
               placeholderTextColor={colors.textTertiary}
               value={advancedFiltersDraft.searchZone}
@@ -1518,10 +1516,10 @@ export default function StocksScreen() {
             />
           </View>
           <View className="flex-1">
-            <Text className="text-xs font-medium text-gray-700 mb-1">Aisle</Text>
+            <Text className="text-sm font-medium text-gray-700 mb-1">Aisle</Text>
             <TextInput
               className="bg-gray-50 border border-gray-200 rounded-lg px-3"
-              style={{ height: buttonSize.md.height, fontSize: fontSize.base }}
+              style={{ height: buttonSize.md.height, fontSize: 16 }}
               placeholder="Search Aisle"
               placeholderTextColor={colors.textTertiary}
               value={advancedFiltersDraft.searchAisle}
@@ -1533,10 +1531,10 @@ export default function StocksScreen() {
         </View>
 
         <View>
-          <Text className="text-xs font-medium text-gray-700 mb-1">Bin</Text>
+          <Text className="text-sm font-medium text-gray-700 mb-1">Bin</Text>
           <TextInput
             className="bg-gray-50 border border-gray-200 rounded-lg px-3"
-            style={{ height: buttonSize.md.height, fontSize: fontSize.base }}
+            style={{ height: buttonSize.md.height, fontSize: 16 }}
             placeholder="Search by Bin"
             placeholderTextColor={colors.textTertiary}
             value={advancedFiltersDraft.searchBin}
@@ -1547,7 +1545,7 @@ export default function StocksScreen() {
         </View>
 
         <View>
-          <Text className="text-xs font-medium text-gray-700 mb-1">Stock Type</Text>
+          <Text className="text-sm font-medium text-gray-700 mb-1">Stock Type</Text>
           <FilterDropdown
             label=""
             value={advancedFiltersDraft.stockType || null}
@@ -1569,15 +1567,15 @@ export default function StocksScreen() {
 
       <View className="flex-row justify-end mt-4 mb-2 gap-2">
         <Pressable
-          className="rounded-lg bg-gray-100 items-center justify-center"
-          style={{ width: "49%", height: buttonSize.md.height }}
+          className="rounded-lg items-center justify-center"
+          style={{ width: "49%", height: buttonSize.md.height, backgroundColor: colors.backgroundSecondary, borderRadius: buttonSize.md.borderRadius }}
           onPress={clearAdvancedFilters}
         >
-          <Text className="text-gray-700 font-medium">Clear Filter</Text>
+          <Text className="font-medium" style={{ color: colors.textMedium }}>Clear Filter</Text>
         </Pressable>
         <Pressable
-          className="rounded-lg bg-[#EC1A52] items-center justify-center"
-          style={{ width: "49%", height: buttonSize.md.height }}
+          className="rounded-lg items-center justify-center"
+          style={{ width: "49%", height: buttonSize.md.height, backgroundColor: colors.primary, borderRadius: buttonSize.md.borderRadius }}
           onPress={applyAdvancedFilters}
         >
           <Text className="text-white font-medium">Apply</Text>
@@ -1719,31 +1717,31 @@ export default function StocksScreen() {
                   <View style={{ minWidth: 1500 }}>
                     <View className="flex-row pb-2 border-b border-gray-200">
                       <View style={{ width: 220, paddingRight: 8 }}>
-                        <Text className="text-xs text-gray-500">Store Channels</Text>
+                        <Text className="text-sm text-gray-500">Store Channels</Text>
                       </View>
                       <View style={{ width: 150, paddingRight: 8 }}>
-                        <Text className="text-xs text-gray-500">Available QTY</Text>
+                        <Text className="text-sm text-gray-500">Available QTY</Text>
                       </View>
                       <View style={{ width: 145, paddingRight: 8 }}>
-                        <Text className="text-xs text-gray-500">On Hold Qty</Text>
+                        <Text className="text-sm text-gray-500">On Hold Qty</Text>
                       </View>
                       <View style={{ width: 145, paddingRight: 8 }}>
-                        <Text className="text-xs text-gray-500">Damaged Qty</Text>
+                        <Text className="text-sm text-gray-500">Damaged Qty</Text>
                       </View>
                       <View style={{ width: 145, paddingRight: 8 }}>
-                        <Text className="text-xs text-gray-500">Back Order Qty</Text>
+                        <Text className="text-sm text-gray-500">Back Order Qty</Text>
                       </View>
                       <View style={{ width: 150, paddingRight: 8 }}>
-                        <Text className="text-xs text-gray-500">Coming Soon Qty</Text>
+                        <Text className="text-sm text-gray-500">Coming Soon Qty</Text>
                       </View>
                       <View style={{ width: 195, paddingRight: 8 }}>
-                        <Text className="text-xs text-gray-500">Delivered Without Stock</Text>
+                        <Text className="text-sm text-gray-500">Delivered Without Stock</Text>
                       </View>
                       <View style={{ width: 145, paddingRight: 8 }}>
-                        <Text className="text-xs text-gray-500">Minimum Qty</Text>
+                        <Text className="text-sm text-gray-500">Minimum Qty</Text>
                       </View>
                       <View style={{ width: 145 }}>
-                        <Text className="text-xs text-gray-500">Maximum Qty</Text>
+                        <Text className="text-sm text-gray-500">Maximum Qty</Text>
                       </View>
                     </View>
 
@@ -1795,7 +1793,7 @@ export default function StocksScreen() {
                                 </View>
                               </View>
                               {showPreview ? (
-                                <Text className="text-[11px] text-gray-500 italic mt-1">
+                                <Text className="text-sm text-gray-500 italic mt-1">
                                   New Value: <Text style={qtyValueTextStyle}>{preview.new_inhand_qty}</Text>
                                 </Text>
                               ) : null}
@@ -1807,7 +1805,7 @@ export default function StocksScreen() {
                                 <Text style={qtyUnitTextStyle}>Piece</Text>
                               </View>
                               {showPreview ? (
-                                <Text className="text-[11px] text-gray-500 italic mt-1">
+                                <Text className="text-sm text-gray-500 italic mt-1">
                                   New Value: <Text style={qtyValueTextStyle}>{preview.new_onHold_qty}</Text>
                                 </Text>
                               ) : null}
@@ -1844,7 +1842,7 @@ export default function StocksScreen() {
                                 <Text style={qtyUnitTextStyle}>Piece</Text>
                               </View>
                               {showPreview ? (
-                                <Text className="text-[11px] text-gray-500 italic mt-1">
+                                <Text className="text-sm text-gray-500 italic mt-1">
                                   New Value: <Text style={qtyValueTextStyle}>{preview.new_bo_qty}</Text>
                                 </Text>
                               ) : null}
@@ -1863,7 +1861,7 @@ export default function StocksScreen() {
                                 <Text style={qtyUnitTextStyle}>Piece</Text>
                               </View>
                               {showPreview ? (
-                                <Text className="text-[11px] text-gray-500 italic mt-1">
+                                <Text className="text-sm text-gray-500 italic mt-1">
                                   New Value: <Text style={qtyValueTextStyle}>{preview.new_hold_free_shipment}</Text>
                                 </Text>
                               ) : null}
@@ -1929,16 +1927,16 @@ export default function StocksScreen() {
 
             <View className="flex-row justify-end mt-4 gap-2">
               <Pressable
-                className="px-4 rounded-lg bg-gray-100 items-center justify-center"
-                style={{ height: buttonSize.md.height }}
+                className="px-4 rounded-lg items-center justify-center"
+                style={{ height: buttonSize.md.height, backgroundColor: colors.backgroundSecondary, borderRadius: buttonSize.md.borderRadius }}
                 onPress={closeSingleEditModal}
                 disabled={singleEditSubmitting}
               >
-                <Text className="text-gray-700 font-medium">Close</Text>
+                <Text className="font-medium" style={{ color: colors.textMedium }}>Close</Text>
               </Pressable>
               <Pressable
-                className="px-4 rounded-lg bg-[#EC1A52] min-w-24 items-center justify-center"
-                style={{ height: buttonSize.md.height }}
+                className="px-4 rounded-lg min-w-24 items-center justify-center"
+                style={{ height: buttonSize.md.height, backgroundColor: colors.primary, borderRadius: buttonSize.md.borderRadius }}
                 onPress={handleSingleEditSubmit}
                 disabled={singleEditSubmitting || singleEditLoading}
               >
@@ -1965,13 +1963,13 @@ export default function StocksScreen() {
             <View className="px-6 py-4 border-b border-gray-100">
               <View className="flex-row items-start justify-between">
                 <View className="flex-1">
-                  <Text style={{ fontSize: fontSize['2xl'], fontWeight: fw.bold, color: colors.textDark, fontFamily: 'Montserrat', marginBottom: 6 }}>
+                  <Text className="text-2xl font-bold" style={{ color: colors.textDark, marginBottom: 6 }}>
                     Bulk Edit Stock
                   </Text>
-                  <Text style={{ fontSize: fontSize.md, color: colors.textSecondary, marginTop: 4, fontFamily: 'Montserrat' }}>
+                  <Text className="text-sm" style={{ color: colors.textSecondary, marginTop: 4 }}>
                     Please note that stock changes on this screen apply to unit: PIECE.
                   </Text>
-                  <Text style={{ fontSize: fontSize.md, color: colors.textSecondary, marginTop: 2, fontFamily: 'Montserrat' }}>
+                  <Text className="text-sm" style={{ color: colors.textSecondary, marginTop: 2 }}>
                     Channel: {bulkRows[0]?.channelName || "-"} | Selected: {bulkRows.length}
                   </Text>
                 </View>
@@ -1992,25 +1990,25 @@ export default function StocksScreen() {
                   {/* Table Header */}
                   <View className="flex-row items-center bg-gray-50 border-b border-gray-200 px-4 py-3">
                     <View style={{ width: 180 }}>
-                      <Text style={{ fontSize: fontSize.md, fontWeight: fw.medium, color: colors.textSecondary, fontFamily: 'Montserrat' }}>Products</Text>
+                      <Text className="text-sm font-medium" style={{ color: colors.textSecondary }}>Products</Text>
                     </View>
                     <View style={{ width: 140 }}>
-                      <Text style={{ fontSize: fontSize.md, fontWeight: fw.medium, color: colors.textSecondary, fontFamily: 'Montserrat' }}>Available Qty</Text>
+                      <Text className="text-sm font-medium" style={{ color: colors.textSecondary }}>Available Qty</Text>
                     </View>
                     <View style={{ width: 140 }}>
-                      <Text style={{ fontSize: fontSize.md, fontWeight: fw.medium, color: colors.textSecondary, fontFamily: 'Montserrat' }}>Damaged Qty</Text>
+                      <Text className="text-sm font-medium" style={{ color: colors.textSecondary }}>Damaged Qty</Text>
                     </View>
                     <View style={{ width: 130 }}>
-                      <Text style={{ fontSize: fontSize.md, fontWeight: fw.medium, color: colors.textSecondary, fontFamily: 'Montserrat' }}>On Hold Qty</Text>
+                      <Text className="text-sm font-medium" style={{ color: colors.textSecondary }}>On Hold Qty</Text>
                     </View>
                     <View style={{ width: 140 }}>
-                      <Text style={{ fontSize: fontSize.md, fontWeight: fw.medium, color: colors.textSecondary, fontFamily: 'Montserrat' }}>Back Order Qty</Text>
+                      <Text className="text-sm font-medium" style={{ color: colors.textSecondary }}>Back Order Qty</Text>
                     </View>
                     <View style={{ width: 180 }}>
-                      <Text style={{ fontSize: fontSize.md, fontWeight: fw.medium, color: colors.textSecondary, fontFamily: 'Montserrat' }}>Delivered Without Stock</Text>
+                      <Text className="text-sm font-medium" style={{ color: colors.textSecondary }}>Delivered Without Stock</Text>
                     </View>
                     <View style={{ width: 120 }}>
-                      <Text style={{ fontSize: fontSize.md, fontWeight: fw.medium, color: colors.textSecondary, fontFamily: 'Montserrat' }}>Channel Name</Text>
+                      <Text className="text-sm font-medium" style={{ color: colors.textSecondary }}>Channel Name</Text>
                     </View>
                   </View>
 
@@ -2037,10 +2035,10 @@ export default function StocksScreen() {
                       >
                         {/* Product Name */}
                         <View style={{ width: 180 }}>
-                          <Text style={{ fontSize: fontSize.base, fontWeight: fw.medium, color: colors.textDark, fontFamily: 'Montserrat' }} numberOfLines={1}>
+                          <Text className="text-base font-medium" style={{ color: colors.textDark }} numberOfLines={1}>
                             {row.productName || "-"}
                           </Text>
-                          <Text style={{ fontSize: fontSize.md, color: colors.textTertiary, marginTop: 2, fontFamily: 'Montserrat' }} numberOfLines={1}>
+                          <Text className="text-sm" style={{ color: colors.textTertiary, marginTop: 2 }} numberOfLines={1}>
                             {row.sku || "-"}/{row.upc || "-"}
                           </Text>
                         </View>
@@ -2065,18 +2063,17 @@ export default function StocksScreen() {
                                 placeholderTextColor={colors.borderMedium}
                                 selectTextOnFocus
                                 style={{ 
-                                  fontSize: fontSize.base, 
+                                  fontSize: 16, 
                                   color: colors.textDark, 
                                   textAlign: 'center',
-                                  fontFamily: 'Montserrat',
                                   paddingHorizontal: 8,
                                 }}
                               />
                             </View>
-                            <Text style={{ fontSize: fontSize.md, color: colors.textTertiary, marginLeft: 8, fontFamily: 'Montserrat' }}>Piece</Text>
+                            <Text className="text-sm" style={{ color: colors.textTertiary, marginLeft: 8 }}>Piece</Text>
                           </View>
                           {showPreview && (
-                            <Text style={{ fontSize: fontSize.md, color: colors.textSecondary, fontStyle: 'italic', marginTop: 4 }}>
+                            <Text className="text-sm" style={{ color: colors.textSecondary, fontStyle: 'italic', marginTop: 4 }}>
                               New: {preview.new_inhand_qty}
                             </Text>
                           )}
@@ -2102,15 +2099,14 @@ export default function StocksScreen() {
                                 placeholderTextColor={colors.borderMedium}
                                 selectTextOnFocus
                                 style={{ 
-                                  fontSize: fontSize.base, 
+                                  fontSize: 16, 
                                   color: colors.textDark, 
                                   textAlign: 'center',
-                                  fontFamily: 'Montserrat',
                                   paddingHorizontal: 8,
                                 }}
                               />
                             </View>
-                            <Text style={{ fontSize: fontSize.md, color: colors.textTertiary, marginLeft: 8, fontFamily: 'Montserrat' }}>Piece</Text>
+                            <Text className="text-sm" style={{ color: colors.textTertiary, marginLeft: 8 }}>Piece</Text>
                           </View>
                         </View>
 
@@ -2127,14 +2123,14 @@ export default function StocksScreen() {
                               justifyContent: 'center',
                               alignItems: 'center',
                             }}>
-                              <Text style={{ fontSize: fontSize.base, color: colors.textSecondary, fontFamily: 'Montserrat' }}>
+                              <Text className="text-base" style={{ color: colors.textSecondary }}>
                                 {row.onHoldQty ?? 0}
                               </Text>
                             </View>
-                            <Text style={{ fontSize: fontSize.md, color: colors.textTertiary, marginLeft: 8, fontFamily: 'Montserrat' }}>Piece</Text>
+                            <Text className="text-sm" style={{ color: colors.textTertiary, marginLeft: 8 }}>Piece</Text>
                           </View>
                           {showPreview && (
-                            <Text style={{ fontSize: fontSize.md, color: colors.textSecondary, fontStyle: 'italic', marginTop: 4 }}>
+                            <Text className="text-sm" style={{ color: colors.textSecondary, fontStyle: 'italic', marginTop: 4 }}>
                               New: {preview.new_onHold_qty}
                             </Text>
                           )}
@@ -2153,14 +2149,14 @@ export default function StocksScreen() {
                               justifyContent: 'center',
                               alignItems: 'center',
                             }}>
-                              <Text style={{ fontSize: fontSize.base, color: colors.textSecondary, fontFamily: 'Montserrat' }}>
+                              <Text className="text-base" style={{ color: colors.textSecondary }}>
                                 {row.backOrderQty ?? 0}
                               </Text>
                             </View>
-                            <Text style={{ fontSize: fontSize.md, color: colors.textTertiary, marginLeft: 8, fontFamily: 'Montserrat' }}>Piece</Text>
+                            <Text className="text-sm" style={{ color: colors.textTertiary, marginLeft: 8 }}>Piece</Text>
                           </View>
                           {showPreview && (
-                            <Text style={{ fontSize: fontSize.md, color: colors.textSecondary, fontStyle: 'italic', marginTop: 4 }}>
+                            <Text className="text-sm" style={{ color: colors.textSecondary, fontStyle: 'italic', marginTop: 4 }}>
                               New: {preview.new_bo_qty}
                             </Text>
                           )}
@@ -2179,14 +2175,14 @@ export default function StocksScreen() {
                               justifyContent: 'center',
                               alignItems: 'center',
                             }}>
-                              <Text style={{ fontSize: fontSize.base, color: colors.textSecondary, fontFamily: 'Montserrat' }}>
+                              <Text className="text-base" style={{ color: colors.textSecondary }}>
                                 {row.deliveredWithoutStockQty ?? 0}
                               </Text>
                             </View>
-                            <Text style={{ fontSize: fontSize.md, color: colors.textTertiary, marginLeft: 8, fontFamily: 'Montserrat' }}>Piece</Text>
+                            <Text className="text-sm" style={{ color: colors.textTertiary, marginLeft: 8 }}>Piece</Text>
                           </View>
                           {showPreview && (
-                            <Text style={{ fontSize: fontSize.md, color: colors.textSecondary, fontStyle: 'italic', marginTop: 4 }}>
+                            <Text className="text-sm" style={{ color: colors.textSecondary, fontStyle: 'italic', marginTop: 4 }}>
                               New: {preview.new_hold_free_shipment}
                             </Text>
                           )}
@@ -2194,7 +2190,7 @@ export default function StocksScreen() {
 
                         {/* Channel Name */}
                         <View style={{ width: 120 }}>
-                          <Text style={{ fontSize: fontSize.base, color: colors.textDark, fontFamily: 'Montserrat' }} numberOfLines={1}>
+                          <Text className="text-base" style={{ color: colors.textDark }} numberOfLines={1}>
                             {row.channelName || "-"}
                           </Text>
                         </View>
@@ -2208,23 +2204,23 @@ export default function StocksScreen() {
             {/* Footer Buttons */}
             <View className="flex-row justify-end px-6 py-4 border-t border-gray-100 gap-3">
               <Pressable
-                className="px-6 rounded-lg bg-white border border-gray-300 items-center justify-center"
+                className="px-6 rounded-lg items-center justify-center"
                 onPress={() => setBulkModalVisible(false)}
                 disabled={bulkSubmitting}
-                style={{ height: buttonSize.md.height, minWidth: 90 }}
+                style={{ height: buttonSize.md.height, minWidth: 90, backgroundColor: colors.background, borderWidth: 1, borderColor: colors.borderMedium, borderRadius: buttonSize.md.borderRadius }}
               >
-                <Text style={{ fontSize: fontSize.base, fontWeight: fw.medium, color: colors.textMedium, textAlign: 'center', fontFamily: 'Montserrat' }}>Cancel</Text>
+                <Text className="text-base font-medium" style={{ color: colors.textMedium, textAlign: 'center' }}>Cancel</Text>
               </Pressable>
               <Pressable
-                className="px-6 rounded-lg bg-[#EC1A52] items-center justify-center"
+                className="px-6 rounded-lg items-center justify-center"
                 onPress={handleBulkEditSubmit}
                 disabled={bulkSubmitting}
-                style={{ height: buttonSize.md.height, minWidth: 90 }}
+                style={{ height: buttonSize.md.height, minWidth: 90, backgroundColor: colors.primary, borderRadius: buttonSize.md.borderRadius }}
               >
                 {bulkSubmitting ? (
                   <ActivityIndicator size="small" color="white" />
                 ) : (
-                  <Text style={{ fontSize: fontSize.base, fontWeight: fw.medium, color: colors.textWhite, textAlign: 'center', fontFamily: 'Montserrat' }}>Update</Text>
+                  <Text className="text-base font-medium" style={{ color: colors.textWhite, textAlign: 'center' }}>Update</Text>
                 )}
               </Pressable>
             </View>

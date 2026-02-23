@@ -128,10 +128,10 @@ export default function ProductsScreen() {
             <Ionicons name="cube-outline" size={iconSize.base} color={colors.textTertiary} />
           </View>
           <View className="flex-1">
-            <Text className="text-[18px] font-Montserrat font-medium" style={{ color: colors.text }} numberOfLines={1}>
+            <Text className="text-lg font-medium" style={{ color: colors.text }} numberOfLines={1}>
               {item.name || "-"}
             </Text>
-            <Text className="text-gray-500 text-[14px] font-Montserrat">SKU: {item.sku || "-"}</Text>
+            <Text className="text-gray-500 text-sm">SKU: {item.sku || "-"}</Text>
           </View>
         </View>
       ),
@@ -141,7 +141,7 @@ export default function ProductsScreen() {
       title: "UPC",
       width: 150,
       render: (item) => (
-        <Text className="text-[18px] font-Montserrat" style={{ color: colors.text }}>{item.upc || "-"}</Text>
+        <Text className="text-lg" style={{ color: colors.text }}>{item.upc || "-"}</Text>
       ),
     },
     {
@@ -157,7 +157,7 @@ export default function ProductsScreen() {
       width: 100,
       align: "right",
       render: (item) => (
-        <Text className="text-[18px] font-Montserrat" style={{ color: colors.text }}>{formatCurrency(item.costPrice)}</Text>
+        <Text className="text-lg" style={{ color: colors.text }}>{formatCurrency(item.costPrice)}</Text>
       ),
     },
     {
@@ -166,7 +166,7 @@ export default function ProductsScreen() {
       width: 100,
       align: "right",
       render: (item) => (
-        <Text className="text-[18px] font-Montserrat" style={{ color: colors.text }}>{formatCurrency(item.unitPrice)}</Text>
+        <Text className="text-lg" style={{ color: colors.text }}>{formatCurrency(item.unitPrice)}</Text>
       ),
     },
     {
@@ -175,7 +175,7 @@ export default function ProductsScreen() {
       width: 100,
       align: "right",
       render: (item) => (
-        <Text className="text-green-600 text-[18px] font-Montserrat font-bold">{formatCurrency(item.salePrice)}</Text>
+        <Text className="text-green-600 text-lg font-bold">{formatCurrency(item.salePrice)}</Text>
       ),
     },
     {

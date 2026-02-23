@@ -5,8 +5,8 @@
  * 所有页面/组件应引用此文件，禁止硬编码样式值。
  *
  * 使用方式:
- *   import { typography, colors, iconSize, buttonSize, spacing } from '@/utils/theme';
- *   style={{ fontSize: typography.md.fontSize, color: colors.text }}
+ *   import { colors, iconSize, buttonSize, spacing } from '@/utils/theme';
+ *   className="text-sm" + style={{ color: colors.text }}
  */
 
 import { TextStyle, ViewStyle } from 'react-native';
@@ -50,97 +50,21 @@ export const colors = {
   info: '#3B82F6',
   purple: '#8B5CF6',
 
-  // 黑白
+  // 黑白 / 深色表面
   black: '#000000',
   white: '#FFFFFF',
+  surfaceDark: '#20232A',  // Dark button/surface (e.g. Product Settings icon)
 } as const;
 
 // ============================================================================
-// Typography — 字体规范
+// Typography — 字重 (字号用 Tailwind: text-sm, text-base, text-lg, text-xl, text-2xl, text-3xl, text-4xl)
 // ============================================================================
-//
-// 层级说明:
-//   xs   (10) — 极小标注、角标
-//   sm   (12) — 辅助说明、表格次要信息
-//   md   (14) — 默认正文、表单标签、按钮文字 ★ 最常用
-//   base (16) — 稍大正文、输入框文字
-//   lg   (18) — 小标题、侧边栏按钮文字
-//   xl   (20) — 中标题
-//   2xl  (24) — 大标题、卡片标题
-//   3xl  (32) — 统计数字、大数值展示
-//   4xl  (36) — 超大展示数字
-//
-// fontWeight 统一使用数字字符串:
-//   regular  "400"
-//   medium   "500"
-//   semibold "600"  ★ 最常用
-//   bold     "700"
 
 export const fontWeight = {
   regular: '400' as const,
   medium: '500' as const,
   semibold: '600' as const,
   bold: '700' as const,
-};
-
-export const fontSize = {
-  xs: 10,
-  sm: 12,
-  md: 14,
-  base: 16,
-  lg: 18,
-  xl: 20,
-  '2xl': 24,
-  '3xl': 32,
-  '4xl': 36,
-} as const;
-
-/** 预组合的文字样式，可直接展开到 style 中 */
-export const typography: Record<string, TextStyle> = {
-  // —— 极小 ——
-  xs: { fontSize: 10, fontWeight: '400' },
-  xsMedium: { fontSize: 10, fontWeight: '500' },
-  xsBold: { fontSize: 10, fontWeight: '700' },
-
-  // —— 小 ——
-  sm: { fontSize: 12, fontWeight: '400' },
-  smMedium: { fontSize: 12, fontWeight: '500' },
-  smSemibold: { fontSize: 12, fontWeight: '600' },
-  smBold: { fontSize: 12, fontWeight: '700' },
-
-  // —— 默认正文 ★ ——
-  md: { fontSize: 14, fontWeight: '400' },
-  mdMedium: { fontSize: 14, fontWeight: '500' },
-  mdSemibold: { fontSize: 14, fontWeight: '600' },
-  mdBold: { fontSize: 14, fontWeight: '700' },
-
-  // —— 稍大正文 ——
-  base: { fontSize: 16, fontWeight: '400' },
-  baseMedium: { fontSize: 16, fontWeight: '500' },
-  baseSemibold: { fontSize: 16, fontWeight: '600' },
-  baseBold: { fontSize: 16, fontWeight: '700' },
-
-  // —— 小标题 ——
-  lg: { fontSize: 18, fontWeight: '400' },
-  lgSemibold: { fontSize: 18, fontWeight: '600' },
-  lgBold: { fontSize: 18, fontWeight: '700' },
-
-  // —— 中标题 ——
-  xl: { fontSize: 20, fontWeight: '400' },
-  xlSemibold: { fontSize: 20, fontWeight: '600' },
-  xlBold: { fontSize: 20, fontWeight: '700' },
-
-  // —— 大标题 ——
-  '2xl': { fontSize: 24, fontWeight: '400' },
-  '2xlSemibold': { fontSize: 24, fontWeight: '600' },
-  '2xlBold': { fontSize: 24, fontWeight: '700' },
-
-  // —— 统计数字 ——
-  '3xl': { fontSize: 32, fontWeight: '400' },
-  '3xlBold': { fontSize: 32, fontWeight: '700' },
-
-  // —— 超大展示 ——
-  '4xl': { fontSize: 36, fontWeight: '700' },
 };
 
 // ============================================================================

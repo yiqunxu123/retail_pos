@@ -1,6 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import { Modal, Pressable, Text, View } from "react-native";
 import { iconSize, colors, buttonSize } from "@/utils/theme";
+import { ThemedButton } from "./ThemedButton";
 
 interface CashResultModalProps {
   visible: boolean;
@@ -28,52 +29,95 @@ export function CashResultModal({
       visible={visible}
       onRequestClose={onClose}
     >
-      <View className="flex-1 justify-center items-center bg-black/50">
-        <View className="bg-white rounded-xl w-[500px] overflow-hidden shadow-xl">
+      <Pressable
+        className="flex-1 bg-black/45 justify-center items-center px-4"
+        onPress={onClose}
+      >
+        <Pressable
+          className="bg-white rounded-xl overflow-hidden"
+          style={{
+            width: "92%",
+            maxWidth: 664,
+            borderWidth: 1,
+            borderColor: colors.border,
+            shadowColor: "#000",
+            shadowOffset: { width: 0, height: 8 },
+            shadowOpacity: 0.18,
+            shadowRadius: 20,
+            elevation: 8,
+          }}
+          onPress={(e) => e.stopPropagation()}
+        >
           {/* Header */}
-          <View className="flex-row justify-between items-center px-6 py-4 border-b border-gray-100">
-            <Text className="text-xl font-bold text-gray-900">
+          <View className="flex-row justify-between items-center px-5 py-4 border-b border-[#E4E7EC]">
+            <Text className="text-2xl font-semibold" style={{ color: colors.text }}>
               {isMatched ? "Cash Matched" : "Cash Mismatch"}
             </Text>
-            <Pressable onPress={onClose}>
-              <Ionicons name="close" size={iconSize.xl} color={colors.textTertiary} />
+            <Pressable onPress={onClose} style={({ pressed }) => ({ opacity: pressed ? 0.55 : 1 })}>
+              <Ionicons name="close" size={iconSize['2xl']} color={colors.textDark} />
             </Pressable>
           </View>
 
           {/* Content */}
-          <View className="items-center px-8 py-8">
+          <View className="items-center px-5 pt-5 pb-6">
             {/* Icon */}
-            <View className="mb-6">
+            <View className="mb-5">
               {isMatched ? (
-                <View className="w-16 h-16 bg-green-500 rounded-full items-center justify-center shadow-lg border-4 border-green-100">
-                  <Ionicons name="checkmark" size={iconSize['3xl']} color="white" />
+                <View className="w-20 h-20 rounded-full items-center justify-center" style={{ backgroundColor: colors.success, borderWidth: 4, borderColor: colors.primaryLight }}>
+                  <Ionicons name="checkmark" size={iconSize['4xl']} color="white" />
                 </View>
               ) : (
-                <View className="w-16 h-16 bg-red-600 rounded-full items-center justify-center shadow-lg border-4 border-red-100">
-                  <Ionicons name="close" size={iconSize['3xl']} color="white" />
+                <View className="w-20 h-20 rounded-full items-center justify-center" style={{ backgroundColor: colors.error, borderWidth: 4, borderColor: colors.primaryLight }}>
+                  <Ionicons name="close" size={iconSize['4xl']} color="white" />
                 </View>
               )}
             </View>
 
             {/* Message */}
-            <Text className="text-center text-gray-600 mb-8 text-base px-4">
+            <Text className="text-center text-gray-600 mb-6 text-lg px-2">
               {isMatched
                 ? "The cash amount entered matches the system total.\nYou can proceed to declare cash and end your shift."
                 : "The cash amount entered does not match the system total.\nPlease review the difference before declaring cash."}
             </Text>
 
             {/* Amounts */}
-            <View className="flex-row gap-4 w-full mb-8">
-              <View className="flex-1 p-4 rounded-lg items-center border border-gray-200 shadow-sm" style={{ backgroundColor: colors.backgroundTertiary }}>
-                <Text className="text-gray-500 text-sm font-medium mb-1">Expected Cash</Text>
-                <Text className="text-2xl font-bold text-gray-900">
+            <View className="flex-row gap-3 w-full mb-6">
+              <View
+                className="flex-1 rounded-lg px-4 py-4 justify-center"
+                style={{
+                  backgroundColor: "#F4F5F7",
+                  borderWidth: 1,
+                  borderColor: "#E4E7EC",
+                  minHeight: 100,
+                  shadowColor: "#000",
+                  shadowOffset: { width: 0, height: 3 },
+                  shadowOpacity: 0.07,
+                  shadowRadius: 5,
+                  elevation: 2,
+                }}
+              >
+                <Text className="text-base font-semibold mb-1" style={{ color: colors.textMedium }}>Expected Cash</Text>
+                <Text className="text-5xl font-bold text-right w-full" style={{ color: colors.text }}>
                   ${expectedAmount.toFixed(0)}
                 </Text>
               </View>
-              <View className="flex-1 p-4 rounded-lg items-center border border-gray-200 shadow-sm" style={{ backgroundColor: colors.backgroundTertiary }}>
-                <Text className="text-gray-500 text-sm font-medium mb-1">Entered Cash Amount</Text>
+              <View
+                className="flex-1 rounded-lg px-4 py-4 justify-center"
+                style={{
+                  backgroundColor: isMatched ? "#ECFDF5" : "#FEF2F2",
+                  borderWidth: 1,
+                  borderColor: isMatched ? colors.success : colors.error,
+                  minHeight: 100,
+                  shadowColor: "#000",
+                  shadowOffset: { width: 0, height: 3 },
+                  shadowOpacity: 0.07,
+                  shadowRadius: 5,
+                  elevation: 2,
+                }}
+              >
+                <Text className="text-base font-semibold mb-1" style={{ color: colors.textMedium }}>Entered Cash</Text>
                 <Text 
-                  className={`text-2xl font-bold ${isMatched ? "text-green-600" : "text-red-600"}`}
+                  className={`text-5xl font-bold text-right w-full ${isMatched ? "text-green-600" : "text-red-600"}`}
                 >
                   ${actualAmount.toFixed(0)}
                 </Text>
@@ -82,35 +126,38 @@ export function CashResultModal({
 
             {/* Buttons */}
             <View className="flex-row gap-4 w-full">
-              <Pressable
+              <ThemedButton
+                title="Cancel"
+                variant="outline"
                 onPress={onClose}
-                className="flex-1 bg-red-50 rounded-lg items-center justify-center"
-                style={{ height: buttonSize.md.height }}
-              >
-                <Text className="text-red-500 font-semibold text-base">Cancel</Text>
-              </Pressable>
-              
+                fullWidth
+                size="lg"
+                style={{ flex: 1, backgroundColor: colors.primaryLight, borderColor: colors.error, borderWidth: 1 }}
+                textStyle={{ color: colors.error, fontSize: 18 }}
+              />
               {isMatched ? (
-                <Pressable
-                  onPress={onConfirm}
-                  className="flex-1 rounded-lg items-center justify-center"
-                  style={{ height: buttonSize.md.height, backgroundColor: colors.primary }}
-                >
-                  <Text className="text-white font-semibold text-base">Declare Cash</Text>
-                </Pressable>
+<ThemedButton
+                title="Declare Cash"
+                onPress={onConfirm}
+                fullWidth
+                size="lg"
+                style={{ flex: 1, backgroundColor: colors.primary }}
+                textStyle={{ fontSize: 18 }}
+              />
               ) : (
-                <Pressable
-                  onPress={onReview}
-                  className="flex-1 rounded-lg items-center justify-center"
-                  style={{ height: buttonSize.md.height, backgroundColor: "#6D28D9" }} // Purple for Review Amount
-                >
-                  <Text className="text-white font-semibold text-base">Review Amount</Text>
-                </Pressable>
+<ThemedButton
+                title="Review Amount"
+                onPress={onReview}
+                fullWidth
+                size="lg"
+                style={{ flex: 1, backgroundColor: colors.purple }}
+                textStyle={{ fontSize: 18 }}
+              />
               )}
             </View>
           </View>
-        </View>
-      </View>
+        </Pressable>
+      </Pressable>
     </Modal>
   );
 }

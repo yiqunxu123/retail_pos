@@ -74,7 +74,6 @@ export function ThemedButton({
     fontSize: token.fontSize,
     fontWeight: token.fontWeight,
     color: disabled ? colors.textTertiary : variantStyle.text,
-    fontFamily: "Montserrat",
     ...textStyle,
   };
 

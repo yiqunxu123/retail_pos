@@ -1,7 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import { type ReactNode } from "react";
 import { Pressable, Text, TouchableOpacity, View } from "react-native";
-import { fontSize, colors, iconSize } from '@/utils/theme';
+import { colors, iconSize } from '@/utils/theme';
 import { useAppNavigation } from "../hooks/useAppNavigation";
 
 interface PageHeaderProps {
@@ -54,15 +54,14 @@ export function PageHeader({
           disabled={!onLongPress}
         >
           <Text
-            className="text-white font-semibold font-Montserrat"
-            style={{ fontSize: fontSize['3xl'], letterSpacing: -0.5 }}
+            className="text-3xl text-white font-semibold"
+            style={{ letterSpacing: -0.5 }}
           >
             {title}
           </Text>
           {subtitle && (
             <Text
-              className="text-white font-medium font-Montserrat mt-1"
-              style={{ fontSize: fontSize.base }}
+              className="text-base text-white font-medium mt-1"
             >
               {subtitle}
             </Text>
@@ -83,7 +82,7 @@ export function PageHeader({
             <Ionicons name="arrow-back" size={iconSize.xl} color={colors.textMedium} />
           </Pressable>
         )}
-        <Text className="text-2xl font-bold text-gray-800 font-Montserrat flex-shrink" numberOfLines={1}>
+        <Text className="text-2xl font-bold text-gray-800 flex-shrink" numberOfLines={1}>
           {title}
         </Text>
       </View>

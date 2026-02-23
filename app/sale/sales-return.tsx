@@ -3,7 +3,7 @@
  * Uses the unified DataTable component
  */
 
-import { buttonSize, iconSize } from "@/utils/theme";
+import { buttonSize, colors, iconSize } from "@/utils/theme";
 import { Ionicons } from "@expo/vector-icons";
 import { useCallback, useMemo } from "react";
 import { Pressable, Text, View } from "react-native";
@@ -64,7 +64,7 @@ export default function SalesReturnScreen() {
       visible: true,
       hideable: false,
       render: (item) => (
-        <Text className="text-blue-600 text-[18px] font-Montserrat font-medium" numberOfLines={1}>
+        <Text className="text-blue-600 text-lg font-medium" numberOfLines={1}>
           {item.returnNumber}
         </Text>
       ),
@@ -74,7 +74,7 @@ export default function SalesReturnScreen() {
       title: "Date / Time",
       width: 200,
       visible: true,
-      render: (item) => <Text className="text-[#1A1A1A] text-[18px] font-Montserrat">{item.dateTime}</Text>,
+      render: (item) => <Text className="text-[#1A1A1A] text-lg">{item.dateTime}</Text>,
     },
     {
       key: "customerName",
@@ -82,7 +82,7 @@ export default function SalesReturnScreen() {
       width: "flex",
       visible: true,
       render: (item) => (
-        <Text className="text-blue-600 text-[18px] font-Montserrat" numberOfLines={1}>{item.customerName}</Text>
+        <Text className="text-blue-600 text-lg" numberOfLines={1}>{item.customerName}</Text>
       ),
     },
     {
@@ -90,7 +90,7 @@ export default function SalesReturnScreen() {
       title: "Created By",
       width: 120,
       visible: true,
-      render: (item) => <Text className="text-[#1A1A1A] text-[18px] font-Montserrat">{item.createdBy}</Text>,
+      render: (item) => <Text className="text-[#1A1A1A] text-lg">{item.createdBy}</Text>,
     },
     {
       key: "channelName",
@@ -99,7 +99,7 @@ export default function SalesReturnScreen() {
       visible: true,
       render: (item) => (
         <View className="bg-pink-100 px-3 py-1 rounded self-start">
-          <Text className="text-pink-600 text-[14px] font-Montserrat font-medium">{item.channelName}</Text>
+          <Text className="text-pink-600 text-sm font-medium">{item.channelName}</Text>
         </View>
       ),
     },
@@ -109,7 +109,7 @@ export default function SalesReturnScreen() {
       width: 150,
       visible: true,
       render: (item) => (
-        <Text className="text-red-600 text-[18px] font-Montserrat font-bold">{formatCurrency(item.invoiceTotal)}</Text>
+        <Text className="text-red-600 text-lg font-bold">{formatCurrency(item.invoiceTotal)}</Text>
       ),
     },
     {
@@ -118,7 +118,7 @@ export default function SalesReturnScreen() {
       width: 150,
       visible: true,
       render: (item) => (
-        <Text className="text-red-600 text-[18px] font-Montserrat font-bold">{formatCurrency(item.returnTotal)}</Text>
+        <Text className="text-red-600 text-lg font-bold">{formatCurrency(item.returnTotal)}</Text>
       ),
     },
     {
@@ -131,7 +131,7 @@ export default function SalesReturnScreen() {
           className="px-3 py-1 rounded-full self-start"
           style={{ backgroundColor: item.status === "Complete" ? "#22C55E" : "#F59E0B" }}
         >
-          <Text className="text-white text-[14px] font-Montserrat font-medium">{item.status}</Text>
+          <Text className="text-white text-sm font-medium">{item.status}</Text>
         </View>
       ),
     },
@@ -145,16 +145,16 @@ export default function SalesReturnScreen() {
       render: () => (
         <View className="flex-row gap-4">
           <Pressable 
-            className="bg-red-50 rounded-lg items-center justify-center"
-            style={{ width: buttonSize.md.height, height: buttonSize.md.height }}
+            className="rounded-lg items-center justify-center"
+            style={{ width: buttonSize.md.height, height: buttonSize.md.height, backgroundColor: colors.primaryLight, borderRadius: buttonSize.md.borderRadius }}
           >
-            <Ionicons name="print-outline" size={iconSize.md} color="#EC1A52" />
+            <Ionicons name="print-outline" size={iconSize.md} color={colors.primary} />
           </Pressable>
           <Pressable 
-            className="bg-red-50 rounded-lg items-center justify-center"
-            style={{ width: buttonSize.md.height, height: buttonSize.md.height }}
+            className="rounded-lg items-center justify-center"
+            style={{ width: buttonSize.md.height, height: buttonSize.md.height, backgroundColor: colors.primaryLight, borderRadius: buttonSize.md.borderRadius }}
           >
-            <Ionicons name="eye-outline" size={iconSize.md} color="#EC1A52" />
+            <Ionicons name="eye-outline" size={iconSize.md} color={colors.primary} />
           </Pressable>
         </View>
       ),

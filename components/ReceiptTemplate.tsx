@@ -14,7 +14,7 @@
 import QRCodeCore from "qrcode/lib/core/qrcode";
 import { forwardRef, useMemo } from "react";
 import { StyleSheet, Text, View } from "react-native";
-import { fontWeight, colors } from '@/utils/theme';
+import { colors } from '@/utils/theme';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -219,7 +219,7 @@ export const ReceiptTemplate = forwardRef<View, { data: ReceiptData }>(
       return (
         <View style={{ alignItems: "center", marginTop: 10 * S, marginBottom: 6 * S, marginHorizontal: QR_MARGIN }}>
           <View style={{ padding: QR_PADDING, backgroundColor: colors.white }}>{rows}</View>
-          <Text style={{ fontSize: 11 * S, color: colors.black, marginTop: 4 * S, fontWeight: fontWeight.bold }}>
+          <Text style={{ fontSize: 14 * S, color: colors.black, marginTop: 4 * S, fontWeight: '700' }}>
             {orderNo}
           </Text>
         </View>
@@ -250,7 +250,7 @@ export const ReceiptTemplate = forwardRef<View, { data: ReceiptData }>(
               />
             ))}
           </View>
-          <Text style={{ fontSize: 11 * S, color: colors.black, marginTop: 4 * S, fontWeight: fontWeight.bold, letterSpacing: 2 * S }}>
+          <Text style={{ fontSize: 14 * S, color: colors.black, marginTop: 4 * S, fontWeight: '700', letterSpacing: 2 * S }}>
             {orderNo}
           </Text>
         </View>
@@ -394,8 +394,8 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   headerText: {
-    fontSize: 13 * S,
-    fontWeight: fontWeight.bold,
+    fontSize: 14 * S,
+    fontWeight: '700',
     color: colors.black,
   },
 
@@ -408,14 +408,14 @@ const styles = StyleSheet.create({
   },
   itemName: {
     flex: 1,
-    fontSize: 11 * S,
-    fontWeight: fontWeight.semibold,
+    fontSize: 14 * S,
+    fontWeight: '600',
     color: colors.black,
     marginRight: 8 * S,
   },
   itemPrice: {
-    fontSize: 11 * S,
-    fontWeight: fontWeight.semibold,
+    fontSize: 14 * S,
+    fontWeight: '600',
     color: colors.black,
   },
 
@@ -427,26 +427,26 @@ const styles = StyleSheet.create({
     paddingVertical: 2 * S,
   },
   totalLabel: {
-    fontSize: 11 * S,
-    fontWeight: fontWeight.semibold,
+    fontSize: 14 * S,
+    fontWeight: '600',
     color: colors.black,
   },
   totalValue: {
-    fontSize: 11 * S,
-    fontWeight: fontWeight.semibold,
+    fontSize: 14 * S,
+    fontWeight: '600',
     color: colors.black,
   },
 
   // ── Info text ──
   infoText: {
-    fontSize: 10 * S,
-    fontWeight: fontWeight.medium,
+    fontSize: 14 * S,
+    fontWeight: '500',
     color: colors.black,
     paddingVertical: 1 * S,
   },
   // ── Modifiers ──
   bold: {
-    fontWeight: fontWeight.bold,
-    fontSize: 13 * S,
+    fontWeight: '700',
+    fontSize: 14 * S,
   },
 });

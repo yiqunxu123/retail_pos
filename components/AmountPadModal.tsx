@@ -1,4 +1,4 @@
-import { colors, iconSize } from "@/utils/theme";
+import { buttonSize, colors, iconSize } from "@/utils/theme";
 import { Ionicons } from "@expo/vector-icons";
 import { Modal, Pressable, Text, View } from "react-native";
 
@@ -81,7 +81,7 @@ export function AmountPadModal({
                     onPress={onToggleTypeDropdown}
                     className="flex-row items-center bg-white border border-[#D9B8C6] px-3 py-1.5 rounded-md gap-2"
                   >
-                    <Text className="text-[#D53A66] text-[15px] font-medium">{typeLabel}</Text>
+                    <Text className="text-[#D53A66] text-base font-medium">{typeLabel}</Text>
                     <Ionicons name="chevron-down" size={iconSize.md} color={colors.textTertiary} />
                   </Pressable>
                   {showTypeDropdown && (
@@ -109,7 +109,7 @@ export function AmountPadModal({
             <View className="flex-row gap-3 mb-3">
               {summaryCards.map((card) => (
                 <View key={card.label} className="flex-1">
-                  <Text style={{ color: colors.text }} className="text-[17px] font-semibold mb-2">{card.label}</Text>
+                  <Text style={{ color: colors.text }} className="text-lg font-semibold mb-2">{card.label}</Text>
                   <View
                     className="rounded-lg bg-[#F6F7F9] px-4 py-4 border border-[#E4E7EC] justify-center"
                     style={{
@@ -121,7 +121,7 @@ export function AmountPadModal({
                       minHeight: 110,
                     }}
                   >
-                    <Text className={`${card.valueColorClassName} text-[44px] leading-[50px] font-bold text-right w-full`}>
+                    <Text className={`${card.valueColorClassName} text-4xl leading-[50px] font-bold text-right w-full`}>
                       {card.value}
                     </Text>
                   </View>
@@ -142,7 +142,7 @@ export function AmountPadModal({
                           backgroundColor: pressed ? "#E7EBF1" : "#FFFFFF",
                         })}
                       >
-                        <Text className="text-[30px] leading-[34px] font-semibold text-gray-800">{num}</Text>
+                        <Text className="text-3xl leading-[34px] font-semibold text-gray-800">{num}</Text>
                       </Pressable>
                     ))}
                   </View>
@@ -157,7 +157,7 @@ export function AmountPadModal({
                           backgroundColor: pressed ? "#E7EBF1" : "#FFFFFF",
                         })}
                       >
-                        <Text className="text-[30px] leading-[34px] font-semibold text-gray-800">0</Text>
+                        <Text className="text-3xl leading-[34px] font-semibold text-gray-800">0</Text>
                       </Pressable>
                     )}
                     {showDecimalKey && (
@@ -168,7 +168,7 @@ export function AmountPadModal({
                           backgroundColor: pressed ? "#E7EBF1" : "#FFFFFF",
                         })}
                       >
-                        <Text className="text-[30px] leading-[34px] font-semibold text-gray-800">.</Text>
+                        <Text className="text-3xl leading-[34px] font-semibold text-gray-800">.</Text>
                       </Pressable>
                     )}
                   </View>
@@ -178,32 +178,43 @@ export function AmountPadModal({
               <View className="w-52 gap-2">
                 <Pressable
                   onPress={onCancelAction}
-                  className="bg-[#E65B22] h-16 w-full rounded-xl items-center justify-center flex-row gap-2"
-                  style={({ pressed }) => ({ opacity: pressed ? 0.8 : 1 })}
+                  className="h-[56px] w-full rounded-xl items-center justify-center flex-row gap-2"
+                  style={({ pressed }) => ({ 
+                    backgroundColor: colors.warning, 
+                    borderRadius: buttonSize.lg.borderRadius, 
+                    opacity: pressed ? 0.8 : 1 
+                  })}
                 >
-                  <Ionicons name="close-circle-outline" size={iconSize.md} color="#FFFFFF" />
-                  <Text className="text-white text-[17px] font-semibold">Cancel</Text>
+                  <Ionicons name="close-circle-outline" size={iconSize.xl} color={colors.textWhite} />
+                  <Text className="text-white text-xl font-semibold">Cancel</Text>
                 </Pressable>
-                <Pressable
+<Pressable
                   onPress={onCorrectAction}
-                  className="border border-[#D9C2CC] h-16 w-full rounded-xl items-center justify-center bg-white flex-row gap-2"
-                  style={({ pressed }) => ({ opacity: pressed ? 0.8 : 1 })}
+                  className="h-[56px] w-full rounded-xl items-center justify-center flex-row gap-2"
+                  style={({ pressed }) => ({ 
+                    borderWidth: 1, 
+                    borderColor: colors.primary, 
+                    backgroundColor: colors.background, 
+                    borderRadius: buttonSize.lg.borderRadius, 
+                    opacity: pressed ? 0.8 : 1 
+                  })}
                 >
-                  <Ionicons name="backspace-outline" size={iconSize.md} color="#B85A7B" />
-                  <Text className="text-[#B85A7B] text-[17px] font-semibold">Correct</Text>
+                  <Ionicons name="backspace-outline" size={iconSize.xl} color={colors.primary} />
+                  <Text className="text-xl font-semibold" style={{ color: colors.primary }}>Correct</Text>
                 </Pressable>
                 <Pressable
                   onPress={onConfirmAction}
-                  className="h-16 w-full rounded-xl items-center justify-center border"
+                  className="h-[56px] w-full rounded-xl items-center justify-center border"
                   style={({ pressed }) => ({
+                    borderRadius: buttonSize.lg.borderRadius,
                     ...(confirmDisabled 
                       ? { backgroundColor: colors.borderMedium, borderColor: colors.borderMedium } 
-                      : { backgroundColor: colors.primary, borderColor: '#D51549', borderWidth: 1 }),
+                      : { backgroundColor: colors.primary, borderColor: colors.primary, borderWidth: 1 }),
                     opacity: pressed ? 0.8 : 1,
                   })}
                   disabled={confirmDisabled}
                 >
-                  <Text className={confirmDisabled ? "text-[17px] font-semibold" : "text-white text-[17px] font-semibold"} style={confirmDisabled ? { color: colors.textSecondary } : undefined}>
+                  <Text className={confirmDisabled ? "text-xl font-semibold" : "text-white text-xl font-semibold"} style={confirmDisabled ? { color: colors.textSecondary } : undefined}>
                     Confirm
                   </Text>
                 </Pressable>

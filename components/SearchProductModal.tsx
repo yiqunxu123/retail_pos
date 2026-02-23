@@ -1,4 +1,4 @@
-import { colors, fontSize, fontWeight, iconSize } from '@/utils/theme';
+import { colors, iconSize } from '@/utils/theme';
 import { Ionicons } from "@expo/vector-icons";
 import React, {
   forwardRef,
@@ -511,13 +511,15 @@ const SearchProductModalCore = forwardRef<
 
           <View className="flex-1 min-w-[120px]">
             <Text
-              style={{ fontFamily: "Montserrat", fontSize: fontSize.lg, fontWeight: fontWeight.bold, color: colors.text }}
+              className="text-lg font-bold"
+              style={{ color: colors.text }}
               numberOfLines={2}
             >
               {item.name}
             </Text>
             <Text
-              style={{ fontFamily: "Montserrat", fontSize: fontSize.md, color: colors.textTertiary, marginTop: 2 }}
+              className="text-sm"
+              style={{ color: colors.textTertiary, marginTop: 2 }}
               numberOfLines={1}
             >
               {item.sku || item.upc || ""}
@@ -527,10 +529,8 @@ const SearchProductModalCore = forwardRef<
 
         <View className="w-40 items-center px-2 ml-[30px]">
           <Text
+            className="text-base font-semibold"
             style={{
-              fontFamily: "Montserrat",
-              fontSize: fontSize.base,
-              fontWeight: fontWeight.semibold,
               color: colors.text,
               textAlign: "center",
             }}
@@ -542,10 +542,8 @@ const SearchProductModalCore = forwardRef<
 
         <View className="flex-1 items-end">
           <Text
+            className="text-2xl font-bold"
             style={{
-              fontFamily: "Montserrat",
-              fontSize: fontSize['2xl'],
-              fontWeight: fontWeight.bold,
               color: colors.text,
               transform: [{ translateX: -40 }],
             }}
@@ -622,7 +620,8 @@ const SearchProductModalCore = forwardRef<
           <View className="px-6 pt-6 pb-4 bg-white">
             <View className="flex-row items-center justify-between mb-4">
               <Text
-                style={{ fontFamily: "Montserrat", fontSize: fontSize['2xl'], fontWeight: fontWeight.bold, color: colors.primary }}
+                className="text-2xl font-bold"
+                style={{ color: colors.primary }}
               >
                 Search Products
               </Text>
@@ -638,8 +637,8 @@ const SearchProductModalCore = forwardRef<
             <View className="flex-row items-center bg-white border-2 rounded-xl px-4 py-2.5 shadow-sm" style={{ borderColor: colors.primary }}>
               <Ionicons name="search" size={iconSize.xl} color={colors.primary} />
               <TextInput
-                className="flex-1 ml-3 text-gray-800 text-[20px]"
-                style={{ fontFamily: "Montserrat", fontWeight: "500" }}
+                className="flex-1 ml-3 text-gray-800 text-xl"
+                style={{  fontWeight: "500" }}
                 placeholder="SI"
                 placeholderTextColor={colors.textTertiary}
                 value={searchQuery}
@@ -661,7 +660,7 @@ const SearchProductModalCore = forwardRef<
           ) : filteredProducts.length === 0 ? (
             <View className="flex-1 items-center justify-center">
               <Ionicons name="cube-outline" size={iconSize['5xl']} color={colors.borderMedium} />
-              <Text style={{ fontFamily: "Montserrat" }} className="text-gray-400 mt-4 text-lg">
+              <Text  className="text-gray-400 mt-4 text-lg">
                 No products found
               </Text>
             </View>
@@ -805,9 +804,8 @@ const styles = StyleSheet.create({
   },
   paginationButtonText: {
     color: "#FFFFFF",
-    fontFamily: "Montserrat",
-    fontWeight: fontWeight.bold,
-    fontSize: fontSize.md,
+    fontWeight: '700',
+    fontSize: 14,
   },
   pageButtonsContainer: {
     flex: 1,
@@ -834,9 +832,8 @@ const styles = StyleSheet.create({
   },
   pageButtonText: {
     color: colors.text,
-    fontFamily: "Montserrat",
-    fontSize: fontSize.md,
-    fontWeight: fontWeight.bold,
+    fontSize: 14,
+    fontWeight: '700',
     textAlign: "center",
   },
   pageButtonTextActive: {
@@ -845,9 +842,8 @@ const styles = StyleSheet.create({
   totalPagesText: {
     marginRight: 8,
     color: colors.textSecondary,
-    fontFamily: "Montserrat",
-    fontSize: fontSize.md,
-    fontWeight: fontWeight.semibold,
+    fontSize: 14,
+    fontWeight: '600',
     minWidth: 82,
     textAlign: "right",
   },

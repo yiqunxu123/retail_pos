@@ -33,14 +33,14 @@ export function FormInput({
 
   return (
     <View className="mb-4">
-      <Text className="text-[#5A5F66] text-[18px] mb-1.5" style={{ fontFamily: 'Montserrat' }}>{label}</Text>
+      <Text className="text-[#5A5F66] text-lg mb-1.5">{label}</Text>
       <InputWrapper
         onPress={isDropdown || isDatePicker ? onDropdownPress : undefined}
         className={`flex-row items-center border border-gray-200 rounded-xl px-3 py-3 shadow-sm ${disabled ? "bg-gray-100 border-gray-300" : "bg-white"}`}
       >
         {isDropdown || isDatePicker ? (
           <>
-            <Text className={`flex-1 text-[18px] ${value ? "text-gray-800" : "text-gray-400"}`} style={{ fontFamily: 'Montserrat' }}>
+            <Text className={`flex-1 text-lg ${value ? "text-gray-800" : "text-gray-400"}`}>
               {value || placeholder}
             </Text>
             <Ionicons
@@ -51,8 +51,7 @@ export function FormInput({
           </>
         ) : (
           <TextInput
-            className={`flex-1 text-[18px] ${disabled ? "text-gray-400" : "text-gray-800"}`}
-            style={{ fontFamily: 'Montserrat' }}
+            className={`flex-1 text-lg ${disabled ? "text-gray-400" : "text-gray-800"}`}
             value={value}
             onChangeText={onChangeText}
             placeholder={placeholder}

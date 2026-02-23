@@ -11,7 +11,7 @@
  *   - Ordered by created_at DESC
  */
 
-import { colors, fontSize, fontWeight, iconSize } from '@/utils/theme';
+import { colors, iconSize } from '@/utils/theme';
 import { Ionicons } from "@expo/vector-icons";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
@@ -330,7 +330,8 @@ export function DevDataOverlay({ tables, defaultTable }: DevDataOverlayProps) {
           }}
         >
           <Ionicons name="bug-outline" size={iconSize.md} color="#22D3EE" />
-          <Text style={{ color: "#22D3EE", fontSize: fontSize.xs, fontWeight: fontWeight.bold, letterSpacing: 1.5, marginTop: 1 }}>DEV</Text>
+          <Text className="text-sm font-bold"
+                style={{ color: "#22D3EE", letterSpacing: 1.5, marginTop: 1 }}>DEV</Text>
         </Pressable>
       </Animated.View>
 
@@ -353,7 +354,8 @@ export function DevDataOverlay({ tables, defaultTable }: DevDataOverlayProps) {
         <View style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.85)", justifyContent: "center", alignItems: "center" }}>
           <View style={{ backgroundColor: "#FFF", borderRadius: 12, padding: 16, maxWidth: "90%", maxHeight: "85%", alignItems: "center" }}>
             <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", width: "100%", marginBottom: 12 }}>
-              <Text style={{ fontSize: fontSize.base, fontWeight: fontWeight.bold, color: "#111" }}>Receipt Preview</Text>
+              <Text className="text-base font-bold"
+              style={{ color: "#111" }}>Receipt Preview</Text>
               <Pressable onPress={() => setShowReceiptPreview(false)}>
                 <Ionicons name="close-circle" size={iconSize.xl} color={colors.textTertiary} />
               </Pressable>
@@ -367,7 +369,8 @@ export function DevDataOverlay({ tables, defaultTable }: DevDataOverlayProps) {
                 />
               </ScrollView>
             )}
-            <Text style={{ fontSize: fontSize.xs, color: colors.textTertiary, marginTop: 8 }}>
+            <Text className="text-sm"
+            style={{ color: colors.textTertiary, marginTop: 8 }}>
               800px width - ~10cm thermal paper
             </Text>
           </View>
@@ -393,7 +396,8 @@ export function DevDataOverlay({ tables, defaultTable }: DevDataOverlayProps) {
                   Data Test - {activeTable.label}
                 </Text>
                 <View style={{ backgroundColor: "#1E1E1E", borderRadius: 4, paddingHorizontal: 6, paddingVertical: 2 }}>
-                  <Text style={{ color: "#22D3EE", fontSize: fontSize.xs, fontWeight: fontWeight.bold }}>DEV ONLY</Text>
+                  <Text className="text-sm font-bold"
+                  style={{ color: "#22D3EE" }}>DEV ONLY</Text>
                 </View>
               </View>
               <Pressable onPress={() => setShowSheet(false)}>
@@ -461,7 +465,7 @@ export function DevDataOverlay({ tables, defaultTable }: DevDataOverlayProps) {
             {/* Message */}
             {message !== "" && (
               <View className="px-5 pb-2">
-                <Text className="text-xs text-gray-500">{message}</Text>
+                <Text className="text-sm text-gray-500">{message}</Text>
               </View>
             )}
 
@@ -521,10 +525,10 @@ export function DevDataOverlay({ tables, defaultTable }: DevDataOverlayProps) {
             {showColPicker && (
               <View className="flex-row flex-wrap items-center gap-1.5 px-5 pb-3">
                 <Pressable onPress={() => setSelectedCols([...activeTable.allColumns])}>
-                  <Text className="text-blue-500 text-xs font-medium mr-1">All</Text>
+                  <Text className="text-blue-500 text-sm font-medium mr-1">All</Text>
                 </Pressable>
                 <Pressable onPress={() => setSelectedCols(activeTable.defaultColumns)}>
-                  <Text className="text-gray-400 text-xs font-medium mr-2">Reset</Text>
+                  <Text className="text-gray-400 text-sm font-medium mr-2">Reset</Text>
                 </Pressable>
                 {activeTable.allColumns.map((col) => {
                   const isOn = selectedCols.includes(col);
@@ -540,7 +544,7 @@ export function DevDataOverlay({ tables, defaultTable }: DevDataOverlayProps) {
                         );
                       }}
                     >
-                      <Text className={`text-xs ${isOn ? "text-white" : "text-gray-500"}`}>{col}</Text>
+                      <Text className={`text-sm ${isOn ? "text-white" : "text-gray-500"}`}>{col}</Text>
                     </Pressable>
                   );
                 })}
@@ -588,7 +592,7 @@ export function DevDataOverlay({ tables, defaultTable }: DevDataOverlayProps) {
                       <View className="flex-row items-center bg-white border-b border-gray-100 px-3 py-2">
                         {selectedCols.map((col) => (
                           <View key={col} style={{ width: colWidth(col) }} className="px-1">
-                            <Text className="text-xs text-gray-700" numberOfLines={1}>
+                            <Text className="text-sm text-gray-700" numberOfLines={1}>
                               {item[col] === null || item[col] === undefined
                                 ? "-"
                                 : col === "id"

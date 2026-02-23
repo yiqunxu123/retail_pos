@@ -1,4 +1,4 @@
-import { colors, fontSize, fontWeight as fw, iconSize } from '@/utils/theme';
+import { colors, iconSize } from '@/utils/theme';
 import { FontAwesome5, Ionicons, MaterialCommunityIcons, MaterialIcons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { LinearGradient } from "expo-linear-gradient";
@@ -371,12 +371,10 @@ export default function Dashboard() {
               activeOpacity={0.8}
             >
               <Text 
+                className="text-5xl font-semibold"
                 style={{ 
-                  fontSize: fontSize['4xl'], 
-                  lineHeight: 40,
-                  letterSpacing: -0.72, // -2% of 36
-                  fontWeight: fw.semibold, 
-                  fontFamily: "Montserrat",
+                  lineHeight: 52,
+                  letterSpacing: -1,
                   color: colors.textWhite
                 }}
               >
@@ -384,10 +382,8 @@ export default function Dashboard() {
               </Text>
               <View className="flex-row items-center mt-1 gap-4">
                 <Text 
+                  className="text-lg font-medium"
                   style={{ 
-                    fontSize: fontSize.lg, 
-                    fontWeight: fw.medium, 
-                    fontFamily: "Montserrat",
                     color: "rgba(255, 255, 255, 0.9)"
                   }}
                 >
@@ -404,7 +400,7 @@ export default function Dashboard() {
                       backgroundColor: isConnected ? '#10B981' : '#EF4444',
                     }}
                   />
-                  <Text style={{ color: "white", fontSize: fontSize.sm, fontWeight: fw.semibold, fontFamily: "Montserrat" }}>
+                  <Text className="text-sm font-semibold" style={{ color: "white" }}>
                     {isSyncing ? 'Syncing...' : isConnected ? 'Online' : 'Offline'}
                   </Text>
                 </View>
@@ -416,9 +412,7 @@ export default function Dashboard() {
               className="bg-white rounded-xl px-5 py-2.5 ml-4"
               style={{ borderWidth: 1, borderColor: colors.text }}
             >
-              <Text 
-                style={{ fontSize: fontSize.lg, color: colors.text, fontWeight: fw.semibold, fontFamily: "Montserrat" }}
-              >
+              <Text className="text-lg font-semibold" style={{ color: colors.text }}>
                 CASHIER
               </Text>
             </View>
@@ -506,7 +500,7 @@ export default function Dashboard() {
           {/* Clock Status (when not clocked in) */}
           {!isClockedIn && (
             <View className="bg-amber-50 border border-amber-200 rounded-xl p-4">
-              <Text className="text-amber-700 font-medium text-center" style={{ fontSize: fontSize.base }}>
+              <Text className="text-base text-amber-700 font-medium text-center">
                 Please clock in using the Time Clock button on the right to start your shift.
               </Text>
             </View>
@@ -625,12 +619,10 @@ export default function Dashboard() {
             activeOpacity={0.8}
           >
             <Text 
+              className="text-5xl font-semibold"
               style={{ 
-                fontSize: fontSize['4xl'], 
-                lineHeight: 40,
-                letterSpacing: -0.72, // -2% of 36
-                fontWeight: fw.semibold, 
-                fontFamily: "Montserrat",
+                lineHeight: 52,
+                letterSpacing: -1,
                 color: colors.textWhite
               }}
             >
@@ -638,10 +630,8 @@ export default function Dashboard() {
             </Text>
             <View className="flex-row items-center mt-1 gap-4">
               <Text 
+                className="text-lg font-medium"
                 style={{ 
-                  fontSize: fontSize.lg, 
-                  fontWeight: fw.medium, 
-                  fontFamily: "Montserrat",
                   color: "rgba(255, 255, 255, 0.9)"
                 }}
               >
@@ -658,7 +648,7 @@ export default function Dashboard() {
                     backgroundColor: isConnected ? '#10B981' : colors.error,
                   }}
                 />
-                <Text style={{ color: "white", fontSize: fontSize.sm, fontWeight: fw.semibold, fontFamily: "Montserrat" }}>
+                <Text className="text-sm font-semibold" style={{ color: "white" }}>
                   {isSyncing ? 'Syncing...' : isConnected ? 'Online' : 'Offline'}
                 </Text>
               </View>
@@ -670,9 +660,7 @@ export default function Dashboard() {
             className="bg-[#1A1A1A] rounded-xl px-5 py-2.5 ml-4"
             style={{ borderWidth: 1, borderColor: "rgba(255,255,255,0.2)" }}
           >
-            <Text 
-              style={{ fontSize: fontSize.lg, color: colors.textWhite, fontWeight: fw.semibold, fontFamily: "Montserrat" }}
-            >
+            <Text className="text-lg font-semibold" style={{ color: colors.textWhite }}>
               ADMIN
             </Text>
           </View>
@@ -681,31 +669,27 @@ export default function Dashboard() {
         {/* ===== DASHBOARD FILTERS ===== */}
         {showAdminStats && (
           <View className="mb-4 gap-3">
-            {/* Date Range Selector */}
-            <View className="flex-row justify-end gap-3" style={{ flexWrap: "wrap" }}>
+            {/* Date Range Selector + Channel Selector - keep on one row */}
+            <View className="flex-row justify-end gap-3" style={{ flexWrap: "nowrap" }}>
               <TouchableOpacity
                 onPress={() => setShowDatePicker(true)}
-                className="rounded-lg px-4 py-3"
-                style={{ backgroundColor: '#fff', borderWidth: 1, borderColor: colors.border, minWidth: 260, flexShrink: 1 }}
+                className="rounded-lg px-5 py-4 flex-row items-center gap-3 flex-1 min-w-0"
+                style={{ backgroundColor: '#fff', borderWidth: 1, borderColor: colors.border }}
               >
-                <View className="flex-row items-center justify-between">
-                  <View className="flex-row items-center gap-2">
-                    <Ionicons name="calendar-outline" size={iconSize.md} color="#4B5563" />
-                    <Text style={{ fontSize: fontSize.md, color: colors.textDark, fontWeight: fw.semibold, fontFamily: 'Montserrat' }}>{dateRangeLabel}</Text>
-                  </View>
-                  <Ionicons name="chevron-down" size={iconSize.md} color={colors.textTertiary} />
-                </View>
+                <Ionicons name="calendar-outline" size={iconSize.xl} color="#4B5563" />
+                <Text className="text-lg font-semibold flex-1" style={{ color: colors.textDark }} numberOfLines={1}>{dateRangeLabel}</Text>
+                <Ionicons name="chevron-down" size={iconSize.xl} color={colors.textTertiary} />
               </TouchableOpacity>
 
               {/* Channel Selector */}
               <TouchableOpacity
                 onPress={() => setShowChannelPicker(true)}
-                className="flex-row items-center rounded-lg px-4 py-3 gap-2"
+                className="flex-row items-center rounded-lg px-5 py-4 gap-3 flex-1 min-w-0"
                 style={{ backgroundColor: '#fff', borderWidth: 1, borderColor: colors.border }}
               >
-                <Ionicons name="storefront-outline" size={iconSize.md} color="#4B5563" />
-                <Text style={{ fontSize: fontSize.md, color: colors.textDark, fontWeight: fw.medium, fontFamily: 'Montserrat' }}>{channelLabel}</Text>
-                <Ionicons name="chevron-down" size={iconSize.md} color={colors.textTertiary} />
+                <Ionicons name="storefront-outline" size={iconSize.xl} color="#4B5563" />
+                <Text className="text-lg font-medium flex-1" style={{ color: colors.textDark }} numberOfLines={1}>{channelLabel}</Text>
+                <Ionicons name="chevron-down" size={iconSize.xl} color={colors.textTertiary} />
               </TouchableOpacity>
             </View>
           </View>
@@ -838,86 +822,97 @@ export default function Dashboard() {
         onRequestClose={() => setShowChannelPicker(false)}
       >
         <Pressable 
-          className="flex-1 justify-center items-center"
-          style={{ backgroundColor: colors.overlay }}
+          className="flex-1 bg-black/45 justify-center items-center px-4"
           onPress={() => setShowChannelPicker(false)}
         >
           <Pressable 
-            className="bg-white rounded-2xl p-6"
-            style={{ width: 360, maxWidth: '90%', maxHeight: '70%' }}
-            onPress={() => {}}
+            className="bg-white rounded-xl overflow-hidden"
+            style={{
+              width: "92%",
+              maxWidth: 664,
+              maxHeight: "80%",
+              borderWidth: 1,
+              borderColor: colors.border,
+              shadowColor: "#000",
+              shadowOffset: { width: 0, height: 8 },
+              shadowOpacity: 0.18,
+              shadowRadius: 20,
+              elevation: 8,
+            }}
+            onPress={(e) => e.stopPropagation()}
           >
-            <Text className="font-bold mb-4" style={{ fontSize: fontSize.lg, color: colors.textDark }}>
-              Select Channels
-            </Text>
-            
-            {/* All Channels Option */}
-            <TouchableOpacity
-              onPress={selectAllChannels}
-              className="flex-row items-center py-3 px-4 rounded-lg mb-2"
-              style={{
-                backgroundColor: selectedChannelIds.length === 0 ? colors.primary : colors.backgroundSecondary,
-              }}
-            >
-              <Ionicons 
-                name={selectedChannelIds.length === 0 ? "checkmark-circle" : "ellipse-outline"} 
-                size={iconSize.base} 
-                color={selectedChannelIds.length === 0 ? '#fff' : colors.textTertiary} 
-              />
-              <Text 
-                className="ml-3 font-medium"
-                style={{ 
-                  fontSize: fontSize.md, 
-                  color: selectedChannelIds.length === 0 ? '#fff' : colors.textMedium 
+            <View className="flex-row justify-between items-center px-5 py-4 border-b border-[#E4E7EC]">
+              <Text className="text-2xl font-semibold" style={{ color: colors.text }}>Select Channels</Text>
+              <Pressable onPress={() => setShowChannelPicker(false)} style={({ pressed }) => ({ opacity: pressed ? 0.55 : 1 })}>
+                <Ionicons name="close" size={iconSize['2xl']} color={colors.textDark} />
+              </Pressable>
+            </View>
+
+            <View className="px-4 pt-4 pb-5">
+              {/* All Channels Option */}
+              <TouchableOpacity
+                onPress={selectAllChannels}
+                className="flex-row items-center py-4 px-5 rounded-lg mb-3"
+                style={{
+                  backgroundColor: selectedChannelIds.length === 0 ? colors.primary : colors.backgroundSecondary,
                 }}
               >
-                All Channels
-              </Text>
-            </TouchableOpacity>
+                <Ionicons 
+                  name={selectedChannelIds.length === 0 ? "checkmark-circle" : "ellipse-outline"} 
+                  size={iconSize.xl} 
+                  color={selectedChannelIds.length === 0 ? '#fff' : colors.textTertiary} 
+                />
+                <Text 
+                  className="ml-4 text-lg font-semibold"
+                  style={{ color: selectedChannelIds.length === 0 ? '#fff' : colors.textMedium }}
+                >
+                  All Channels
+                </Text>
+              </TouchableOpacity>
 
-            {/* Individual Channels */}
-            <ScrollView style={{ maxHeight: 300 }}>
-              {channels.map(ch => {
-                const isSelected = selectedChannelIds.includes(ch.id);
-                return (
-                  <TouchableOpacity
-                    key={ch.id}
-                    onPress={() => toggleChannel(ch.id)}
-                    className="flex-row items-center py-3 px-4 rounded-lg mb-2"
-                    style={{
-                      backgroundColor: isSelected ? '#EFF6FF' : colors.backgroundSecondary,
-                      borderWidth: isSelected ? 1 : 0,
-                      borderColor: colors.info,
-                    }}
-                  >
-                    <Ionicons 
-                      name={isSelected ? "checkmark-circle" : "ellipse-outline"} 
-                      size={iconSize.base} 
-                      color={isSelected ? colors.info : colors.textTertiary} 
-                    />
-                    <Text 
-                      className="ml-3 font-medium"
-                      style={{ fontSize: fontSize.md, color: isSelected ? '#1D4ED8' : colors.textMedium }}
+              <ScrollView style={{ maxHeight: 360 }} showsVerticalScrollIndicator={false}>
+                {channels.map(ch => {
+                  const isSelected = selectedChannelIds.includes(ch.id);
+                  return (
+                    <TouchableOpacity
+                      key={ch.id}
+                      onPress={() => toggleChannel(ch.id)}
+                      className="flex-row items-center py-4 px-5 rounded-lg mb-2"
+                      style={{
+                        backgroundColor: isSelected ? '#EFF6FF' : colors.backgroundSecondary,
+                        borderWidth: isSelected ? 1 : 0,
+                        borderColor: colors.info,
+                      }}
                     >
-                      {ch.name}
-                    </Text>
-                    {ch.is_primary === 1 && (
-                      <View className="ml-2 bg-green-100 rounded-full px-2 py-0.5">
-                        <Text style={{ fontSize: fontSize.xs, color: '#059669' }}>Primary</Text>
-                      </View>
-                    )}
-                  </TouchableOpacity>
-                );
-              })}
-            </ScrollView>
+                      <Ionicons 
+                        name={isSelected ? "checkmark-circle" : "ellipse-outline"} 
+                        size={iconSize.xl} 
+                        color={isSelected ? colors.info : colors.textTertiary} 
+                      />
+                      <Text 
+                        className="ml-4 text-lg font-medium"
+                        style={{ color: isSelected ? '#1D4ED8' : colors.textMedium }}
+                      >
+                        {ch.name}
+                      </Text>
+                      {ch.is_primary === 1 && (
+                        <View className="ml-2 bg-green-100 rounded-full px-3 py-1">
+                          <Text className="text-base font-semibold" style={{ color: '#059669' }}>Primary</Text>
+                        </View>
+                      )}
+                    </TouchableOpacity>
+                  );
+                })}
+              </ScrollView>
 
-            <TouchableOpacity
-              onPress={() => setShowChannelPicker(false)}
-              className="mt-3 py-3 items-center rounded-lg"
-              style={{ backgroundColor: colors.primary }}
-            >
-              <Text style={{ fontSize: fontSize.md, color: '#fff', fontWeight: fw.semibold }}>Done</Text>
-            </TouchableOpacity>
+              <TouchableOpacity
+                onPress={() => setShowChannelPicker(false)}
+                className="mt-4 py-4 items-center rounded-lg"
+                style={{ backgroundColor: colors.primary }}
+              >
+                <Text className="text-lg font-semibold" style={{ color: '#fff' }}>Done</Text>
+              </TouchableOpacity>
+            </View>
           </Pressable>
         </Pressable>
       </Modal>

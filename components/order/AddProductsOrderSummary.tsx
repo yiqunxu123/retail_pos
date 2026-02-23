@@ -1,4 +1,4 @@
-import { colors, fontSize, fontWeight } from '@/utils/theme';
+import { colors } from '@/utils/theme';
 import React from "react";
 import { StyleSheet, Text, View } from "react-native";
 import { useRenderTrace } from "../../utils/debug/useRenderTrace";
@@ -20,11 +20,11 @@ const s = StyleSheet.create({
   colLeft: { flex: 1, borderRightWidth: 1, borderRightColor: colors.backgroundSecondary },
   row: { flexDirection: "row", justifyContent: "space-between", paddingHorizontal: 20, paddingVertical: 16, borderBottomWidth: 1, borderBottomColor: colors.backgroundSecondary },
   rowLast: { flexDirection: "row", justifyContent: "space-between", paddingHorizontal: 20, paddingVertical: 16 },
-  label: { color: "#5A5F66", fontSize: fontSize.lg, fontFamily: "Montserrat", fontWeight: fontWeight.medium },
-  value: { color: colors.text, fontSize: fontSize.xl, fontFamily: "Montserrat", fontWeight: fontWeight.bold },
+  label: { color: "#5A5F66", fontSize: 18, fontWeight: '500' },
+  value: { color: colors.text, fontSize: 18, fontWeight: '700' },
   totalRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", backgroundColor: colors.primaryLight, borderTopWidth: 1, borderTopColor: "#FEE2E2", paddingHorizontal: 24, paddingVertical: 16 },
-  totalLabel: { color: colors.primary, fontSize: fontSize['2xl'], fontFamily: "Montserrat", fontWeight: fontWeight.bold },
-  totalValue: { color: colors.primary, fontSize: fontSize['3xl'], fontFamily: "Montserrat", fontWeight: fontWeight.bold },
+  totalLabel: { color: colors.primary, fontSize: 24, fontWeight: '700' },
+  totalValue: { color: colors.primary, fontSize: 32, fontWeight: '700' },
 });
 
 function AddProductsOrderSummaryComponent({
@@ -41,6 +41,10 @@ function AddProductsOrderSummaryComponent({
     { productsCount, totalQuantity, subTotal, tax, total, additionalDiscount, discountType },
     { throttleMs: 100 }
   );
+
+  // $1 spent = 100 credits. e.g. $8.99 = 899 credits. Init: loyalty credit used = 0.
+  const loyaltyCreditUsed = 0;
+  const loyaltyEarned = Math.round(subTotal * 100);
 
   return (
     <View style={s.container}>
@@ -60,7 +64,7 @@ function AddProductsOrderSummaryComponent({
           </View>
           <View style={s.rowLast}>
             <Text style={s.label}>Loyalty Credit</Text>
-            <Text style={s.value}>-$10.00</Text>
+            <Text style={s.value}>{loyaltyCreditUsed === 0 ? "0" : `-$${loyaltyCreditUsed.toFixed(2)}`}</Text>
           </View>
         </View>
 
@@ -81,7 +85,7 @@ function AddProductsOrderSummaryComponent({
           </View>
           <View style={s.rowLast}>
             <Text style={s.label}>Loyalty Earned</Text>
-            <Text style={s.value}>120</Text>
+            <Text style={s.value}>{loyaltyEarned}</Text>
           </View>
         </View>
       </View>

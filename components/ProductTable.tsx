@@ -1,7 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import React, { useCallback, useEffect, memo } from "react";
 import { FlatList, Image, Pressable, StyleSheet, Text, TouchableOpacity, View } from "react-native";
-import { fontSize, fontWeight, colors, iconSize, buttonSize } from '@/utils/theme';
+import { colors, iconSize, buttonSize } from '@/utils/theme';
 import { useRenderTrace } from "../utils/debug/useRenderTrace";
 
 const styles = StyleSheet.create({
@@ -9,26 +9,26 @@ const styles = StyleSheet.create({
   row: { flexDirection: "row", alignItems: "center", paddingHorizontal: 16, paddingVertical: 20, borderBottomWidth: 1, borderBottomColor: colors.borderLight, backgroundColor: colors.white },
   rowSelected: { flexDirection: "row", alignItems: "center", paddingHorizontal: 16, paddingVertical: 20, borderBottomWidth: 1, borderBottomColor: colors.borderLight, backgroundColor: colors.primaryLight, borderLeftWidth: 4, borderLeftColor: colors.primary },
   nameCol: { flex: 1 },
-  sku: { color: colors.text, fontSize: fontSize.lg, fontFamily: "Montserrat", fontWeight: fontWeight.semibold },
-  name: { color: "#5A5F66", fontSize: fontSize.base, fontFamily: "Montserrat", marginTop: 4 },
+  sku: { color: colors.text, fontSize: 18, fontWeight: '600' },
+  name: { color: "#5A5F66", fontSize: 16, marginTop: 4 },
   promo: { backgroundColor: "#FFA64D", paddingHorizontal: 8, paddingVertical: 2, borderRadius: 9999, marginTop: 8, alignSelf: "flex-start" },
-  promoText: { fontSize: fontSize.md, fontWeight: fontWeight.bold, color: "#6B4F1D" },
+  promoText: { fontSize: 14, fontWeight: '700', color: "#6B4F1D" },
   qtyCol: { width: 140, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8 },
   qtyBtn: { width: buttonSize.md.height, height: buttonSize.md.height, borderRadius: buttonSize.md.borderRadius, alignItems: "center" as const, justifyContent: "center" as const },
   qtyBtnMinus: { backgroundColor: colors.primaryLight, borderWidth: 1, borderColor: "#FECACA" },
   qtyBtnPlus: { backgroundColor: colors.primary },
-  qtyText: { color: colors.text, fontSize: fontSize.xl, fontFamily: "Montserrat", fontWeight: fontWeight.bold, width: 32, textAlign: "center" },
+  qtyText: { color: colors.text, fontSize: 18, fontWeight: '700', width: 32, textAlign: "center" },
   taxCol: { width: 120, alignItems: "center" },
-  taxText: { color: colors.text, fontSize: fontSize.lg, fontFamily: "Montserrat" },
+  taxText: { color: colors.text, fontSize: 18 },
   totalCol: { width: 120, alignItems: "flex-end", paddingRight: 16 },
-  totalText: { color: colors.text, fontSize: fontSize.xl, fontFamily: "Montserrat", fontWeight: fontWeight.bold },
+  totalText: { color: colors.text, fontSize: 18, fontWeight: '700' },
   // Container styles (converted from className)
   container: { flex: 1, paddingHorizontal: 12, paddingTop: 40, paddingBottom: 8 },
   tableWrapper: { backgroundColor: colors.white, borderWidth: 1, borderColor: colors.border, borderRadius: 16, overflow: "hidden", flex: 1 },
   // Header styles
   headerRow: { flexDirection: "row", backgroundColor: colors.white, borderBottomWidth: 1, borderBottomColor: colors.backgroundSecondary, paddingHorizontal: 16, paddingVertical: 16 },
   headerFlex1: { flex: 1 },
-  headerText: { color: "#5A5F66", fontSize: fontSize.base, fontFamily: "Montserrat", fontWeight: fontWeight.bold },
+  headerText: { color: "#5A5F66", fontSize: 16, fontWeight: '700' },
   headerQtyCol: { width: 140, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 4 },
   headerTaxCol: { width: 120, alignItems: "center" },
   headerTotalCol: { width: 120, alignItems: "flex-end", paddingRight: 16 },
@@ -36,7 +36,7 @@ const styles = StyleSheet.create({
   emptyContainer: { flex: 1, alignItems: "center", justifyContent: "center", backgroundColor: colors.white, paddingVertical: 32 },
   emptyImageWrapper: { width: 384, height: 384, marginBottom: 8, alignItems: "center", justifyContent: "center" },
   emptyImage: { width: 380, height: 380 },
-  emptyText: { color: "#5A5F66", textAlign: "center", fontFamily: "Montserrat", fontSize: fontSize.lg, marginBottom: 24, paddingHorizontal: 80, marginTop: -20 },
+  emptyText: { color: "#5A5F66", textAlign: "center", fontSize: 18, marginBottom: 24, paddingHorizontal: 80, marginTop: -20 },
 });
 
 export interface ProductItem {

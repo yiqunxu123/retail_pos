@@ -1,4 +1,3 @@
-import { fontSize } from '@/utils/theme';
 import { ReactNode } from "react";
 import { Text, TouchableOpacity, View } from "react-native";
 
@@ -33,10 +32,10 @@ export function StatCardHorizontal({
       }}
     >
       {icon && <View className="mb-2">{icon}</View>}
-      <Text className="text-white font-medium text-center mb-1" style={{ fontSize: fontSize.base }}>
+      <Text className="text-base text-white font-medium text-center mb-1">
         {title}
       </Text>
-      <Text className="text-white font-bold" style={{ fontSize: fontSize['3xl'] }}>
+      <Text className="text-white font-bold text-3xl">
         {count}
       </Text>
     </View>

@@ -10,7 +10,7 @@ import {
   KeyboardAvoidingView,
   Platform,
 } from "react-native";
-import { fontSize, fontWeight, colors, iconSize, buttonSize } from '@/utils/theme';
+import { colors, iconSize, buttonSize } from '@/utils/theme';
 
 interface ProductSettingsModalProps {
   visible: boolean;
@@ -41,13 +41,8 @@ export function ProductSettingsModal({ visible, onClose, product, onSave }: Prod
   const SettingRow = ({ label, value, onValueChange }: { label: string, value: boolean, onValueChange: (val: boolean) => void }) => (
     <View className="flex-row justify-between items-center py-3.5" style={{ borderBottomWidth: 1, borderBottomColor: colors.border }}>
       <Text 
-        style={{ 
-          fontFamily: 'Montserrat',
-          fontSize: fontSize.lg,
-          fontWeight: fontWeight.medium,
-          color: colors.text
-        }} 
-        className="flex-1 mr-4" 
+        className="text-lg font-medium flex-1 mr-4"
+        style={{ color: colors.text }} 
         numberOfLines={1}
       >
         {label}
@@ -97,10 +92,8 @@ export function ProductSettingsModal({ visible, onClose, product, onSave }: Prod
           <View className="flex-row justify-between items-center px-10 py-8 border-b border-gray-100">
             <View>
               <Text 
+                className="text-4xl font-bold"
                 style={{ 
-                  fontSize: fontSize['4xl'], 
-                  fontWeight: fontWeight.bold, 
-                  fontFamily: "Montserrat", 
                   color: colors.text,
                   letterSpacing: -0.5
                 }}
@@ -109,12 +102,8 @@ export function ProductSettingsModal({ visible, onClose, product, onSave }: Prod
               </Text>
               {product && (
                 <Text 
-                  style={{ 
-                    fontFamily: 'Montserrat',
-                    fontSize: fontSize.lg,
-                    color: colors.textSecondary,
-                    marginTop: 6
-                  }} 
+                  className="text-lg"
+                  style={{ color: colors.textSecondary, marginTop: 6 }} 
                   numberOfLines={1}
                 >
                   {product.name}
@@ -129,13 +118,8 @@ export function ProductSettingsModal({ visible, onClose, product, onSave }: Prod
           <ScrollView className="px-10 py-8" showsVerticalScrollIndicator={false}>
             {/* General Settings */}
             <Text 
-              style={{ 
-                fontSize: fontSize['3xl'], 
-                fontWeight: fontWeight.bold, 
-                fontFamily: "Montserrat", 
-                color: colors.text,
-                marginBottom: 24
-              }}
+              className="text-3xl font-bold"
+              style={{ color: colors.text, marginBottom: 24 }}
             >
               General Settings
             </Text>
@@ -161,13 +145,8 @@ export function ProductSettingsModal({ visible, onClose, product, onSave }: Prod
 
             {/* Tax Settings */}
             <Text 
-              style={{ 
-                fontSize: fontSize['3xl'], 
-                fontWeight: fontWeight.bold, 
-                fontFamily: "Montserrat", 
-                color: colors.text,
-                marginBottom: 24
-              }}
+              className="text-3xl font-bold"
+              style={{ color: colors.text, marginBottom: 24 }}
             >
               Tax Settings
             </Text>
@@ -189,16 +168,12 @@ export function ProductSettingsModal({ visible, onClose, product, onSave }: Prod
           <View className="flex-row justify-center gap-8 p-10 border-t border-gray-100">
             <Pressable
               onPress={onClose}
-              className="flex-1 bg-red-50 rounded-lg items-center justify-center border border-red-100"
-              style={{ height: buttonSize.md.height }}
+              className="flex-1 rounded-lg items-center justify-center"
+              style={{ height: buttonSize.lg.height, backgroundColor: colors.primaryLight, borderWidth: 1, borderColor: colors.primary, borderRadius: buttonSize.lg.borderRadius }}
             >
               <Text 
-                style={{ 
-                  fontFamily: 'Montserrat',
-                  fontSize: fontSize['2xl'],
-                  fontWeight: fontWeight.semibold,
-                  color: colors.error
-                }}
+                className="text-lg font-semibold"
+                style={{ color: colors.primary }}
               >
                 Cancel
               </Text>
@@ -206,15 +181,11 @@ export function ProductSettingsModal({ visible, onClose, product, onSave }: Prod
             <Pressable
               onPress={handleSave}
               className="flex-1 rounded-lg items-center justify-center shadow-xl"
-              style={{ height: buttonSize.md.height, backgroundColor: colors.primary }}
+              style={{ height: buttonSize.lg.height, backgroundColor: colors.primary, borderRadius: buttonSize.lg.borderRadius }}
             >
               <Text 
-                style={{ 
-                  fontFamily: 'Montserrat',
-                  fontSize: fontSize['2xl'],
-                  fontWeight: fontWeight.semibold,
-                  color: colors.textWhite
-                }}
+                className="text-lg font-semibold"
+                style={{ color: colors.textWhite }}
               >
                 Apply
               </Text>

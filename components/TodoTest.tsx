@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
+import { colors } from '@/utils/theme'
 import {
     ActivityIndicator,
     Alert,
@@ -89,7 +90,7 @@ const ProfileEditor = () => {
       </Text>
       
       <View className="mb-3">
-        <Text className="text-xs text-gray-500 mb-1">First Name</Text>
+        <Text className="text-sm text-gray-500 mb-1">First Name</Text>
         <TextInput
           value={firstName}
           onChangeText={setFirstName}
@@ -99,7 +100,7 @@ const ProfileEditor = () => {
       </View>
       
       <View className="mb-3">
-        <Text className="text-xs text-gray-500 mb-1">Last Name</Text>
+        <Text className="text-sm text-gray-500 mb-1">Last Name</Text>
         <TextInput
           value={lastName}
           onChangeText={setLastName}
@@ -109,14 +110,19 @@ const ProfileEditor = () => {
       </View>
 
       <View className="flex-row items-center justify-between">
-        <Text className="text-xs text-gray-400">
+        <Text className="text-sm text-gray-400">
           ID: {user?.id} | Username: {currentUser.username}
         </Text>
         
         <TouchableOpacity
           onPress={handleSave}
           disabled={isSaving}
-          className={`px-4 py-2 rounded-lg ${isSaving ? 'bg-gray-400' : 'bg-green-500'}`}
+          style={{
+            paddingHorizontal: 16,
+            paddingVertical: 8,
+            borderRadius: 8,
+            backgroundColor: isSaving ? colors.borderMedium : colors.success,
+          }}
         >
           {isSaving ? (
             <ActivityIndicator size="small" color="white" />
@@ -152,12 +158,12 @@ const SettingItem = ({
     <View className="bg-white p-4 mb-2 rounded-xl">
       <Text className="text-sm font-semibold text-blue-600">{setting.type}</Text>
       {setting.sub_type && (
-        <Text className="text-xs text-gray-500">{setting.sub_type}</Text>
+        <Text className="text-sm text-gray-500">{setting.sub_type}</Text>
       )}
-      <Text className="text-xs text-gray-700 mt-1" numberOfLines={2}>
+      <Text className="text-sm text-gray-700 mt-1" numberOfLines={2}>
         {displayValue}
       </Text>
-      <Text className="text-xs text-gray-400 mt-1">
+      <Text className="text-sm text-gray-400 mt-1">
         Updated: {setting.updated_at}
       </Text>
     </View>
@@ -261,7 +267,7 @@ export default function TodoTest() {
                 {isSyncing ? 'Syncing...' : isConnected ? 'Connected' : 'Disconnected'}
               </Text>
               {lastSyncTime && (
-                <Text className="text-xs text-gray-500">
+                <Text className="text-sm text-gray-500">
                   Last sync: {lastSyncTime.toLocaleTimeString()}
                 </Text>
               )}
@@ -280,7 +286,7 @@ export default function TodoTest() {
                 }} 
                 className="px-3 py-2 bg-orange-500 rounded-lg"
               >
-                <Text className="text-xs text-white font-semibold">Reconnect</Text>
+                <Text className="text-sm text-white font-semibold">Reconnect</Text>
               </TouchableOpacity>
             )}
             <TouchableOpacity 
@@ -294,9 +300,14 @@ export default function TodoTest() {
                 }
               }} 
               disabled={isSyncing}
-              className={`px-3 py-2 rounded-lg ${isSyncing ? 'bg-gray-300' : 'bg-blue-500'}`}
+              style={{
+                paddingHorizontal: 12,
+                paddingVertical: 8,
+                borderRadius: 8,
+                backgroundColor: isSyncing ? colors.borderMedium : colors.info,
+              }}
             >
-              <Text className="text-xs text-white font-semibold">
+              <Text className="text-sm text-white font-semibold">
                 {isSyncing ? 'Syncing...' : 'Refresh Sync'}
               </Text>
             </TouchableOpacity>
@@ -305,13 +316,13 @@ export default function TodoTest() {
         
         {syncError && (
           <View className="bg-red-50 border border-red-200 rounded-lg p-2 mt-2">
-            <Text className="text-xs text-red-600">{syncError}</Text>
+            <Text className="text-sm text-red-600">{syncError}</Text>
           </View>
         )}
         
         {isStreaming && (
           <View className="bg-green-50 border border-green-200 rounded-lg p-2 mt-2">
-            <Text className="text-xs text-green-600">📡 Streaming live updates...</Text>
+            <Text className="text-sm text-green-600">📡 Streaming live updates...</Text>
           </View>
         )}
       </View>
@@ -324,7 +335,7 @@ export default function TodoTest() {
         <View className="flex-row items-center justify-between">
           <View>
             <Text className="text-sm font-semibold text-gray-700">Clear Failed Uploads</Text>
-            <Text className="text-xs text-gray-500">Clear pending transactions that can't sync</Text>
+            <Text className="text-sm text-gray-500">Clear pending transactions that can't sync</Text>
           </View>
           <TouchableOpacity 
             onPress={async () => {
@@ -340,7 +351,12 @@ export default function TodoTest() {
                 setSyncError('Clear failed: ' + e.message)
               }
             }} 
-            className="px-4 py-2 rounded-lg bg-red-500"
+            style={{
+              paddingHorizontal: 16,
+              paddingVertical: 8,
+              borderRadius: 8,
+              backgroundColor: colors.error,
+            }}
           >
             <Text className="text-white font-semibold">Clear Queue</Text>
           </TouchableOpacity>
@@ -352,35 +368,35 @@ export default function TodoTest() {
         <Text className="text-sm font-semibold text-gray-700 mb-2">Synced Data Count:</Text>
         <View className="flex-row flex-wrap">
           <View className="w-1/4 p-1">
-            <Text className="text-xs text-gray-500">Settings</Text>
+            <Text className="text-sm text-gray-500">Settings</Text>
             <Text className="text-lg font-bold text-blue-600">{stats.settings}</Text>
           </View>
           <View className="w-1/4 p-1">
-            <Text className="text-xs text-gray-500">Products</Text>
+            <Text className="text-sm text-gray-500">Products</Text>
             <Text className="text-lg font-bold text-green-600">{stats.products}</Text>
           </View>
           <View className="w-1/4 p-1">
-            <Text className="text-xs text-gray-500">Categories</Text>
+            <Text className="text-sm text-gray-500">Categories</Text>
             <Text className="text-lg font-bold text-purple-600">{stats.categories}</Text>
           </View>
           <View className="w-1/4 p-1">
-            <Text className="text-xs text-gray-500">Brands</Text>
+            <Text className="text-sm text-gray-500">Brands</Text>
             <Text className="text-lg font-bold text-orange-600">{stats.brands}</Text>
           </View>
           <View className="w-1/4 p-1">
-            <Text className="text-xs text-gray-500">Customers</Text>
+            <Text className="text-sm text-gray-500">Customers</Text>
             <Text className="text-lg font-bold text-pink-600">{stats.customers}</Text>
           </View>
           <View className="w-1/4 p-1">
-            <Text className="text-xs text-gray-500">Stocks</Text>
+            <Text className="text-sm text-gray-500">Stocks</Text>
             <Text className="text-lg font-bold text-cyan-600">{stats.stocks}</Text>
           </View>
           <View className="w-1/4 p-1">
-            <Text className="text-xs text-gray-500">Tags</Text>
+            <Text className="text-sm text-gray-500">Tags</Text>
             <Text className="text-lg font-bold text-yellow-600">{stats.tags}</Text>
           </View>
           <View className="w-1/4 p-1">
-            <Text className="text-xs text-gray-500">Users</Text>
+            <Text className="text-sm text-gray-500">Users</Text>
             <Text className="text-lg font-bold text-red-600">{stats.tenant_users}</Text>
           </View>
         </View>
@@ -416,7 +432,7 @@ export default function TodoTest() {
       )}
 
       {/* Footer */}
-      <Text className="text-center text-gray-500 text-xs py-2">
+      <Text className="text-center text-gray-500 text-sm py-2">
         Pull down to refresh • Updates appear in real-time
       </Text>
     </View>

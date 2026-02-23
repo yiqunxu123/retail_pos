@@ -1,4 +1,3 @@
-import { fontSize, fontWeight } from '@/utils/theme';
 import { LinearGradient } from "expo-linear-gradient";
 import { ReactNode } from "react";
 import { Pressable, Text, View } from "react-native";
@@ -70,24 +69,15 @@ export function StatCard({
           style={{ height: height }}
         >
           <Text 
-            style={{ 
-              fontSize: fontSize['3xl'], 
-              fontWeight: fontWeight.semibold,
-              fontFamily: "Montserrat",
-              color: "#FFFFFF"
-            }}
+            className="text-5xl font-semibold"
+            style={{ color: "#FFFFFF" }}
           >
             {value}
           </Text>
           {subtitle && (
             <Text 
-              style={{ 
-                fontSize: fontSize.base, 
-                fontWeight: fontWeight.medium,
-                fontFamily: "Montserrat",
-                color: "rgba(255, 255, 255, 0.8)",
-                marginTop: 2
-              }}
+              className="text-base font-medium"
+              style={{ color: "rgba(255, 255, 255, 0.8)", marginTop: 2 }}
             >
               {subtitle}
             </Text>
@@ -97,12 +87,8 @@ export function StatCard({
         {/* Title at bottom-left */}
         <View className="mt-auto">
           <Text 
-            style={{ 
-              fontSize: fontSize['2xl'], // Increased for better balance with 32px value
-              fontWeight: fontWeight.semibold,
-              fontFamily: "Montserrat",
-              color: "#FFFFFF"
-            }}
+            className="text-2xl font-semibold"
+            style={{ color: "#FFFFFF" }}
           >
             {title}
           </Text>

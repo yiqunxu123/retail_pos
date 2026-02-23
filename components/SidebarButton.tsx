@@ -1,6 +1,6 @@
 import React, { ReactNode } from "react";
 import { Text, TouchableOpacity, View } from "react-native";
-import { fontSize, fontWeight, colors, buttonSize } from '@/utils/theme';
+import { colors, buttonSize } from '@/utils/theme';
 
 interface SidebarButtonProps {
   title: string;
@@ -14,9 +14,8 @@ interface SidebarButtonProps {
 
 // Consistent text style for all button states
 const TEXT_STYLE = {
-  fontSize: fontSize.lg,
-  fontWeight: fontWeight.semibold,
-  fontFamily: "Montserrat",
+  fontSize: 18,
+  fontWeight: '600' as const,
 };
 
 /**
@@ -43,37 +42,37 @@ export function SidebarButton({
         };
       case "danger":
         return {
-          container: { backgroundColor: "#E64A19", borderWidth: 0 },
+          container: { backgroundColor: colors.error, borderWidth: 0 },
           text: { color: colors.textWhite },
           iconColor: colors.textWhite,
         };
       case "yellow":
         return {
-          container: { backgroundColor: "#FFD54F", borderWidth: 0 },
-          text: { color: "#212121" },
-          iconColor: "#212121",
+          container: { backgroundColor: colors.warning, borderWidth: 0 },
+          text: { color: colors.text },
+          iconColor: colors.text,
         };
       case "secondary":
         return {
-          container: { backgroundColor: "#EEEEEE", borderWidth: 1, borderColor: "#BDBDBD" },
-          text: { color: "#757575" },
-          iconColor: "#757575",
+          container: { backgroundColor: colors.backgroundSecondary, borderWidth: 1, borderColor: colors.borderMedium },
+          text: { color: colors.textSecondary },
+          iconColor: colors.textSecondary,
         };
       case "ghost":
         return {
-          container: { backgroundColor: colors.backgroundTertiary, borderWidth: 1, borderColor: "#848484" },
-          text: { color: "#848484" },
-          iconColor: "#848484",
+          container: { backgroundColor: colors.backgroundTertiary, borderWidth: 1, borderColor: colors.textTertiary },
+          text: { color: colors.textTertiary },
+          iconColor: colors.textTertiary,
         };
       case "purple-outline":
         return {
-          container: { backgroundColor: colors.backgroundTertiary, borderWidth: 1, borderColor: "#5F4BB6" },
-          text: { color: "#5F4BB6" },
-          iconColor: "#5F4BB6",
+          container: { backgroundColor: colors.backgroundTertiary, borderWidth: 1, borderColor: colors.purple },
+          text: { color: colors.purple },
+          iconColor: colors.purple,
         };
       case "purple":
         return {
-          container: { backgroundColor: "#5F4BB6", borderWidth: 0 },
+          container: { backgroundColor: colors.purple, borderWidth: 0 },
           text: { color: colors.textWhite },
           iconColor: colors.textWhite,
         };
