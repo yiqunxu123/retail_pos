@@ -5,9 +5,9 @@
  * Uses the unified DataTable component.
  */
 
+import { buttonSize, colors, fontSize, fontWeight, iconSize } from '@/utils/theme';
 import { Ionicons } from "@expo/vector-icons";
 import React, { useCallback, useMemo, useState } from "react";
-import { fontSize, fontWeight, colors, iconSize } from '@/utils/theme';
 import { Alert, Pressable, Text, View } from "react-native";
 import { ColumnDefinition, DataTable, PageHeader } from "../../components";
 import { NewCustomerModal } from "../../components/NewCustomerModal";
@@ -50,8 +50,12 @@ const ActionButton = React.memo(({
   onPress?: () => void;
 }) => {
   return (
-    <Pressable className="bg-red-50 p-2 rounded-lg" onPress={onPress}>
-      <Ionicons name={icon} size={iconSize.sm} color={colors.primary} />
+    <Pressable 
+      className="bg-red-50 rounded-lg items-center justify-center" 
+      style={{ width: buttonSize.md.height, height: buttonSize.md.height }}
+      onPress={onPress}
+    >
+      <Ionicons name={icon} size={iconSize.md} color={colors.primary} />
     </Pressable>
   );
 });
@@ -61,7 +65,9 @@ const ActionButton = React.memo(({
 // ============================================================================
 
 export default function CustomersScreen() {
+  const _mountMs = __DEV__ ? performance.now() : 0;
   const { customers, isLoading, refresh, count } = useCustomers();
+  if (__DEV__) console.log(`[CustPerf] hook: ${(performance.now() - _mountMs).toFixed(1)}ms, rows=${count}`);
   
   // Modal States
   const [showAddCustomerModal, setShowAddCustomerModal] = useState(false);

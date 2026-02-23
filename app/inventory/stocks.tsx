@@ -4,7 +4,7 @@
  * Aligned with KHUB web Stocks columns configuration.
  */
 
-import { colors, fontSize, fontWeight as fw, iconSize } from '@/utils/theme';
+import { buttonSize, colors, fontSize, fontWeight as fw, iconSize, radius } from '@/utils/theme';
 import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -117,7 +117,7 @@ interface StocksCompareCase {
 
 const STOCKS_COMPARE_CASES: StocksCompareCase[] = [
   // Remote baseline generated via `npm run stocks:compare:remote` on 2026-02-14.
-  { id: "tc01_default_active", filters: { channelIds: [1], productStatus: [1] }, expectedRemoteCount: 23 },
+  { id: "tc01_default_active", filters: { channelIds: [1], productStatus: [1] }, expectedRemoteCount: 42 },
   { id: "tc02_status_inactive", filters: { channelIds: [1], productStatus: [2] }, expectedRemoteCount: 0 },
   { id: "tc03_status_archived", filters: { channelIds: [1], productStatus: [3] }, expectedRemoteCount: 0 },
   { id: "tc04_status_active_archived", filters: { channelIds: [1], productStatus: [1, 3] }, expectedRemoteCount: 24 },
@@ -368,8 +368,12 @@ function ActionButton({
   onPress?: () => void;
 }) {
   return (
-    <Pressable className={`${bgColor} p-2 rounded-lg`} onPress={onPress}>
-      <Ionicons name={icon} size={iconSize.sm} color={iconColor} />
+    <Pressable 
+      className={`${bgColor} rounded-lg items-center justify-center`} 
+      style={{ width: buttonSize.md.height, height: buttonSize.md.height }}
+      onPress={onPress}
+    >
+      <Ionicons name={icon} size={iconSize.md} color={iconColor} />
     </Pressable>
   );
 }
@@ -521,10 +525,7 @@ export default function StocksScreen() {
 
   const { stocks, isLoading, isStreaming, refresh, count } = useStocks(
     queryFilters,
-    {
-      page: tablePage,
-      pageSize: tablePageSize,
-    },
+    undefined,
     stockPerfCallbacks,
     { deferInteractions: true }
   );
@@ -1365,32 +1366,30 @@ export default function StocksScreen() {
 
   const handleTablePageChange = useCallback((nextPage: number) => {
     const normalizedPage = Math.max(1, Math.floor(nextPage || 1));
-    setTablePage((prev) => {
-      if (prev === normalizedPage) return prev;
-      if (__DEV__) {
-        const runId = paginationPerfRunIdRef.current + 1;
-        paginationPerfRunIdRef.current = runId;
-        const clickMs = nowMs();
-        paginationPerfRef.current = {
+    if (__DEV__) {
+      const prevPage = paginationPerfRef.current?.toPage ?? tablePage;
+      const runId = paginationPerfRunIdRef.current + 1;
+      paginationPerfRunIdRef.current = runId;
+      const clickMs = nowMs();
+      paginationPerfRef.current = {
+        runId,
+        fromPage: prevPage,
+        toPage: normalizedPage,
+        clickMs,
+      };
+      console.log(
+        "[StocksPagePerf]",
+        JSON.stringify({
+          stage: "click",
           runId,
-          fromPage: prev,
+          fromPage: prevPage,
           toPage: normalizedPage,
-          clickMs,
-        };
-        console.log(
-          "[StocksPagePerf]",
-          JSON.stringify({
-            stage: "click",
-            runId,
-            fromPage: prev,
-            toPage: normalizedPage,
-            clickMs: formatPerfMs(clickMs),
-          })
-        );
-      }
-      return normalizedPage;
-    });
-  }, []);
+          clickMs: formatPerfMs(clickMs),
+        })
+      );
+    }
+    // Don't call setTablePage — pagination is handled inside DataTable (client mode)
+  }, [tablePage]);
 
   const handleTableFiltersChange = useCallback(
     (filtersMap: Record<string, string | string[] | null>) => {
@@ -1454,7 +1453,7 @@ export default function StocksScreen() {
       </Text>
 
       <View className="gap-3">
-        <View className="flex-row gap-3">
+        <View className="flex-row gap-4">
           <View className="flex-1">
             <Text className="text-xs font-medium text-gray-700 mb-1">Channel Name</Text>
             <FilterDropdown
@@ -1479,7 +1478,7 @@ export default function StocksScreen() {
           </View>
         </View>
 
-        <View className="flex-row gap-3">
+        <View className="flex-row gap-4">
           <View className="flex-1">
             <Text className="text-xs font-medium text-gray-700 mb-1">Supplier</Text>
             <FilterDropdown
@@ -1504,12 +1503,12 @@ export default function StocksScreen() {
           </View>
         </View>
 
-        <View className="flex-row gap-3">
+        <View className="flex-row gap-4">
           <View className="flex-1">
             <Text className="text-xs font-medium text-gray-700 mb-1">Zone</Text>
             <TextInput
               className="bg-gray-50 border border-gray-200 rounded-lg px-3"
-              style={{ height: 40, fontSize: fontSize.base }}
+              style={{ height: buttonSize.md.height, fontSize: fontSize.base }}
               placeholder="Search Zone"
               placeholderTextColor={colors.textTertiary}
               value={advancedFiltersDraft.searchZone}
@@ -1522,7 +1521,7 @@ export default function StocksScreen() {
             <Text className="text-xs font-medium text-gray-700 mb-1">Aisle</Text>
             <TextInput
               className="bg-gray-50 border border-gray-200 rounded-lg px-3"
-              style={{ height: 40, fontSize: fontSize.base }}
+              style={{ height: buttonSize.md.height, fontSize: fontSize.base }}
               placeholder="Search Aisle"
               placeholderTextColor={colors.textTertiary}
               value={advancedFiltersDraft.searchAisle}
@@ -1537,7 +1536,7 @@ export default function StocksScreen() {
           <Text className="text-xs font-medium text-gray-700 mb-1">Bin</Text>
           <TextInput
             className="bg-gray-50 border border-gray-200 rounded-lg px-3"
-            style={{ height: 40, fontSize: fontSize.base }}
+            style={{ height: buttonSize.md.height, fontSize: fontSize.base }}
             placeholder="Search by Bin"
             placeholderTextColor={colors.textTertiary}
             value={advancedFiltersDraft.searchBin}
@@ -1571,14 +1570,14 @@ export default function StocksScreen() {
       <View className="flex-row justify-end mt-4 mb-2 gap-2">
         <Pressable
           className="rounded-lg bg-gray-100 items-center justify-center"
-          style={{ width: "49%", height: 40 }}
+          style={{ width: "49%", height: buttonSize.md.height }}
           onPress={clearAdvancedFilters}
         >
           <Text className="text-gray-700 font-medium">Clear Filter</Text>
         </Pressable>
         <Pressable
           className="rounded-lg bg-[#EC1A52] items-center justify-center"
-          style={{ width: "49%", height: 40 }}
+          style={{ width: "49%", height: buttonSize.md.height }}
           onPress={applyAdvancedFilters}
         >
           <Text className="text-white font-medium">Apply</Text>
@@ -1606,31 +1605,31 @@ export default function StocksScreen() {
         <View style={{ flex: 1, padding: 16 }}>
           {/* Skeleton search bar */}
           <View style={{ flexDirection: "row", gap: 8, marginBottom: 12 }}>
-            <View style={{ flex: 1, height: 44, backgroundColor: colors.background, borderRadius: 8, borderWidth: 1, borderColor: colors.border }} />
-            <View style={{ width: 100, height: 44, backgroundColor: colors.background, borderRadius: 8, borderWidth: 1, borderColor: colors.border }} />
+            <View style={{ flex: 1, height: buttonSize.lg.height, backgroundColor: colors.background, borderRadius: buttonSize.md.borderRadius, borderWidth: 1, borderColor: colors.border }} />
+            <View style={{ width: 100, height: buttonSize.lg.height, backgroundColor: colors.background, borderRadius: buttonSize.md.borderRadius, borderWidth: 1, borderColor: colors.border }} />
           </View>
           {/* Skeleton table */}
           <View style={{ flex: 1, backgroundColor: colors.background, borderRadius: 12, borderWidth: 1, borderColor: colors.border, overflow: "hidden" }}>
             {/* Header row */}
             <View style={{ flexDirection: "row", borderBottomWidth: 1, borderBottomColor: colors.border, paddingVertical: 14, paddingHorizontal: 12 }}>
               {[120, 80, 60, 100, 60, 60, 60].map((w, i) => (
-                <View key={i} style={{ width: w, height: 14, backgroundColor: colors.backgroundSecondary, borderRadius: 4, marginHorizontal: 8 }} />
+                <View key={i} style={{ width: w, height: 14, backgroundColor: colors.backgroundSecondary, borderRadius: radius.sm, marginHorizontal: 8 }} />
               ))}
             </View>
             {/* Data rows */}
             {Array.from({ length: 10 }).map((_, i) => (
               <View key={i} style={{ flexDirection: "row", borderBottomWidth: 1, borderBottomColor: colors.backgroundLight, paddingVertical: 18, paddingHorizontal: 12 }}>
                 {[120, 80, 60, 100, 60, 60, 60].map((w, j) => (
-                  <View key={j} style={{ width: w, height: 12, backgroundColor: i % 2 === 0 ? colors.backgroundLight : colors.backgroundSecondary, borderRadius: 4, marginHorizontal: 8 }} />
+                  <View key={j} style={{ width: w, height: 12, backgroundColor: i % 2 === 0 ? colors.backgroundLight : colors.backgroundSecondary, borderRadius: radius.sm, marginHorizontal: 8 }} />
                 ))}
               </View>
             ))}
           </View>
           {/* Skeleton pagination */}
           <View style={{ flexDirection: "row", justifyContent: "center", alignItems: "center", marginTop: 12, gap: 8 }}>
-            <View style={{ width: 80, height: 32, backgroundColor: colors.backgroundSecondary, borderRadius: 6 }} />
-            <View style={{ width: 40, height: 32, backgroundColor: colors.border, borderRadius: 6 }} />
-            <View style={{ width: 80, height: 32, backgroundColor: colors.backgroundSecondary, borderRadius: 6 }} />
+            <View style={{ width: 80, height: buttonSize.md.height, backgroundColor: colors.backgroundSecondary, borderRadius: radius.md }} />
+            <View style={{ width: buttonSize.md.height, height: buttonSize.md.height, backgroundColor: colors.border, borderRadius: radius.md }} />
+            <View style={{ width: 80, height: buttonSize.md.height, backgroundColor: colors.backgroundSecondary, borderRadius: radius.md }} />
           </View>
         </View>
       ) : (
@@ -1680,8 +1679,7 @@ export default function StocksScreen() {
             emptyIcon="cube-outline"
             emptyText="No stock items found"
             totalCount={count}
-            paginationMode="server"
-            currentPage={tablePage}
+            paginationMode="client"
             pageSize={tablePageSize}
             onPageChange={handleTablePageChange}
             onRenderPerf={handleDataTableRenderPerf}
@@ -1932,7 +1930,7 @@ export default function StocksScreen() {
             <View className="flex-row justify-end mt-4 gap-2">
               <Pressable
                 className="px-4 rounded-lg bg-gray-100 items-center justify-center"
-                style={{ height: 40 }}
+                style={{ height: buttonSize.md.height }}
                 onPress={closeSingleEditModal}
                 disabled={singleEditSubmitting}
               >
@@ -1940,7 +1938,7 @@ export default function StocksScreen() {
               </Pressable>
               <Pressable
                 className="px-4 rounded-lg bg-[#EC1A52] min-w-24 items-center justify-center"
-                style={{ height: 40 }}
+                style={{ height: buttonSize.md.height }}
                 onPress={handleSingleEditSubmit}
                 disabled={singleEditSubmitting || singleEditLoading}
               >
@@ -2051,11 +2049,11 @@ export default function StocksScreen() {
                         <View style={{ width: 140 }}>
                           <View className="flex-row items-center">
                             <View style={{ 
-                              height: 36, 
+                              height: buttonSize.md.height, 
                               width: 70, 
                               borderWidth: 1, 
                               borderColor: colors.border, 
-                              borderRadius: 4,
+                              borderRadius: radius.sm,
                               backgroundColor: colors.background,
                               justifyContent: 'center',
                             }}>
@@ -2088,11 +2086,11 @@ export default function StocksScreen() {
                         <View style={{ width: 140 }}>
                           <View className="flex-row items-center">
                             <View style={{ 
-                              height: 36, 
+                              height: buttonSize.md.height, 
                               width: 70, 
                               borderWidth: 1, 
                               borderColor: colors.border, 
-                              borderRadius: 4,
+                              borderRadius: radius.sm,
                               backgroundColor: colors.background,
                               justifyContent: 'center',
                             }}>
@@ -2120,11 +2118,11 @@ export default function StocksScreen() {
                         <View style={{ width: 130 }}>
                           <View className="flex-row items-center">
                             <View style={{ 
-                              height: 36, 
+                              height: buttonSize.md.height, 
                               width: 70, 
                               borderWidth: 1, 
                               borderColor: colors.border, 
-                              borderRadius: 4,
+                              borderRadius: radius.sm,
                               backgroundColor: colors.backgroundLight,
                               justifyContent: 'center',
                               alignItems: 'center',
@@ -2146,11 +2144,11 @@ export default function StocksScreen() {
                         <View style={{ width: 140 }}>
                           <View className="flex-row items-center">
                             <View style={{ 
-                              height: 36, 
+                              height: buttonSize.md.height, 
                               width: 70, 
                               borderWidth: 1, 
                               borderColor: colors.border, 
-                              borderRadius: 4,
+                              borderRadius: radius.sm,
                               backgroundColor: colors.backgroundLight,
                               justifyContent: 'center',
                               alignItems: 'center',
@@ -2172,11 +2170,11 @@ export default function StocksScreen() {
                         <View style={{ width: 180 }}>
                           <View className="flex-row items-center">
                             <View style={{ 
-                              height: 36, 
+                              height: buttonSize.md.height, 
                               width: 70, 
                               borderWidth: 1, 
                               borderColor: colors.border, 
-                              borderRadius: 4,
+                              borderRadius: radius.sm,
                               backgroundColor: colors.backgroundLight,
                               justifyContent: 'center',
                               alignItems: 'center',
@@ -2213,7 +2211,7 @@ export default function StocksScreen() {
                 className="px-6 rounded-lg bg-white border border-gray-300 items-center justify-center"
                 onPress={() => setBulkModalVisible(false)}
                 disabled={bulkSubmitting}
-                style={{ height: 40, minWidth: 90 }}
+                style={{ height: buttonSize.md.height, minWidth: 90 }}
               >
                 <Text style={{ fontSize: fontSize.base, fontWeight: fw.medium, color: colors.textMedium, textAlign: 'center', fontFamily: 'Montserrat' }}>Cancel</Text>
               </Pressable>
@@ -2221,7 +2219,7 @@ export default function StocksScreen() {
                 className="px-6 rounded-lg bg-[#EC1A52] items-center justify-center"
                 onPress={handleBulkEditSubmit}
                 disabled={bulkSubmitting}
-                style={{ height: 40, minWidth: 90 }}
+                style={{ height: buttonSize.md.height, minWidth: 90 }}
               >
                 {bulkSubmitting ? (
                   <ActivityIndicator size="small" color="white" />

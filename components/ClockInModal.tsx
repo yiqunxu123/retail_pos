@@ -1,7 +1,7 @@
-import { Modal, View, Text, Pressable, TouchableOpacity, ScrollView, TextInput, KeyboardAvoidingView, Platform, Keyboard } from "react-native";
-import { Ionicons, MaterialIcons, MaterialCommunityIcons } from "@expo/vector-icons";
-import { useState, useRef, useEffect } from "react";
-import { fontSize, fontWeight, colors, iconSize } from '@/utils/theme';
+import { buttonSize, colors, fontSize, fontWeight, iconSize } from '@/utils/theme';
+import { Ionicons, MaterialCommunityIcons, MaterialIcons } from "@expo/vector-icons";
+import { useEffect, useRef, useState } from "react";
+import { Keyboard, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, Text, TextInput, TouchableOpacity, View } from "react-native";
 
 interface ClockInModalProps {
   visible: boolean;
@@ -383,7 +383,7 @@ export function ClockInModal({ visible, onClose, onClockIn }: ClockInModalProps)
                     className="rounded-lg items-center justify-center flex-row gap-2"
                     style={{
                       flex: 1,
-                      height: 40,
+                      height: buttonSize.md.height,
                       backgroundColor: "#E43A00",
                     }}
                   >
@@ -398,7 +398,7 @@ export function ClockInModal({ visible, onClose, onClockIn }: ClockInModalProps)
                     className="rounded-lg items-center justify-center flex-row gap-2"
                     style={{
                       flex: 2,
-                      height: 40,
+                      height: buttonSize.md.height,
                       backgroundColor: colors.primary,
                       opacity: pin.length === 0 ? 0.5 : 1,
                     }}

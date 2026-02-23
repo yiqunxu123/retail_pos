@@ -3,6 +3,7 @@
  * Uses the unified DataTable component
  */
 
+import { buttonSize, iconSize } from "@/utils/theme";
 import { Ionicons } from "@expo/vector-icons";
 import { useCallback, useMemo } from "react";
 import { Pressable, Text, View } from "react-native";
@@ -142,12 +143,18 @@ export default function SalesReturnScreen() {
       visible: true,
       hideable: false,
       render: () => (
-        <View className="flex-row gap-2">
-          <Pressable className="bg-red-50 p-2 rounded-lg">
-            <Ionicons name="print-outline" size={16} color="#EC1A52" />
+        <View className="flex-row gap-4">
+          <Pressable 
+            className="bg-red-50 rounded-lg items-center justify-center"
+            style={{ width: buttonSize.md.height, height: buttonSize.md.height }}
+          >
+            <Ionicons name="print-outline" size={iconSize.md} color="#EC1A52" />
           </Pressable>
-          <Pressable className="bg-red-50 p-2 rounded-lg">
-            <Ionicons name="eye-outline" size={16} color="#EC1A52" />
+          <Pressable 
+            className="bg-red-50 rounded-lg items-center justify-center"
+            style={{ width: buttonSize.md.height, height: buttonSize.md.height }}
+          >
+            <Ionicons name="eye-outline" size={iconSize.md} color="#EC1A52" />
           </Pressable>
         </View>
       ),

@@ -11,9 +11,9 @@
  *   - Ordered by created_at DESC
  */
 
+import { colors, fontSize, fontWeight, iconSize } from '@/utils/theme';
 import { Ionicons } from "@expo/vector-icons";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { fontSize, fontWeight, colors, iconSize } from '@/utils/theme';
 import {
     ActivityIndicator,
     Alert,

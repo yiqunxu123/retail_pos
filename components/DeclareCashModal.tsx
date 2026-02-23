@@ -1,6 +1,6 @@
+import { buttonSize, colors, iconSize } from "@/utils/theme";
 import { Ionicons } from "@expo/vector-icons";
 import { Modal, Pressable, Text, View } from "react-native";
-import { iconSize, colors } from "@/utils/theme";
 
 interface CashSummary {
   openingBalance: number;
@@ -136,18 +136,18 @@ export function DeclareCashModal({
               </View>
             </View>
 
-            <View className="flex-row gap-3">
+            <View className="flex-row gap-4">
               <Pressable
                 onPress={onClose}
                 className="flex-1 rounded-lg border border-[#DDA8B8] bg-white items-center justify-center"
-                style={({ pressed }) => ({ height: 40, opacity: pressed ? 0.75 : 1 })}
+                style={({ pressed }) => ({ height: buttonSize.md.height, opacity: pressed ? 0.75 : 1 })}
               >
                 <Text className="text-[#BE4C73] text-[17px] font-medium">Cancel</Text>
               </Pressable>
               <Pressable
                 onPress={onContinue}
                 className="flex-1 rounded-lg items-center justify-center border border-[#D51549]"
-                style={({ pressed }) => ({ height: 40, backgroundColor: colors.primary, opacity: pressed ? 0.8 : 1 })}
+                style={({ pressed }) => ({ height: buttonSize.md.height, backgroundColor: colors.primary, opacity: pressed ? 0.8 : 1 })}
               >
                 <Text className="text-white text-[17px] font-medium">Cash Entry</Text>
               </Pressable>

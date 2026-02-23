@@ -65,7 +65,9 @@ const rowsShallowEqual = <T>(prev: T[], next: T[]) => {
   return true
 }
 
-// __CONTINUE_HERE__
+// Module-level query cache: stores the last known result for each stream key.
+// On remount, the cached data is returned instantly (0ms) while the live stream reconnects.
+const _queryCache = new Map<string, unknown[]>()
 
 /**
  * Sync Stream Hook - Similar to PowerSync Sync Streams (Early Alpha)
@@ -77,19 +79,23 @@ const rowsShallowEqual = <T>(prev: T[], next: T[]) => {
  * - Real-time updates via watch()
  * - Optional deferInteractions to wait for navigation animations
  * - Eager query start during render to eliminate useEffect scheduling delay
+ * - Module-level cache for instant remount data
  */
 export function useSyncStream<T>(
   query: string,
   params: any[] = [],
   options?: UseSyncStreamOptions
 ) {
-  const [data, setData] = useState<T[]>([])
-  const [isLoading, setIsLoading] = useState(true)
+  const cacheKey = `${query}::${JSON.stringify(params)}`
+  const cached = _queryCache.get(cacheKey) as T[] | undefined
+
+  const [data, setData] = useState<T[]>(() => cached ?? [])
+  const [isLoading, setIsLoading] = useState(() => !cached)
   const [error, setError] = useState<Error | null>(null)
   const [isStreaming, setIsStreaming] = useState(false)
   
   const abortControllerRef = useRef<AbortController | null>(null)
-  const dataRef = useRef<T[]>([])
+  const dataRef = useRef<T[]>(cached ?? [])
   const activeStreamKeyRef = useRef<string | null>(null)
   const initialSnapshotDoneRef = useRef(false)
   const onSnapshotStartRef = useRef<UseSyncStreamOptions['onSnapshotStart']>(undefined)
@@ -188,6 +194,7 @@ export function useSyncStream<T>(
         return
       }
       dataRef.current = initialRows
+      _queryCache.set(streamKey, initialRows)
       setData(initialRows)
       setIsLoading(false)
       initialSnapshotDoneRef.current = true
@@ -225,6 +232,7 @@ export function useSyncStream<T>(
           continue
         }
         dataRef.current = rows as T[]
+        _queryCache.set(streamKey, rows as T[])
         setData(rows as T[])
         setIsLoading(false)
       }

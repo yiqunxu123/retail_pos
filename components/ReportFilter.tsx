@@ -4,10 +4,10 @@
  * Generic filter component for reports with date range and basic filters
  */
 
+import { colors, iconSize } from "@/utils/theme";
 import { Ionicons } from "@expo/vector-icons";
 import { useState } from "react";
 import { Modal, Pressable, ScrollView, Text, View } from "react-native";
-import { iconSize, colors } from "@/utils/theme";
 import { FormInput } from "./FormInput";
 
 export interface ReportFilterValues {

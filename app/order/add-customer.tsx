@@ -1,6 +1,6 @@
+import { colors, iconSize } from '@/utils/theme';
 import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { fontSize, fontWeight, colors, iconSize } from '@/utils/theme';
 import {
     useCallback,
     useEffect,

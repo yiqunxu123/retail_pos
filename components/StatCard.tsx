@@ -1,7 +1,7 @@
+import { fontSize, fontWeight } from '@/utils/theme';
 import { LinearGradient } from "expo-linear-gradient";
 import { ReactNode } from "react";
 import { Pressable, Text, View } from "react-native";
-import { fontSize, fontWeight } from '@/utils/theme';
 
 type StatCardVariant = "green" | "yellow" | "purple" | "red" | "orange" | "dark" | "teal" | "pink" | "blue";
 

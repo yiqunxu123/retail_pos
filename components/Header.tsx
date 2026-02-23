@@ -1,8 +1,7 @@
+import { colors, iconSize } from "@/utils/theme";
 import { Ionicons } from "@expo/vector-icons";
 import { Text, TouchableOpacity, View } from "react-native";
-import { iconSize } from "@/utils/theme";
 import { useAppNavigation } from "../hooks/useAppNavigation";
-import { colors } from '@/utils/theme';
 
 interface HeaderProps {
   title: string;

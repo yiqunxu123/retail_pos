@@ -1,6 +1,6 @@
+import { colors, iconSize } from "@/utils/theme";
 import { Ionicons } from "@expo/vector-icons";
 import { Modal, Pressable, Text, View } from "react-native";
-import { colors, iconSize } from "@/utils/theme";
 
 export interface AmountPadOption {
   label: string;
@@ -82,7 +82,7 @@ export function AmountPadModal({
                     className="flex-row items-center bg-white border border-[#D9B8C6] px-3 py-1.5 rounded-md gap-2"
                   >
                     <Text className="text-[#D53A66] text-[15px] font-medium">{typeLabel}</Text>
-                    <Ionicons name="chevron-down" size={iconSize.sm} color={colors.textTertiary} />
+                    <Ionicons name="chevron-down" size={iconSize.md} color={colors.textTertiary} />
                   </Pressable>
                   {showTypeDropdown && (
                     <View className="absolute top-10 left-0 bg-white border border-gray-200 rounded-lg shadow-lg z-10 min-w-[190px]">

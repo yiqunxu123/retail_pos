@@ -11,7 +11,7 @@ import { buttonSize, colors, iconSize as iconSizeTokens } from "@/utils/theme";
 //   <ThemedButton title="Save" onPress={save} />
 //   <ThemedButton title="Cancel" variant="outline" onPress={cancel} />
 //   <ThemedButton icon="settings-outline" variant="dark" size="md" onPress={open} />
-//   <ThemedButton title="Delete" variant="danger" size="sm" onPress={del} />
+//   <ThemedButton title="Delete" variant="danger" size="md" onPress={del} />
 
 type ButtonSize = "xs" | "sm" | "md" | "lg" | "xl";
 type ButtonVariant = "primary" | "outline" | "ghost" | "dark" | "danger" | "secondary";

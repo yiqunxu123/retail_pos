@@ -1,8 +1,7 @@
+import { colors, iconSize } from '@/utils/theme';
 import { Ionicons } from "@expo/vector-icons";
-import { useRouter, usePathname } from "expo-router";
-import { View, Text, Pressable } from "react-native";
-import { colors } from '@/utils/theme';
-import { iconSize } from "@/utils/theme";
+import { usePathname, useRouter } from "expo-router";
+import { Pressable, Text, View } from "react-native";
 
 type Step = "customer" | "products" | "checkout";
 

@@ -1,9 +1,8 @@
-import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-import { Alert, ScrollView, View, Text, Pressable, TextInput } from "react-native";
-import { useOrder } from "../../contexts/OrderContext";
-import { StepNavigation } from "../../components/StepNavigation";
+import { Alert, Pressable, ScrollView, Text, TextInput, View } from "react-native";
 import { FormInput } from "../../components/FormInput";
+import { StepNavigation } from "../../components/StepNavigation";
+import { useOrder } from "../../contexts/OrderContext";
 
 /**
  * CheckoutScreen - Step 3: Review and confirm order

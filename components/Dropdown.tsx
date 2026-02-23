@@ -1,7 +1,7 @@
+import { colors, iconSize } from "@/utils/theme";
 import { Ionicons } from "@expo/vector-icons";
-import { useState, useRef } from "react";
-import { View, Text, Pressable, Modal, ScrollView, LayoutRectangle } from "react-native";
-import { iconSize, colors } from "@/utils/theme";
+import { useRef, useState } from "react";
+import { LayoutRectangle, Modal, Pressable, ScrollView, Text, View } from "react-native";
 
 export interface DropdownOption {
   value: string;

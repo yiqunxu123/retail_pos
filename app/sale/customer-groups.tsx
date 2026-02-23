@@ -8,12 +8,12 @@
  * - noOfProducts: Needs aggregate query
  */
 
+import { colors, iconSize } from '@/utils/theme';
 import { Ionicons } from "@expo/vector-icons";
 import { useCallback, useMemo } from "react";
 import { Pressable, Text, View } from "react-native";
 import { ColumnDefinition, DataTable, PageHeader } from "../../components";
 import { CustomerGroupView, useCustomerGroups } from "../../utils/powersync/hooks";
-import { colors, iconSize } from '@/utils/theme';
 
 // ============================================================================
 // Main Component

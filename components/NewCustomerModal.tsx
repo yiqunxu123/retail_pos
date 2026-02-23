@@ -1,3 +1,4 @@
+import { buttonSize } from "@/utils/theme";
 import { Ionicons } from "@expo/vector-icons";
 import { useEffect, useState } from "react";
 import { KeyboardAvoidingView, Modal, Platform, ScrollView, Switch, Text, TextInput, TouchableOpacity, View } from "react-native";
@@ -403,18 +404,18 @@ export function NewCustomerModal({
           </ScrollView>
 
           {/* Footer */}
-          <View className="flex-row gap-3 px-6 py-4 border-t border-gray-200">
+          <View className="flex-row gap-4 px-6 py-4 border-t border-gray-200">
             <TouchableOpacity
               onPress={onClose}
               className="flex-1 border border-gray-300 rounded-lg items-center justify-center"
-              style={{ height: 40 }}
+              style={{ height: buttonSize.md.height }}
             >
               <Text className="text-gray-700 font-medium">Cancel</Text>
             </TouchableOpacity>
             <TouchableOpacity
               onPress={handleSave}
               className="flex-1 bg-red-500 rounded-lg items-center justify-center"
-              style={{ height: 40 }}
+              style={{ height: buttonSize.md.height }}
             >
               <Text className="text-white font-medium">
                 {isEditing ? "Save Changes" : "Create Customer"}

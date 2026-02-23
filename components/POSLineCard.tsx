@@ -1,6 +1,6 @@
-import { View, Text, Pressable } from "react-native";
+import { colors, iconSize } from "@/utils/theme";
 import { Ionicons } from "@expo/vector-icons";
-import { iconSize, colors } from "@/utils/theme";
+import { Pressable, Text, View } from "react-native";
 
 interface POSLineCardProps {
   lineNumber: number;

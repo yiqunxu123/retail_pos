@@ -1,7 +1,7 @@
+import { colors, iconSize } from "@/utils/theme";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
-import { useState, useEffect } from "react";
-import { Modal, View, Text, TouchableOpacity } from "react-native";
-import { iconSize, colors } from "@/utils/theme";
+import { useEffect, useState } from "react";
+import { Modal, Text, TouchableOpacity, View } from "react-native";
 
 interface CashEntryModalProps {
   visible: boolean;

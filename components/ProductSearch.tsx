@@ -1,6 +1,6 @@
+import { colors, iconSize } from "@/utils/theme";
 import { Ionicons } from "@expo/vector-icons";
-import { View, Text, TextInput, Pressable } from "react-native";
-import { iconSize, colors } from "@/utils/theme";
+import { Pressable, Text, TextInput, View } from "react-native";
 
 interface ProductSearchProps {
   searchQuery: string;

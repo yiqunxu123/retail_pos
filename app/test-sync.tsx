@@ -1,5 +1,5 @@
 import { useRouter } from 'expo-router'
-import { TouchableOpacity, View, Text } from 'react-native'
+import { Text, TouchableOpacity, View } from 'react-native'
 import TodoTest from '../components/TodoTest'
 
 /**

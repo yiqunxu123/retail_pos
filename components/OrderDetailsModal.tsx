@@ -1,7 +1,7 @@
+import { buttonSize, colors, fontSize, fontWeight, iconSize } from '@/utils/theme';
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { useState } from "react";
-import { Modal, View, Text, TouchableOpacity, ScrollView, Pressable } from "react-native";
-import { fontSize, fontWeight, colors, iconSize } from '@/utils/theme';
+import { Modal, Pressable, ScrollView, Text, TouchableOpacity, View } from "react-native";
 
 interface OrderItem {
   id: string;
@@ -150,7 +150,7 @@ export function OrderDetailsModal({
           <ScrollView style={{ maxHeight: 600 }} showsVerticalScrollIndicator={false}>
             {/* Info Cards Row 1 */}
             <View className="px-6 pt-4 pb-2">
-              <View className="flex-row gap-3">
+              <View className="flex-row gap-4">
                 <InfoCard 
                   label="Customer Name" 
                   value={order.customer.name} 
@@ -181,7 +181,7 @@ export function OrderDetailsModal({
 
             {/* Info Cards Row 2 */}
             <View className="px-6 pb-4">
-              <View className="flex-row gap-3">
+              <View className="flex-row gap-4">
                 <InfoCard 
                   label="Chanel Name" 
                   value={order.channelName || "Primary"} 
@@ -374,7 +374,7 @@ export function OrderDetailsModal({
             <TouchableOpacity
               onPress={onClose}
               className="border border-gray-300 rounded-lg px-8 items-center justify-center"
-              style={{ height: 40 }}
+              style={{ height: buttonSize.md.height }}
             >
               <Text className="text-gray-700 font-medium">Close</Text>
             </TouchableOpacity>
@@ -382,7 +382,7 @@ export function OrderDetailsModal({
               <TouchableOpacity
                 onPress={onPrintReceipt}
                 className="rounded-lg px-8 flex-row items-center justify-center gap-2"
-                style={{ height: 40, backgroundColor: "#FCD34D" }}
+                style={{ height: buttonSize.md.height, backgroundColor: "#FCD34D" }}
               >
                 <Ionicons name="print" size={iconSize.md} color={colors.text} />
                 <Text className="text-gray-900 font-medium">Print</Text>

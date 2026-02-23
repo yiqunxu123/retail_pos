@@ -1,7 +1,7 @@
+import { colors, fontSize, fontWeight, iconSize } from '@/utils/theme';
 import { Ionicons } from "@expo/vector-icons";
 import React from "react";
 import { Text, TouchableOpacity, View } from "react-native";
-import { fontSize, fontWeight, colors, iconSize } from '@/utils/theme';
 import { useRenderTrace } from "../../utils/debug/useRenderTrace";
 
 interface AddProductsTopBarProps {
@@ -37,14 +37,14 @@ function AddProductsTopBarComponent({
       style={{ paddingTop: insetTop + 10, paddingHorizontal: 16, paddingBottom: 10 }}
     >
       <View className="flex-1">
-        <Text className="text-[#5A5F66] text-[18px] mb-1" style={{ fontFamily: "Montserrat" }}>
+        <Text className="text-[#5A5F66] text-[18px] mb-1" style={{ fontFamily: fontFamily.primary }}>
           Scan barcode to add product
         </Text>
         <View className="flex-row items-center bg-gray-100 border border-gray-200 rounded-xl px-3 py-3">
           <Ionicons name="barcode-outline" size={iconSize.base} color={colors.textTertiary} />
           <Text
             className="flex-1 ml-2 text-gray-400 text-[18px]"
-            style={{ fontFamily: "Montserrat" }}
+            style={{ fontFamily: fontFamily.primary }}
           >
             Ready for scanning...
           </Text>

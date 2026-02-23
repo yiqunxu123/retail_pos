@@ -1,6 +1,6 @@
 import React, { ReactNode } from "react";
 import { Text, TouchableOpacity, View } from "react-native";
-import { fontSize, fontWeight, colors } from '@/utils/theme';
+import { fontSize, fontWeight, colors, buttonSize } from '@/utils/theme';
 
 interface SidebarButtonProps {
   title: string;
@@ -106,11 +106,13 @@ export function SidebarButton({
     </>
   );
 
+  const h = buttonSize.sidebar.height;
+
   if (disabled || (!onPress && !onLongPress)) {
     return (
       <View
         className={`${fullWidth ? "w-full" : "flex-1"} rounded-lg justify-center items-center`}
-        style={{ height: 100, ...styles.container, opacity: disabled ? 0.6 : 1 }}
+        style={{ height: h, ...styles.container, opacity: disabled ? 0.6 : 1 }}
       >
         {content}
       </View>
@@ -122,7 +124,7 @@ export function SidebarButton({
       onPress={onPress}
       onLongPress={onLongPress}
       className={`${fullWidth ? "w-full" : "flex-1"} rounded-lg justify-center items-center`}
-      style={{ height: 100, ...styles.container }}
+      style={{ height: h, ...styles.container }}
     >
       {content}
     </TouchableOpacity>

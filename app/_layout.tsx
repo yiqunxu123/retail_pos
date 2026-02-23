@@ -3,7 +3,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as NavigationBar from "expo-navigation-bar";
 import { Slot, usePathname, useRouter } from "expo-router";
 import { useEffect, useRef, useState } from "react";
-import { fontSize, fontWeight, colors, iconSize } from '@/utils/theme';
+import { fontSize, fontWeight, colors, iconSize, buttonSize } from '@/utils/theme';
 import {
   ActivityIndicator,
   Animated,
@@ -305,8 +305,8 @@ function DevToolsFab() {
       <Pressable
         className="items-center justify-center"
         style={{
-          width: 52,
-          height: 52,
+          width: buttonSize.xl.height,
+          height: buttonSize.xl.height,
           borderRadius: 14,
           backgroundColor: "rgba(0,0,0,0.55)",
         }}

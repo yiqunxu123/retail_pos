@@ -1,6 +1,6 @@
+import { fontSize } from '@/utils/theme';
 import { ReactNode } from "react";
 import { Text, TouchableOpacity, View } from "react-native";
-import { fontSize } from '@/utils/theme';
 
 interface StatCardHorizontalProps {
   title: string;

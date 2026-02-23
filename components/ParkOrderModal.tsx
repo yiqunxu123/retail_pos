@@ -1,7 +1,7 @@
+import { buttonSize, colors, iconSize } from "@/utils/theme";
 import { Ionicons } from "@expo/vector-icons";
 import { useState } from "react";
-import { Modal, View, Text, TouchableOpacity, TextInput, KeyboardAvoidingView, Platform } from "react-native";
-import { iconSize, colors } from "@/utils/theme";
+import { KeyboardAvoidingView, Modal, Platform, Text, TextInput, TouchableOpacity, View } from "react-native";
 
 interface ParkOrderModalProps {
   visible: boolean;
@@ -111,18 +111,18 @@ export function ParkOrderModal({
             </View>
 
             {/* Action Buttons */}
-            <View className="flex-row gap-3">
+            <View className="flex-row gap-4">
               <TouchableOpacity
                 onPress={handleCancel}
                 className="flex-1 border border-gray-300 rounded-lg items-center justify-center"
-                style={{ height: 40 }}
+                style={{ height: buttonSize.md.height }}
               >
                 <Text className="text-gray-700 font-medium">Cancel</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 onPress={handleConfirm}
                 className="flex-1 bg-yellow-500 rounded-lg items-center justify-center"
-                style={{ height: 40 }}
+                style={{ height: buttonSize.md.height }}
               >
                 <Text className="text-white font-medium">Park Order</Text>
               </TouchableOpacity>

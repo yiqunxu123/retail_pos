@@ -1,3 +1,4 @@
+import { buttonSize, colors, iconSize } from "@/utils/theme";
 import { Ionicons } from "@expo/vector-icons";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
@@ -10,7 +11,6 @@ import {
   TextInput,
   View,
 } from "react-native";
-import { iconSize, colors } from "@/utils/theme";
 import {
   createQuickCustomer,
   fetchSalesReps,
@@ -516,12 +516,12 @@ export function AddQuickCustomerModal({
             </View>
           </ScrollView>
 
-          <View className="flex-row gap-3 px-6 py-4 border-t border-[#ECEFF3]">
+          <View className="flex-row gap-4 px-6 py-4 border-t border-[#ECEFF3]">
             <Pressable
               onPress={handleClose}
               disabled={isLoading}
               className="flex-1 bg-[#F8E7EA] rounded-lg items-center justify-center"
-              style={({ pressed }) => ({ height: 40, opacity: pressed ? 0.75 : 1 })}
+              style={({ pressed }) => ({ height: buttonSize.md.height, opacity: pressed ? 0.75 : 1 })}
             >
               <Text className="text-[#CC4A66] text-xl font-semibold">Cancel</Text>
             </Pressable>
@@ -531,7 +531,7 @@ export function AddQuickCustomerModal({
               className={`flex-1 rounded-lg items-center justify-center ${
                 canSave ? "bg-[#DF2E58]" : "bg-[#DF2E58]"
               }`}
-              style={({ pressed }) => ({ height: 40, opacity: pressed && canSave ? 0.82 : 1 })}
+              style={({ pressed }) => ({ height: buttonSize.md.height, opacity: pressed && canSave ? 0.82 : 1 })}
             >
               <Text className={canSave ? "text-white text-xl font-semibold" : "text-white font-semibold"}>
                 Save

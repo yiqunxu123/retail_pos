@@ -7,38 +7,38 @@
  * 3. Quick Actions Tab - one-click generate full POS test dataset
  */
 
+import { iconSize } from '@/utils/theme'
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons'
 import { useLocalSearchParams, useRouter } from 'expo-router'
-import { iconSize } from '@/utils/theme'
 import { useCallback, useEffect, useState } from 'react'
 import {
-    ActivityIndicator,
-    Alert,
-    FlatList,
-    Modal,
-    ScrollView,
-    Text,
-    TextInput,
-    ToastAndroid,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  Alert,
+  FlatList,
+  Modal,
+  ScrollView,
+  Text,
+  TextInput,
+  ToastAndroid,
+  TouchableOpacity,
+  View,
 } from 'react-native'
 import { PageHeader } from '../components'
 import { useClock } from '../contexts/ClockContext'
 import { powerSyncDb, usePowerSync } from '../utils/powersync/PowerSyncProvider'
 import {
-    addPrinterListener,
-    getPrinters,
-    printToAll,
-    printToOne
+  addPrinterListener,
+  getPrinters,
+  printToAll,
+  printToOne
 } from '../utils/PrinterPoolManager'
 import {
-    DEFAULT_DATASET_COUNTS,
-    FullDatasetCounts,
-    TABLE_CONFIGS,
-    generateFullDataset,
-    generateRecord,
-    getTableConfig,
+  DEFAULT_DATASET_COUNTS,
+  FullDatasetCounts,
+  TABLE_CONFIGS,
+  generateFullDataset,
+  generateRecord,
+  getTableConfig,
 } from '../utils/testDataGenerators'
 
 // ============================================================================

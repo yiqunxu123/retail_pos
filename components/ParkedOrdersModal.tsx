@@ -1,6 +1,6 @@
+import { buttonSize, colors, iconSize } from "@/utils/theme";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { Alert, Modal, ScrollView, Text, TouchableOpacity, View } from "react-native";
-import { iconSize, colors } from "@/utils/theme";
 import { ParkedOrder } from "../contexts/ParkedOrderContext";
 
 interface ParkedOrdersModalProps {
@@ -128,18 +128,20 @@ export function ParkedOrdersModal({
                   <Text className="w-32 text-gray-600 text-xs text-center">
                     {formatTime(order.parkedAt)}
                   </Text>
-                  <View className="w-24 flex-row justify-center gap-2">
+                  <View className="flex-row justify-center gap-4" style={{ minWidth: 140 }}>
                     <TouchableOpacity
                       onPress={() => onResumeOrder(order.id)}
-                      className="bg-green-500 px-3 py-1.5 rounded"
+                      className="bg-green-500 rounded-lg items-center justify-center"
+                      style={{ minWidth: 72, height: buttonSize.md.height, paddingHorizontal: 12 }}
                     >
-                      <Text className="text-white text-xs font-medium">Resume</Text>
+                      <Text className="text-white font-medium">Resume</Text>
                     </TouchableOpacity>
                     <TouchableOpacity
                       onPress={() => handleDelete(order.id)}
-                      className="bg-red-100 px-2 py-1.5 rounded"
+                      className="bg-red-100 rounded-lg items-center justify-center"
+                      style={{ minWidth: buttonSize.md.height, height: buttonSize.md.height, paddingHorizontal: 12 }}
                     >
-                      <Ionicons name="trash-outline" size={iconSize.xs} color={colors.error} />
+                      <Ionicons name="trash-outline" size={iconSize.md} color={colors.error} />
                     </TouchableOpacity>
                   </View>
                 </View>
@@ -152,7 +154,7 @@ export function ParkedOrdersModal({
             <TouchableOpacity
               onPress={onClose}
               className="bg-gray-100 rounded-lg items-center justify-center"
-              style={{ height: 40 }}
+              style={{ height: buttonSize.md.height }}
             >
               <Text className="text-gray-700 font-medium">Close</Text>
             </TouchableOpacity>

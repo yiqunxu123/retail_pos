@@ -1,6 +1,6 @@
+import { iconSize } from '@/utils/theme';
 import { Ionicons, MaterialCommunityIcons, MaterialIcons } from "@expo/vector-icons";
 import { Alert, ScrollView, View } from "react-native";
-import { iconSize } from '@/utils/theme';
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAuth } from "../contexts/AuthContext";
 import { useClock } from "../contexts/ClockContext";

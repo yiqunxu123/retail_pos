@@ -1,6 +1,6 @@
-import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
-import { Modal, View, Text, TouchableOpacity, ScrollView } from "react-native";
 import { colors, iconSize } from '@/utils/theme';
+import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
+import { Modal, ScrollView, Text, TouchableOpacity, View } from "react-native";
 
 interface CustomerOrder {
   id: string;
@@ -105,7 +105,7 @@ export function CustomerDetailsModal({
 
           <ScrollView className="flex-1">
             {/* Stats Cards */}
-            <View className="flex-row gap-3 px-6 py-4">
+            <View className="flex-row gap-4 px-6 py-4">
               <View className="flex-1 bg-blue-50 rounded-lg p-4 items-center">
                 <MaterialCommunityIcons name="shopping" size={iconSize.xl} color={colors.info} />
                 <Text className="text-gray-600 text-sm mt-1">Total Orders</Text>
@@ -147,7 +147,7 @@ export function CustomerDetailsModal({
                 {customer.email && (
                   <View className="flex-row items-center gap-3">
                     <View className="w-8 h-8 bg-blue-100 rounded-full items-center justify-center">
-                      <Ionicons name="mail-outline" size={iconSize.sm} color={colors.info} />
+                      <Ionicons name="mail-outline" size={iconSize.md} color={colors.info} />
                     </View>
                     <View>
                       <Text className="text-gray-500 text-xs">Email</Text>
@@ -158,7 +158,7 @@ export function CustomerDetailsModal({
                 {customer.phone && (
                   <View className="flex-row items-center gap-3">
                     <View className="w-8 h-8 bg-green-100 rounded-full items-center justify-center">
-                      <Ionicons name="call-outline" size={iconSize.sm} color={colors.success} />
+                      <Ionicons name="call-outline" size={iconSize.md} color={colors.success} />
                     </View>
                     <View>
                       <Text className="text-gray-500 text-xs">Phone</Text>
@@ -169,7 +169,7 @@ export function CustomerDetailsModal({
                 {customer.address && (
                   <View className="flex-row items-center gap-3">
                     <View className="w-8 h-8 bg-purple-100 rounded-full items-center justify-center">
-                      <Ionicons name="location-outline" size={iconSize.sm} color={colors.purple} />
+                      <Ionicons name="location-outline" size={iconSize.md} color={colors.purple} />
                     </View>
                     <View className="flex-1">
                       <Text className="text-gray-500 text-xs">Address</Text>
@@ -272,7 +272,7 @@ export function CustomerDetailsModal({
           </ScrollView>
 
           {/* Footer Actions */}
-          <View className="flex-row gap-3 px-6 py-4 border-t border-gray-200">
+          <View className="flex-row gap-4 px-6 py-4 border-t border-gray-200">
             <TouchableOpacity
               onPress={onClose}
               className="flex-1 border border-gray-300 rounded-lg py-3 items-center"

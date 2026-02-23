@@ -1,7 +1,7 @@
+import { iconSize } from "@/utils/theme";
 import { Ionicons } from "@expo/vector-icons";
 import { useState } from "react";
 import { Pressable, Text, View } from "react-native";
-import { iconSize } from "@/utils/theme";
 import { AddQuickCustomerModal, type QuickCustomerResult } from "./AddQuickCustomerModal";
 
 interface CustomerCardProps {

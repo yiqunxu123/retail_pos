@@ -20,7 +20,7 @@ import { useRenderTrace } from "../utils/debug/useRenderTrace";
 import { ensurePrintersLoaded, getPrinters } from "../utils/PrinterPoolManager";
 import { useProducts } from "../utils/powersync/hooks";
 import type { ProductView } from "../utils/powersync/hooks/useProducts";
-import { fontSize, fontWeight, colors, iconSize } from '@/utils/theme';
+import { fontSize, fontWeight, colors, iconSize, buttonSize } from '@/utils/theme';
 
 export interface CartItem {
   productId: string;
@@ -203,9 +203,9 @@ const BarcodePrintPanelContent = React.memo(function BarcodePrintPanelContent({
         <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
           <View
             style={{
-              width: 44,
-              height: 44,
-              borderRadius: 12,
+              width: buttonSize.lg.height,
+              height: buttonSize.lg.height,
+              borderRadius: buttonSize.lg.borderRadius,
               backgroundColor: colors.primary,
               alignItems: "center",
               justifyContent: "center",
@@ -325,7 +325,7 @@ const BarcodePrintPanelContent = React.memo(function BarcodePrintPanelContent({
                         marginRight: 12,
                       }}
                     >
-                      {selected && <Ionicons name="checkmark" size={iconSize.xs} color="#FFF" />}
+                      {selected && <Ionicons name="checkmark" size={iconSize.md} color="#FFF" />}
                     </View>
 
                     <View style={{ flex: 1 }}>
@@ -444,7 +444,7 @@ const BarcodePrintPanelContent = React.memo(function BarcodePrintPanelContent({
                         justifyContent: "center",
                       }}
                     >
-                      <Ionicons name="remove" size={iconSize.sm} color={colors.textSecondary} />
+                      <Ionicons name="remove" size={iconSize.md} color={colors.textSecondary} />
                     </TouchableOpacity>
                     <TextInput
                       style={{
@@ -475,7 +475,7 @@ const BarcodePrintPanelContent = React.memo(function BarcodePrintPanelContent({
                         justifyContent: "center",
                       }}
                     >
-                      <Ionicons name="add" size={iconSize.sm} color={colors.textSecondary} />
+                      <Ionicons name="add" size={iconSize.md} color={colors.textSecondary} />
                     </TouchableOpacity>
                   </View>
                 </View>
@@ -509,9 +509,9 @@ const BarcodePrintPanelContent = React.memo(function BarcodePrintPanelContent({
             <TouchableOpacity
               onPress={onClearItems}
               style={{
-                paddingHorizontal: 20,
-                height: 40,
-                borderRadius: 8,
+                paddingHorizontal: buttonSize.md.paddingHorizontal,
+                height: buttonSize.md.height,
+                borderRadius: buttonSize.md.borderRadius,
                 borderWidth: 1,
                 borderColor: colors.border,
                 backgroundColor: "#FFF",
@@ -532,9 +532,9 @@ const BarcodePrintPanelContent = React.memo(function BarcodePrintPanelContent({
               alignItems: "center",
               justifyContent: "center",
               gap: 8,
-              paddingHorizontal: 24,
-              height: 40,
-              borderRadius: 8,
+              paddingHorizontal: buttonSize.lg.paddingHorizontal,
+              height: buttonSize.md.height,
+              borderRadius: buttonSize.md.borderRadius,
               backgroundColor: printing || items.length === 0 ? colors.borderMedium : colors.primary,
             }}
           >

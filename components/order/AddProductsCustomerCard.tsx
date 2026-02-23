@@ -1,9 +1,9 @@
+import { colors, iconSize } from "@/utils/theme";
 import { Ionicons } from "@expo/vector-icons";
 import React from "react";
 import { Text, TouchableOpacity, View } from "react-native";
-import { iconSize, colors } from "@/utils/theme";
-import type { QuickCustomerResult } from "../AddQuickCustomerModal";
 import { useRenderTrace } from "../../utils/debug/useRenderTrace";
+import type { QuickCustomerResult } from "../AddQuickCustomerModal";
 
 interface AddProductsCustomerCardProps {
   customer: QuickCustomerResult | null;

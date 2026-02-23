@@ -1,5 +1,5 @@
+import { buttonSize, colors } from '@/utils/theme';
 import { Ionicons } from "@expo/vector-icons";
-import { colors, fontSize, fontWeight, iconSize } from '@/utils/theme';
 import React, {
   useCallback,
   useEffect,
@@ -447,8 +447,8 @@ function SearchCustomerModalImpl({
                   position: "absolute",
                   top: 24,
                   right: 24,
-                  width: 32,
-                  height: 32,
+                  width: buttonSize.md.height,
+                  height: buttonSize.md.height,
                   borderRadius: 16,
                   backgroundColor: colors.primary,
                   alignItems: "center",

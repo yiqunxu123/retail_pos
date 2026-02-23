@@ -10,6 +10,7 @@
  * - Resume: navigate to order form with retrieveOrderId
  */
 
+import { buttonSize, iconSize } from "@/utils/theme";
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import { useCallback, useMemo } from "react";
@@ -201,18 +202,20 @@ export default function ParkedOrdersScreen() {
       align: "center",
       visible: true,
       render: (item) => (
-        <View className="flex-row gap-2">
+        <View className="flex-row gap-4">
           <Pressable
-            className="bg-red-50 p-2 rounded-lg"
+            className="bg-red-50 rounded-lg items-center justify-center"
+            style={{ width: buttonSize.md.height, height: buttonSize.md.height }}
             onPress={() => handleResumeOrder(item)}
           >
-            <Ionicons name="play-outline" size={16} color="#EC1A52" />
+            <Ionicons name="play-outline" size={iconSize.md} color="#EC1A52" />
           </Pressable>
           <Pressable
-            className="bg-red-50 p-2 rounded-lg"
+            className="bg-red-50 rounded-lg items-center justify-center"
+            style={{ width: buttonSize.md.height, height: buttonSize.md.height }}
             onPress={() => handleDeleteOrder(item)}
           >
-            <Ionicons name="trash-outline" size={16} color="#EC1A52" />
+            <Ionicons name="trash-outline" size={iconSize.md} color="#EC1A52" />
           </Pressable>
         </View>
       ),

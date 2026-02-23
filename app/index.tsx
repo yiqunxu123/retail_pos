@@ -3,7 +3,7 @@ import { FontAwesome5, Ionicons, MaterialCommunityIcons, MaterialIcons } from "@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { LinearGradient } from "expo-linear-gradient";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import React, { memo, useCallback, useEffect, useMemo, useState } from "react";
 import { Alert, Modal, Pressable, ScrollView, Text, ToastAndroid, TouchableOpacity, useWindowDimensions, View } from "react-native";
 import {
   ActionCard,
@@ -32,6 +32,87 @@ import {
   isAnyPrinterModuleAvailable,
   openCashDrawer
 } from "../utils/PrinterPoolManager";
+
+/**
+ * Isolated clock stats bar - updates every second without re-rendering the entire Dashboard.
+ * Uses local state for time/duration so the interval triggers actual updates.
+ */
+const LiveClockStatsBar = memo(function LiveClockStatsBar({ 
+  isClockedIn, 
+  getElapsedTime,
+  getClockInTimeString 
+}: { 
+  isClockedIn: boolean; 
+  getElapsedTime: () => string;
+  getClockInTimeString: () => string;
+}) {
+  const [timeString, setTimeString] = useState(() => new Date().toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: true }));
+  const [dateString, setDateString] = useState(() => new Date().toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }));
+  const [clockDuration, setClockDuration] = useState("00:00:00");
+
+  useEffect(() => {
+    const update = () => {
+      const now = new Date();
+      setTimeString(now.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: true }));
+      setDateString(now.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }));
+      if (isClockedIn) {
+        setClockDuration(getElapsedTime());
+      }
+    };
+    update(); // run immediately
+    const timer = setInterval(update, 1000);
+    return () => clearInterval(timer);
+  }, [isClockedIn, getElapsedTime]);
+
+  return (
+    <StatsBar
+      items={[
+        { label: "Current Time :", value: timeString },
+        { label: "Date :", value: dateString },
+        ...(isClockedIn ? [
+          { label: "Clock In Time :", value: getClockInTimeString() },
+          { label: "Clock In Duration :", value: clockDuration },
+        ] : []),
+      ]}
+    />
+  );
+});
+
+/**
+ * Staff mode clock stats bar - shows user sales, parked orders, and clock duration.
+ * Updates every second for real-time clock duration.
+ */
+const StaffClockStatsBar = memo(function StaffClockStatsBar({ 
+  userSales,
+  parkedOrdersCount,
+  getElapsedTime,
+  getClockInTimeString 
+}: { 
+  userSales: number;
+  parkedOrdersCount: number;
+  getElapsedTime: () => string;
+  getClockInTimeString: () => string;
+}) {
+  const [clockDuration, setClockDuration] = useState("00:00:00");
+
+  useEffect(() => {
+    const update = () => setClockDuration(getElapsedTime());
+    update(); // run immediately
+    const timer = setInterval(update, 1000);
+    return () => clearInterval(timer);
+  }, [getElapsedTime]);
+
+  return (
+    <StatsBar
+      items={[
+        { label: "User Sales :", value: `$${userSales.toFixed(2)}` },
+        { label: "Parked Orders :", value: String(parkedOrdersCount) },
+        { label: "Clock In Time :", value: getClockInTimeString() },
+        { label: "Clock In Duration :", value: clockDuration },
+      ]}
+    />
+  );
+});
 
 // Default printer configuration
 const DEFAULT_PRINTER_IP = "192.168.1.100";
@@ -70,6 +151,7 @@ function extractTenantTimezone(value: unknown): string | null {
 }
 
 export default function Dashboard() {
+  const _dashMountMs = __DEV__ ? performance.now() : 0;
   const { width, height } = useWindowDimensions();
   const router = useRouter();
   const { openDeclareCash } = useLocalSearchParams<{ openDeclareCash?: string | string[] }>();
@@ -78,6 +160,7 @@ export default function Dashboard() {
   const { viewMode, setViewMode, isStaffMode } = useViewMode();
   const { clearAndResync, isConnected, isSyncing } = usePowerSync();
   const { timezone, setTimezone } = useTimezone();
+  if (__DEV__) console.log(`[DashPerf] contexts: ${(performance.now() - _dashMountMs).toFixed(1)}ms`);
   const { data: settingsRows } = useSyncStream<SettingRow>(
     "SELECT value FROM settings WHERE type = 'admin-panel' AND sub_type = 'basic' LIMIT 1"
   );
@@ -129,6 +212,7 @@ export default function Dashboard() {
 
   const { stats } = useDashboardStats(dashboardFilters);
   const { cashSummary, userSales } = useCashManagement(user?.id);
+  if (__DEV__) console.log(`[DashPerf] hooks+stats: ${(performance.now() - _dashMountMs).toFixed(1)}ms`);
 
   // Date range selection (from DateRangePickerModal)
   const handleDateApply = useCallback((start: string, end: string, presetIdx: number | null) => {
@@ -166,8 +250,6 @@ export default function Dashboard() {
   // Printer config state (loaded from AsyncStorage)
   const [printerIp, setPrinterIp] = useState(DEFAULT_PRINTER_IP);
   const [printerPort, setPrinterPort] = useState(DEFAULT_PRINTER_PORT);
-  const [clockDuration, setClockDuration] = useState("00:00:00");
-  const [currentTime, setCurrentTime] = useState(new Date());
   const [printerList, setPrinterList] = useState<{ id: string; name: string }[]>([]);
   
   // Parked orders
@@ -197,17 +279,6 @@ export default function Dashboard() {
   
   // Calculate available content width
   const contentWidth = isLandscape ? width - DASHBOARD_SIDEBAR_WIDTH : width;
-
-  // Update clock duration & real-time clock in a single interval to reduce re-renders.
-  useEffect(() => {
-    const timer = setInterval(() => {
-      setCurrentTime(new Date());
-      if (isClockedIn) {
-        setClockDuration(getElapsedTime());
-      }
-    }, 1000);
-    return () => clearInterval(timer);
-  }, [isClockedIn, getElapsedTime]);
   
   // Load saved printer settings on mount
   useEffect(() => {
@@ -243,6 +314,7 @@ export default function Dashboard() {
   // =========================================================================
   // Staff Home Content
   // =========================================================================
+  if (__DEV__) console.log(`[DashPerf] render start: ${(performance.now() - _dashMountMs).toFixed(1)}ms`);
   if (isStaffMode) {
     return (
       <View className="flex-1 bg-[#F7F7F9]">
@@ -443,13 +515,11 @@ export default function Dashboard() {
 
         {/* Bottom Stats Bar - Only show when clocked in */}
         {isClockedIn && (
-          <StatsBar
-            items={[
-              { label: "User Sales :", value: `$${userSales.toFixed(2)}` },
-              { label: "Parked Orders :", value: String(parkedOrders.length) },
-              { label: "Clock In Time :", value: getClockInTimeString() },
-              { label: "Clock In Duration :", value: clockDuration },
-            ]}
+          <StaffClockStatsBar
+            userSales={userSales}
+            parkedOrdersCount={parkedOrders.length}
+            getElapsedTime={getElapsedTime}
+            getClockInTimeString={getClockInTimeString}
           />
         )}
 
@@ -623,7 +693,7 @@ export default function Dashboard() {
                     <Ionicons name="calendar-outline" size={iconSize.md} color="#4B5563" />
                     <Text style={{ fontSize: fontSize.md, color: colors.textDark, fontWeight: fw.semibold, fontFamily: 'Montserrat' }}>{dateRangeLabel}</Text>
                   </View>
-                  <Ionicons name="chevron-down" size={iconSize.xs} color={colors.textTertiary} />
+                  <Ionicons name="chevron-down" size={iconSize.md} color={colors.textTertiary} />
                 </View>
               </TouchableOpacity>
 
@@ -635,7 +705,7 @@ export default function Dashboard() {
               >
                 <Ionicons name="storefront-outline" size={iconSize.md} color="#4B5563" />
                 <Text style={{ fontSize: fontSize.md, color: colors.textDark, fontWeight: fw.medium, fontFamily: 'Montserrat' }}>{channelLabel}</Text>
-                <Ionicons name="chevron-down" size={iconSize.xs} color={colors.textTertiary} />
+                <Ionicons name="chevron-down" size={iconSize.md} color={colors.textTertiary} />
               </TouchableOpacity>
             </View>
           </View>
@@ -744,15 +814,10 @@ export default function Dashboard() {
       </ScrollView>
 
         {/* Bottom Stats Bar - Time & Clock Info */}
-      <StatsBar
-        items={[
-          { label: "Current Time :", value: currentTime.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: true }) },
-          { label: "Date :", value: currentTime.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) },
-          ...(isClockedIn ? [
-            { label: "Clock In Time :", value: getClockInTimeString() },
-            { label: "Clock In Duration :", value: clockDuration },
-          ] : []),
-        ]}
+      <LiveClockStatsBar 
+        isClockedIn={isClockedIn} 
+        getElapsedTime={getElapsedTime}
+        getClockInTimeString={getClockInTimeString}
       />
 
       {/* ===== DATE RANGE PICKER MODAL ===== */}

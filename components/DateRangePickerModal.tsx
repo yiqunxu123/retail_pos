@@ -17,7 +17,7 @@ import {
     View,
 } from "react-native";
 import { getLocalToday } from "../utils/powersync/sqlFilters";
-import { fontSize, fontWeight, colors, iconSize } from '@/utils/theme';
+import { fontSize, fontWeight, colors, iconSize, buttonSize } from '@/utils/theme';
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -276,8 +276,8 @@ export function DateRangePickerModal({
               onPress={applyCustomRange}
               style={{
                 marginTop: 12,
-                borderRadius: 8,
-                height: 40,
+                borderRadius: buttonSize.md.borderRadius,
+                height: buttonSize.md.height,
                 alignItems: "center",
                 justifyContent: "center",
                 backgroundColor: colors.primary,

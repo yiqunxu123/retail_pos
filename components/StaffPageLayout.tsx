@@ -1,13 +1,13 @@
+import { colors, iconSize } from "@/utils/theme";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
-import { Alert, ScrollView, TouchableOpacity, View } from "react-native";
-import { iconSize, colors } from "@/utils/theme";
+import { Alert, ScrollView, View } from "react-native";
 import { useAuth } from "../contexts/AuthContext";
 import { useClock } from "../contexts/ClockContext";
 import { useViewMode } from "../contexts/ViewModeContext";
 import { useAppNavigation } from "../hooks/useAppNavigation";
 import { BrandingSection } from "./BrandingSection";
-import { SidebarButton } from "./SidebarButton";
 import { PageHeader } from "./PageHeader";
+import { SidebarButton } from "./SidebarButton";
 
 // Re-export SidebarButton for backward compatibility
 export { SidebarButton };

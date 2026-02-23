@@ -1,7 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import React, { useCallback, useEffect, memo } from "react";
 import { FlatList, Image, Pressable, StyleSheet, Text, TouchableOpacity, View } from "react-native";
-import { fontSize, fontWeight, colors, iconSize } from '@/utils/theme';
+import { fontSize, fontWeight, colors, iconSize, buttonSize } from '@/utils/theme';
 import { useRenderTrace } from "../utils/debug/useRenderTrace";
 
 const styles = StyleSheet.create({
@@ -14,7 +14,7 @@ const styles = StyleSheet.create({
   promo: { backgroundColor: "#FFA64D", paddingHorizontal: 8, paddingVertical: 2, borderRadius: 9999, marginTop: 8, alignSelf: "flex-start" },
   promoText: { fontSize: fontSize.md, fontWeight: fontWeight.bold, color: "#6B4F1D" },
   qtyCol: { width: 140, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8 },
-  qtyBtn: { width: 40, height: 40, borderRadius: 8, alignItems: "center", justifyContent: "center" },
+  qtyBtn: { width: buttonSize.md.height, height: buttonSize.md.height, borderRadius: buttonSize.md.borderRadius, alignItems: "center" as const, justifyContent: "center" as const },
   qtyBtnMinus: { backgroundColor: colors.primaryLight, borderWidth: 1, borderColor: "#FECACA" },
   qtyBtnPlus: { backgroundColor: colors.primary },
   qtyText: { color: colors.text, fontSize: fontSize.xl, fontFamily: "Montserrat", fontWeight: fontWeight.bold, width: 32, textAlign: "center" },
@@ -169,7 +169,7 @@ function ProductTableComponent({
           </View>
           <View style={styles.headerQtyCol}>
             <Text style={styles.headerText}>Quantity</Text>
-            <Ionicons name="swap-vertical" size={iconSize.xs} color={colors.textTertiary} />
+            <Ionicons name="swap-vertical" size={iconSize.md} color={colors.textTertiary} />
           </View>
           <View style={styles.headerTaxCol}>
             <Text style={styles.headerText}>TN Vapor Tax</Text>

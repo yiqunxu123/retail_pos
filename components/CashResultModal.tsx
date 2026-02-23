@@ -1,6 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
 import { Modal, Pressable, Text, View } from "react-native";
-import { iconSize, colors } from "@/utils/theme";
+import { iconSize, colors, buttonSize } from "@/utils/theme";
 
 interface CashResultModalProps {
   visible: boolean;
@@ -85,7 +85,7 @@ export function CashResultModal({
               <Pressable
                 onPress={onClose}
                 className="flex-1 bg-red-50 rounded-lg items-center justify-center"
-                style={{ height: 40 }}
+                style={{ height: buttonSize.md.height }}
               >
                 <Text className="text-red-500 font-semibold text-base">Cancel</Text>
               </Pressable>
@@ -94,7 +94,7 @@ export function CashResultModal({
                 <Pressable
                   onPress={onConfirm}
                   className="flex-1 rounded-lg items-center justify-center"
-                  style={{ height: 40, backgroundColor: colors.primary }}
+                  style={{ height: buttonSize.md.height, backgroundColor: colors.primary }}
                 >
                   <Text className="text-white font-semibold text-base">Declare Cash</Text>
                 </Pressable>
@@ -102,7 +102,7 @@ export function CashResultModal({
                 <Pressable
                   onPress={onReview}
                   className="flex-1 rounded-lg items-center justify-center"
-                  style={{ height: 40, backgroundColor: "#6D28D9" }} // Purple for Review Amount
+                  style={{ height: buttonSize.md.height, backgroundColor: "#6D28D9" }} // Purple for Review Amount
                 >
                   <Text className="text-white font-semibold text-base">Review Amount</Text>
                 </Pressable>

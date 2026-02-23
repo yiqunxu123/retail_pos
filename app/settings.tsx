@@ -595,7 +595,7 @@ export default function SettingsScreen() {
           </ScrollView>
 
           {/* Modal Footer */}
-          <View className="flex-row gap-3 px-6 py-4 border-t border-gray-200">
+          <View className="flex-row gap-4 px-6 py-4 border-t border-gray-200">
             <TouchableOpacity
               onPress={() => setIsModalVisible(false)}
               className="flex-1 border border-gray-300 rounded-xl py-3 items-center"

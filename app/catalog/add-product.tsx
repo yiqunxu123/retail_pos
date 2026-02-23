@@ -5,11 +5,11 @@
  * Based on kapp web UI design.
  */
 
+import { colors, fontSize, fontWeight, iconSize } from '@/utils/theme';
 import { Ionicons } from "@expo/vector-icons";
 import type { AxiosError } from "axios";
 import { useRouter } from "expo-router";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { fontSize, fontWeight, colors, iconSize } from '@/utils/theme';
 import {
     ActivityIndicator,
     Alert,
@@ -231,7 +231,7 @@ function FormInput({
           {required && <Text className="text-red-500">*</Text>}
         </Text>
         {info && (
-          <Ionicons name="information-circle-outline" size={iconSize.sm} color={colors.textTertiary} style={{ marginLeft: 4 }} />
+          <Ionicons name="information-circle-outline" size={iconSize.md} color={colors.textTertiary} style={{ marginLeft: 4 }} />
         )}
       </View>
       <TextInput
@@ -1051,7 +1051,7 @@ export default function AddProductScreen() {
               hitSlop={8}
             >
               {hasChildren ? (
-                <Ionicons name={isExpanded ? "chevron-down" : "chevron-forward"} size={iconSize.xs} color={colors.textTertiary} />
+                <Ionicons name={isExpanded ? "chevron-down" : "chevron-forward"} size={iconSize.md} color={colors.textTertiary} />
               ) : (
                 <View className="w-5 h-5" />
               )}
@@ -1095,7 +1095,7 @@ export default function AddProductScreen() {
             className="w-6 h-6 rounded-full bg-red-50 items-center justify-center"
             onPress={() => setShowAddCategoryModal(true)}
           >
-            <Ionicons name="add" size={iconSize.sm} color={colors.primary} />
+            <Ionicons name="add" size={iconSize.md} color={colors.primary} />
           </Pressable>
         </View>
 
@@ -1143,7 +1143,7 @@ export default function AddProductScreen() {
             <Text className="text-white font-medium mr-2">
               {status === 1 ? "ACTIVE" : status === 2 ? "INACTIVE" : "DISCONTINUED"}
             </Text>
-            <Ionicons name="chevron-down" size={iconSize.xs} color="white" />
+            <Ionicons name="chevron-down" size={iconSize.md} color="white" />
           </Pressable>
         </View>
 
@@ -1194,7 +1194,7 @@ export default function AddProductScreen() {
               onPress={() => setAutoGenerateSku(!autoGenerateSku)}
             >
               <View className={`w-4 h-4 rounded border mr-2 items-center justify-center ${autoGenerateSku ? 'bg-red-500 border-red-500' : 'border-gray-300'}`}>
-                {autoGenerateSku && <Ionicons name="checkmark" size={iconSize.xs} color="white" />}
+                {autoGenerateSku && <Ionicons name="checkmark" size={iconSize.md} color="white" />}
               </View>
               <Text className="text-gray-600 text-sm">Auto generated SKU</Text>
             </Pressable>
@@ -1213,7 +1213,7 @@ export default function AddProductScreen() {
                 />
                 <Pressable className="bg-gray-100 border border-l-0 border-gray-200 rounded-r-lg px-3 flex-row items-center">
                   <Text className="text-gray-600 mr-1">lb</Text>
-                  <Ionicons name="chevron-down" size={iconSize.xs} color={colors.textSecondary} />
+                  <Ionicons name="chevron-down" size={iconSize.md} color={colors.textSecondary} />
                 </Pressable>
               </View>
             </View>
@@ -1240,7 +1240,7 @@ export default function AddProductScreen() {
                     ? brandsList.find((b) => b.id === selectedBrandId)?.name || "Select"
                     : "Select"}
                 </Text>
-                <Ionicons name="chevron-down" size={iconSize.sm} color={colors.textTertiary} />
+                <Ionicons name="chevron-down" size={iconSize.md} color={colors.textTertiary} />
               </Pressable>
               {selectedBrandId && (
                 <Pressable className="mt-1" onPress={() => setSelectedBrandId(null)}>
@@ -1266,7 +1266,7 @@ export default function AddProductScreen() {
               onPress={() => setAutoFetchImage(!autoFetchImage)}
             >
               <View className={`w-4 h-4 rounded border mr-2 items-center justify-center ${autoFetchImage ? 'bg-red-500 border-red-500' : 'border-gray-300'}`}>
-                {autoFetchImage && <Ionicons name="checkmark" size={iconSize.xs} color="white" />}
+                {autoFetchImage && <Ionicons name="checkmark" size={iconSize.md} color="white" />}
               </View>
               <Text className="text-gray-600 text-sm">Auto fetch image</Text>
             </Pressable>
@@ -1339,7 +1339,7 @@ export default function AddProductScreen() {
                     ? manufacturersList.find((m) => m.id === selectedManufacturerIds[0])?.name || "Select"
                     : "Select"}
                 </Text>
-                <Ionicons name="chevron-down" size={iconSize.sm} color={colors.textTertiary} />
+                <Ionicons name="chevron-down" size={iconSize.md} color={colors.textTertiary} />
               </Pressable>
               {selectedManufacturerIds.length > 0 && (
                 <Pressable className="mt-1" onPress={() => setSelectedManufacturerIds([])}>
@@ -1368,7 +1368,7 @@ export default function AddProductScreen() {
                     ? suppliersList.find((s) => s.id === selectedSupplierIds[0])?.name || "Select"
                     : "Select"}
                 </Text>
-                <Ionicons name="chevron-down" size={iconSize.sm} color={colors.textTertiary} />
+                <Ionicons name="chevron-down" size={iconSize.md} color={colors.textTertiary} />
               </Pressable>
               {selectedSupplierIds.length > 0 && (
                 <Pressable className="mt-1" onPress={() => setSelectedSupplierIds([])}>
@@ -1399,7 +1399,7 @@ export default function AddProductScreen() {
                     ? categoriesList.find((c) => c.id === selectedMainCategoryId)?.name || "Select"
                     : "Select"}
                 </Text>
-                <Ionicons name="chevron-down" size={iconSize.sm} color={colors.textTertiary} />
+                <Ionicons name="chevron-down" size={iconSize.md} color={colors.textTertiary} />
               </Pressable>
             </View>
           </View>
@@ -1551,7 +1551,7 @@ export default function AddProductScreen() {
                 )}
               >
                 <Text className="text-gray-800">{measuredBy}</Text>
-                <Ionicons name="chevron-down" size={iconSize.sm} color={colors.textTertiary} />
+                <Ionicons name="chevron-down" size={iconSize.md} color={colors.textTertiary} />
               </Pressable>
             </View>
 
@@ -1653,7 +1653,7 @@ export default function AddProductScreen() {
                   )}
                 >
                   <Text className="text-gray-800">{soldBy}</Text>
-                  <Ionicons name="chevron-down" size={iconSize.sm} color={colors.textTertiary} />
+                  <Ionicons name="chevron-down" size={iconSize.md} color={colors.textTertiary} />
                 </Pressable>
               </View>
               <View className="flex-1">
@@ -1670,7 +1670,7 @@ export default function AddProductScreen() {
                   )}
                 >
                   <Text className="text-gray-800">{boughtBy}</Text>
-                  <Ionicons name="chevron-down" size={iconSize.sm} color={colors.textTertiary} />
+                  <Ionicons name="chevron-down" size={iconSize.md} color={colors.textTertiary} />
                 </Pressable>
               </View>
               <View className="flex-1 justify-end">
@@ -1858,7 +1858,7 @@ export default function AddProductScreen() {
         <View className="mb-6" onLayout={(e) => trackFieldLayout("seoSlug", e.nativeEvent.layout.y)}>
           <View className="flex-row items-center mb-2">
             <Text className="text-gray-700 text-sm font-medium">Slug</Text>
-            <Ionicons name="information-circle-outline" size={iconSize.sm} color={colors.textTertiary} style={{ marginLeft: 4 }} />
+            <Ionicons name="information-circle-outline" size={iconSize.md} color={colors.textTertiary} style={{ marginLeft: 4 }} />
           </View>
           <TextInput
             className="bg-[#F7F7F9] border border-gray-200 rounded-lg px-4 py-3"
@@ -1977,7 +1977,7 @@ export default function AddProductScreen() {
                   className="flex-row items-center gap-2 px-4 py-2.5 rounded-lg border border-gray-300"
                   onPress={() => setShowAdvanceFilters(!showAdvanceFilters)}
                 >
-                  <Ionicons name="filter" size={iconSize.sm} color={colors.textMedium} />
+                  <Ionicons name="filter" size={iconSize.md} color={colors.textMedium} />
                   <Text className="text-gray-700 font-medium">Advance Filters</Text>
                 </Pressable>
               </View>
@@ -2022,7 +2022,7 @@ export default function AddProductScreen() {
                           <View key={v} className="flex-row items-center px-2 py-1 rounded-full" style={{ backgroundColor: badge.color }}>
                             <Text style={{ color: badge.textColor, fontSize: fontSize.md }}>{badge.name}</Text>
                             <Pressable onPress={() => toggleStatusFilter(v)} className="ml-1">
-                              <Ionicons name="close-circle" size={iconSize.xs} color={badge.textColor} />
+                              <Ionicons name="close-circle" size={iconSize.md} color={badge.textColor} />
                             </Pressable>
                           </View>
                         ) : null;
@@ -2262,7 +2262,7 @@ export default function AddProductScreen() {
                         ? `${categoryMsaCode} - ${MSA_CODES.find((m) => m.code === categoryMsaCode)?.description || ""}`
                         : "Please select Msa Code"}
                     </Text>
-                    <Ionicons name="chevron-down" size={iconSize.sm} color={colors.textTertiary} />
+                    <Ionicons name="chevron-down" size={iconSize.md} color={colors.textTertiary} />
                   </Pressable>
                 </View>
                 <View className="items-center">
@@ -2300,7 +2300,7 @@ export default function AddProductScreen() {
                       ? categoriesList.find((c) => c.id === categoryParentId)?.name || "Select"
                       : "Please Select"}
                   </Text>
-                  <Ionicons name="chevron-down" size={iconSize.sm} color={colors.textTertiary} />
+                  <Ionicons name="chevron-down" size={iconSize.md} color={colors.textTertiary} />
                 </Pressable>
               </View>
 

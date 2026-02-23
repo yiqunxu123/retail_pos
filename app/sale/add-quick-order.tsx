@@ -1,6 +1,6 @@
+import { colors, iconSize } from '@/utils/theme';
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-import { iconSize, colors } from '@/utils/theme';
 import { useCallback, useState } from "react";
 import {
     Pressable,

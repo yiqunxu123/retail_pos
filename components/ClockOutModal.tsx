@@ -1,6 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
 import { Modal, Pressable, Text, View } from "react-native";
-import { iconSize, colors } from "@/utils/theme";
+import { iconSize, colors, buttonSize } from "@/utils/theme";
 
 interface ClockOutModalProps {
   visible: boolean;
@@ -55,21 +55,21 @@ export function ClockOutModal({
             <Pressable
               onPress={onClose}
               className="flex-1 rounded-lg items-center justify-center bg-[#F7E8EA]"
-              style={({ pressed }) => ({ height: 40, opacity: pressed ? 0.7 : 1 })}
+              style={({ pressed }) => ({ height: buttonSize.md.height, opacity: pressed ? 0.7 : 1 })}
             >
               <Text className="text-[#D93E66] text-[17px] font-medium">Cancel</Text>
             </Pressable>
             <Pressable
               onPress={onDeclareCash}
               className="flex-1 rounded-lg items-center justify-center bg-[#4C47B8]"
-              style={({ pressed }) => ({ height: 40, opacity: pressed ? 0.8 : 1 })}
+              style={({ pressed }) => ({ height: buttonSize.md.height, opacity: pressed ? 0.8 : 1 })}
             >
               <Text className="text-white text-[17px] font-medium">Declare Cash</Text>
             </Pressable>
             <Pressable
               onPress={onClockOut}
               className="flex-1 rounded-lg items-center justify-center"
-              style={({ pressed }) => ({ height: 40, backgroundColor: colors.primary, opacity: pressed ? 0.8 : 1 })}
+              style={({ pressed }) => ({ height: buttonSize.md.height, backgroundColor: colors.primary, opacity: pressed ? 0.8 : 1 })}
             >
               <Text className="text-white text-[17px] font-medium">Clock Out</Text>
             </Pressable>

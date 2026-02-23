@@ -10,7 +10,7 @@ import {
   KeyboardAvoidingView,
   Platform,
 } from "react-native";
-import { fontSize, fontWeight, colors, iconSize } from '@/utils/theme';
+import { fontSize, fontWeight, colors, iconSize, buttonSize } from '@/utils/theme';
 
 interface ProductSettingsModalProps {
   visible: boolean;
@@ -190,7 +190,7 @@ export function ProductSettingsModal({ visible, onClose, product, onSave }: Prod
             <Pressable
               onPress={onClose}
               className="flex-1 bg-red-50 rounded-lg items-center justify-center border border-red-100"
-              style={{ height: 40 }}
+              style={{ height: buttonSize.md.height }}
             >
               <Text 
                 style={{ 
@@ -206,7 +206,7 @@ export function ProductSettingsModal({ visible, onClose, product, onSave }: Prod
             <Pressable
               onPress={handleSave}
               className="flex-1 rounded-lg items-center justify-center shadow-xl"
-              style={{ height: 40, backgroundColor: colors.primary }}
+              style={{ height: buttonSize.md.height, backgroundColor: colors.primary }}
             >
               <Text 
                 style={{ 

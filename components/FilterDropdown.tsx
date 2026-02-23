@@ -1,7 +1,7 @@
+import { colors, iconSize } from "@/utils/theme";
 import { Ionicons } from "@expo/vector-icons";
 import { useState } from "react";
 import { Modal, Pressable, ScrollView, Text, View } from "react-native";
-import { iconSize, colors } from "@/utils/theme";
 
 // ============================================================================
 // Types

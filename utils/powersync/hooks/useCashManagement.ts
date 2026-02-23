@@ -5,6 +5,9 @@
  *   kapp/server/constants/__init__.py
  *
  * Filtering logic delegated to shared sqlFilters module.
+ *
+ * Consolidates all cash queries into a SINGLE useSyncStream call
+ * to minimize PowerSync watch subscriptions and reduce mount overhead.
  */
 
 import { useMemo } from 'react';
@@ -23,85 +26,52 @@ export interface CashSummary {
   expectedCash: number;
 }
 
-interface CashRow {
-  total: number;
-}
+// ============================================================================
+// Constants
+// ============================================================================
+
+const OPENING_BALANCE = 200.00;
 
 // ============================================================================
 // Hooks
 // ============================================================================
 
-/** Opening balance - TODO: implement cash register session tracking */
-function useOpeningBalance() {
-  return 200.00;
-}
-
-/**
- * Total sales today
- * K Web: status NOT IN (90, 80) AND balance_adjustment_id IS NULL
- */
-function useTotalSales() {
-  const todayFilter = dateTodayLocal('order_date');
-  const { data } = useSyncStream<CashRow>(
-    `SELECT COALESCE(SUM(total_price), 0) as total
-     FROM sale_orders
-     WHERE status NOT IN (${SaleOrderStatus.VOID}, ${SaleOrderStatus.DISCARDED})
-       AND balance_adjustment_id IS NULL
-       AND ${todayFilter}`
-  );
-  const result = data[0]?.total || 0;
-  return result;
-}
-
-/**
- * Total refunds today
- * K Web: sale_type = 2 (RETURN), status NOT IN (90, 80)
- */
-function useTotalRefunds() {
-  const todayFilter = dateTodayLocal('order_date');
-  const { data } = useSyncStream<CashRow>(
-    `SELECT COALESCE(SUM(total_price), 0) as total
-     FROM sale_orders
-     WHERE sale_type = ${SaleType.RETURN}
-       AND status NOT IN (${SaleOrderStatus.VOID}, ${SaleOrderStatus.DISCARDED})
-       AND ${todayFilter}`
-  );
-  const result = data[0]?.total || 0;
-  return result;
-}
-
-/**
- * User sales today
- */
-function useUserSales(userId?: string | number) {
-  const todayFilter = dateTodayLocal('order_date');
-  const query = userId
-    ? `SELECT COALESCE(SUM(total_price), 0) as total
-       FROM sale_orders
-       WHERE created_by_id = ${userId}
-         AND status NOT IN (${SaleOrderStatus.VOID}, ${SaleOrderStatus.DISCARDED})
-         AND balance_adjustment_id IS NULL
-         AND ${todayFilter}`
-    : 'SELECT 0 as total';
-
-  const { data } = useSyncStream<CashRow>(query);
-  const result = data[0]?.total || 0;
-  return result;
-}
-
-/** Main hook */
+/** Main hook - single query for all cash management stats */
 export function useCashManagement(userId?: string | number) {
-  const openingBalance = useOpeningBalance();
-  const totalSales     = useTotalSales();
-  const totalRefunds   = useTotalRefunds();
-  const userSales      = useUserSales(userId);
+  const todayFilter = dateTodayLocal('order_date');
+
+  const userSalesClause = userId
+    ? `COALESCE((SELECT SUM(total_price) FROM sale_orders
+        WHERE created_by_id = ${userId}
+          AND status NOT IN (${SaleOrderStatus.VOID}, ${SaleOrderStatus.DISCARDED})
+          AND balance_adjustment_id IS NULL
+          AND ${todayFilter}), 0)`
+    : '0';
+
+  const { data } = useSyncStream<Record<string, number>>(
+    `SELECT
+      COALESCE((SELECT SUM(total_price) FROM sale_orders
+        WHERE status NOT IN (${SaleOrderStatus.VOID}, ${SaleOrderStatus.DISCARDED})
+          AND balance_adjustment_id IS NULL
+          AND ${todayFilter}), 0) AS totalSales,
+      COALESCE((SELECT SUM(total_price) FROM sale_orders
+        WHERE sale_type = ${SaleType.RETURN}
+          AND status NOT IN (${SaleOrderStatus.VOID}, ${SaleOrderStatus.DISCARDED})
+          AND ${todayFilter}), 0) AS totalRefunds,
+      ${userSalesClause} AS userSales`
+  );
+
+  const row = data[0];
+  const totalSales = Number(row?.totalSales) || 0;
+  const totalRefunds = Number(row?.totalRefunds) || 0;
+  const userSales = Number(row?.userSales) || 0;
 
   const cashSummary = useMemo<CashSummary>(() => ({
-    openingBalance,
+    openingBalance: OPENING_BALANCE,
     totalSales,
     totalRefunds,
-    expectedCash: openingBalance + totalSales - totalRefunds,
-  }), [openingBalance, totalSales, totalRefunds]);
+    expectedCash: OPENING_BALANCE + totalSales - totalRefunds,
+  }), [totalSales, totalRefunds]);
 
   return { cashSummary, userSales, isLoading: false };
 }

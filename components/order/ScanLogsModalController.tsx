@@ -6,7 +6,7 @@ import React, {
   useImperativeHandle,
   useMemo,
 } from "react";
-import { fontSize, fontWeight, colors, iconSize } from '@/utils/theme';
+import { fontSize, fontWeight, colors, iconSize, buttonSize } from '@/utils/theme';
 import {
   BackHandler,
   Pressable,
@@ -143,8 +143,8 @@ const ScanLogsModalControllerInner = forwardRef<
             <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
               <View
                 style={{
-                  width: 40,
-                  height: 40,
+                  width: buttonSize.md.height,
+                  height: buttonSize.md.height,
                   borderRadius: 12,
                   backgroundColor: colors.primary,
                   alignItems: "center",
@@ -421,7 +421,7 @@ const ScanLogsModalControllerInner = forwardRef<
                   backgroundColor: colors.white,
                 }}
               >
-                <Ionicons name="trash-outline" size={iconSize.sm} color={colors.errorDark} />
+                <Ionicons name="trash-outline" size={iconSize.md} color={colors.errorDark} />
                 <Text
                   style={{
                     fontFamily: "Montserrat",

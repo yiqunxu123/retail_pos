@@ -1,13 +1,13 @@
 import { useCallback, useEffect, useState } from 'react'
 import {
-  ActivityIndicator,
-  Alert,
-  FlatList,
-  RefreshControl,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
+    ActivityIndicator,
+    Alert,
+    FlatList,
+    RefreshControl,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View,
 } from 'react-native'
 import { useAuth } from '../contexts/AuthContext'
 import { usePowerSync } from '../utils/powersync/PowerSyncProvider'

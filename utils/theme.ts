@@ -148,8 +148,7 @@ export const typography: Record<string, TextStyle> = {
 // ============================================================================
 //
 // 层级说明:
-//   xs   (14) — 下拉箭头、复选框小图标
-//   sm   (16) — 按钮内图标、分页箭头
+//   xs, sm — 已废弃，与 md 相同 (保持向后兼容)
 //   md   (18) — 表单字段图标、工具栏图标 ★ 最常用
 //   base (20) — 搜索图标、输入框图标
 //   lg   (22) — 关闭按钮、操作图标
@@ -160,8 +159,8 @@ export const typography: Record<string, TextStyle> = {
 //   5xl  (64) — 超大空状态占位图标
 
 export const iconSize = {
-  xs: 14,
-  sm: 16,
+  xs: 18,
+  sm: 18,
   md: 18,
   base: 20,
   lg: 22,
@@ -177,8 +176,7 @@ export const iconSize = {
 // ============================================================================
 //
 // 层级说明:
-//   xs — 紧凑小按钮 (标签、pill)
-//   sm — 小按钮 (表格内操作、筛选)
+//   xs, sm — 已废弃，与 md 相同 (保持向后兼容)
 //   md — 默认按钮 (工具栏、表单) ★ 最常用
 //   lg — 大按钮 (主操作、确认)
 //   xl — 超大按钮 (全宽提交、侧边栏)
@@ -193,42 +191,28 @@ interface ButtonSizeToken {
   iconSize: number;
 }
 
+const _mdToken: ButtonSizeToken = {
+  height: 50,
+  paddingHorizontal: 16,
+  paddingVertical: 10,
+  fontSize: 14,
+  fontWeight: '600',
+  borderRadius: 8,
+  iconSize: 20,
+};
+
 export const buttonSize: Record<string, ButtonSizeToken> = {
-  xs: {
-    height: 28,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    fontSize: 10,
-    fontWeight: '500',
-    borderRadius: 6,
-    iconSize: 14,
-  },
-  sm: {
-    height: 32,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    fontSize: 12,
-    fontWeight: '600',
-    borderRadius: 8,
-    iconSize: 16,
-  },
-  md: {
-    height: 40,
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    fontSize: 14,
-    fontWeight: '600',
-    borderRadius: 8,
-    iconSize: 18,
-  },
+  xs: _mdToken,
+  sm: _mdToken,
+  md: _mdToken,
   lg: {
-    height: 44,
-    paddingHorizontal: 24,
-    paddingVertical: 10,
+    height: 54,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
     fontSize: 16,
     fontWeight: '600',
     borderRadius: 8,
-    iconSize: 20,
+    iconSize: 22,
   },
   xl: {
     height: 52,
@@ -238,6 +222,16 @@ export const buttonSize: Record<string, ButtonSizeToken> = {
     fontWeight: '600',
     borderRadius: 12,
     iconSize: 24,
+  },
+  /** Sidebar navigation — large touch targets for kiosk/tablet */
+  sidebar: {
+    height: 100,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    fontSize: 18,
+    fontWeight: '600',
+    borderRadius: 8,
+    iconSize: 32,
   },
 };
 

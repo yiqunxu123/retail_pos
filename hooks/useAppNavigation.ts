@@ -26,26 +26,24 @@ export function useAppNavigation() {
       if (isNavigatingRef.current) return;
       isNavigatingRef.current = true;
 
+      if (__DEV__) console.log(`[NavPerf] ${path} clicked at ${Date.now()}`);
+
       if (path === "/" || path === "/index") {
         // Go home: clear stack back to root
         if (router.canGoBack()) {
           router.dismissAll();
         } else {
-          // No history (e.g. deep link), use replace to ensure we can get home
           router.replace("/");
         }
       } else {
-        // Go to other page: return to root first, then push target
-        if (router.canGoBack()) {
-          router.dismissAll();
-        }
-        router.push(path as any);
+        // Use replace to avoid stack buildup and reduce mount/unmount overhead
+        router.replace(path as any);
       }
 
       // Unlock after delay
       setTimeout(() => {
         isNavigatingRef.current = false;
-      }, 500);
+      }, 300);
     },
     [pathname, router]
   );

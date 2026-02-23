@@ -154,45 +154,37 @@ function useOrderCount() {
   return data[0]?.count || 0;
 }
 
-/** Main hook - combines all dashboard stats */
+/** Main hook - combines all dashboard stats in a SINGLE query */
 export function useDashboardStats(_filters?: DashboardFilters) {
-  const totalRevenue = useTotalRevenue();
-  const paidAmount = usePaidAmount();
-  const receivableAmount = useReceivableAmount();
-  const payableAmount = usePayableAmount();
-  const extendedStockValue = useExtendedStockValue();
-  const pickupOrdersCount = usePickupOrdersCount();
-  const deliveryOrdersCount = useDeliveryOrdersCount();
-  const dropOffOrdersCount = useDropOffOrdersCount();
-  const customerCount = useCustomerCount();
-  const productCount = useProductCount();
-  const orderCount = useOrderCount();
+  const { data, isLoading } = useSyncStream<Record<string, number>>(
+    `SELECT
+      COALESCE((SELECT SUM(total_price) FROM sale_orders), 0) AS totalRevenue,
+      COALESCE((SELECT SUM(amount) FROM payments WHERE status = 1), 0) AS paidAmount,
+      COALESCE((SELECT SUM(balance) FROM customers WHERE balance > 0), 0) AS receivableAmount,
+      COALESCE((SELECT SUM(balance) FROM suppliers WHERE balance > 0), 0) AS payableAmount,
+      COALESCE((SELECT SUM(s.qty * COALESCE(up.cost, 0)) FROM stocks s LEFT JOIN unit_prices up ON s.product_id = up.product_id AND s.channel_id = up.channel_id), 0) AS extendedStockValue,
+      COALESCE((SELECT COUNT(*) FROM sale_orders WHERE shipping_type = ${ShippingType.PICK_UP}), 0) AS pickupOrdersCount,
+      COALESCE((SELECT COUNT(*) FROM sale_orders WHERE shipping_type = ${ShippingType.DELIVERY}), 0) AS deliveryOrdersCount,
+      COALESCE((SELECT COUNT(*) FROM sale_orders WHERE shipping_type = ${ShippingType.DROP_OFF}), 0) AS dropOffOrdersCount,
+      COALESCE((SELECT COUNT(*) FROM customers), 0) AS customerCount,
+      COALESCE((SELECT COUNT(*) FROM products), 0) AS productCount,
+      COALESCE((SELECT COUNT(*) FROM sale_orders), 0) AS orderCount`
+  );
 
+  const row = data[0];
   const stats = useMemo<DashboardStats>(() => ({
-    totalRevenue,
-    paidAmount,
-    receivableAmount,
-    payableAmount,
-    extendedStockValue,
-    pickupOrdersCount,
-    deliveryOrdersCount,
-    dropOffOrdersCount,
-    customerCount,
-    productCount,
-    orderCount,
-  }), [
-    totalRevenue,
-    paidAmount,
-    receivableAmount,
-    payableAmount,
-    extendedStockValue,
-    pickupOrdersCount,
-    deliveryOrdersCount,
-    dropOffOrdersCount,
-    customerCount,
-    productCount,
-    orderCount,
-  ]);
+    totalRevenue: Number(row?.totalRevenue) || 0,
+    paidAmount: Number(row?.paidAmount) || 0,
+    receivableAmount: Number(row?.receivableAmount) || 0,
+    payableAmount: Number(row?.payableAmount) || 0,
+    extendedStockValue: Number(row?.extendedStockValue) || 0,
+    pickupOrdersCount: Number(row?.pickupOrdersCount) || 0,
+    deliveryOrdersCount: Number(row?.deliveryOrdersCount) || 0,
+    dropOffOrdersCount: Number(row?.dropOffOrdersCount) || 0,
+    customerCount: Number(row?.customerCount) || 0,
+    productCount: Number(row?.productCount) || 0,
+    orderCount: Number(row?.orderCount) || 0,
+  }), [row]);
 
-  return { stats };
+  return { stats, isLoading };
 }

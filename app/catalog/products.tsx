@@ -5,6 +5,7 @@
  * Data source: products + unit_prices (joined)
  */
 
+import { colors, iconSize } from '@/utils/theme';
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { useCallback, useMemo, useState } from "react";
@@ -14,7 +15,6 @@ import {
 } from "react-native";
 import { ColumnDefinition, DataTable, PageHeader } from "../../components";
 import { ProductView, useProducts } from "../../utils/powersync/hooks";
-import { colors, iconSize } from '@/utils/theme';
 
 // ============================================================================
 // Constants

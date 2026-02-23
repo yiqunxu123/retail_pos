@@ -5,9 +5,9 @@
  * Uses the unified DataTable component.
  */
 
+import { buttonSize, colors, fontSize, fontWeight, iconSize } from '@/utils/theme';
 import { Ionicons } from "@expo/vector-icons";
 import React, { useCallback, useMemo, useState } from "react";
-import { fontSize, fontWeight, colors, iconSize } from '@/utils/theme';
 import { Alert, Pressable, Text, View } from "react-native";
 import { ColumnDefinition, DataTable, FilterDefinition, PageHeader } from "../../components";
 import { OrderDetailsModal } from "../../components/OrderDetailsModal";
@@ -102,10 +102,11 @@ const ActionButton = React.memo(({
 }) => {
   return (
     <Pressable 
-      className="bg-red-50 p-2 rounded-lg items-center justify-center" 
+      className="bg-red-50 rounded-lg items-center justify-center" 
+      style={{ width: buttonSize.md.height, height: buttonSize.md.height }}
       onPress={onPress}
     >
-      <Ionicons name={icon} size={iconSize.sm} color={colors.primary} />
+      <Ionicons name={icon} size={iconSize.md} color={colors.primary} />
     </Pressable>
   );
 });

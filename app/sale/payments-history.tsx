@@ -6,6 +6,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useCallback, useMemo, useState } from "react";
 import { Pressable, Text, View } from "react-native";
+import { buttonSize, iconSize } from "@/utils/theme";
 import { ColumnDefinition, DataTable, FilterDefinition, PageHeader } from "../../components";
 import { PAYMENT_STATUS, PAYMENT_TYPE, PaymentView, usePayments } from "../../utils/powersync/hooks";
 
@@ -142,8 +143,11 @@ export default function PaymentsHistoryScreen() {
       align: "center",
       visible: true,
       render: () => (
-        <Pressable className="bg-red-50 p-2 rounded-lg">
-          <Ionicons name="eye" size={16} color="#EC1A52" />
+        <Pressable 
+          className="bg-red-50 rounded-lg items-center justify-center"
+          style={{ width: buttonSize.md.height, height: buttonSize.md.height }}
+        >
+          <Ionicons name="eye" size={iconSize.md} color="#EC1A52" />
         </Pressable>
       ),
     },
