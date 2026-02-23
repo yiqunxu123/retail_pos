@@ -1,5 +1,6 @@
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { Modal, View, Text, TouchableOpacity, ScrollView } from "react-native";
+import { colors, iconSize } from '@/utils/theme';
 
 interface CustomerOrder {
   id: string;
@@ -82,11 +83,11 @@ export function CustomerDetailsModal({
         >
           {/* Header */}
           <View className="flex-row justify-between items-center px-6 py-4 border-b border-gray-200 bg-gradient-to-r from-red-500 to-red-600"
-            style={{ backgroundColor: "#EC1A52" }}
+            style={{ backgroundColor: colors.primary }}
           >
             <View className="flex-row items-center gap-3">
               <View className="w-12 h-12 bg-white rounded-full items-center justify-center">
-                <Ionicons name="person" size={28} color="#EC1A52" />
+                <Ionicons name="person" size={iconSize['2xl']} color={colors.primary} />
               </View>
               <View>
                 <Text className="text-xl font-semibold text-white">
@@ -98,7 +99,7 @@ export function CustomerDetailsModal({
               </View>
             </View>
             <TouchableOpacity onPress={onClose}>
-              <Ionicons name="close" size={24} color="white" />
+              <Ionicons name="close" size={iconSize.xl} color="white" />
             </TouchableOpacity>
           </View>
 
@@ -106,19 +107,19 @@ export function CustomerDetailsModal({
             {/* Stats Cards */}
             <View className="flex-row gap-3 px-6 py-4">
               <View className="flex-1 bg-blue-50 rounded-lg p-4 items-center">
-                <MaterialCommunityIcons name="shopping" size={24} color="#3B82F6" />
+                <MaterialCommunityIcons name="shopping" size={iconSize.xl} color={colors.info} />
                 <Text className="text-gray-600 text-sm mt-1">Total Orders</Text>
                 <Text className="text-blue-600 font-bold text-xl">{customer.totalOrders}</Text>
               </View>
               <View className="flex-1 bg-green-50 rounded-lg p-4 items-center">
-                <MaterialCommunityIcons name="cash-multiple" size={24} color="#10B981" />
+                <MaterialCommunityIcons name="cash-multiple" size={iconSize.xl} color={colors.success} />
                 <Text className="text-gray-600 text-sm mt-1">Total Spent</Text>
                 <Text className="text-green-600 font-bold text-xl">
                   ${customer.totalSpent.toFixed(2)}
                 </Text>
               </View>
               <View className="flex-1 bg-purple-50 rounded-lg p-4 items-center">
-                <MaterialCommunityIcons name="wallet" size={24} color="#8B5CF6" />
+                <MaterialCommunityIcons name="wallet" size={iconSize.xl} color={colors.purple} />
                 <Text className="text-gray-600 text-sm mt-1">Balance</Text>
                 <Text
                   className={`font-bold text-xl ${
@@ -130,7 +131,7 @@ export function CustomerDetailsModal({
               </View>
               {customer.loyaltyPoints !== undefined && (
                 <View className="flex-1 bg-yellow-50 rounded-lg p-4 items-center">
-                  <MaterialCommunityIcons name="star" size={24} color="#F59E0B" />
+                  <MaterialCommunityIcons name="star" size={iconSize.xl} color={colors.warning} />
                   <Text className="text-gray-600 text-sm mt-1">Points</Text>
                   <Text className="text-yellow-600 font-bold text-xl">
                     {customer.loyaltyPoints}
@@ -142,11 +143,11 @@ export function CustomerDetailsModal({
             {/* Contact Information */}
             <View className="px-6 py-4 border-t border-gray-100">
               <Text className="text-gray-800 font-semibold mb-3">Contact Information</Text>
-              <View className="bg-[#F7F7F9] rounded-lg p-4 gap-3 shadow-sm">
+              <View className="rounded-lg p-4 gap-3 shadow-sm" style={{ backgroundColor: colors.backgroundTertiary }}>
                 {customer.email && (
                   <View className="flex-row items-center gap-3">
                     <View className="w-8 h-8 bg-blue-100 rounded-full items-center justify-center">
-                      <Ionicons name="mail-outline" size={16} color="#3B82F6" />
+                      <Ionicons name="mail-outline" size={iconSize.sm} color={colors.info} />
                     </View>
                     <View>
                       <Text className="text-gray-500 text-xs">Email</Text>
@@ -157,7 +158,7 @@ export function CustomerDetailsModal({
                 {customer.phone && (
                   <View className="flex-row items-center gap-3">
                     <View className="w-8 h-8 bg-green-100 rounded-full items-center justify-center">
-                      <Ionicons name="call-outline" size={16} color="#10B981" />
+                      <Ionicons name="call-outline" size={iconSize.sm} color={colors.success} />
                     </View>
                     <View>
                       <Text className="text-gray-500 text-xs">Phone</Text>
@@ -168,7 +169,7 @@ export function CustomerDetailsModal({
                 {customer.address && (
                   <View className="flex-row items-center gap-3">
                     <View className="w-8 h-8 bg-purple-100 rounded-full items-center justify-center">
-                      <Ionicons name="location-outline" size={16} color="#8B5CF6" />
+                      <Ionicons name="location-outline" size={iconSize.sm} color={colors.purple} />
                     </View>
                     <View className="flex-1">
                       <Text className="text-gray-500 text-xs">Address</Text>
@@ -188,15 +189,15 @@ export function CustomerDetailsModal({
             <View className="px-6 py-4 border-t border-gray-100">
               <Text className="text-gray-800 font-semibold mb-3">Business Information</Text>
               <View className="flex-row gap-4">
-                <View className="flex-1 bg-[#F7F7F9] rounded-lg p-3 shadow-sm">
+                <View className="flex-1 rounded-lg p-3 shadow-sm" style={{ backgroundColor: colors.backgroundTertiary }}>
                   <Text className="text-gray-500 text-xs">Customer Type</Text>
                   <Text className="text-gray-800 font-medium">{customer.customerType}</Text>
                 </View>
-                <View className="flex-1 bg-[#F7F7F9] rounded-lg p-3 shadow-sm">
+                <View className="flex-1 rounded-lg p-3 shadow-sm" style={{ backgroundColor: colors.backgroundTertiary }}>
                   <Text className="text-gray-500 text-xs">Class of Trades</Text>
                   <Text className="text-gray-800 font-medium">{customer.classOfTrades}</Text>
                 </View>
-                <View className="flex-1 bg-[#F7F7F9] rounded-lg p-3 shadow-sm">
+                <View className="flex-1 rounded-lg p-3 shadow-sm" style={{ backgroundColor: colors.backgroundTertiary }}>
                   <Text className="text-gray-500 text-xs">Customer Since</Text>
                   <Text className="text-gray-800 font-medium">{formatDate(customer.createdAt)}</Text>
                 </View>
@@ -218,7 +219,8 @@ export function CustomerDetailsModal({
                   {customer.recentOrders.slice(0, 3).map((order) => (
                     <View
                       key={order.id}
-                      className="flex-row items-center bg-[#F7F7F9] rounded-lg px-4 py-3 shadow-sm"
+                      className="flex-row items-center rounded-lg px-4 py-3 shadow-sm"
+                      style={{ backgroundColor: colors.backgroundTertiary }}
                     >
                       <View className="flex-1">
                         <Text className="text-gray-800 font-medium">#{order.orderNumber}</Text>
@@ -282,7 +284,7 @@ export function CustomerDetailsModal({
                 onPress={onEdit}
                 className="flex-1 border border-red-500 rounded-lg py-3 flex-row items-center justify-center gap-2"
               >
-                <Ionicons name="pencil-outline" size={18} color="#EC1A52" />
+                <Ionicons name="pencil-outline" size={iconSize.md} color={colors.primary} />
                 <Text className="text-red-500 font-medium">Edit</Text>
               </TouchableOpacity>
             )}
@@ -291,7 +293,7 @@ export function CustomerDetailsModal({
                 onPress={onAddOrder}
                 className="flex-1 bg-red-500 rounded-lg py-3 flex-row items-center justify-center gap-2"
               >
-                <Ionicons name="add" size={18} color="white" />
+                <Ionicons name="add" size={iconSize.md} color="white" />
                 <Text className="text-white font-medium">New Order</Text>
               </TouchableOpacity>
             )}

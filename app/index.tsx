@@ -1,3 +1,4 @@
+import { colors, fontSize, fontWeight as fw, iconSize } from '@/utils/theme';
 import { FontAwesome5, Ionicons, MaterialCommunityIcons, MaterialIcons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { LinearGradient } from "expo-linear-gradient";
@@ -5,17 +6,15 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Alert, Modal, Pressable, ScrollView, Text, ToastAndroid, TouchableOpacity, useWindowDimensions, View } from "react-native";
 import {
-    ActionCard,
-    DASHBOARD_SIDEBAR_WIDTH,
-    DateRangePickerModal,
-    StatCard,
-    StatsBar
+  ActionCard,
+  DASHBOARD_SIDEBAR_WIDTH,
+  DateRangePickerModal,
+  StatCard,
+  StatsBar
 } from "../components";
-import type { StatsBarItem } from "../components";
 import { CashEntryModal } from "../components/CashEntryModal";
 import { CashResultModal } from "../components/CashResultModal";
 import { DeclareCashModal } from "../components/DeclareCashModal";
-import { ParkedOrdersModal } from "../components/ParkedOrdersModal";
 import { useAuth } from "../contexts/AuthContext";
 import { useClock } from "../contexts/ClockContext";
 import { useParkedOrders } from "../contexts/ParkedOrderContext";
@@ -27,11 +26,11 @@ import { usePowerSync } from "../utils/powersync/PowerSyncProvider";
 import { getLocalToday } from "../utils/powersync/sqlFilters";
 import { useSyncStream } from "../utils/powersync/useSyncStream";
 import {
-    addPrinterListener,
-    getPoolStatus,
-    getPrinters,
-    isAnyPrinterModuleAvailable,
-    openCashDrawer
+  addPrinterListener,
+  getPoolStatus,
+  getPrinters,
+  isAnyPrinterModuleAvailable,
+  openCashDrawer
 } from "../utils/PrinterPoolManager";
 
 // Default printer configuration
@@ -172,8 +171,7 @@ export default function Dashboard() {
   const [printerList, setPrinterList] = useState<{ id: string; name: string }[]>([]);
   
   // Parked orders
-  const { parkedOrders, deleteParkedOrder } = useParkedOrders();
-  const [showParkedOrdersModal, setShowParkedOrdersModal] = useState(false);
+  const { parkedOrders } = useParkedOrders();
   
   // Cash Management modals
   const [showDeclareCashModal, setShowDeclareCashModal] = useState(false);
@@ -200,23 +198,16 @@ export default function Dashboard() {
   // Calculate available content width
   const contentWidth = isLandscape ? width - DASHBOARD_SIDEBAR_WIDTH : width;
 
-  // Update clock duration
+  // Update clock duration & real-time clock in a single interval to reduce re-renders.
   useEffect(() => {
-    if (!isClockedIn) {
-      setClockDuration("00:00:00");
-      return;
-    }
-    const interval = setInterval(() => {
-      setClockDuration(getElapsedTime());
+    const timer = setInterval(() => {
+      setCurrentTime(new Date());
+      if (isClockedIn) {
+        setClockDuration(getElapsedTime());
+      }
     }, 1000);
-    return () => clearInterval(interval);
-  }, [isClockedIn, getElapsedTime]);
-
-  // Real-time clock
-  useEffect(() => {
-    const timer = setInterval(() => setCurrentTime(new Date()), 1000);
     return () => clearInterval(timer);
-  }, []);
+  }, [isClockedIn, getElapsedTime]);
   
   // Load saved printer settings on mount
   useEffect(() => {
@@ -273,7 +264,7 @@ export default function Dashboard() {
               flexDirection: "row",
               justifyContent: "between",
               alignItems: "center",
-              shadowColor: "#000",
+              shadowColor: colors.black,
               shadowOffset: { width: 0, height: 4 },
               shadowOpacity: 0.2,
               shadowRadius: 4,
@@ -309,12 +300,12 @@ export default function Dashboard() {
             >
               <Text 
                 style={{ 
-                  fontSize: 36, 
+                  fontSize: fontSize['4xl'], 
                   lineHeight: 40,
                   letterSpacing: -0.72, // -2% of 36
-                  fontWeight: "600", 
+                  fontWeight: fw.semibold, 
                   fontFamily: "Montserrat",
-                  color: "#FFFFFF"
+                  color: colors.textWhite
                 }}
               >
                 Welcome to KHUB POS System
@@ -322,8 +313,8 @@ export default function Dashboard() {
               <View className="flex-row items-center mt-1 gap-4">
                 <Text 
                   style={{ 
-                    fontSize: 18, 
-                    fontWeight: "500", 
+                    fontSize: fontSize.lg, 
+                    fontWeight: fw.medium, 
                     fontFamily: "Montserrat",
                     color: "rgba(255, 255, 255, 0.9)"
                   }}
@@ -341,7 +332,7 @@ export default function Dashboard() {
                       backgroundColor: isConnected ? '#10B981' : '#EF4444',
                     }}
                   />
-                  <Text style={{ color: "white", fontSize: 12, fontWeight: "600", fontFamily: "Montserrat" }}>
+                  <Text style={{ color: "white", fontSize: fontSize.sm, fontWeight: fw.semibold, fontFamily: "Montserrat" }}>
                     {isSyncing ? 'Syncing...' : isConnected ? 'Online' : 'Offline'}
                   </Text>
                 </View>
@@ -351,10 +342,10 @@ export default function Dashboard() {
             {/* Role Badge */}
             <View 
               className="bg-white rounded-xl px-5 py-2.5 ml-4"
-              style={{ borderWidth: 1, borderColor: "#1A1A1A" }}
+              style={{ borderWidth: 1, borderColor: colors.text }}
             >
               <Text 
-                style={{ fontSize: 18, color: "#1A1A1A", fontWeight: "600", fontFamily: "Montserrat" }}
+                style={{ fontSize: fontSize.lg, color: colors.text, fontWeight: fw.semibold, fontFamily: "Montserrat" }}
               >
                 CASHIER
               </Text>
@@ -366,7 +357,12 @@ export default function Dashboard() {
             <ActionCard
               title="Start Sale"
               gradientColors={["#EC1A52", "#9C1235"]}
-              onPress={() => router.push("/order/add-products")}
+              onPress={() => {
+                const t = Date.now();
+                (globalThis as any).__salesNavClickAt = t;
+                console.log(`[NavPerf][Sales] click at ${t}`);
+                router.push("/order/add-products");
+              }}
               disabled={!isClockedIn}
               isGrayedOut={!isClockedIn}
               height={180}
@@ -375,7 +371,7 @@ export default function Dashboard() {
             <ActionCard
               title="Resume Last Order"
               gradientColors={["#5F4BB6", "#3F328C"]}
-              onPress={() => setShowParkedOrdersModal(true)}
+              onPress={() => router.push("/sale/parked-orders")}
               disabled={!isClockedIn}
               isGrayedOut={!isClockedIn}
               badge={parkedOrders.length > 0 ? parkedOrders.length : undefined}
@@ -391,7 +387,7 @@ export default function Dashboard() {
               outline
               isGrayedOut={!isClockedIn}
               grayVariant="light"
-              icon={<MaterialCommunityIcons name="package-variant-closed" size={48} color={isClockedIn ? "#EC1A52" : "#FFFFFF"} />}
+              icon={<MaterialCommunityIcons name="package-variant-closed" size={iconSize['4xl']} color={isClockedIn ? colors.primary : colors.textWhite} />}
               onPress={async () => {
                 const poolStatus = getPoolStatus();
                 const hasIdlePrinter = poolStatus.printers.some(p => p.enabled && p.status === 'idle');
@@ -416,7 +412,7 @@ export default function Dashboard() {
               outline
               isGrayedOut={!isClockedIn}
               grayVariant="light"
-              icon={<MaterialCommunityIcons name="cash-multiple" size={48} color={isClockedIn ? "#EC1A52" : "#FFFFFF"} />}
+              icon={<MaterialCommunityIcons name="cash-multiple" size={iconSize['4xl']} color={isClockedIn ? colors.primary : colors.textWhite} />}
               onPress={() => setShowDeclareCashModal(true)}
               disabled={!isClockedIn}
               height={180}
@@ -428,7 +424,7 @@ export default function Dashboard() {
               outline
               isGrayedOut={!isClockedIn}
               grayVariant="light"
-              icon={<MaterialIcons name="payment" size={48} color={isClockedIn ? "#5F4BB6" : "#FFFFFF"} />}
+              icon={<MaterialIcons name="payment" size={iconSize['4xl']} color={isClockedIn ? "#5F4BB6" : "#FFFFFF"} />}
               onPress={() => router.push("/sale/payments-history")}
               disabled={!isClockedIn}
               height={180}
@@ -438,7 +434,7 @@ export default function Dashboard() {
           {/* Clock Status (when not clocked in) */}
           {!isClockedIn && (
             <View className="bg-amber-50 border border-amber-200 rounded-xl p-4">
-              <Text className="text-amber-700 font-medium text-center" style={{ fontSize: 16 }}>
+              <Text className="text-amber-700 font-medium text-center" style={{ fontSize: fontSize.base }}>
                 Please clock in using the Time Clock button on the right to start your shift.
               </Text>
             </View>
@@ -456,21 +452,6 @@ export default function Dashboard() {
             ]}
           />
         )}
-
-        {/* Parked Orders Modal */}
-        <ParkedOrdersModal
-          visible={showParkedOrdersModal}
-          onClose={() => setShowParkedOrdersModal(false)}
-          parkedOrders={parkedOrders}
-          onResumeOrder={(id) => {
-            setShowParkedOrdersModal(false);
-            router.push({
-              pathname: "/order/add-products",
-              params: { retrieveOrderId: id },
-            });
-          }}
-          onDeleteOrder={deleteParkedOrder}
-        />
 
         {/* Cash Management Modals */}
         <DeclareCashModal
@@ -575,12 +556,12 @@ export default function Dashboard() {
           >
             <Text 
               style={{ 
-                fontSize: 36, 
+                fontSize: fontSize['4xl'], 
                 lineHeight: 40,
                 letterSpacing: -0.72, // -2% of 36
-                fontWeight: "600", 
+                fontWeight: fw.semibold, 
                 fontFamily: "Montserrat",
-                color: "#FFFFFF"
+                color: colors.textWhite
               }}
             >
               Welcome to KHUB POS System
@@ -588,8 +569,8 @@ export default function Dashboard() {
             <View className="flex-row items-center mt-1 gap-4">
               <Text 
                 style={{ 
-                  fontSize: 18, 
-                  fontWeight: "500", 
+                  fontSize: fontSize.lg, 
+                  fontWeight: fw.medium, 
                   fontFamily: "Montserrat",
                   color: "rgba(255, 255, 255, 0.9)"
                 }}
@@ -604,10 +585,10 @@ export default function Dashboard() {
                     width: 8,
                     height: 8,
                     borderRadius: 4,
-                    backgroundColor: isConnected ? '#10B981' : '#EF4444',
+                    backgroundColor: isConnected ? '#10B981' : colors.error,
                   }}
                 />
-                <Text style={{ color: "white", fontSize: 12, fontWeight: "600", fontFamily: "Montserrat" }}>
+                <Text style={{ color: "white", fontSize: fontSize.sm, fontWeight: fw.semibold, fontFamily: "Montserrat" }}>
                   {isSyncing ? 'Syncing...' : isConnected ? 'Online' : 'Offline'}
                 </Text>
               </View>
@@ -620,7 +601,7 @@ export default function Dashboard() {
             style={{ borderWidth: 1, borderColor: "rgba(255,255,255,0.2)" }}
           >
             <Text 
-              style={{ fontSize: 18, color: "#FFFFFF", fontWeight: "600", fontFamily: "Montserrat" }}
+              style={{ fontSize: fontSize.lg, color: colors.textWhite, fontWeight: fw.semibold, fontFamily: "Montserrat" }}
             >
               ADMIN
             </Text>
@@ -635,14 +616,14 @@ export default function Dashboard() {
               <TouchableOpacity
                 onPress={() => setShowDatePicker(true)}
                 className="rounded-lg px-4 py-3"
-                style={{ backgroundColor: '#fff', borderWidth: 1, borderColor: '#E5E7EB', minWidth: 260, flexShrink: 1 }}
+                style={{ backgroundColor: '#fff', borderWidth: 1, borderColor: colors.border, minWidth: 260, flexShrink: 1 }}
               >
                 <View className="flex-row items-center justify-between">
                   <View className="flex-row items-center gap-2">
-                    <Ionicons name="calendar-outline" size={18} color="#4B5563" />
-                    <Text style={{ fontSize: 14, color: '#1F2937', fontWeight: '600', fontFamily: 'Montserrat' }}>{dateRangeLabel}</Text>
+                    <Ionicons name="calendar-outline" size={iconSize.md} color="#4B5563" />
+                    <Text style={{ fontSize: fontSize.md, color: colors.textDark, fontWeight: fw.semibold, fontFamily: 'Montserrat' }}>{dateRangeLabel}</Text>
                   </View>
-                  <Ionicons name="chevron-down" size={14} color="#9CA3AF" />
+                  <Ionicons name="chevron-down" size={iconSize.xs} color={colors.textTertiary} />
                 </View>
               </TouchableOpacity>
 
@@ -650,11 +631,11 @@ export default function Dashboard() {
               <TouchableOpacity
                 onPress={() => setShowChannelPicker(true)}
                 className="flex-row items-center rounded-lg px-4 py-3 gap-2"
-                style={{ backgroundColor: '#fff', borderWidth: 1, borderColor: '#E5E7EB' }}
+                style={{ backgroundColor: '#fff', borderWidth: 1, borderColor: colors.border }}
               >
-                <Ionicons name="storefront-outline" size={18} color="#4B5563" />
-                <Text style={{ fontSize: 14, color: '#1F2937', fontWeight: '500', fontFamily: 'Montserrat' }}>{channelLabel}</Text>
-                <Ionicons name="chevron-down" size={14} color="#9CA3AF" />
+                <Ionicons name="storefront-outline" size={iconSize.md} color="#4B5563" />
+                <Text style={{ fontSize: fontSize.md, color: colors.textDark, fontWeight: fw.medium, fontFamily: 'Montserrat' }}>{channelLabel}</Text>
+                <Ionicons name="chevron-down" size={iconSize.xs} color={colors.textTertiary} />
               </TouchableOpacity>
             </View>
           </View>
@@ -668,21 +649,21 @@ export default function Dashboard() {
                 title="Total Sale/Revenue"
                 value={formatCurrency(stats.totalRevenue)}
                 subtitle={`${stats.orderCount} orders`}
-                icon={<Ionicons name="pricetag" size={40} color="white" />}
+                icon={<Ionicons name="pricetag" size={iconSize['3xl']} color="white" />}
                 variant="green"
                 height={180}
               />
               <StatCard
                 title="Paid Amount"
                 value={formatCurrency(stats.paidAmount)}
-                icon={<FontAwesome5 name="coins" size={36} color="white" />}
+                icon={<FontAwesome5 name="coins" size={iconSize['3xl']} color="white" />}
                 variant="teal"
                 height={180}
               />
               <StatCard
                 title="Payable Amount"
                 value={formatCurrency(stats.payableAmount)}
-                icon={<Ionicons name="cart" size={40} color="white" />}
+                icon={<Ionicons name="cart" size={iconSize['3xl']} color="white" />}
                 variant="yellow"
                 height={180}
               />
@@ -693,21 +674,21 @@ export default function Dashboard() {
                 title="Receivable Amount"
                 value={formatCurrency(stats.receivableAmount)}
                 subtitle={`${stats.customerCount} customers`}
-                icon={<MaterialCommunityIcons name="cash-multiple" size={40} color="white" />}
+                icon={<MaterialCommunityIcons name="cash-multiple" size={iconSize['3xl']} color="white" />}
                 variant="blue"
                 height={180}
               />
               <StatCard
                 title="Pickup Orders"
                 value={String(stats.pickupOrdersCount)}
-                icon={<MaterialCommunityIcons name="shopping" size={40} color="white" />}
+                icon={<MaterialCommunityIcons name="shopping" size={iconSize['3xl']} color="white" />}
                 variant="purple"
                 height={180}
               />
               <StatCard
                 title="Delivery Orders"
                 value={String(stats.deliveryOrdersCount)}
-                icon={<MaterialCommunityIcons name="truck-delivery" size={40} color="white" />}
+                icon={<MaterialCommunityIcons name="truck-delivery" size={iconSize['3xl']} color="white" />}
                 variant="red"
                 height={180}
               />
@@ -720,29 +701,43 @@ export default function Dashboard() {
           <ActionCard
             title="Product Catalog"
             backgroundColor="#3B82F6"
-            icon={<Ionicons name="cube-outline" size={40} color="white" />}
-            onPress={() => router.push("/catalog/products")}
+            icon={<Ionicons name="cube-outline" size={iconSize['3xl']} color="white" />}
+            onPress={() => {
+              console.log(`[NavPerf] Product Catalog clicked at ${Date.now()}`);
+              router.push("/catalog/products");
+            }}
             height={180}
           />
           <ActionCard
             title="Inventory"
             backgroundColor="#10B981"
-            icon={<Ionicons name="layers-outline" size={40} color="white" />}
-            onPress={() => router.push("/inventory/stocks")}
+            icon={<Ionicons name="layers-outline" size={iconSize['3xl']} color="white" />}
+            onPress={() => {
+              console.log(`[NavPerf] Inventory clicked at ${Date.now()}`);
+              router.push("/inventory/stocks");
+            }}
             height={180}
           />
           <ActionCard
             title="Sales"
             backgroundColor="#8B5CF6"
-            icon={<Ionicons name="cart-outline" size={40} color="white" />}
-            onPress={() => router.push("/order/add-products")}
+            icon={<Ionicons name="cart-outline" size={iconSize['3xl']} color="white" />}
+            onPress={() => {
+              const t = Date.now();
+              (globalThis as any).__salesNavClickAt = t;
+              console.log(`[NavPerf][Sales] click at ${t}`);
+              router.push("/order/add-products");
+            }}
             height={180}
           />
           <ActionCard
             title="Report"
             backgroundColor="#F59E0B"
-            icon={<Ionicons name="bar-chart-outline" size={40} color="white" />}
-            onPress={() => router.push("/sale/reports")}
+            icon={<Ionicons name="bar-chart-outline" size={iconSize['3xl']} color="white" />}
+            onPress={() => {
+              console.log(`[NavPerf] Report clicked at ${Date.now()}`);
+              router.push("/sale/reports");
+            }}
             height={180}
           />
         </View>
@@ -779,7 +774,7 @@ export default function Dashboard() {
       >
         <Pressable 
           className="flex-1 justify-center items-center"
-          style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}
+          style={{ backgroundColor: colors.overlay }}
           onPress={() => setShowChannelPicker(false)}
         >
           <Pressable 
@@ -787,7 +782,7 @@ export default function Dashboard() {
             style={{ width: 360, maxWidth: '90%', maxHeight: '70%' }}
             onPress={() => {}}
           >
-            <Text className="font-bold mb-4" style={{ fontSize: 18, color: '#1F2937' }}>
+            <Text className="font-bold mb-4" style={{ fontSize: fontSize.lg, color: colors.textDark }}>
               Select Channels
             </Text>
             
@@ -796,19 +791,19 @@ export default function Dashboard() {
               onPress={selectAllChannels}
               className="flex-row items-center py-3 px-4 rounded-lg mb-2"
               style={{
-                backgroundColor: selectedChannelIds.length === 0 ? '#EC1A52' : '#F3F4F6',
+                backgroundColor: selectedChannelIds.length === 0 ? colors.primary : colors.backgroundSecondary,
               }}
             >
               <Ionicons 
                 name={selectedChannelIds.length === 0 ? "checkmark-circle" : "ellipse-outline"} 
-                size={20} 
-                color={selectedChannelIds.length === 0 ? '#fff' : '#9CA3AF'} 
+                size={iconSize.base} 
+                color={selectedChannelIds.length === 0 ? '#fff' : colors.textTertiary} 
               />
               <Text 
                 className="ml-3 font-medium"
                 style={{ 
-                  fontSize: 15, 
-                  color: selectedChannelIds.length === 0 ? '#fff' : '#374151' 
+                  fontSize: fontSize.md, 
+                  color: selectedChannelIds.length === 0 ? '#fff' : colors.textMedium 
                 }}
               >
                 All Channels
@@ -825,25 +820,25 @@ export default function Dashboard() {
                     onPress={() => toggleChannel(ch.id)}
                     className="flex-row items-center py-3 px-4 rounded-lg mb-2"
                     style={{
-                      backgroundColor: isSelected ? '#EFF6FF' : '#F3F4F6',
+                      backgroundColor: isSelected ? '#EFF6FF' : colors.backgroundSecondary,
                       borderWidth: isSelected ? 1 : 0,
-                      borderColor: '#3B82F6',
+                      borderColor: colors.info,
                     }}
                   >
                     <Ionicons 
                       name={isSelected ? "checkmark-circle" : "ellipse-outline"} 
-                      size={20} 
-                      color={isSelected ? '#3B82F6' : '#9CA3AF'} 
+                      size={iconSize.base} 
+                      color={isSelected ? colors.info : colors.textTertiary} 
                     />
                     <Text 
                       className="ml-3 font-medium"
-                      style={{ fontSize: 15, color: isSelected ? '#1D4ED8' : '#374151' }}
+                      style={{ fontSize: fontSize.md, color: isSelected ? '#1D4ED8' : colors.textMedium }}
                     >
                       {ch.name}
                     </Text>
                     {ch.is_primary === 1 && (
                       <View className="ml-2 bg-green-100 rounded-full px-2 py-0.5">
-                        <Text style={{ fontSize: 11, color: '#059669' }}>Primary</Text>
+                        <Text style={{ fontSize: fontSize.xs, color: '#059669' }}>Primary</Text>
                       </View>
                     )}
                   </TouchableOpacity>
@@ -854,9 +849,9 @@ export default function Dashboard() {
             <TouchableOpacity
               onPress={() => setShowChannelPicker(false)}
               className="mt-3 py-3 items-center rounded-lg"
-              style={{ backgroundColor: '#EC1A52' }}
+              style={{ backgroundColor: colors.primary }}
             >
-              <Text style={{ fontSize: 15, color: '#fff', fontWeight: '600' }}>Done</Text>
+              <Text style={{ fontSize: fontSize.md, color: '#fff', fontWeight: fw.semibold }}>Done</Text>
             </TouchableOpacity>
           </Pressable>
         </Pressable>

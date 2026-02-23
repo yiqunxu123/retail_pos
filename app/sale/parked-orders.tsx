@@ -203,13 +203,13 @@ export default function ParkedOrdersScreen() {
       render: (item) => (
         <View className="flex-row gap-2">
           <Pressable
-            className="bg-red-50 p-2 rounded"
+            className="bg-red-50 p-2 rounded-lg"
             onPress={() => handleResumeOrder(item)}
           >
             <Ionicons name="play-outline" size={16} color="#EC1A52" />
           </Pressable>
           <Pressable
-            className="bg-red-50 p-2 rounded"
+            className="bg-red-50 p-2 rounded-lg"
             onPress={() => handleDeleteOrder(item)}
           >
             <Ionicons name="trash-outline" size={16} color="#EC1A52" />
@@ -246,6 +246,8 @@ export default function ParkedOrdersScreen() {
         searchHint="Search by Order No, Customer Name"
         onSearch={handleSearch}
         columnSelector
+        horizontalScroll
+        minWidth={1200}
         emptyIcon="cart-outline"
         emptyText="No parked orders found"
         totalCount={count}

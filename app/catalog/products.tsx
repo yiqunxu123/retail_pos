@@ -14,6 +14,7 @@ import {
 } from "react-native";
 import { ColumnDefinition, DataTable, PageHeader } from "../../components";
 import { ProductView, useProducts } from "../../utils/powersync/hooks";
+import { colors, iconSize } from '@/utils/theme';
 
 // ============================================================================
 // Constants
@@ -41,11 +42,11 @@ const PRODUCT_TYPE_OPTIONS = [
 // Reusable Components
 // ============================================================================
 
-function BooleanIcon({ value, size = 20 }: { value: boolean; size?: number }) {
+function BooleanIcon({ value, size = iconSize.base }: { value: boolean; size?: number }) {
   return value ? (
-    <Ionicons name="checkmark-circle" size={size} color="#22c55e" />
+    <Ionicons name="checkmark-circle" size={size} color={colors.success} />
   ) : (
-    <Ionicons name="close-circle" size={size} color="#ef4444" />
+    <Ionicons name="close-circle" size={size} color={colors.error} />
   );
 }
 
@@ -124,10 +125,10 @@ export default function ProductsScreen() {
       render: (item) => (
         <View className="flex-row items-center">
           <View className="w-10 h-10 bg-gray-100 rounded-lg items-center justify-center mr-3">
-            <Ionicons name="cube-outline" size={20} color="#9ca3af" />
+            <Ionicons name="cube-outline" size={iconSize.base} color={colors.textTertiary} />
           </View>
           <View className="flex-1">
-            <Text className="text-[#1A1A1A] text-[18px] font-Montserrat font-medium" numberOfLines={1}>
+            <Text className="text-[18px] font-Montserrat font-medium" style={{ color: colors.text }} numberOfLines={1}>
               {item.name || "-"}
             </Text>
             <Text className="text-gray-500 text-[14px] font-Montserrat">SKU: {item.sku || "-"}</Text>
@@ -140,7 +141,7 @@ export default function ProductsScreen() {
       title: "UPC",
       width: 150,
       render: (item) => (
-        <Text className="text-[#1A1A1A] text-[18px] font-Montserrat">{item.upc || "-"}</Text>
+        <Text className="text-[18px] font-Montserrat" style={{ color: colors.text }}>{item.upc || "-"}</Text>
       ),
     },
     {
@@ -148,7 +149,7 @@ export default function ProductsScreen() {
       title: "Online",
       width: 100,
       align: "center",
-      render: (item) => <BooleanIcon value={item.onlineSale} size={22} />,
+      render: (item) => <BooleanIcon value={item.onlineSale} size={iconSize.lg} />,
     },
     {
       key: "costPrice",
@@ -156,7 +157,7 @@ export default function ProductsScreen() {
       width: 100,
       align: "right",
       render: (item) => (
-        <Text className="text-[#1A1A1A] text-[18px] font-Montserrat">{formatCurrency(item.costPrice)}</Text>
+        <Text className="text-[18px] font-Montserrat" style={{ color: colors.text }}>{formatCurrency(item.costPrice)}</Text>
       ),
     },
     {
@@ -165,7 +166,7 @@ export default function ProductsScreen() {
       width: 100,
       align: "right",
       render: (item) => (
-        <Text className="text-[#1A1A1A] text-[18px] font-Montserrat">{formatCurrency(item.unitPrice)}</Text>
+        <Text className="text-[18px] font-Montserrat" style={{ color: colors.text }}>{formatCurrency(item.unitPrice)}</Text>
       ),
     },
     {
@@ -182,7 +183,7 @@ export default function ProductsScreen() {
       title: "Active",
       width: 80,
       align: "center",
-      render: (item) => <BooleanIcon value={item.isActive} size={22} />,
+      render: (item) => <BooleanIcon value={item.isActive} size={iconSize.lg} />,
     },
   ], []);
 
@@ -195,7 +196,7 @@ export default function ProductsScreen() {
   }, []);
 
   return (
-    <View className="flex-1 bg-[#F7F7F9]">
+    <View className="flex-1" style={{ backgroundColor: colors.backgroundTertiary }}>
       <PageHeader title="Products" showBack={false} />
 
       <DataTable<ProductView>
@@ -214,9 +215,6 @@ export default function ProductsScreen() {
         sortOptions={SORT_OPTIONS}
         onFiltersChange={handleFiltersChange}
         columnSelector
-        addButton
-        addButtonText="Add Product"
-        onAddPress={handleAddPress}
         isLoading={isLoading}
         isStreaming={isStreaming}
         onRefresh={refresh}

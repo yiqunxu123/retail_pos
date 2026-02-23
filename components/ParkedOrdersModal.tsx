@@ -1,5 +1,6 @@
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { Alert, Modal, ScrollView, Text, TouchableOpacity, View } from "react-native";
+import { iconSize, colors } from "@/utils/theme";
 import { ParkedOrder } from "../contexts/ParkedOrderContext";
 
 interface ParkedOrdersModalProps {
@@ -64,7 +65,7 @@ export function ParkedOrdersModal({
           <View className="flex-row justify-between items-center px-6 py-4 border-b border-gray-200">
             <View className="flex-row items-center gap-3">
               <View className="w-10 h-10 bg-yellow-100 rounded-full items-center justify-center">
-                <Ionicons name="layers" size={24} color="#F59E0B" />
+                <Ionicons name="layers" size={iconSize.xl} color={colors.warning} />
               </View>
               <View>
                 <Text className="text-xl font-semibold text-gray-800">
@@ -76,14 +77,14 @@ export function ParkedOrdersModal({
               </View>
             </View>
             <TouchableOpacity onPress={onClose}>
-              <Ionicons name="close" size={24} color="#6b7280" />
+              <Ionicons name="close" size={iconSize.xl} color={colors.textSecondary} />
             </TouchableOpacity>
           </View>
 
           {/* Content */}
           {parkedOrders.length === 0 ? (
             <View className="py-16 items-center">
-              <MaterialCommunityIcons name="clipboard-text-outline" size={64} color="#d1d5db" />
+              <MaterialCommunityIcons name="clipboard-text-outline" size={iconSize['5xl']} color={colors.borderMedium} />
               <Text className="text-gray-500 mt-4 text-center">
                 No parked orders{"\n"}
                 Orders you park will appear here
@@ -138,7 +139,7 @@ export function ParkedOrdersModal({
                       onPress={() => handleDelete(order.id)}
                       className="bg-red-100 px-2 py-1.5 rounded"
                     >
-                      <Ionicons name="trash-outline" size={14} color="#EF4444" />
+                      <Ionicons name="trash-outline" size={iconSize.xs} color={colors.error} />
                     </TouchableOpacity>
                   </View>
                 </View>
@@ -150,7 +151,8 @@ export function ParkedOrdersModal({
           <View className="px-6 py-4 border-t border-gray-200">
             <TouchableOpacity
               onPress={onClose}
-              className="bg-gray-100 rounded-lg py-3 items-center"
+              className="bg-gray-100 rounded-lg items-center justify-center"
+              style={{ height: 40 }}
             >
               <Text className="text-gray-700 font-medium">Close</Text>
             </TouchableOpacity>

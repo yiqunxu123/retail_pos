@@ -3,9 +3,13 @@
  *
  * Provides real-time synced stock/inventory data from PowerSync with
  * filtering semantics aligned to KHUB web Stocks list query.
+ *
+ * Decoupled design: main query = stocks + product/channel/category/brand only;
+ * unit prices are fetched in a separate simple query and merged in memory.
  */
 
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { powerSyncDb } from "../PowerSyncProvider";
 import { useSyncStream } from "../useSyncStream";
 
 // ============================================================================
@@ -99,9 +103,36 @@ interface CountRow {
   total_count: number | null;
 }
 
+/** Single row from unit_prices for merge (first per product_id+channel_id by unit, id) */
+interface UnitPriceRow {
+  product_id: number;
+  channel_id: number;
+  price: number | null;
+  cost: number | null;
+  base_cost: number | null;
+}
+
 export interface StocksPaginationOptions {
   page?: number;
   pageSize?: number;
+}
+
+export interface StocksPerfSnapshotMeta {
+  phase: "data" | "count";
+  query: string;
+  params: any[];
+  page: number;
+  pageSize?: number;
+  startedAtMs: number;
+  endedAtMs: number;
+  durationMs: number;
+  rowCount: number;
+  success: boolean;
+  errorMessage?: string;
+}
+
+export interface StocksPerfCallbacks {
+  onQuerySnapshotEnd?: (meta: StocksPerfSnapshotMeta) => void;
 }
 
 // ============================================================================
@@ -232,6 +263,8 @@ function buildStocksQuery(
     }
   }
 
+  // Main query: stocks + product/channel/category/brand only (no unit_prices).
+  // Prices are fetched in a separate decoupled query and merged in memory.
   const dataQuery = `
     WITH stock_by_status AS (
       SELECT
@@ -269,27 +302,9 @@ function buildStocksQuery(
       ch.name AS channel_name,
       c.name AS category_name,
       b.name AS brand_name,
-      (
-        SELECT up.price
-        FROM unit_prices up
-        WHERE up.product_id = sbs.product_id AND up.channel_id = sbs.channel_id
-        ORDER BY up.unit ASC, up.id ASC
-        LIMIT 1
-      ) AS price,
-      (
-        SELECT up.cost
-        FROM unit_prices up
-        WHERE up.product_id = sbs.product_id AND up.channel_id = sbs.channel_id
-        ORDER BY up.unit ASC, up.id ASC
-        LIMIT 1
-      ) AS cost,
-      (
-        SELECT up.base_cost
-        FROM unit_prices up
-        WHERE up.product_id = sbs.product_id AND up.channel_id = sbs.channel_id
-        ORDER BY up.unit ASC, up.id ASC
-        LIMIT 1
-      ) AS base_cost
+      NULL AS price,
+      NULL AS cost,
+      NULL AS base_cost
     FROM stock_by_status sbs
     INNER JOIN products p ON sbs.product_id = p.id
     LEFT JOIN channels ch ON sbs.channel_id = ch.id
@@ -308,19 +323,13 @@ function buildStocksQuery(
         SUM(CASE WHEN s.status NOT IN (7, 9, 10, 11) THEN s.qty ELSE 0 END) AS total_qty,
         SUM(CASE WHEN s.status = 6 THEN s.qty ELSE 0 END) AS available_qty,
         SUM(CASE WHEN s.status = 3 THEN s.qty ELSE 0 END) AS on_hold_total_qty,
-        SUM(CASE WHEN s.status = 8 THEN s.qty ELSE 0 END) AS damage_qty,
-        SUM(CASE WHEN s.status = 9 THEN s.qty ELSE 0 END) AS back_order_qty,
-        SUM(CASE WHEN s.status = 11 THEN s.qty ELSE 0 END) AS coming_soon_qty,
-        SUM(CASE WHEN s.status = 10 THEN s.qty ELSE 0 END) AS hold_free_shipment
+        SUM(CASE WHEN s.status = 8 THEN s.qty ELSE 0 END) AS damage_qty
       FROM stocks s
       GROUP BY s.product_id, s.channel_id
     )
     SELECT COUNT(*) AS total_count
     FROM stock_by_status sbs
     INNER JOIN products p ON sbs.product_id = p.id
-    LEFT JOIN channels ch ON sbs.channel_id = ch.id
-    LEFT JOIN categories c ON p.main_category_id = c.id
-    LEFT JOIN brands b ON p.brand_id = b.id
     ${whereClause}
   `;
 
@@ -328,6 +337,29 @@ function buildStocksQuery(
     dataQuery: { query: dataQuery, params: dataParams },
     countQuery: { query: countQuery, params },
   };
+}
+
+/** Build a simple query to fetch first unit_price per (product_id, channel_id) by unit, id. */
+function buildUnitPricesQueryAndParams(
+  pairs: Array<{ product_id: number; channel_id: number }>
+): { query: string; params: number[] } {
+  if (pairs.length === 0) {
+    return { query: "SELECT NULL AS product_id, NULL AS channel_id, NULL AS price, NULL AS cost, NULL AS base_cost WHERE 0", params: [] };
+  }
+  const conditions = pairs.map(() => "(product_id = ? AND channel_id = ?)").join(" OR ");
+  const params = pairs.flatMap((p) => [p.product_id, p.channel_id]);
+  const query = `SELECT product_id, channel_id, price, cost, base_cost FROM unit_prices WHERE ${conditions} ORDER BY product_id, channel_id, unit ASC, id ASC`;
+  return { query, params };
+}
+
+/** Take first row per (product_id, channel_id) from ordered unit price rows. */
+function firstUnitPricePerPair(rows: UnitPriceRow[]): Map<string, { price: number | null; cost: number | null; base_cost: number | null }> {
+  const map = new Map<string, { price: number | null; cost: number | null; base_cost: number | null }>();
+  for (const r of rows) {
+    const key = `${r.product_id}-${r.channel_id}`;
+    if (!map.has(key)) map.set(key, { price: r.price, cost: r.cost, base_cost: r.base_cost });
+  }
+  return map;
 }
 
 // ============================================================================
@@ -386,10 +418,14 @@ function toStockView(db: StockJoinRow): StockView {
 // Hooks
 // ============================================================================
 
-/** Get all stocks with product info and web-aligned filter semantics */
+/** Get all stocks with product info and web-aligned filter semantics.
+ *  Uses client-side pagination: SQL fetches ALL matching rows once,
+ *  then slicing happens in-memory so page changes are instant (~10ms). */
 export function useStocks(
   filters: StocksQueryFilters = {},
-  pagination?: StocksPaginationOptions
+  pagination?: StocksPaginationOptions,
+  perfCallbacks?: StocksPerfCallbacks,
+  streamOptions?: { deferInteractions?: boolean }
 ) {
   const pageSize =
     typeof pagination?.pageSize === "number" && pagination.pageSize > 0
@@ -399,28 +435,75 @@ export function useStocks(
     typeof pagination?.page === "number" && pagination.page > 0
       ? Math.floor(pagination.page)
       : 1;
-  const offset = pageSize ? (page - 1) * pageSize : undefined;
 
+  // No LIMIT/OFFSET in SQL — fetch all matching rows, paginate in memory
   const queryConfig = useMemo(
-    () => buildStocksQuery(filters, { limit: pageSize, offset }),
-    [filters, pageSize, offset]
+    () => buildStocksQuery(filters),
+    [filters]
   );
+
 
   const { data, isLoading, error, isStreaming, refresh } = useSyncStream<StockJoinRow>(
     queryConfig.dataQuery.query,
     queryConfig.dataQuery.params,
-    { keepPreviousData: false }
-  );
-  const { data: countRows } = useSyncStream<CountRow>(
-    queryConfig.countQuery.query,
-    queryConfig.countQuery.params
+    {
+      keepPreviousData: true,
+      deferInteractions: streamOptions?.deferInteractions,
+      onSnapshotEnd: (meta) => {
+        perfCallbacks?.onQuerySnapshotEnd?.({
+          phase: "data",
+          query: queryConfig.dataQuery.query,
+          params: queryConfig.dataQuery.params,
+          page,
+          pageSize,
+          startedAtMs: meta.startedAtMs,
+          endedAtMs: meta.endedAtMs,
+          durationMs: meta.durationMs,
+          rowCount: meta.rowCount,
+          success: meta.success,
+          errorMessage: meta.errorMessage,
+        });
+      },
+    }
   );
 
-  const stocks = useMemo(() => data.map(toStockView), [data]);
-  const count = useMemo(
-    () => toNumber(countRows[0]?.total_count ?? 0),
-    [countRows]
-  );
+  // Decoupled: fetch unit prices in a separate simple query and merge.
+  const [unitPricesMap, setUnitPricesMap] = useState<Map<string, { price: number | null; cost: number | null; base_cost: number | null }>>(new Map());
+  useEffect(() => {
+    if (data.length === 0) {
+      setUnitPricesMap(new Map());
+      return;
+    }
+    const pairs = data.map((r) => ({ product_id: r.product_id, channel_id: r.channel_id }));
+    const { query: upQuery, params: upParams } = buildUnitPricesQueryAndParams(pairs);
+    let cancelled = false;
+    powerSyncDb.getAll<UnitPriceRow>(upQuery, upParams).then((rows) => {
+      if (cancelled) return;
+      setUnitPricesMap(firstUnitPricePerPair(rows));
+    });
+    return () => { cancelled = true; };
+  }, [data]);
+
+  const mergedData = useMemo(() => {
+    if (unitPricesMap.size === 0 && data.length > 0) return data;
+    return data.map((row) => {
+      const prices = unitPricesMap.get(row.id);
+      if (!prices) return row;
+      return { ...row, price: prices.price, cost: prices.cost, base_cost: prices.base_cost };
+    });
+  }, [data, unitPricesMap]);
+
+  // All rows transformed once
+  const allStocks = useMemo(() => mergedData.map(toStockView), [mergedData]);
+
+  // Client-side pagination: slice the cached array (instant)
+  const stocks = useMemo(() => {
+    if (!pageSize) return allStocks;
+    const start = (page - 1) * pageSize;
+    return allStocks.slice(start, start + pageSize);
+  }, [allStocks, page, pageSize]);
+
+  const count = allStocks.length;
 
   return {
     stocks,

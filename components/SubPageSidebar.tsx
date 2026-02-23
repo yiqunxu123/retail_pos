@@ -1,5 +1,6 @@
 import { Ionicons, MaterialCommunityIcons, MaterialIcons } from "@expo/vector-icons";
 import { Alert, ScrollView, View } from "react-native";
+import { iconSize } from '@/utils/theme';
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useClock } from "../contexts/ClockContext";
 import { useViewMode } from "../contexts/ViewModeContext";
@@ -42,35 +43,35 @@ export function SubPageSidebar({
     if (pathname.includes("/sale/parked-orders")) {
       return {
         title: "Resume Order",
-        icon: <MaterialCommunityIcons name="play-speed" size={32} />,
+        icon: <MaterialCommunityIcons name="play-speed" size={iconSize['2xl']} />,
         variant: "purple",
         onPress: () => Alert.alert("Resume Order", "Select an order from the list to resume"),
       };
     } else if (pathname.includes("/sale/sales-return")) {
       return {
         title: "Create Sale Return",
-        icon: <MaterialIcons name="assignment-return" size={32} />,
+        icon: <MaterialIcons name="assignment-return" size={iconSize['2xl']} />,
         variant: "primary",
         onPress: () => Alert.alert("Create Sale Return", "Feature coming soon"),
       };
     } else if (pathname.includes("/sale/sales-history")) {
       return {
         title: "Add Order",
-        icon: <Ionicons name="add-circle-outline" size={32} />,
+        icon: <Ionicons name="add-circle-outline" size={iconSize['2xl']} />,
         variant: "primary",
         onPress: () => navigateTo("/order/add-products"),
       };
     } else if (pathname.includes("/sale/customers")) {
       return {
         title: "Add Customer",
-        icon: <Ionicons name="person-add-outline" size={32} />,
+        icon: <Ionicons name="person-add-outline" size={iconSize['2xl']} />,
         variant: "primary",
         onPress: () => Alert.alert("Add Customer", "Feature coming soon"),
       };
     } else if (pathname.includes("/sale/reports")) {
       return {
         title: "View Reports",
-        icon: <Ionicons name="bar-chart-outline" size={32} />,
+        icon: <Ionicons name="bar-chart-outline" size={iconSize['2xl']} />,
         variant: "primary",
         onPress: () => {},
       };
@@ -79,9 +80,9 @@ export function SubPageSidebar({
       return {
         title: isAlerts ? "Stocks" : "Stock Alerts",
         icon: isAlerts ? (
-          <MaterialCommunityIcons name="package-variant-closed" size={32} />
+          <MaterialCommunityIcons name="package-variant-closed" size={iconSize['2xl']} />
         ) : (
-          <Ionicons name="alert-circle-outline" size={32} />
+          <Ionicons name="alert-circle-outline" size={iconSize['2xl']} />
         ),
         variant: "primary",
         onPress: () => navigateTo(isAlerts ? "/inventory/stocks" : "/inventory/stock-alerts"),
@@ -89,21 +90,21 @@ export function SubPageSidebar({
     } else if (pathname.includes("/catalog")) {
       return {
         title: "Add Product",
-        icon: <Ionicons name="add-circle-outline" size={32} />,
+        icon: <Ionicons name="add-circle-outline" size={iconSize['2xl']} />,
         variant: "primary",
         onPress: () => navigateTo("/catalog/add-product"),
       };
     } else if (pathname.includes("/sale/fulfillments")) {
       return {
         title: "Fulfillments",
-        icon: <MaterialCommunityIcons name="truck-delivery-outline" size={32} />,
+        icon: <MaterialCommunityIcons name="truck-delivery-outline" size={iconSize['2xl']} />,
         variant: "primary",
         onPress: () => {},
       };
     } else if (pathname.includes("/sale/payments-history")) {
       return {
         title: "Payments",
-        icon: <Ionicons name="card-outline" size={32} />,
+        icon: <Ionicons name="card-outline" size={iconSize['2xl']} />,
         variant: "primary",
         onPress: () => {},
       };
@@ -112,7 +113,7 @@ export function SubPageSidebar({
     // Default: no special dynamic button, show "Add Order"
     return {
       title: "Add Order",
-      icon: <Ionicons name="add-circle-outline" size={32} />,
+      icon: <Ionicons name="add-circle-outline" size={iconSize['2xl']} />,
       variant: "primary",
       onPress: () => navigateTo("/order/add-products"),
     };
@@ -142,7 +143,7 @@ export function SubPageSidebar({
           {isClockedIn ? (
             <SidebarButton
               title="Time Clock"
-              icon={<Ionicons name="time-outline" size={32} />}
+              icon={<Ionicons name="time-outline" size={iconSize['2xl']} />}
               variant="secondary"
               onPress={onClockInPress}
               fullWidth={false}
@@ -150,7 +151,7 @@ export function SubPageSidebar({
           ) : (
             <SidebarButton
               title="Time Clock"
-              icon={<Ionicons name="time-outline" size={32} />}
+              icon={<Ionicons name="time-outline" size={iconSize['2xl']} />}
               onPress={onClockInPress}
               onLongPress={onClockInLongPress}
               variant="primary"
@@ -159,7 +160,7 @@ export function SubPageSidebar({
           )}
           <SidebarButton
             title="Change User"
-            icon={<MaterialCommunityIcons name="account-switch" size={32} />}
+            icon={<MaterialCommunityIcons name="account-switch" size={iconSize['2xl']} />}
             onPress={handleChangeUser}
             variant="outline"
             fullWidth={false}
@@ -177,7 +178,7 @@ export function SubPageSidebar({
         {/* Print Invoice */}
         <SidebarButton
           title="Print Invoice"
-          icon={<MaterialCommunityIcons name="printer" size={32} />}
+          icon={<MaterialCommunityIcons name="printer" size={iconSize['2xl']} />}
           variant="yellow"
           onPress={() => Alert.alert("Print Invoice", "Feature coming soon")}
         />
@@ -185,7 +186,7 @@ export function SubPageSidebar({
         {/* View Invoice */}
         <SidebarButton
           title="View Invoice"
-          icon={<MaterialCommunityIcons name="text-box-check-outline" size={32} />}
+          icon={<MaterialCommunityIcons name="text-box-check-outline" size={iconSize['2xl']} />}
           variant="outline"
           onPress={() => Alert.alert("View Invoice", "Feature coming soon")}
         />
@@ -193,7 +194,7 @@ export function SubPageSidebar({
         {/* Edit Order */}
         <SidebarButton
           title="Edit Order"
-          icon={<MaterialCommunityIcons name="square-edit-outline" size={32} />}
+          icon={<MaterialCommunityIcons name="square-edit-outline" size={iconSize['2xl']} />}
           variant="secondary"
           onPress={() => Alert.alert("Edit Order", "Feature coming soon")}
         />
@@ -201,7 +202,7 @@ export function SubPageSidebar({
         {/* Clock out */}
         <SidebarButton
           title="Clock out"
-          icon={<MaterialCommunityIcons name="logout" size={32} />}
+          icon={<MaterialCommunityIcons name="logout" size={iconSize['2xl']} />}
           variant="outline"
           onPress={onClockOutPress}
         />
@@ -209,7 +210,7 @@ export function SubPageSidebar({
         {/* Exit Program */}
         <SidebarButton
           title="Exit Program"
-          icon={<Ionicons name="close-circle-outline" size={32} />}
+          icon={<Ionicons name="close-circle-outline" size={iconSize['2xl']} />}
           variant="danger"
           onPress={() => Alert.alert("Exit", "This would exit the POS application")}
         />

@@ -143,10 +143,10 @@ export default function SalesReturnScreen() {
       hideable: false,
       render: () => (
         <View className="flex-row gap-2">
-          <Pressable className="bg-red-50 p-2 rounded">
+          <Pressable className="bg-red-50 p-2 rounded-lg">
             <Ionicons name="print-outline" size={16} color="#EC1A52" />
           </Pressable>
-          <Pressable className="bg-red-50 p-2 rounded">
+          <Pressable className="bg-red-50 p-2 rounded-lg">
             <Ionicons name="eye-outline" size={16} color="#EC1A52" />
           </Pressable>
         </View>
@@ -200,6 +200,8 @@ export default function SalesReturnScreen() {
         filters={filters}
         onFilter={handleFilter}
         columnSelector
+        horizontalScroll
+        minWidth={1320}
         emptyIcon="return-down-back-outline"
         emptyText="No returns found"
         totalCount={SAMPLE_RETURNS.length}

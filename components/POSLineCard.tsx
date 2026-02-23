@@ -1,5 +1,6 @@
 import { View, Text, Pressable } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { iconSize, colors } from "@/utils/theme";
 
 interface POSLineCardProps {
   lineNumber: number;
@@ -27,9 +28,9 @@ export function POSLineCard({
 }: POSLineCardProps) {
   // Determine border color based on state
   const getBorderColor = () => {
-    if (isActive) return "#22c55e"; // green
-    if (isSelected) return "#3b82f6"; // blue
-    return "#9ca3af"; // gray
+    if (isActive) return colors.success; // green
+    if (isSelected) return colors.info; // blue
+    return colors.textTertiary; // gray
   };
 
   // Determine header background color
@@ -63,7 +64,7 @@ export function POSLineCard({
           // Active state - show order summary
           <View className="items-center">
             <View className="flex-row items-center gap-2 mb-2">
-              <Ionicons name="cart-outline" size={20} color="#6b7280" />
+              <Ionicons name="cart-outline" size={iconSize.base} color={colors.textSecondary} />
               <Text className="text-gray-600 text-sm">
                 {itemCount} {itemCount === 1 ? "item" : "items"}
               </Text>
@@ -73,13 +74,13 @@ export function POSLineCard({
         ) : isSelected ? (
           // Selected state - show check mark
           <View className="items-center">
-            <Ionicons name="checkmark-circle" size={36} color="#3b82f6" />
+            <Ionicons name="checkmark-circle" size={iconSize['2xl']} color={colors.info} />
             <Text className="text-blue-600 text-xs mt-2 font-medium">Selected</Text>
           </View>
         ) : (
           // Empty state - show placeholder
           <View className="items-center">
-            <Ionicons name="add-circle-outline" size={32} color="#d1d5db" />
+            <Ionicons name="add-circle-outline" size={iconSize['2xl']} color={colors.borderMedium} />
             <Text className="text-gray-400 text-xs mt-2">Tap to select</Text>
           </View>
         )}

@@ -294,6 +294,7 @@ export default function CustomerVelocityScreen() {
         isLoading={isLoading}
         isStreaming={isStreaming}
         onRefresh={refresh}
+        columnSelector
         ListFooterComponent={filteredData.length > 0 ? renderTableFooter : null}
         horizontalScroll
         minWidth={1040}

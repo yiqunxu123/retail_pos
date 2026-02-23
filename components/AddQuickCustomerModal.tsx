@@ -10,6 +10,7 @@ import {
   TextInput,
   View,
 } from "react-native";
+import { iconSize, colors } from "@/utils/theme";
 import {
   createQuickCustomer,
   fetchSalesReps,
@@ -345,7 +346,7 @@ export function AddQuickCustomerModal({
               className="w-8 h-8 items-center justify-center"
               style={({ pressed }) => ({ opacity: pressed ? 0.55 : 1 })}
             >
-              <Ionicons name="close" size={22} color="#4B5563" />
+              <Ionicons name="close" size={iconSize.lg} color="#4B5563" />
             </Pressable>
           </View>
 
@@ -381,7 +382,7 @@ export function AddQuickCustomerModal({
                   }`}
                   style={{ fontFamily: 'Montserrat' }}
                   placeholder="Business Name"
-                  placeholderTextColor="#9CA3AF"
+                  placeholderTextColor={colors.textTertiary}
                   value={data.business_name}
                   onChangeText={handleNameChange}
                   autoFocus={!isEditMode}
@@ -400,7 +401,7 @@ export function AddQuickCustomerModal({
                   }`}
                   style={{ fontFamily: 'Montserrat' }}
                   placeholder="Email"
-                  placeholderTextColor="#9CA3AF"
+                  placeholderTextColor={colors.textTertiary}
                   keyboardType="email-address"
                   autoCapitalize="none"
                   value={data.email || ""}
@@ -411,7 +412,7 @@ export function AddQuickCustomerModal({
             </View>
 
             {showNameDropdown && !isEditMode && (
-              <View className="border border-[#E5E7EB] rounded-lg bg-white overflow-hidden mb-3">
+              <View className="rounded-lg bg-white overflow-hidden mb-3" style={{ borderWidth: 1, borderColor: colors.border }}>
                 {nameSearchLoading ? (
                   <View style={{ paddingVertical: 12, alignItems: "center" }}>
                     <ActivityIndicator size="small" color="#E11D48" />
@@ -463,7 +464,7 @@ export function AddQuickCustomerModal({
                   }`}
                   style={{ fontFamily: 'Montserrat' }}
                   placeholder="+123 456 789"
-                  placeholderTextColor="#9CA3AF"
+                  placeholderTextColor={colors.textTertiary}
                   keyboardType="phone-pad"
                   value={data.business_phone_no || ""}
                   onChangeText={(value) => updateField("business_phone_no", value || null)}
@@ -519,18 +520,18 @@ export function AddQuickCustomerModal({
             <Pressable
               onPress={handleClose}
               disabled={isLoading}
-              className="flex-1 bg-[#F8E7EA] rounded-lg h-12 items-center justify-center"
-              style={({ pressed }) => ({ opacity: pressed ? 0.75 : 1 })}
+              className="flex-1 bg-[#F8E7EA] rounded-lg items-center justify-center"
+              style={({ pressed }) => ({ height: 40, opacity: pressed ? 0.75 : 1 })}
             >
               <Text className="text-[#CC4A66] text-xl font-semibold">Cancel</Text>
             </Pressable>
             <Pressable
               onPress={handleSave}
               disabled={!canSave}
-              className={`flex-1 rounded-lg h-12 items-center justify-center ${
+              className={`flex-1 rounded-lg items-center justify-center ${
                 canSave ? "bg-[#DF2E58]" : "bg-[#DF2E58]"
               }`}
-              style={({ pressed }) => ({ opacity: pressed && canSave ? 0.82 : 1 })}
+              style={({ pressed }) => ({ height: 40, opacity: pressed && canSave ? 0.82 : 1 })}
             >
               <Text className={canSave ? "text-white text-xl font-semibold" : "text-white font-semibold"}>
                 Save

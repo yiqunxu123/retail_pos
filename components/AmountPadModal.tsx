@@ -1,5 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
 import { Modal, Pressable, Text, View } from "react-native";
+import { colors, iconSize } from "@/utils/theme";
 
 export interface AmountPadOption {
   label: string;
@@ -68,11 +69,10 @@ export function AmountPadModal({
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
       <Pressable className="flex-1 bg-black/35 justify-center items-center" onPress={onClose}>
         <Pressable
-          className="bg-white rounded-2xl overflow-hidden border border-[#E5E7EB]"
-          style={{ width: modalWidth }}
+          className="bg-white rounded-2xl overflow-hidden" style={{ width: modalWidth, borderWidth: 1, borderColor: colors.border }}
           onPress={(e) => e.stopPropagation()}
         >
-          <View className="flex-row justify-between items-center px-5 py-3.5 border-b border-[#E5E7EB]">
+          <View className="flex-row justify-between items-center px-5 py-3.5" style={{ borderBottomWidth: 1, borderBottomColor: colors.border }}>
             <View className="flex-row items-center gap-4">
               <Text className="text-2xl font-semibold text-gray-800 flex-shrink">{title}</Text>
               {showTypeSelector && typeLabel && (
@@ -82,7 +82,7 @@ export function AmountPadModal({
                     className="flex-row items-center bg-white border border-[#D9B8C6] px-3 py-1.5 rounded-md gap-2"
                   >
                     <Text className="text-[#D53A66] text-[15px] font-medium">{typeLabel}</Text>
-                    <Ionicons name="chevron-down" size={16} color="#9CA3AF" />
+                    <Ionicons name="chevron-down" size={iconSize.sm} color={colors.textTertiary} />
                   </Pressable>
                   {showTypeDropdown && (
                     <View className="absolute top-10 left-0 bg-white border border-gray-200 rounded-lg shadow-lg z-10 min-w-[190px]">
@@ -101,7 +101,7 @@ export function AmountPadModal({
               )}
             </View>
             <Pressable onPress={onClose} style={({ pressed }) => ({ opacity: pressed ? 0.5 : 1 })}>
-              <Ionicons name="close" size={26} color="#1f2937" />
+              <Ionicons name="close" size={iconSize['2xl']} color={colors.textDark} />
             </Pressable>
           </View>
 
@@ -109,7 +109,7 @@ export function AmountPadModal({
             <View className="flex-row gap-3 mb-3">
               {summaryCards.map((card) => (
                 <View key={card.label} className="flex-1">
-                  <Text className="text-[#111827] text-[17px] font-semibold mb-2">{card.label}</Text>
+                  <Text style={{ color: colors.text }} className="text-[17px] font-semibold mb-2">{card.label}</Text>
                   <View
                     className="rounded-lg bg-[#F6F7F9] px-4 py-4 border border-[#E4E7EC] justify-center"
                     style={{
@@ -181,7 +181,7 @@ export function AmountPadModal({
                   className="bg-[#E65B22] h-16 w-full rounded-xl items-center justify-center flex-row gap-2"
                   style={({ pressed }) => ({ opacity: pressed ? 0.8 : 1 })}
                 >
-                  <Ionicons name="close-circle-outline" size={18} color="#FFFFFF" />
+                  <Ionicons name="close-circle-outline" size={iconSize.md} color="#FFFFFF" />
                   <Text className="text-white text-[17px] font-semibold">Cancel</Text>
                 </Pressable>
                 <Pressable
@@ -189,18 +189,21 @@ export function AmountPadModal({
                   className="border border-[#D9C2CC] h-16 w-full rounded-xl items-center justify-center bg-white flex-row gap-2"
                   style={({ pressed }) => ({ opacity: pressed ? 0.8 : 1 })}
                 >
-                  <Ionicons name="backspace-outline" size={18} color="#B85A7B" />
+                  <Ionicons name="backspace-outline" size={iconSize.md} color="#B85A7B" />
                   <Text className="text-[#B85A7B] text-[17px] font-semibold">Correct</Text>
                 </Pressable>
                 <Pressable
                   onPress={onConfirmAction}
-                  className={`h-16 w-full rounded-xl items-center justify-center border ${
-                    confirmDisabled ? "bg-[#D1D5DB] border-[#D1D5DB]" : "bg-[#EC1A52] border-[#D51549]"
-                  }`}
-                  style={({ pressed }) => ({ opacity: pressed ? 0.8 : 1 })}
+                  className="h-16 w-full rounded-xl items-center justify-center border"
+                  style={({ pressed }) => ({
+                    ...(confirmDisabled 
+                      ? { backgroundColor: colors.borderMedium, borderColor: colors.borderMedium } 
+                      : { backgroundColor: colors.primary, borderColor: '#D51549', borderWidth: 1 }),
+                    opacity: pressed ? 0.8 : 1,
+                  })}
                   disabled={confirmDisabled}
                 >
-                  <Text className={confirmDisabled ? "text-[#6B7280] text-[17px] font-semibold" : "text-white text-[17px] font-semibold"}>
+                  <Text className={confirmDisabled ? "text-[17px] font-semibold" : "text-white text-[17px] font-semibold"} style={confirmDisabled ? { color: colors.textSecondary } : undefined}>
                     Confirm
                   </Text>
                 </Pressable>

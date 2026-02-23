@@ -13,6 +13,7 @@ import { useCallback, useMemo } from "react";
 import { Pressable, Text, View } from "react-native";
 import { ColumnDefinition, DataTable, PageHeader } from "../../components";
 import { CustomerGroupView, useCustomerGroups } from "../../utils/powersync/hooks";
+import { colors, iconSize } from '@/utils/theme';
 
 // ============================================================================
 // Main Component
@@ -32,7 +33,7 @@ export default function CustomerGroupsScreen() {
       hideable: false,
       render: (item) => (
         <View>
-          <Text className="text-[#1A1A1A] text-[18px] font-Montserrat font-medium">{item.name || "-"}</Text>
+          <Text className="text-[18px] font-Montserrat font-medium" style={{ color: colors.text }}>{item.name || "-"}</Text>
           {item.description && (
             <Text className="text-gray-500 text-[14px] font-Montserrat" numberOfLines={1}>{item.description}</Text>
           )}
@@ -53,7 +54,7 @@ export default function CustomerGroupsScreen() {
       width: 140,
       align: "center",
       visible: true,
-      render: (item) => <Text className="text-[#1A1A1A] text-[18px] font-Montserrat font-bold">{item.customerCount}</Text>,
+      render: (item) => <Text className="text-[18px] font-Montserrat font-bold" style={{ color: colors.text }}>{item.customerCount}</Text>,
     },
     {
       key: "products",
@@ -72,7 +73,7 @@ export default function CustomerGroupsScreen() {
       hideable: false,
       render: () => (
         <Pressable>
-          <Ionicons name="ellipsis-horizontal" size={24} color="#9ca3af" />
+          <Ionicons name="ellipsis-horizontal" size={iconSize.xl} color={colors.textTertiary} />
         </Pressable>
       ),
     },
@@ -105,7 +106,7 @@ export default function CustomerGroupsScreen() {
   }, []);
 
   return (
-    <View className="flex-1 bg-[#F7F7F9]">
+    <View className="flex-1" style={{ backgroundColor: colors.backgroundTertiary }}>
       <PageHeader title="Customer Groups" showBack={false} />
 
       <DataTable<CustomerGroupView>

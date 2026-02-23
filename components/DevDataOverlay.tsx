@@ -13,6 +13,7 @@
 
 import { Ionicons } from "@expo/vector-icons";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { fontSize, fontWeight, colors, iconSize } from '@/utils/theme';
 import {
     ActivityIndicator,
     Alert,
@@ -328,8 +329,8 @@ export function DevDataOverlay({ tables, defaultTable }: DevDataOverlayProps) {
             }
           }}
         >
-          <Ionicons name="bug-outline" size={18} color="#22D3EE" />
-          <Text style={{ color: "#22D3EE", fontSize: 8, fontWeight: "900", letterSpacing: 1.5, marginTop: 1 }}>DEV</Text>
+          <Ionicons name="bug-outline" size={iconSize.md} color="#22D3EE" />
+          <Text style={{ color: "#22D3EE", fontSize: fontSize.xs, fontWeight: fontWeight.bold, letterSpacing: 1.5, marginTop: 1 }}>DEV</Text>
         </Pressable>
       </Animated.View>
 
@@ -352,9 +353,9 @@ export function DevDataOverlay({ tables, defaultTable }: DevDataOverlayProps) {
         <View style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.85)", justifyContent: "center", alignItems: "center" }}>
           <View style={{ backgroundColor: "#FFF", borderRadius: 12, padding: 16, maxWidth: "90%", maxHeight: "85%", alignItems: "center" }}>
             <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", width: "100%", marginBottom: 12 }}>
-              <Text style={{ fontSize: 16, fontWeight: "700", color: "#111" }}>Receipt Preview</Text>
+              <Text style={{ fontSize: fontSize.base, fontWeight: fontWeight.bold, color: "#111" }}>Receipt Preview</Text>
               <Pressable onPress={() => setShowReceiptPreview(false)}>
-                <Ionicons name="close-circle" size={24} color="#9CA3AF" />
+                <Ionicons name="close-circle" size={iconSize.xl} color={colors.textTertiary} />
               </Pressable>
             </View>
             {receiptImageUri && (
@@ -366,7 +367,7 @@ export function DevDataOverlay({ tables, defaultTable }: DevDataOverlayProps) {
                 />
               </ScrollView>
             )}
-            <Text style={{ fontSize: 11, color: "#9CA3AF", marginTop: 8 }}>
+            <Text style={{ fontSize: fontSize.xs, color: colors.textTertiary, marginTop: 8 }}>
               800px width - ~10cm thermal paper
             </Text>
           </View>
@@ -386,17 +387,17 @@ export function DevDataOverlay({ tables, defaultTable }: DevDataOverlayProps) {
             <View className="flex-row items-center justify-between px-5 py-4 border-b border-gray-200">
               <View className="flex-row items-center gap-2">
                 <View style={{ backgroundColor: "#1E1E1E", borderRadius: 4, padding: 3 }}>
-                  <Ionicons name="code-slash-outline" size={14} color="#22D3EE" />
+                  <Ionicons name="code-slash-outline" size={iconSize.xs} color="#22D3EE" />
                 </View>
                 <Text className="text-lg font-semibold text-gray-800">
                   Data Test - {activeTable.label}
                 </Text>
                 <View style={{ backgroundColor: "#1E1E1E", borderRadius: 4, paddingHorizontal: 6, paddingVertical: 2 }}>
-                  <Text style={{ color: "#22D3EE", fontSize: 10, fontWeight: "700" }}>DEV ONLY</Text>
+                  <Text style={{ color: "#22D3EE", fontSize: fontSize.xs, fontWeight: fontWeight.bold }}>DEV ONLY</Text>
                 </View>
               </View>
               <Pressable onPress={() => setShowSheet(false)}>
-                <Ionicons name="close" size={22} color="#9CA3AF" />
+                <Ionicons name="close" size={iconSize.lg} color={colors.textTertiary} />
               </Pressable>
             </View>
 
@@ -420,14 +421,14 @@ export function DevDataOverlay({ tables, defaultTable }: DevDataOverlayProps) {
                   className="flex-row items-center gap-1 px-3 py-1.5 rounded-lg border border-gray-300"
                   onPress={() => setShowColPicker(!showColPicker)}
                 >
-                  <Ionicons name="options-outline" size={14} color="#374151" />
+                  <Ionicons name="options-outline" size={iconSize.xs} color={colors.textMedium} />
                   <Text className="text-gray-700 text-sm">Cols</Text>
                 </Pressable>
                 <Pressable
                   className="flex-row items-center gap-1 px-3 py-1.5 rounded-lg border border-gray-300"
                   onPress={() => loadData(activeTable)}
                 >
-                  <Ionicons name="refresh" size={14} color="#374151" />
+                  <Ionicons name="refresh" size={iconSize.xs} color={colors.textMedium} />
                   <Text className="text-gray-700 text-sm">Refresh</Text>
                 </Pressable>
                 <Pressable
@@ -437,8 +438,8 @@ export function DevDataOverlay({ tables, defaultTable }: DevDataOverlayProps) {
                   onPress={() => triggerResync(activeTable)}
                 >
                   {syncing
-                    ? <ActivityIndicator size={14} color="#3B82F6" />
-                    : <Ionicons name="cloud-download-outline" size={14} color="#3B82F6" />
+                    ? <ActivityIndicator size={iconSize.xs} color={colors.info} />
+                    : <Ionicons name="cloud-download-outline" size={iconSize.xs} color={colors.info} />
                   }
                   <Text className="text-blue-600 text-sm">{syncing ? "Syncing" : "Sync"}</Text>
                 </Pressable>
@@ -449,8 +450,8 @@ export function DevDataOverlay({ tables, defaultTable }: DevDataOverlayProps) {
                   onPress={handleReceiptTest}
                 >
                   {generatingReceipt
-                    ? <ActivityIndicator size={14} color="#16A34A" />
-                    : <Ionicons name="receipt-outline" size={14} color="#16A34A" />
+                    ? <ActivityIndicator size={iconSize.xs} color="#16A34A" />
+                    : <Ionicons name="receipt-outline" size={iconSize.xs} color="#16A34A" />
                   }
                   <Text className="text-green-700 text-sm">{generatingReceipt ? "Generating" : "Receipt"}</Text>
                 </Pressable>
@@ -485,8 +486,8 @@ export function DevDataOverlay({ tables, defaultTable }: DevDataOverlayProps) {
                   }}
                 >
                   {seeding
-                    ? <ActivityIndicator size={14} color="#EA580C" />
-                    : <Ionicons name="flask-outline" size={14} color="#EA580C" />
+                    ? <ActivityIndicator size={iconSize.xs} color="#EA580C" />
+                    : <Ionicons name="flask-outline" size={iconSize.xs} color="#EA580C" />
                   }
                   <Text className="text-orange-700 text-sm">{seeding ? "Seeding" : "Seed"}</Text>
                 </Pressable>
@@ -508,8 +509,8 @@ export function DevDataOverlay({ tables, defaultTable }: DevDataOverlayProps) {
                   }}
                 >
                   {clearing
-                    ? <ActivityIndicator size={14} color="#DC2626" />
-                    : <Ionicons name="trash-outline" size={14} color="#DC2626" />
+                    ? <ActivityIndicator size={iconSize.xs} color={colors.errorDark} />
+                    : <Ionicons name="trash-outline" size={iconSize.xs} color={colors.errorDark} />
                   }
                   <Text className="text-red-700 text-sm">{clearing ? "Clearing" : "Clear"}</Text>
                 </Pressable>
@@ -570,7 +571,7 @@ export function DevDataOverlay({ tables, defaultTable }: DevDataOverlayProps) {
                           {isSorted && (
                             <Ionicons
                               name={sortDir === "asc" ? "arrow-up" : "arrow-down"}
-                              size={12}
+                              size={iconSize.xs}
                               color="#111827"
                               style={{ marginLeft: 3 }}
                             />
@@ -605,7 +606,7 @@ export function DevDataOverlay({ tables, defaultTable }: DevDataOverlayProps) {
                         </View>
                       ) : (
                         <View className="items-center py-8">
-                          <Ionicons name="document-outline" size={28} color="#d1d5db" />
+                          <Ionicons name="document-outline" size={iconSize['2xl']} color={colors.borderMedium} />
                           <Text className="text-gray-400 mt-2">No data</Text>
                         </View>
                       )

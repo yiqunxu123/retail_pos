@@ -1,4 +1,5 @@
 import { Ionicons } from "@expo/vector-icons";
+import { colors, fontSize, fontWeight, iconSize } from '@/utils/theme';
 import React, {
   useCallback,
   useEffect,
@@ -166,7 +167,7 @@ function SearchResultCard({
       onPress={() => onSelect(customer)}
       className="border border-gray-200 rounded-lg px-3 py-2.5"
       style={({ pressed }) => ({
-        backgroundColor: pressed ? "#f4f5f6" : "#F7F7F9",
+        backgroundColor: pressed ? "#f4f5f6" : colors.backgroundTertiary,
         opacity: customer.is_active === false ? 0.55 : 1,
       })}
     >
@@ -435,7 +436,7 @@ function SearchCustomerModalImpl({
           >
             <View className="px-6 pt-8 pb-4">
               <Text
-                style={{ fontFamily: "Montserrat", fontSize: 24, fontWeight: "700", color: "#EC1A52" }}
+                style={{ fontFamily: "Montserrat", fontSize: 24, fontWeight: "700", color: colors.primary }}
               >
                 Add Customer
               </Text>
@@ -449,7 +450,7 @@ function SearchCustomerModalImpl({
                   width: 32,
                   height: 32,
                   borderRadius: 16,
-                  backgroundColor: "#EC1A52",
+                  backgroundColor: colors.primary,
                   alignItems: "center",
                   justifyContent: "center",
                   zIndex: 999,
@@ -462,7 +463,7 @@ function SearchCustomerModalImpl({
               </TouchableOpacity>
 
               <Text
-                style={{ fontFamily: "Montserrat", fontSize: 16, fontWeight: "600", color: "#1A1A1A", marginTop: 12 }}
+                style={{ fontFamily: "Montserrat", fontSize: 16, fontWeight: "600", color: colors.text, marginTop: 12 }}
               >
                 Search for Customer by:
               </Text>
@@ -480,13 +481,13 @@ function SearchCustomerModalImpl({
 
                 return (
                   <View key={field.key} style={{ zIndex: field.zIndex, marginBottom: 14 }}>
-                    <View className="flex-row items-center bg-white border border-[#E5E7EB] rounded-lg px-3 py-3 shadow-sm">
-                      <Ionicons name={field.icon} size={22} color="#9CA3AF" />
+                    <View className="flex-row items-center bg-white rounded-lg px-3 py-3 shadow-sm" style={{ borderWidth: 1, borderColor: colors.border }}>
+                      <Ionicons name={field.icon} size={22} color={colors.textTertiary} />
                       <TextInput
                         className="flex-1 ml-3 text-gray-800 text-[16px]"
                         style={{ fontFamily: "Montserrat", fontWeight: "500" }}
                         placeholder={field.placeholder}
-                        placeholderTextColor="#D1D5DB"
+                        placeholderTextColor={colors.borderMedium}
                         value={searchInputs[field.key]}
                         keyboardType="default"
                         autoCapitalize="none"
@@ -497,17 +498,17 @@ function SearchCustomerModalImpl({
                         }}
                         onChangeText={(text) => handleSearch(text, field.key)}
                       />
-                      {isLoading && <ActivityIndicator size="small" color="#EC1A52" />}
+                      {isLoading && <ActivityIndicator size="small" color={colors.primary} />}
                     </View>
 
                     {showDropdown && (
                       <View
-                        className="absolute top-[52px] left-0 right-0 border border-[#E5E7EB] rounded-lg bg-white shadow-xl z-[100] overflow-hidden"
-                        style={{ maxHeight: 240 }}
+                        className="absolute top-[52px] left-0 right-0 rounded-lg bg-white shadow-xl z-[100] overflow-hidden"
+                        style={{ maxHeight: 240, borderWidth: 1, borderColor: colors.border }}
                       >
                         {isLoading ? (
                           <View style={{ paddingVertical: 16, alignItems: "center" }}>
-                            <ActivityIndicator size="small" color="#EC1A52" />
+                            <ActivityIndicator size="small" color={colors.primary} />
                           </View>
                         ) : searchResults.length > 0 ? (
                           <ScrollView nestedScrollEnabled>
@@ -525,7 +526,7 @@ function SearchCustomerModalImpl({
                           <Text
                             style={{
                               padding: 12,
-                              color: "#9CA3AF",
+                              color: colors.textTertiary,
                               fontStyle: "italic",
                               textAlign: "center",
                               fontFamily: "Montserrat",
@@ -541,7 +542,7 @@ function SearchCustomerModalImpl({
               })}
 
               <View className="mb-4">
-                <Text style={{ fontFamily: "Montserrat", fontSize: 14, fontWeight: "600", color: "#1A1A1A", marginBottom: 8 }}>
+                <Text style={{ fontFamily: "Montserrat", fontSize: 14, fontWeight: "600", color: colors.text, marginBottom: 8 }}>
                   Payment Terms:
                 </Text>
                 <Dropdown
@@ -552,26 +553,26 @@ function SearchCustomerModalImpl({
               </View>
 
               <View className="mb-4">
-                <Text style={{ fontFamily: "Montserrat", fontSize: 14, fontWeight: "600", color: "#1A1A1A", marginBottom: 8 }}>
+                <Text style={{ fontFamily: "Montserrat", fontSize: 14, fontWeight: "600", color: colors.text, marginBottom: 8 }}>
                   Invoice Due Date
                 </Text>
-                <View className="flex-row items-center justify-between bg-white border border-[#E5E7EB] rounded-lg px-3 h-12 shadow-sm">
-                  <Text style={{ fontFamily: "Montserrat", color: "#1A1A1A", fontSize: 16 }}>
+                <View className="flex-row items-center justify-between bg-white rounded-lg px-3 h-12 shadow-sm" style={{ borderWidth: 1, borderColor: colors.border }}>
+                  <Text style={{ fontFamily: "Montserrat", color: colors.text, fontSize: 16 }}>
                     {orderSettings?.invoiceDueDate || "DD/MM/YYYY"}
                   </Text>
-                  <Ionicons name="calendar-outline" size={20} color="#9CA3AF" />
+                  <Ionicons name="calendar-outline" size={20} color={colors.textTertiary} />
                 </View>
               </View>
 
               <View className="mb-4">
-                <Text style={{ fontFamily: "Montserrat", fontSize: 14, fontWeight: "600", color: "#1A1A1A", marginBottom: 8 }}>
+                <Text style={{ fontFamily: "Montserrat", fontSize: 14, fontWeight: "600", color: colors.text, marginBottom: 8 }}>
                   Order Number:
                 </Text>
                 <TextInput
-                  className="bg-white border border-[#E5E7EB] rounded-lg px-3 h-12 text-gray-800 shadow-sm mb-3 text-[16px]"
-                  style={{ fontFamily: "Montserrat" }}
+                  className="bg-white rounded-lg px-3 h-12 text-gray-800 shadow-sm mb-3 text-[16px]"
+                  style={{ fontFamily: "Montserrat", borderWidth: 1, borderColor: colors.border }}
                   placeholder="Enter Order Number"
-                  placeholderTextColor="#D1D5DB"
+                  placeholderTextColor={colors.borderMedium}
                   value={orderSettings?.orderNumber || ""}
                   editable={!autoGenerate}
                   onChangeText={(value) =>
@@ -584,19 +585,20 @@ function SearchCustomerModalImpl({
                 >
                   <View
                     className={`w-5 h-5 rounded border items-center justify-center ${
-                      autoGenerate ? "border-[#EC1A52] bg-[#EC1A52]" : "border-gray-300"
+                      autoGenerate ? "" : "border-gray-300"
                     }`}
+                    style={autoGenerate ? { borderColor: colors.primary, backgroundColor: colors.primary } : undefined}
                   >
                     {autoGenerate && <Ionicons name="checkmark" size={14} color="white" />}
                   </View>
-                  <Text style={{ fontFamily: "Montserrat", color: "#1A1A1A", fontSize: 14, fontWeight: "500" }}>
+                  <Text style={{ fontFamily: "Montserrat", color: colors.text, fontSize: 14, fontWeight: "500" }}>
                     Auto Generate
                   </Text>
                 </Pressable>
               </View>
 
               <View className="mb-4">
-                <Text style={{ fontFamily: "Montserrat", fontSize: 14, fontWeight: "600", color: "#1A1A1A", marginBottom: 8 }}>
+                <Text style={{ fontFamily: "Montserrat", fontSize: 14, fontWeight: "600", color: colors.text, marginBottom: 8 }}>
                   Shipping Type
                 </Text>
                 <Dropdown
@@ -608,27 +610,27 @@ function SearchCustomerModalImpl({
 
               <View className="flex-row items-center justify-between mb-4">
                 <View className="flex-row items-center gap-2">
-                  <Text style={{ fontFamily: "Montserrat", color: "#1A1A1A", fontSize: 14, fontWeight: "600" }}>
+                  <Text style={{ fontFamily: "Montserrat", color: colors.text, fontSize: 14, fontWeight: "600" }}>
                     Skip MSA Eligibility check
                   </Text>
                   <Switch
                     value={skipMsaCheck}
                     onValueChange={setSkipMsaCheck}
-                    trackColor={{ false: "#E5E7EB", true: "#EC1A52" }}
+                    trackColor={{ false: colors.border, true: colors.primary }}
                     thumbColor="white"
                   />
                 </View>
               </View>
 
               <View className="mb-4">
-                <Text style={{ fontFamily: "Montserrat", fontSize: 14, fontWeight: "600", color: "#1A1A1A", marginBottom: 8 }}>
+                <Text style={{ fontFamily: "Montserrat", fontSize: 14, fontWeight: "600", color: colors.text, marginBottom: 8 }}>
                   Notes (Internal)
                 </Text>
                 <TextInput
-                  className="bg-white border border-[#E5E7EB] rounded-lg px-3 py-3 text-gray-800 min-h-[100px] shadow-sm"
-                  style={{ fontFamily: "Montserrat", textAlignVertical: "top" }}
+                  className="bg-white rounded-lg px-3 py-3 text-gray-800 min-h-[100px] shadow-sm"
+                  style={{ fontFamily: "Montserrat", textAlignVertical: "top", borderWidth: 1, borderColor: colors.border }}
                   placeholder="Notes"
-                  placeholderTextColor="#D1D5DB"
+                  placeholderTextColor={colors.borderMedium}
                   value={orderSettings?.notesInternal || ""}
                   onChangeText={(value) =>
                     onOrderSettingsChange?.({ ...orderSettings, notesInternal: value })
@@ -638,14 +640,14 @@ function SearchCustomerModalImpl({
               </View>
 
               <View className="mb-4">
-                <Text style={{ fontFamily: "Montserrat", fontSize: 14, fontWeight: "600", color: "#1A1A1A", marginBottom: 8 }}>
+                <Text style={{ fontFamily: "Montserrat", fontSize: 14, fontWeight: "600", color: colors.text, marginBottom: 8 }}>
                   Notes (Print on Invoice)
                 </Text>
                 <TextInput
-                  className="bg-white border border-[#E5E7EB] rounded-lg px-3 py-3 text-gray-800 min-h-[100px] shadow-sm"
-                  style={{ fontFamily: "Montserrat", textAlignVertical: "top" }}
+                  className="bg-white rounded-lg px-3 py-3 text-gray-800 min-h-[100px] shadow-sm"
+                  style={{ fontFamily: "Montserrat", textAlignVertical: "top", borderWidth: 1, borderColor: colors.border }}
                   placeholder="Notes"
-                  placeholderTextColor="#D1D5DB"
+                  placeholderTextColor={colors.borderMedium}
                   value={orderSettings?.notesInvoice || ""}
                   onChangeText={(value) =>
                     onOrderSettingsChange?.({ ...orderSettings, notesInvoice: value })
@@ -664,18 +666,20 @@ function SearchCustomerModalImpl({
                   setQuickModalCustomerId(null);
                   setShowQuickCustomerModal(true);
                 }}
-                className="flex-1 bg-[#FFF0F3] rounded-xl h-[208px] items-center justify-center flex-row gap-3"
+                className="flex-1 rounded-xl h-[208px] items-center justify-center flex-row gap-3"
+                style={{ backgroundColor: colors.primaryLight }}
                 activeOpacity={0.7}
               >
-                <Ionicons name="add" size={40} color="#EC1A52" />
-                <Text style={{ fontFamily: "Montserrat", color: "#EC1A52", fontSize: 20, fontWeight: "700" }}>
+                <Ionicons name="add" size={40} color={colors.primary} />
+                <Text style={{ fontFamily: "Montserrat", color: colors.primary, fontSize: 20, fontWeight: "700" }}>
                   Add New Customer
                 </Text>
               </TouchableOpacity>
 
               <TouchableOpacity
                 onPress={handleDismiss}
-                className="flex-1 bg-[#EC1A52] rounded-xl h-[208px] items-center justify-center shadow-lg shadow-[#EC1A52]/30"
+                className="flex-1 rounded-xl h-[208px] items-center justify-center shadow-lg"
+                style={{ backgroundColor: colors.primary }}
                 activeOpacity={0.8}
               >
                 <Text style={{ fontFamily: "Montserrat", color: "white", fontSize: 20, fontWeight: "700" }}>

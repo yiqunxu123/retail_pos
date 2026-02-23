@@ -3,6 +3,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as NavigationBar from "expo-navigation-bar";
 import { Slot, usePathname, useRouter } from "expo-router";
 import { useEffect, useRef, useState } from "react";
+import { fontSize, fontWeight, colors, iconSize } from '@/utils/theme';
 import {
   ActivityIndicator,
   Animated,
@@ -112,14 +113,12 @@ function LayoutContent() {
   const isDashboard = pathname === "/" || pathname === "/index";
 
   // Check if we're on screens that have their OWN sidebar (hide global sidebar)
-  const isPosLineScreen = pathname === "/pos-line";
   // Only add-products has its own action sidebar; other order pages get the global sidebar
   const isOrderAddProductsScreen = pathname === "/order/add-products";
   const isOrderAddCustomerScreen = pathname === "/order/add-customer";
   
   // Hide global sidebar ONLY for pages that provide their own sidebar/action panel
   const hideSidebar =
-    isPosLineScreen ||
     isOrderAddProductsScreen ||
     isOrderAddCustomerScreen;
 
@@ -317,8 +316,8 @@ function DevToolsFab() {
           }
         }}
       >
-        <Ionicons name="bug-outline" size={18} color="#22D3EE" />
-        <Text style={{ color: "#22D3EE", fontSize: 8, fontWeight: "900", letterSpacing: 1.5, marginTop: 1 }}>DEV</Text>
+        <Ionicons name="bug-outline" size={iconSize.md} color="#22D3EE" />
+        <Text style={{ color: "#22D3EE", fontSize: fontSize.md, fontWeight: fontWeight.bold, letterSpacing: 1.5, marginTop: 1 }}>DEV</Text>
       </Pressable>
     </Animated.View>
   );

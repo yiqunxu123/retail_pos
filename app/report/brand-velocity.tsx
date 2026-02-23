@@ -275,6 +275,7 @@ export default function BrandVelocityReportScreen() {
         isLoading={isLoading}
         isStreaming={isStreaming}
         onRefresh={refresh}
+        columnSelector
         ListFooterComponent={filteredReports.length > 0 ? renderTableFooter : null}
         horizontalScroll
         minWidth={1020}

@@ -9,6 +9,7 @@
 
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons'
 import { useLocalSearchParams, useRouter } from 'expo-router'
+import { iconSize } from '@/utils/theme'
 import { useCallback, useEffect, useState } from 'react'
 import {
     ActivityIndicator,
@@ -149,7 +150,7 @@ function TabButton({
     >
       <Ionicons
         name={icon as any}
-        size={18}
+        size={iconSize.md}
         color={isActive ? '#3b82f6' : '#9ca3af'}
       />
       <Text
@@ -189,7 +190,7 @@ function TableSelector({
         </Text>
         <Ionicons
           name={isOpen ? 'chevron-up' : 'chevron-down'}
-          size={18}
+          size={iconSize.md}
           color="#6b7280"
         />
       </TouchableOpacity>
@@ -322,7 +323,7 @@ function GenerateTab({ initialTable }: { initialTable?: string }) {
           {isGenerating ? (
             <ActivityIndicator size="small" color="white" />
           ) : (
-            <Ionicons name="add-circle" size={18} color="white" />
+            <Ionicons name="add-circle" size={iconSize.md} color="white" />
           )}
           <Text className="text-white font-medium">Generate</Text>
         </TouchableOpacity>
@@ -639,14 +640,14 @@ function BrowseTab({ initialTable }: { initialTable?: string }) {
           onPress={() => handleEditRow(item)}
           className="px-2 py-1"
         >
-          <Ionicons name="pencil-outline" size={16} color="#3b82f6" />
+          <Ionicons name="pencil-outline" size={iconSize.sm} color="#3b82f6" />
         </TouchableOpacity>
         {/* Delete button */}
         <TouchableOpacity
           onPress={() => handleDeleteRow(item.id)}
           className="px-2 py-1"
         >
-          <Ionicons name="trash-outline" size={16} color="#ef4444" />
+          <Ionicons name="trash-outline" size={iconSize.sm} color="#ef4444" />
         </TouchableOpacity>
       </View>
     ),
@@ -677,13 +678,13 @@ function BrowseTab({ initialTable }: { initialTable?: string }) {
             {/* Modal title */}
             <View className="flex-row justify-between items-center px-5 py-4 border-b border-gray-200 bg-gray-50">
               <View className="flex-row items-center gap-2">
-                <Ionicons name="pencil" size={18} color="#3b82f6" />
+                <Ionicons name="pencil" size={iconSize.md} color="#3b82f6" />
                 <Text className="text-lg font-semibold text-gray-800">
                   Edit Record
                 </Text>
               </View>
               <TouchableOpacity onPress={() => setEditingRow(null)}>
-                <Ionicons name="close" size={22} color="#6b7280" />
+                <Ionicons name="close" size={iconSize.lg} color="#6b7280" />
               </TouchableOpacity>
             </View>
 
@@ -761,14 +762,14 @@ function BrowseTab({ initialTable }: { initialTable?: string }) {
           onPress={loadData}
           className="flex-row items-center gap-1 bg-blue-500 px-4 py-2 rounded-lg"
         >
-          <Ionicons name="refresh" size={16} color="white" />
+          <Ionicons name="refresh" size={iconSize.sm} color="white" />
           <Text className="text-white font-medium text-sm">Refresh</Text>
         </TouchableOpacity>
         <TouchableOpacity
           onPress={handleClearTable}
           className="flex-row items-center gap-1 bg-red-500 px-4 py-2 rounded-lg"
         >
-          <Ionicons name="trash" size={16} color="white" />
+          <Ionicons name="trash" size={iconSize.sm} color="white" />
           <Text className="text-white font-medium text-sm">Clear Table</Text>
         </TouchableOpacity>
         {message !== '' && (
@@ -830,7 +831,7 @@ function BrowseTab({ initialTable }: { initialTable?: string }) {
         className="flex-1 bg-white rounded-b-lg border border-gray-200"
         ListEmptyComponent={
           <View className="items-center py-10">
-            <Ionicons name="document-outline" size={36} color="#d1d5db" />
+            <Ionicons name="document-outline" size={iconSize['3xl']} color="#d1d5db" />
             <Text className="text-gray-400 mt-2">No data</Text>
           </View>
         }
@@ -952,7 +953,7 @@ function QuickActionsTab() {
       {/* Quantity config */}
       <View className="bg-white rounded-xl border border-gray-200 overflow-hidden mb-4">
         <View className="bg-gray-50 px-4 py-3 border-b border-gray-200 flex-row items-center gap-2">
-          <MaterialCommunityIcons name="tune-variant" size={18} color="#6b7280" />
+          <MaterialCommunityIcons name="tune-variant" size={iconSize.md} color="#6b7280" />
           <Text className="text-gray-700 font-semibold">Generation Quantity Config</Text>
         </View>
 
@@ -992,7 +993,7 @@ function QuickActionsTab() {
           {isRunning ? (
             <ActivityIndicator size="small" color="white" />
           ) : (
-            <Ionicons name="rocket" size={22} color="white" />
+            <Ionicons name="rocket" size={iconSize.lg} color="white" />
           )}
           <View className="flex-1">
             <Text className="text-white font-bold text-base">
@@ -1010,7 +1011,7 @@ function QuickActionsTab() {
             disabled={isRunning}
             className="flex-1 flex-row items-center justify-center gap-2 bg-purple-500 p-3 rounded-xl"
           >
-            <Ionicons name="stats-chart" size={18} color="white" />
+            <Ionicons name="stats-chart" size={iconSize.md} color="white" />
             <Text className="text-white font-medium">Count All Tables</Text>
           </TouchableOpacity>
 
@@ -1019,7 +1020,7 @@ function QuickActionsTab() {
             disabled={isRunning}
             className="flex-1 flex-row items-center justify-center gap-2 bg-red-500 p-3 rounded-xl"
           >
-            <Ionicons name="nuclear" size={18} color="white" />
+            <Ionicons name="nuclear" size={iconSize.md} color="white" />
             <Text className="text-white font-medium">Clear All Tables</Text>
           </TouchableOpacity>
         </View>
@@ -1150,7 +1151,7 @@ function SystemTab() {
       {/* PowerSync Section */}
       <View className="bg-white rounded-xl border border-gray-200 overflow-hidden mb-4">
         <View className="bg-gray-50 px-4 py-3 border-b border-gray-200 flex-row items-center gap-2">
-          <Ionicons name="sync" size={18} color="#6b7280" />
+          <Ionicons name="sync" size={iconSize.md} color="#6b7280" />
           <Text className="text-gray-700 font-semibold">Data Sync & PowerSync</Text>
         </View>
         
@@ -1169,7 +1170,7 @@ function SystemTab() {
             onPress={() => router.push("/test-sync")}
             className="flex-row items-center justify-center gap-2 bg-blue-500 p-4 rounded-xl"
           >
-            <Ionicons name="analytics" size={20} color="white" />
+            <Ionicons name="analytics" size={iconSize.base} color="white" />
             <Text className="text-white font-bold">Open Sync Monitor (Test Sync)</Text>
           </TouchableOpacity>
 
@@ -1186,7 +1187,7 @@ function SystemTab() {
             }}
             className="flex-row items-center justify-center gap-2 bg-red-50 border border-red-200 p-3 rounded-xl"
           >
-            <Ionicons name="refresh" size={18} color="#ef4444" />
+            <Ionicons name="refresh" size={iconSize.md} color="#ef4444" />
             <Text className="text-red-600 font-medium">Force Clear & Resync Database</Text>
           </TouchableOpacity>
         </View>
@@ -1195,7 +1196,7 @@ function SystemTab() {
       {/* Printer Section */}
       <View className="bg-white rounded-xl border border-gray-200 overflow-hidden mb-4">
         <View className="bg-gray-50 px-4 py-3 border-b border-gray-200 flex-row items-center gap-2">
-          <Ionicons name="print" size={18} color="#6b7280" />
+          <Ionicons name="print" size={iconSize.md} color="#6b7280" />
           <Text className="text-gray-700 font-semibold">Printer Testing</Text>
         </View>
         
@@ -1219,7 +1220,7 @@ function SystemTab() {
                     onPress={() => handleTestPrint(index)}
                     className="flex-1 min-w-[45%] bg-purple-50 border border-purple-100 p-3 rounded-lg flex-row items-center gap-2"
                   >
-                    <Ionicons name="print" size={16} color="#8b5cf6" />
+                    <Ionicons name="print" size={iconSize.sm} color="#8b5cf6" />
                     <Text className="text-purple-700 font-medium" numberOfLines={1}>
                       {printer.name}
                     </Text>
@@ -1231,7 +1232,7 @@ function SystemTab() {
                 onPress={() => handleTestPrint('all')}
                 className="flex-row items-center justify-center gap-2 bg-purple-500 p-3 rounded-lg mt-1"
               >
-                <Ionicons name="copy" size={18} color="white" />
+                <Ionicons name="copy" size={iconSize.md} color="white" />
                 <Text className="text-white font-bold">Test All Printers (Parallel)</Text>
               </TouchableOpacity>
             </>

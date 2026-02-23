@@ -1,6 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useState } from "react";
 import { Modal, Pressable, ScrollView, Text, View } from "react-native";
+import { iconSize, colors } from "@/utils/theme";
 
 // ============================================================================
 // Types
@@ -113,7 +114,7 @@ export function FilterDropdown(props: FilterDropdownProps) {
   };
 
   const iconColor = {
-    default: "#9ca3af",
+    default: colors.textTertiary,
     primary: "white",
     danger: "white",
   };
@@ -131,10 +132,10 @@ export function FilterDropdown(props: FilterDropdownProps) {
         </Text>
         {allowClear && hasValue && variant === "default" ? (
           <Pressable onPress={handleClear} hitSlop={8}>
-            <Ionicons name="close" size={14} color={iconColor[variant]} />
+            <Ionicons name="close" size={iconSize.xs} color={iconColor[variant]} />
           </Pressable>
         ) : (
-          <Ionicons name="chevron-down" size={14} color={iconColor[variant]} />
+          <Ionicons name="chevron-down" size={iconSize.xs} color={iconColor[variant]} />
         )}
       </Pressable>
 
@@ -182,7 +183,7 @@ export function FilterDropdown(props: FilterDropdownProps) {
                       {option.label}
                     </Text>
                     {isSelected && (
-                      <Ionicons name="checkmark" size={18} color="#2563eb" />
+                      <Ionicons name="checkmark" size={iconSize.md} color="#2563eb" />
                     )}
                   </Pressable>
                 );

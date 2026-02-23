@@ -17,6 +17,7 @@ import {
     View,
 } from "react-native";
 import { getLocalToday } from "../utils/powersync/sqlFilters";
+import { fontSize, fontWeight, colors, iconSize } from '@/utils/theme';
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -68,13 +69,13 @@ function buildMarkedDates(
   if (startDate) {
     marks[startDate] = {
       selected: true,
-      selectedColor: activeTarget === "start" ? "#EC1A52" : "#9CA3AF",
+      selectedColor: activeTarget === "start" ? colors.primary : colors.textTertiary,
     };
   }
   if (endDate) {
     marks[endDate] = {
       selected: true,
-      selectedColor: activeTarget === "end" ? "#EC1A52" : "#2563EB",
+      selectedColor: activeTarget === "end" ? colors.primary : "#2563EB",
     };
   }
   return marks;
@@ -166,9 +167,9 @@ export function DateRangePickerModal({
           <ScrollView showsVerticalScrollIndicator={false} bounces={false}>
             <Text
               style={{
-                fontSize: 16,
-                fontWeight: "700",
-                color: "#1F2937",
+                fontSize: fontSize.lg,
+                fontWeight: fontWeight.bold,
+                color: colors.textDark,
                 marginBottom: 16,
                 paddingHorizontal: 4,
               }}
@@ -178,9 +179,9 @@ export function DateRangePickerModal({
 
             <Text
               style={{
-                fontSize: 13,
-                fontWeight: "700",
-                color: "#374151",
+                fontSize: fontSize.md,
+                fontWeight: fontWeight.bold,
+                color: colors.textMedium,
                 marginBottom: 8,
                 paddingHorizontal: 4,
               }}
@@ -197,7 +198,7 @@ export function DateRangePickerModal({
                   alignItems: "center",
                   justifyContent: "space-between",
                   borderWidth: 1,
-                  borderColor: pickerTarget === "start" ? "#EC1A52" : "#E5E7EB",
+                  borderColor: pickerTarget === "start" ? colors.primary : colors.border,
                   borderRadius: 10,
                   paddingHorizontal: 12,
                   paddingVertical: 10,
@@ -206,10 +207,10 @@ export function DateRangePickerModal({
                 activeOpacity={0.8}
               >
                 <View>
-                  <Text style={{ fontSize: 11, color: "#6B7280", marginBottom: 2 }}>Start Date</Text>
-                  <Text style={{ fontSize: 14, color: "#111827", fontWeight: "600" }}>{customStartDate}</Text>
+                  <Text style={{ fontSize: fontSize.md, color: colors.textSecondary, marginBottom: 2 }}>Start Date</Text>
+                  <Text style={{ fontSize: fontSize.base, color: colors.text, fontWeight: fontWeight.semibold }}>{customStartDate}</Text>
                 </View>
-                <Ionicons name="calendar-outline" size={18} color="#6B7280" />
+                <Ionicons name="calendar-outline" size={iconSize.md} color={colors.textSecondary} />
               </TouchableOpacity>
 
               <TouchableOpacity
@@ -220,7 +221,7 @@ export function DateRangePickerModal({
                   alignItems: "center",
                   justifyContent: "space-between",
                   borderWidth: 1,
-                  borderColor: pickerTarget === "end" ? "#EC1A52" : "#E5E7EB",
+                  borderColor: pickerTarget === "end" ? colors.primary : colors.border,
                   borderRadius: 10,
                   paddingHorizontal: 12,
                   paddingVertical: 10,
@@ -229,10 +230,10 @@ export function DateRangePickerModal({
                 activeOpacity={0.8}
               >
                 <View>
-                  <Text style={{ fontSize: 11, color: "#6B7280", marginBottom: 2 }}>End Date</Text>
-                  <Text style={{ fontSize: 14, color: "#111827", fontWeight: "600" }}>{customEndDate}</Text>
+                  <Text style={{ fontSize: fontSize.md, color: colors.textSecondary, marginBottom: 2 }}>End Date</Text>
+                  <Text style={{ fontSize: fontSize.base, color: colors.text, fontWeight: fontWeight.semibold }}>{customEndDate}</Text>
                 </View>
-                <Ionicons name="calendar-outline" size={18} color="#6B7280" />
+                <Ionicons name="calendar-outline" size={iconSize.md} color={colors.textSecondary} />
               </TouchableOpacity>
             </View>
 
@@ -241,7 +242,7 @@ export function DateRangePickerModal({
                 style={{
                   marginTop: 10,
                   borderWidth: 1,
-                  borderColor: "#E5E7EB",
+                  borderColor: colors.border,
                   borderRadius: 10,
                   overflow: "hidden",
                 }}
@@ -250,9 +251,9 @@ export function DateRangePickerModal({
                   style={{
                     paddingHorizontal: 12,
                     paddingTop: 10,
-                    fontSize: 12,
-                    color: "#6B7280",
-                    fontWeight: "600",
+                    fontSize: fontSize.md,
+                    color: colors.textSecondary,
+                    fontWeight: fontWeight.semibold,
                   }}
                 >
                   {pickerTarget === "start" ? "Select Start Date" : "Select End Date"}
@@ -262,10 +263,10 @@ export function DateRangePickerModal({
                   onDayPress={handleDayPress}
                   markedDates={buildMarkedDates(customStartDate, customEndDate, pickerTarget)}
                   theme={{
-                    todayTextColor: "#EC1A52",
-                    arrowColor: "#EC1A52",
-                    textMonthFontWeight: "700",
-                    textDayHeaderFontWeight: "600",
+                    todayTextColor: colors.primary,
+                    arrowColor: colors.primary,
+                    textMonthFontWeight: fontWeight.bold,
+                    textDayHeaderFontWeight: fontWeight.semibold,
                   }}
                 />
               </View>
@@ -275,29 +276,30 @@ export function DateRangePickerModal({
               onPress={applyCustomRange}
               style={{
                 marginTop: 12,
-                borderRadius: 10,
-                paddingVertical: 11,
+                borderRadius: 8,
+                height: 40,
                 alignItems: "center",
-                backgroundColor: "#EC1A52",
+                justifyContent: "center",
+                backgroundColor: colors.primary,
               }}
               activeOpacity={0.85}
             >
-              <Text style={{ color: "#fff", fontSize: 14, fontWeight: "700" }}>Apply Range</Text>
+              <Text style={{ color: "#fff", fontSize: fontSize.base, fontWeight: fontWeight.bold }}>Apply Range</Text>
             </TouchableOpacity>
 
             <View
               style={{
                 height: 1,
-                backgroundColor: "#E5E7EB",
+                backgroundColor: colors.border,
                 marginVertical: 12,
               }}
             />
 
             <Text
               style={{
-                fontSize: 13,
-                fontWeight: "700",
-                color: "#374151",
+                fontSize: fontSize.md,
+                fontWeight: fontWeight.bold,
+                color: colors.textMedium,
                 marginBottom: 10,
                 paddingHorizontal: 4,
               }}
@@ -317,16 +319,16 @@ export function DateRangePickerModal({
                       paddingHorizontal: 12,
                       borderRadius: 999,
                       borderWidth: 1,
-                      borderColor: isActive ? "#EC1A52" : "#E5E7EB",
+                      borderColor: isActive ? colors.primary : colors.border,
                       backgroundColor: isActive ? "#FDE8EE" : "#fff",
                     }}
                     activeOpacity={0.8}
                   >
                     <Text
                       style={{
-                        fontSize: 13,
-                        fontWeight: isActive ? "700" : "500",
-                        color: isActive ? "#EC1A52" : "#4B5563",
+                        fontSize: fontSize.md,
+                        fontWeight: isActive ? fontWeight.bold : fontWeight.medium,
+                        color: isActive ? colors.primary : "#4B5563",
                       }}
                     >
                       {preset.label}

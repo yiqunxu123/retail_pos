@@ -1,11 +1,12 @@
 import { LinearGradient } from "expo-linear-gradient";
 import React, { ReactNode } from "react";
 import { Text, TouchableOpacity, View } from "react-native";
+import { fontSize, fontWeight, colors } from '@/utils/theme';
 
 interface ActionCardProps {
   title: string;
   backgroundColor?: string;
-  gradientColors?: string[];
+  gradientColors?: readonly [string, string, ...string[]];
   disabledColor?: string;
   onPress?: () => void;
   disabled?: boolean;
@@ -22,7 +23,7 @@ interface ActionCardProps {
 
 export function ActionCard({
   title,
-  backgroundColor = "#EC1A52",
+  backgroundColor = colors.primary,
   gradientColors,
   disabledColor = "#848484",
   onPress,
@@ -55,8 +56,8 @@ export function ActionCard({
       )}
       <Text 
         style={{ 
-          fontSize: 24, 
-          fontWeight: "600",
+          fontSize: fontSize['2xl'], 
+          fontWeight: fontWeight.semibold,
           fontFamily: "Montserrat",
           color: isGrayedOut ? grayText : (outline ? color : "#FFFFFF"),
           textAlign: "center"

@@ -1,5 +1,5 @@
-import { View, Text, TextInput, Pressable } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { Pressable, Text, TextInput, View } from "react-native";
 
 interface FormInputProps {
   label: string;
@@ -29,13 +29,14 @@ export function FormInput({
   multiline,
 }: FormInputProps) {
   const InputWrapper = isDropdown || isDatePicker ? Pressable : View;
+  const disabled = !editable;
 
   return (
     <View className="mb-4">
       <Text className="text-[#5A5F66] text-[18px] mb-1.5" style={{ fontFamily: 'Montserrat' }}>{label}</Text>
       <InputWrapper
         onPress={isDropdown || isDatePicker ? onDropdownPress : undefined}
-        className="flex-row items-center bg-white border border-gray-200 rounded-xl px-3 py-3 shadow-sm"
+        className={`flex-row items-center border border-gray-200 rounded-xl px-3 py-3 shadow-sm ${disabled ? "bg-gray-100 border-gray-300" : "bg-white"}`}
       >
         {isDropdown || isDatePicker ? (
           <>
@@ -50,12 +51,12 @@ export function FormInput({
           </>
         ) : (
           <TextInput
-            className="flex-1 text-gray-800 text-[18px]"
+            className={`flex-1 text-[18px] ${disabled ? "text-gray-400" : "text-gray-800"}`}
             style={{ fontFamily: 'Montserrat' }}
             value={value}
             onChangeText={onChangeText}
             placeholder={placeholder}
-            placeholderTextColor="#9ca3af"
+            placeholderTextColor={disabled ? "#b8bec8" : "#9ca3af"}
             editable={editable}
             multiline={multiline}
             numberOfLines={multiline ? 3 : 1}

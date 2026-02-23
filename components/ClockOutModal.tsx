@@ -1,5 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
 import { Modal, Pressable, Text, View } from "react-native";
+import { iconSize, colors } from "@/utils/theme";
 
 interface ClockOutModalProps {
   visible: boolean;
@@ -21,8 +22,9 @@ export function ClockOutModal({
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
       <Pressable className="flex-1 bg-black/45 justify-center items-center px-4" onPress={onClose}>
         <Pressable
-          className="bg-white rounded-xl overflow-hidden border border-[#E5E7EB]"
+          className="bg-white rounded-xl overflow-hidden"
           style={{
+            borderWidth: 1, borderColor: colors.border,
             width: "92%",
             maxWidth: 680,
             shadowColor: "#000",
@@ -33,10 +35,10 @@ export function ClockOutModal({
           }}
           onPress={(e) => e.stopPropagation()}
         >
-          <View className="flex-row justify-between items-center px-5 py-3 border-b border-[#E5E7EB]">
-            <Text className="text-2xl font-semibold text-[#111827]">Clock Out</Text>
+          <View className="flex-row justify-between items-center px-5 py-3" style={{ borderBottomWidth: 1, borderBottomColor: colors.border }}>
+            <Text className="text-2xl font-semibold" style={{ color: colors.text }}>Clock Out</Text>
             <Pressable onPress={onClose} style={({ pressed }) => ({ opacity: pressed ? 0.55 : 1 })}>
-              <Ionicons name="close" size={26} color="#1F2937" />
+              <Ionicons name="close" size={iconSize['2xl']} color={colors.textDark} />
             </Pressable>
           </View>
 
@@ -52,22 +54,22 @@ export function ClockOutModal({
           <View className="flex-row gap-4 px-5 pb-5">
             <Pressable
               onPress={onClose}
-              className="flex-1 py-4 rounded-lg items-center justify-center bg-[#F7E8EA]"
-              style={({ pressed }) => ({ opacity: pressed ? 0.7 : 1 })}
+              className="flex-1 rounded-lg items-center justify-center bg-[#F7E8EA]"
+              style={({ pressed }) => ({ height: 40, opacity: pressed ? 0.7 : 1 })}
             >
               <Text className="text-[#D93E66] text-[17px] font-medium">Cancel</Text>
             </Pressable>
             <Pressable
               onPress={onDeclareCash}
-              className="flex-1 py-4 rounded-lg items-center justify-center bg-[#4C47B8]"
-              style={({ pressed }) => ({ opacity: pressed ? 0.8 : 1 })}
+              className="flex-1 rounded-lg items-center justify-center bg-[#4C47B8]"
+              style={({ pressed }) => ({ height: 40, opacity: pressed ? 0.8 : 1 })}
             >
               <Text className="text-white text-[17px] font-medium">Declare Cash</Text>
             </Pressable>
             <Pressable
               onPress={onClockOut}
-              className="flex-1 py-4 rounded-lg items-center justify-center bg-[#EC1A52]"
-              style={({ pressed }) => ({ opacity: pressed ? 0.8 : 1 })}
+              className="flex-1 rounded-lg items-center justify-center"
+              style={({ pressed }) => ({ height: 40, backgroundColor: colors.primary, opacity: pressed ? 0.8 : 1 })}
             >
               <Text className="text-white text-[17px] font-medium">Clock Out</Text>
             </Pressable>

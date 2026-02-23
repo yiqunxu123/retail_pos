@@ -1,6 +1,7 @@
 import { Modal, View, Text, Pressable, TouchableOpacity, ScrollView, TextInput, KeyboardAvoidingView, Platform, Keyboard } from "react-native";
 import { Ionicons, MaterialIcons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { useState, useRef, useEffect } from "react";
+import { fontSize, fontWeight, colors, iconSize } from '@/utils/theme';
 
 interface ClockInModalProps {
   visible: boolean;
@@ -106,7 +107,7 @@ export function ClockInModal({ visible, onClose, onClockIn }: ClockInModalProps)
         borderColor: "#C3C3C3",
       }}
     >
-      <Text style={{ fontSize: 24, fontWeight: "700", color: "#1A1A1A" }}>{num}</Text>
+      <Text style={{ fontSize: fontSize['2xl'], fontWeight: fontWeight.bold, color: colors.text }}>{num}</Text>
     </TouchableOpacity>
   );
 
@@ -149,7 +150,7 @@ export function ClockInModal({ visible, onClose, onClockIn }: ClockInModalProps)
             {/* Header */}
             <View className="p-4 border-b border-gray-200">
               <View className="flex-row justify-between items-center">
-                <Text style={{ fontSize: 22, fontWeight: "600", color: "#1A1A1A" }}>
+                <Text style={{ fontSize: fontSize['2xl'], fontWeight: fontWeight.semibold, color: colors.text }}>
                   Clock in to your Account
                 </Text>
                 <View className="flex-row items-center gap-3">
@@ -157,17 +158,17 @@ export function ClockInModal({ visible, onClose, onClockIn }: ClockInModalProps)
                   <TouchableOpacity
                     onPress={toggleInputMode}
                     className="rounded-lg p-2 flex-row items-center gap-1"
-                    style={{ backgroundColor: inputMode === "touch" ? "#EC1A52" : "#F2F2F2" }}
+                    style={{ backgroundColor: inputMode === "touch" ? colors.primary : "#F2F2F2" }}
                   >
                     <MaterialCommunityIcons
                       name={inputMode === "touch" ? "hand-pointing-up" : "keyboard"}
-                      size={22}
-                      color={inputMode === "touch" ? "#FFFFFF" : "#1A1A1A"}
+                      size={iconSize.lg}
+                      color={inputMode === "touch" ? colors.textWhite : colors.text}
                     />
                   </TouchableOpacity>
                   {/* Close button */}
                   <TouchableOpacity onPress={handleCancel}>
-                    <Ionicons name="close" size={26} color="#1A1A1A" />
+                    <Ionicons name="close" size={iconSize.xl} color={colors.text} />
                   </TouchableOpacity>
                 </View>
               </View>
@@ -177,7 +178,7 @@ export function ClockInModal({ visible, onClose, onClockIn }: ClockInModalProps)
             <View className="p-4">
               {/* Select User - Own row */}
               <View className="mb-4">
-                <Text style={{ fontSize: 16, fontWeight: "600", color: "#1A1A1A", marginBottom: 6 }}>
+                <Text style={{ fontSize: fontSize.lg, fontWeight: fontWeight.semibold, color: colors.text, marginBottom: 6 }}>
                   Select User
                 </Text>
                 <TouchableOpacity
@@ -195,10 +196,10 @@ export function ClockInModal({ visible, onClose, onClockIn }: ClockInModalProps)
                     shadowRadius: 4,
                   }}
                 >
-                  <Text style={{ fontSize: 18, fontWeight: "500", color: "#1A1A1A" }}>
+                  <Text style={{ fontSize: fontSize.xl, fontWeight: fontWeight.medium, color: colors.text }}>
                     {selectedUser.name}
                   </Text>
-                  <Ionicons name="chevron-down" size={24} color="#1A1A1A" />
+                  <Ionicons name="chevron-down" size={iconSize.xl} color={colors.text} />
                 </TouchableOpacity>
 
                 {/* User Dropdown */}
@@ -224,7 +225,7 @@ export function ClockInModal({ visible, onClose, onClockIn }: ClockInModalProps)
                           }}
                           className="px-4 py-3 border-b border-gray-100"
                         >
-                          <Text style={{ fontSize: 16, color: "#1A1A1A" }}>{user.name}</Text>
+                          <Text style={{ fontSize: fontSize.lg, color: colors.text }}>{user.name}</Text>
                         </TouchableOpacity>
                       ))}
                     </ScrollView>
@@ -234,7 +235,7 @@ export function ClockInModal({ visible, onClose, onClockIn }: ClockInModalProps)
 
               {/* User PIN - Own row */}
               <View className="mb-4">
-                <Text style={{ fontSize: 16, fontWeight: "600", color: "#1A1A1A", marginBottom: 6 }}>
+                <Text style={{ fontSize: fontSize.lg, fontWeight: fontWeight.semibold, color: colors.text, marginBottom: 6 }}>
                   User PIN
                 </Text>
                 
@@ -259,7 +260,7 @@ export function ClockInModal({ visible, onClose, onClockIn }: ClockInModalProps)
                     style={{
                       backgroundColor: "#F2F2F2",
                       height: 50,
-                      fontSize: 20,
+                      fontSize: fontSize['2xl'],
                       letterSpacing: 4,
                       textAlign: "center",
                       shadowColor: "#000",
@@ -288,7 +289,7 @@ export function ClockInModal({ visible, onClose, onClockIn }: ClockInModalProps)
                         style={{
                           width: 18,
                           height: 18,
-                          backgroundColor: index < pin.length ? "#1A1A1A" : "#D9D9D9",
+                          backgroundColor: index < pin.length ? colors.text : "#D9D9D9",
                         }}
                       />
                     ))}
@@ -336,8 +337,8 @@ export function ClockInModal({ visible, onClose, onClockIn }: ClockInModalProps)
                         backgroundColor: "#E43A00",
                       }}
                     >
-                      <MaterialIcons name="cancel" size={22} color="#FFFFFF" />
-                      <Text style={{ fontSize: 16, fontWeight: "600", color: "#FFFFFF" }}>Cancel</Text>
+                      <MaterialIcons name="cancel" size={iconSize.lg} color={colors.textWhite} />
+                      <Text style={{ fontSize: fontSize.lg, fontWeight: fontWeight.semibold, color: colors.textWhite }}>Cancel</Text>
                     </TouchableOpacity>
 
                     {/* Correct Button */}
@@ -346,13 +347,13 @@ export function ClockInModal({ visible, onClose, onClockIn }: ClockInModalProps)
                       className="rounded-lg items-center justify-center flex-row gap-2"
                       style={{
                         flex: 1,
-                        backgroundColor: "#FFFFFF",
+                        backgroundColor: colors.textWhite,
                         borderWidth: 2,
-                        borderColor: "#EC1A52",
+                        borderColor: colors.primary,
                       }}
                     >
-                      <MaterialIcons name="backspace" size={22} color="#EC1A52" />
-                      <Text style={{ fontSize: 16, fontWeight: "600", color: "#EC1A52" }}>Correct</Text>
+                      <MaterialIcons name="backspace" size={iconSize.lg} color={colors.primary} />
+                      <Text style={{ fontSize: fontSize.lg, fontWeight: fontWeight.semibold, color: colors.primary }}>Correct</Text>
                     </TouchableOpacity>
 
                     {/* Clock In Button */}
@@ -362,12 +363,12 @@ export function ClockInModal({ visible, onClose, onClockIn }: ClockInModalProps)
                       className="rounded-lg items-center justify-center flex-row gap-2"
                       style={{
                         flex: 1,
-                        backgroundColor: "#EC1A52",
+                        backgroundColor: colors.primary,
                         opacity: pin.length === 0 ? 0.5 : 1,
                       }}
                     >
-                      <Ionicons name="time-outline" size={22} color="#FFFFFF" />
-                      <Text style={{ fontSize: 16, fontWeight: "600", color: "#FFFFFF" }}>Clock In</Text>
+                      <Ionicons name="time-outline" size={iconSize.lg} color={colors.textWhite} />
+                      <Text style={{ fontSize: fontSize.lg, fontWeight: fontWeight.semibold, color: colors.textWhite }}>Clock In</Text>
                     </TouchableOpacity>
                   </View>
                 </View>
@@ -379,29 +380,31 @@ export function ClockInModal({ visible, onClose, onClockIn }: ClockInModalProps)
                   {/* Cancel Button */}
                   <TouchableOpacity
                     onPress={handleCancel}
-                    className="rounded-lg items-center justify-center flex-row gap-2 py-4"
+                    className="rounded-lg items-center justify-center flex-row gap-2"
                     style={{
                       flex: 1,
+                      height: 40,
                       backgroundColor: "#E43A00",
                     }}
                   >
-                    <MaterialIcons name="cancel" size={22} color="#FFFFFF" />
-                    <Text style={{ fontSize: 16, fontWeight: "600", color: "#FFFFFF" }}>Cancel</Text>
+                    <MaterialIcons name="cancel" size={iconSize.lg} color={colors.textWhite} />
+                    <Text style={{ fontSize: fontSize.lg, fontWeight: fontWeight.semibold, color: colors.textWhite }}>Cancel</Text>
                   </TouchableOpacity>
 
                   {/* Clock In Button */}
                   <TouchableOpacity
                     onPress={handleClockIn}
                     disabled={pin.length === 0}
-                    className="rounded-lg items-center justify-center flex-row gap-2 py-4"
+                    className="rounded-lg items-center justify-center flex-row gap-2"
                     style={{
                       flex: 2,
-                      backgroundColor: "#EC1A52",
+                      height: 40,
+                      backgroundColor: colors.primary,
                       opacity: pin.length === 0 ? 0.5 : 1,
                     }}
                   >
-                    <Ionicons name="time-outline" size={22} color="#FFFFFF" />
-                    <Text style={{ fontSize: 16, fontWeight: "600", color: "#FFFFFF" }}>Clock In</Text>
+                    <Ionicons name="time-outline" size={iconSize.lg} color={colors.textWhite} />
+                    <Text style={{ fontSize: fontSize.lg, fontWeight: fontWeight.semibold, color: colors.textWhite }}>Clock In</Text>
                   </TouchableOpacity>
                 </View>
               )}

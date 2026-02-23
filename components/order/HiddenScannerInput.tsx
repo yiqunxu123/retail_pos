@@ -1,11 +1,11 @@
 import React from "react";
 import { TextInput } from "react-native";
-import { useRenderTrace } from "../../utils/debug/useRenderTrace";
 
 interface HiddenScannerInputProps {
-  inputRef: React.RefObject<TextInput>;
+  inputRef: React.RefObject<TextInput | null>;
   onChangeText: (text: string) => void;
   onSubmitEditing: () => void;
+  onFocus?: () => void;
   onBlur: () => void;
 }
 
@@ -13,34 +13,27 @@ function HiddenScannerInputComponent({
   inputRef,
   onChangeText,
   onSubmitEditing,
+  onFocus,
   onBlur,
 }: HiddenScannerInputProps) {
-  useRenderTrace(
-    "HiddenScannerInput",
-    {
-      onChangeText,
-      onSubmitEditing,
-      onBlur,
-    },
-    { throttleMs: 100 }
-  );
-
   return (
     <TextInput
       ref={inputRef}
+      defaultValue=""
       style={{
         position: "absolute",
         width: 1,
         height: 1,
-        opacity: 0,
-        top: 0,
-        left: 0,
+        opacity: 0.01,
+        top: -1000,
+        left: -1000,
       }}
-      autoFocus
+      autoFocus={false}
       blurOnSubmit={false}
       returnKeyType="done"
       onChangeText={onChangeText}
       onSubmitEditing={onSubmitEditing}
+      onFocus={onFocus}
       onBlur={onBlur}
       showSoftInputOnFocus={false}
       caretHidden

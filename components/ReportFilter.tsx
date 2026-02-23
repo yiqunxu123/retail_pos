@@ -7,6 +7,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useState } from "react";
 import { Modal, Pressable, ScrollView, Text, View } from "react-native";
+import { iconSize, colors } from "@/utils/theme";
 import { FormInput } from "./FormInput";
 
 export interface ReportFilterValues {
@@ -71,7 +72,7 @@ export function ReportFilter({
           <View className="flex-row items-center justify-between p-4 border-b border-gray-200">
             <Text className="text-xl font-bold text-gray-800">Filter Report</Text>
             <Pressable onPress={onClose} className="p-2">
-              <Ionicons name="close" size={24} color="#374151" />
+              <Ionicons name="close" size={iconSize.xl} color={colors.textMedium} />
             </Pressable>
           </View>
 
@@ -144,7 +145,7 @@ export function ReportFilter({
               <Pressable
                 onPress={handleApply}
                 className="flex-1 py-3 rounded-lg"
-                style={{ backgroundColor: "#EC1A52" }}
+                style={{ backgroundColor: colors.primary }}
               >
                 <Text className="text-center font-semibold text-white">
                   Apply Filters

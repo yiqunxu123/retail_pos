@@ -1,6 +1,8 @@
 import { Ionicons } from "@expo/vector-icons";
 import { Text, TouchableOpacity, View } from "react-native";
+import { iconSize } from "@/utils/theme";
 import { useAppNavigation } from "../hooks/useAppNavigation";
+import { colors } from '@/utils/theme';
 
 interface HeaderProps {
   title: string;
@@ -21,7 +23,7 @@ export function Header({ title, subtitle, badge, showBack = false }: HeaderProps
   };
 
   return (
-    <View className="flex-row justify-between items-center px-6 py-4 bg-[#EC1A52] rounded-xl">
+    <View className="flex-row justify-between items-center px-6 py-4 rounded-xl" style={{ backgroundColor: colors.primary }}>
       <View className="flex-row items-center flex-1">
         {/* Back button */}
         {showBack && (
@@ -30,7 +32,7 @@ export function Header({ title, subtitle, badge, showBack = false }: HeaderProps
             className="mr-3 p-1"
             hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
           >
-            <Ionicons name="menu" size={24} color="white" />
+            <Ionicons name="menu" size={iconSize.xl} color="white" />
           </TouchableOpacity>
         )}
         
@@ -44,7 +46,7 @@ export function Header({ title, subtitle, badge, showBack = false }: HeaderProps
 
       {/* Role badge */}
       {badge && (
-        <View className="bg-[#F7F7F9] px-4 py-2 rounded">
+        <View className="px-4 py-2 rounded" style={{ backgroundColor: colors.backgroundTertiary }}>
           <Text className="text-gray-800 font-semibold text-sm">{badge}</Text>
         </View>
       )}

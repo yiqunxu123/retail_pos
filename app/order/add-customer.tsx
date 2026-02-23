@@ -1,5 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
+import { fontSize, fontWeight, colors, iconSize } from '@/utils/theme';
 import {
     useCallback,
     useEffect,
@@ -23,6 +24,7 @@ import {
     type QuickCustomerResult,
 } from "../../components/AddQuickCustomerModal";
 import { Dropdown } from "../../components/Dropdown";
+import { EditableStateInput } from "../../components/EditableStateInput";
 import { useOrder } from "../../contexts/OrderContext";
 import {
     getCustomerById,
@@ -169,7 +171,7 @@ function SearchResultCard({
       onPress={() => onSelect(customer)}
       className="border border-gray-200 rounded-lg px-3 py-2.5"
       style={({ pressed }) => ({
-        backgroundColor: pressed ? "#f4f5f6" : "#F7F7F9",
+        backgroundColor: pressed ? "#f4f5f6" : colors.backgroundTertiary,
         opacity: customer.is_active === false ? 0.55 : 1,
       })}
     >
@@ -440,14 +442,12 @@ export default function AddCustomerScreen() {
   );
 
   const handleToggleAutoGenerate = useCallback(() => {
-    setAutoGenerate((prev) => {
-      const next = !prev;
-      if (next) {
-        updateOrder({ orderNumber: buildAutoOrderNumber() });
-      }
-      return next;
-    });
-  }, [updateOrder]);
+    const next = !autoGenerate;
+    setAutoGenerate(next);
+    if (next) {
+      updateOrder({ orderNumber: buildAutoOrderNumber() });
+    }
+  }, [autoGenerate, updateOrder]);
 
   const searchFields: {
     key: SearchFieldKey;
@@ -508,11 +508,11 @@ export default function AddCustomerScreen() {
               return (
                 <View key={field.key} style={{ zIndex: field.zIndex, marginBottom: 10 }}>
                   <View className="flex-row items-center bg-[#F7F7F8] border border-[#E5E7EB] rounded-lg px-3 h-11">
-                    <Ionicons name={field.icon} size={18} color="#9CA3AF" />
+                    <Ionicons name={field.icon} size={iconSize.md} color={colors.textTertiary} />
                     <TextInput
                       className="flex-1 ml-2.5 text-gray-800"
                       placeholder={field.placeholder}
-                      placeholderTextColor="#9CA3AF"
+                      placeholderTextColor={colors.textTertiary}
                       value={searchInputs[field.key]}
                       keyboardType="default"
                       autoCapitalize="none"
@@ -523,7 +523,7 @@ export default function AddCustomerScreen() {
                       }}
                       onChangeText={(text) => handleSearch(text, field.key)}
                     />
-                    {isLoading && <ActivityIndicator size="small" color="#9CA3AF" />}
+                    {isLoading && <ActivityIndicator size="small" color={colors.textTertiary} />}
                   </View>
 
                   {showDropdown && (
@@ -551,7 +551,7 @@ export default function AddCustomerScreen() {
                         <Text
                           style={{
                             padding: 12,
-                            color: "#9CA3AF",
+                            color: colors.textTertiary,
                             fontStyle: "italic",
                             textAlign: "center",
                           }}
@@ -574,7 +574,7 @@ export default function AddCustomerScreen() {
                 className="mb-4 bg-[#FBEAEC] border border-[#F6D4DA] rounded-lg h-11 items-center justify-center flex-row gap-1.5"
                 style={({ pressed }) => ({ opacity: pressed ? 0.8 : 1 })}
               >
-                <Ionicons name="add" size={16} color="#C33A59" />
+                <Ionicons name="add" size={iconSize.sm} color="#C33A59" />
                 <Text className="text-[#C33A59] text-base font-medium">Add New Customer</Text>
               </Pressable>
             )}
@@ -654,16 +654,17 @@ export default function AddCustomerScreen() {
               <Text className="text-[#4B5563] text-sm mb-1.5">Invoice Due Date</Text>
               <View className="flex-row items-center justify-between bg-[#F7F7F8] border border-[#E5E7EB] rounded-lg px-3 h-11">
                 <Text className="text-[#9CA3AF]">{order.invoiceDueDate || "DD/MM/YYYY"}</Text>
-                <Ionicons name="calendar-outline" size={18} color="#9CA3AF" />
+                <Ionicons name="calendar-outline" size={iconSize.md} color={colors.textTertiary} />
               </View>
             </View>
 
             <View className="mb-3">
               <Text className="text-[#4B5563] text-sm mb-1.5">Order Number:</Text>
-              <TextInput
-                className="bg-[#F7F7F8] border border-[#E5E7EB] rounded-lg px-3 h-11 text-gray-800 mb-2"
+              <EditableStateInput
+                containerClassName="rounded-lg h-11 mb-2"
+                containerStyle={{ backgroundColor: "#F7F7F8" }}
+                inputClassName="px-3 h-11"
                 placeholder="Enter Order Number"
-                placeholderTextColor="#9CA3AF"
                 value={order.orderNumber}
                 editable={!autoGenerate}
                 onChangeText={(value) => updateOrder({ orderNumber: value })}
@@ -677,7 +678,7 @@ export default function AddCustomerScreen() {
                     autoGenerate ? "border-red-500 bg-red-500" : "border-gray-300"
                   }`}
                 >
-                  {autoGenerate && <Ionicons name="checkmark" size={14} color="white" />}
+                  {autoGenerate && <Ionicons name="checkmark" size={iconSize.xs} color="white" />}
                 </View>
                 <Text className="text-gray-700">Auto Generate</Text>
               </Pressable>
@@ -697,8 +698,8 @@ export default function AddCustomerScreen() {
               <Switch
                 value={skipMsaCheck}
                 onValueChange={setSkipMsaCheck}
-                trackColor={{ false: "#d1d5db", true: "#fca5a5" }}
-                thumbColor={skipMsaCheck ? "#ef4444" : "#f4f4f5"}
+                trackColor={{ false: colors.borderMedium, true: "#fca5a5" }}
+                thumbColor={skipMsaCheck ? colors.error : "#f4f4f5"}
               />
             </View>
 
@@ -707,7 +708,7 @@ export default function AddCustomerScreen() {
               <TextInput
                 className="bg-[#F7F7F8] border border-[#E5E7EB] rounded-lg px-3 py-2.5 text-gray-800 min-h-[76px]"
                 placeholder="Notes"
-                placeholderTextColor="#9CA3AF"
+                placeholderTextColor={colors.textTertiary}
                 value={order.notesInternal}
                 onChangeText={(value) => updateOrder({ notesInternal: value })}
                 multiline
@@ -720,7 +721,7 @@ export default function AddCustomerScreen() {
               <TextInput
                 className="bg-[#F7F7F8] border border-[#E5E7EB] rounded-lg px-3 py-2.5 text-gray-800 min-h-[76px]"
                 placeholder="Notes"
-                placeholderTextColor="#9CA3AF"
+                placeholderTextColor={colors.textTertiary}
                 value={order.notesInvoice}
                 onChangeText={(value) => updateOrder({ notesInvoice: value })}
                 multiline

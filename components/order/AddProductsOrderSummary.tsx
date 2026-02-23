@@ -1,5 +1,6 @@
 import React from "react";
-import { Text, View } from "react-native";
+import { StyleSheet, Text, View } from "react-native";
+import { fontSize, fontWeight, colors } from '@/utils/theme';
 import { useRenderTrace } from "../../utils/debug/useRenderTrace";
 
 interface AddProductsOrderSummaryProps {
@@ -12,6 +13,20 @@ interface AddProductsOrderSummaryProps {
   discountType: 1 | 2;
 }
 
+const s = StyleSheet.create({
+  container: { flex: 1, backgroundColor: colors.white, borderWidth: 1, borderColor: colors.border, borderRadius: 12, overflow: "hidden" },
+  columns: { flexDirection: "row" },
+  col: { flex: 1 },
+  colLeft: { flex: 1, borderRightWidth: 1, borderRightColor: colors.backgroundSecondary },
+  row: { flexDirection: "row", justifyContent: "space-between", paddingHorizontal: 20, paddingVertical: 16, borderBottomWidth: 1, borderBottomColor: colors.backgroundSecondary },
+  rowLast: { flexDirection: "row", justifyContent: "space-between", paddingHorizontal: 20, paddingVertical: 16 },
+  label: { color: "#5A5F66", fontSize: fontSize.lg, fontFamily: "Montserrat", fontWeight: fontWeight.medium },
+  value: { color: colors.text, fontSize: fontSize.xl, fontFamily: "Montserrat", fontWeight: fontWeight.bold },
+  totalRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", backgroundColor: colors.primaryLight, borderTopWidth: 1, borderTopColor: "#FEE2E2", paddingHorizontal: 24, paddingVertical: 16 },
+  totalLabel: { color: colors.primary, fontSize: fontSize['2xl'], fontFamily: "Montserrat", fontWeight: fontWeight.bold },
+  totalValue: { color: colors.primary, fontSize: fontSize['3xl'], fontFamily: "Montserrat", fontWeight: fontWeight.bold },
+});
+
 function AddProductsOrderSummaryComponent({
   productsCount,
   totalQuantity,
@@ -23,81 +38,57 @@ function AddProductsOrderSummaryComponent({
 }: AddProductsOrderSummaryProps) {
   useRenderTrace(
     "AddProductsOrderSummary",
-    {
-      productsCount,
-      totalQuantity,
-      subTotal,
-      tax,
-      total,
-      additionalDiscount,
-      discountType,
-    },
+    { productsCount, totalQuantity, subTotal, tax, total, additionalDiscount, discountType },
     { throttleMs: 100 }
   );
 
   return (
-    <View className="flex-1 bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm">
-      <View className="flex-row">
-        <View className="flex-1 border-r border-gray-100">
-          <View className="flex-row justify-between px-5 py-4 border-b border-gray-100">
-            <Text className="text-[#5A5F66] text-[16px] font-Montserrat font-medium">
-              Total Products
-            </Text>
-            <Text className="text-[#1A1A1A] text-[18px] font-Montserrat font-bold">{productsCount}</Text>
+    <View style={s.container}>
+      <View style={s.columns}>
+        <View style={s.colLeft}>
+          <View style={s.row}>
+            <Text style={s.label}>Total Products</Text>
+            <Text style={s.value}>{productsCount}</Text>
           </View>
-          <View className="flex-row justify-between px-5 py-4 border-b border-gray-100">
-            <Text className="text-[#5A5F66] text-[16px] font-Montserrat font-medium">
-              Total Quantity
-            </Text>
-            <Text className="text-[#1A1A1A] text-[18px] font-Montserrat font-bold">{totalQuantity}</Text>
+          <View style={s.row}>
+            <Text style={s.label}>Total Quantity</Text>
+            <Text style={s.value}>{totalQuantity}</Text>
           </View>
-          <View className="flex-row justify-between px-5 py-4 border-b border-gray-100">
-            <Text className="text-[#5A5F66] text-[16px] font-Montserrat font-medium">Sub Total</Text>
-            <Text className="text-[#1A1A1A] text-[18px] font-Montserrat font-bold">
-              ${subTotal.toFixed(2)}
-            </Text>
+          <View style={s.row}>
+            <Text style={s.label}>Sub Total</Text>
+            <Text style={s.value}>${subTotal.toFixed(2)}</Text>
           </View>
-          <View className="flex-row justify-between px-5 py-4">
-            <Text className="text-[#5A5F66] text-[16px] font-Montserrat font-medium">
-              Loyalty Credit
-            </Text>
-            <Text className="text-[#1A1A1A] text-[18px] font-Montserrat font-bold">-$10.00</Text>
+          <View style={s.rowLast}>
+            <Text style={s.label}>Loyalty Credit</Text>
+            <Text style={s.value}>-$10.00</Text>
           </View>
         </View>
 
-        <View className="flex-1">
-          <View className="flex-row justify-between px-5 py-4 border-b border-gray-100">
-            <Text className="text-[#5A5F66] text-[16px] font-Montserrat font-medium">
-              Additional Discount
-            </Text>
-            <Text className="text-[#1A1A1A] text-[18px] font-Montserrat font-bold">
+        <View style={s.col}>
+          <View style={s.row}>
+            <Text style={s.label}>Additional Discount</Text>
+            <Text style={s.value}>
               {discountType === 2 ? `${additionalDiscount}%` : `$${additionalDiscount.toFixed(2)}`}
             </Text>
           </View>
-          <View className="flex-row justify-between px-5 py-4 border-b border-gray-100">
-            <Text className="text-[#5A5F66] text-[16px] font-Montserrat font-medium">
-              Delivery Charges
-            </Text>
-            <Text className="text-[#1A1A1A] text-[18px] font-Montserrat font-bold">$0.00</Text>
+          <View style={s.row}>
+            <Text style={s.label}>Delivery Charges</Text>
+            <Text style={s.value}>$0.00</Text>
           </View>
-          <View className="flex-row justify-between px-5 py-4 border-b border-gray-100">
-            <Text className="text-[#5A5F66] text-[16px] font-Montserrat font-medium">Tax</Text>
-            <Text className="text-[#1A1A1A] text-[18px] font-Montserrat font-bold">
-              ${tax.toFixed(2)}
-            </Text>
+          <View style={s.row}>
+            <Text style={s.label}>Tax</Text>
+            <Text style={s.value}>${tax.toFixed(2)}</Text>
           </View>
-          <View className="flex-row justify-between px-5 py-4">
-            <Text className="text-[#5A5F66] text-[16px] font-Montserrat font-medium">
-              Loyalty Earned
-            </Text>
-            <Text className="text-[#1A1A1A] text-[18px] font-Montserrat font-bold">120</Text>
+          <View style={s.rowLast}>
+            <Text style={s.label}>Loyalty Earned</Text>
+            <Text style={s.value}>120</Text>
           </View>
         </View>
       </View>
 
-      <View className="flex-row justify-between items-center bg-[#FFF0F3] border-t border-[#FEE2E2] px-6 py-4">
-        <Text className="text-[#EC1A52] text-[24px] font-Montserrat font-bold">Total</Text>
-        <Text className="text-[#EC1A52] text-[32px] font-Montserrat font-bold">${total.toFixed(2)}</Text>
+      <View style={s.totalRow}>
+        <Text style={s.totalLabel}>Total</Text>
+        <Text style={s.totalValue}>${total.toFixed(2)}</Text>
       </View>
     </View>
   );

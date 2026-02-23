@@ -1,6 +1,7 @@
 import { LinearGradient } from "expo-linear-gradient";
 import { ReactNode } from "react";
 import { Pressable, Text, View } from "react-native";
+import { fontSize, fontWeight } from '@/utils/theme';
 
 type StatCardVariant = "green" | "yellow" | "purple" | "red" | "orange" | "dark" | "teal" | "pink" | "blue";
 
@@ -70,8 +71,8 @@ export function StatCard({
         >
           <Text 
             style={{ 
-              fontSize: 32, 
-              fontWeight: "600",
+              fontSize: fontSize['3xl'], 
+              fontWeight: fontWeight.semibold,
               fontFamily: "Montserrat",
               color: "#FFFFFF"
             }}
@@ -81,8 +82,8 @@ export function StatCard({
           {subtitle && (
             <Text 
               style={{ 
-                fontSize: 16, 
-                fontWeight: "500",
+                fontSize: fontSize.base, 
+                fontWeight: fontWeight.medium,
                 fontFamily: "Montserrat",
                 color: "rgba(255, 255, 255, 0.8)",
                 marginTop: 2
@@ -97,8 +98,8 @@ export function StatCard({
         <View className="mt-auto">
           <Text 
             style={{ 
-              fontSize: 22, // Increased for better balance with 32px value
-              fontWeight: "600",
+              fontSize: fontSize['2xl'], // Increased for better balance with 32px value
+              fontWeight: fontWeight.semibold,
               fontFamily: "Montserrat",
               color: "#FFFFFF"
             }}

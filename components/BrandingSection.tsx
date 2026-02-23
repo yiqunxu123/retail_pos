@@ -1,5 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
 import { Image, Pressable, View } from "react-native";
+import { iconSize, colors } from "@/utils/theme";
 import { useAppNavigation } from "../hooks/useAppNavigation";
 import { SidebarButton } from "./SidebarButton";
 
@@ -24,7 +25,7 @@ export function BrandingSection({ showGoBack = true }: BrandingSectionProps) {
         className="rounded-lg px-3 items-center justify-center active:opacity-70"
         style={{
           height: 122,
-          backgroundColor: "#1A1A1A", // Dark background to match design/logo
+          backgroundColor: colors.text, // Dark background to match design/logo
         }}
       >
         <Image 
@@ -37,7 +38,7 @@ export function BrandingSection({ showGoBack = true }: BrandingSectionProps) {
       {isNotHomePage && showGoBack && (
         <SidebarButton
           title="Go to Menu"
-          icon={<Ionicons name="menu" size={32} />}
+          icon={<Ionicons name="menu" size={iconSize['2xl']} />}
           onPress={() => navigateTo("/")}
           variant="outline"
         />

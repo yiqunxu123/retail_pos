@@ -1,5 +1,6 @@
 import { Ionicons, MaterialCommunityIcons, MaterialIcons } from "@expo/vector-icons";
 import { Alert, ScrollView, View } from "react-native";
+import { iconSize } from '@/utils/theme';
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAuth } from "../contexts/AuthContext";
 import { useClock } from "../contexts/ClockContext";
@@ -71,7 +72,7 @@ export function DashboardSidebar({
           {isClockedIn ? (
             <SidebarButton
               title="Clock In"
-              icon={<Ionicons name="time-outline" size={32} />}
+              icon={<Ionicons name="time-outline" size={iconSize['2xl']} />}
               variant="secondary"
               disabled={true}
               fullWidth={false}
@@ -79,7 +80,7 @@ export function DashboardSidebar({
           ) : (
             <SidebarButton
               title="Time Clock"
-              icon={<Ionicons name="time-outline" size={32} />}
+              icon={<Ionicons name="time-outline" size={iconSize['2xl']} />}
               onPress={onClockInPress}
               onLongPress={onClockInLongPress}
               variant="primary"
@@ -88,7 +89,7 @@ export function DashboardSidebar({
           )}
           <SidebarButton
             title="Change User"
-            icon={<MaterialCommunityIcons name="account-switch" size={32} />}
+            icon={<MaterialCommunityIcons name="account-switch" size={iconSize['2xl']} />}
             onPress={handleChangeUser}
             variant="outline"
             fullWidth={false}
@@ -98,7 +99,7 @@ export function DashboardSidebar({
         {/* Sales History */}
         <SidebarButton
           title="Sales History"
-          icon={<MaterialCommunityIcons name="history" size={32} />}
+          icon={<MaterialCommunityIcons name="history" size={iconSize['2xl']} />}
           onPress={() => navigateTo("/sale/sales-history")}
           variant={isClockedIn ? "outline" : "secondary"}
           disabled={!isClockedIn}
@@ -107,7 +108,7 @@ export function DashboardSidebar({
         {/* Sales Return */}
         <SidebarButton
           title="Sales Return"
-          icon={<MaterialIcons name="assignment-return" size={32} />}
+          icon={<MaterialIcons name="assignment-return" size={iconSize['2xl']} />}
           onPress={() => navigateTo("/sale/sales-return")}
           variant={isClockedIn ? "outline" : "secondary"}
           disabled={!isClockedIn}
@@ -116,7 +117,7 @@ export function DashboardSidebar({
         {/* View Reports */}
         <SidebarButton
           title="View Reports"
-          icon={<Ionicons name="bar-chart-outline" size={32} />}
+          icon={<Ionicons name="bar-chart-outline" size={iconSize['2xl']} />}
           onPress={() => navigateTo("/sale/reports")}
           variant={isClockedIn ? "outline" : "secondary"}
           disabled={!isClockedIn}
@@ -125,7 +126,7 @@ export function DashboardSidebar({
         {/* View Customers */}
         <SidebarButton
           title="View Customers"
-          icon={<Ionicons name="people-outline" size={32} />}
+          icon={<Ionicons name="people-outline" size={iconSize['2xl']} />}
           onPress={() => navigateTo("/sale/customers")}
           variant={isClockedIn ? "outline" : "secondary"}
           disabled={!isClockedIn}
@@ -134,7 +135,7 @@ export function DashboardSidebar({
         {/* View Parked Orders */}
         <SidebarButton
           title="View Parked Orders"
-          icon={<MaterialCommunityIcons name="pause-circle-outline" size={32} />}
+          icon={<MaterialCommunityIcons name="pause-circle-outline" size={iconSize['2xl']} />}
           onPress={() => navigateTo("/sale/parked-orders")}
           variant={isClockedIn ? "purple-outline" : "secondary"}
           disabled={!isClockedIn}
@@ -145,14 +146,14 @@ export function DashboardSidebar({
           <View className="flex-row gap-3">
             <SidebarButton
               title="Clock out"
-              icon={<Ionicons name="log-out-outline" size={32} />}
+              icon={<Ionicons name="log-out-outline" size={iconSize['2xl']} />}
               onPress={onClockOutPress}
               variant="outline"
               fullWidth={false}
             />
             <SidebarButton
               title="Settings"
-              icon={<Ionicons name="settings-outline" size={32} />}
+              icon={<Ionicons name="settings-outline" size={iconSize['2xl']} />}
               onPress={handleSettings}
               variant="outline"
               fullWidth={false}
@@ -161,7 +162,7 @@ export function DashboardSidebar({
         ) : (
           <SidebarButton
             title="Logout"
-            icon={<Ionicons name="log-out-outline" size={32} />}
+            icon={<Ionicons name="log-out-outline" size={iconSize['2xl']} />}
             onPress={handleLogout}
             variant="secondary"
             disabled={true}
@@ -172,14 +173,14 @@ export function DashboardSidebar({
         <View className="flex-row gap-3">
           <SidebarButton
             title="Refresh"
-            icon={<Ionicons name="refresh" size={32} />}
+            icon={<Ionicons name="refresh" size={iconSize['2xl']} />}
             onPress={() => Alert.alert("Refresh", "Data refreshed")}
             variant="primary"
             fullWidth={false}
           />
           <SidebarButton
             title="Exit Program"
-            icon={<Ionicons name="close-circle-outline" size={32} />}
+            icon={<Ionicons name="close-circle-outline" size={iconSize['2xl']} />}
             onPress={() => Alert.alert("Exit", "This would exit the POS application")}
             variant="danger"
             fullWidth={false}

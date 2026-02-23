@@ -1,5 +1,6 @@
 import React, { ReactNode } from "react";
 import { Text, TouchableOpacity, View } from "react-native";
+import { fontSize, fontWeight, colors } from '@/utils/theme';
 
 interface SidebarButtonProps {
   title: string;
@@ -13,8 +14,8 @@ interface SidebarButtonProps {
 
 // Consistent text style for all button states
 const TEXT_STYLE = {
-  fontSize: 18,
-  fontWeight: "600" as const,
+  fontSize: fontSize.lg,
+  fontWeight: fontWeight.semibold,
   fontFamily: "Montserrat",
 };
 
@@ -36,15 +37,15 @@ export function SidebarButton({
     switch (variant) {
       case "primary":
         return {
-          container: { backgroundColor: "#EC1A52", borderWidth: 0 },
-          text: { color: "#FFFFFF" },
-          iconColor: "#FFFFFF",
+          container: { backgroundColor: colors.primary, borderWidth: 0 },
+          text: { color: colors.textWhite },
+          iconColor: colors.textWhite,
         };
       case "danger":
         return {
           container: { backgroundColor: "#E64A19", borderWidth: 0 },
-          text: { color: "#FFFFFF" },
-          iconColor: "#FFFFFF",
+          text: { color: colors.textWhite },
+          iconColor: colors.textWhite,
         };
       case "yellow":
         return {
@@ -60,28 +61,28 @@ export function SidebarButton({
         };
       case "ghost":
         return {
-          container: { backgroundColor: "#F7F7F9", borderWidth: 1, borderColor: "#848484" },
+          container: { backgroundColor: colors.backgroundTertiary, borderWidth: 1, borderColor: "#848484" },
           text: { color: "#848484" },
           iconColor: "#848484",
         };
       case "purple-outline":
         return {
-          container: { backgroundColor: "#F7F7F9", borderWidth: 1, borderColor: "#5F4BB6" },
+          container: { backgroundColor: colors.backgroundTertiary, borderWidth: 1, borderColor: "#5F4BB6" },
           text: { color: "#5F4BB6" },
           iconColor: "#5F4BB6",
         };
       case "purple":
         return {
           container: { backgroundColor: "#5F4BB6", borderWidth: 0 },
-          text: { color: "#FFFFFF" },
-          iconColor: "#FFFFFF",
+          text: { color: colors.textWhite },
+          iconColor: colors.textWhite,
         };
       case "outline":
       default:
         return {
-          container: { backgroundColor: "#FFFFFF", borderWidth: 1, borderColor: "#EC1A52" },
-          text: { color: "#EC1A52" },
-          iconColor: "#EC1A52",
+          container: { backgroundColor: colors.white, borderWidth: 1, borderColor: colors.primary },
+          text: { color: colors.primary },
+          iconColor: colors.primary,
         };
     }
   };

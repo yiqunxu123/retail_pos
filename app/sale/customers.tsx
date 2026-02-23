@@ -7,6 +7,7 @@
 
 import { Ionicons } from "@expo/vector-icons";
 import React, { useCallback, useMemo, useState } from "react";
+import { fontSize, fontWeight, colors, iconSize } from '@/utils/theme';
 import { Alert, Pressable, Text, View } from "react-native";
 import { ColumnDefinition, DataTable, PageHeader } from "../../components";
 import { NewCustomerModal } from "../../components/NewCustomerModal";
@@ -22,7 +23,7 @@ const formatCurrency = (value: number): string => {
 
 const EcomStatusBadge = React.memo(({ allowed }: { allowed: boolean }) => {
   return (
-    <Text style={{ color: allowed ? "#22C55E" : "#EC1A52", fontWeight: "600", fontSize: 18, fontFamily: "Montserrat" }}>
+    <Text style={{ color: allowed ? colors.success : colors.primary, fontWeight: fontWeight.semibold, fontSize: fontSize.lg, fontFamily: "Montserrat" }}>
       {allowed ? "Allowed" : "Not Allowed"}
     </Text>
   );
@@ -32,7 +33,7 @@ const StatusBadge = React.memo(({ isActive }: { isActive: boolean }) => {
   return (
     <View 
       className="px-3 py-1 rounded-full self-start"
-      style={{ backgroundColor: isActive ? "#22C55E" : "#F59E0B" }}
+      style={{ backgroundColor: isActive ? colors.success : colors.warning }}
     >
       <Text className="text-white text-[14px] font-Montserrat font-semibold">
         {isActive ? "Active" : "InActive"}
@@ -50,7 +51,7 @@ const ActionButton = React.memo(({
 }) => {
   return (
     <Pressable className="bg-red-50 p-2 rounded-lg" onPress={onPress}>
-      <Ionicons name={icon} size={16} color="#EC1A52" />
+      <Ionicons name={icon} size={iconSize.sm} color={colors.primary} />
     </Pressable>
   );
 });
@@ -182,6 +183,8 @@ export default function CustomersScreen() {
         searchHint="Search by Business Name, Customer Name, ID"
         onSearch={handleSearch}
         columnSelector
+        horizontalScroll
+        minWidth={1050}
         addButton
         addButtonText="Add Customer"
         onAddPress={() => setShowAddCustomerModal(true)}

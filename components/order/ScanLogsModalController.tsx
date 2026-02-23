@@ -6,6 +6,7 @@ import React, {
   useImperativeHandle,
   useMemo,
 } from "react";
+import { fontSize, fontWeight, colors, iconSize } from '@/utils/theme';
 import {
   BackHandler,
   Pressable,
@@ -135,8 +136,8 @@ const ScanLogsModalControllerInner = forwardRef<
               paddingHorizontal: 24,
               paddingVertical: 18,
               borderBottomWidth: 1,
-              borderBottomColor: "#F0F1F4",
-              backgroundColor: "#FAFAFA",
+            borderBottomColor: colors.borderLight,
+            backgroundColor: colors.backgroundLight,
             }}
           >
             <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
@@ -145,20 +146,20 @@ const ScanLogsModalControllerInner = forwardRef<
                   width: 40,
                   height: 40,
                   borderRadius: 12,
-                  backgroundColor: "#EC1A52",
+                  backgroundColor: colors.primary,
                   alignItems: "center",
                   justifyContent: "center",
                 }}
               >
-                <Ionicons name="barcode-outline" size={22} color="#FFF" />
+                <Ionicons name="barcode-outline" size={iconSize.lg} color={colors.textWhite} />
               </View>
               <View>
                 <Text
                   style={{
                     fontFamily: "Montserrat",
-                    fontSize: 20,
-                    fontWeight: "700",
-                    color: "#1A1A1A",
+                    fontSize: fontSize.xl,
+                    fontWeight: fontWeight.bold,
+                    color: colors.text,
                   }}
                 >
                   Scan Logs
@@ -166,8 +167,8 @@ const ScanLogsModalControllerInner = forwardRef<
                 <Text
                   style={{
                     fontFamily: "Montserrat",
-                    fontSize: 13,
-                    color: "#9CA3AF",
+                    fontSize: fontSize.md,
+                    color: colors.textTertiary,
                     marginTop: 1,
                   }}
                 >
@@ -181,12 +182,12 @@ const ScanLogsModalControllerInner = forwardRef<
                 width: 36,
                 height: 36,
                 borderRadius: 18,
-                backgroundColor: "#F3F4F6",
+                backgroundColor: colors.backgroundSecondary,
                 alignItems: "center",
                 justifyContent: "center",
               }}
             >
-              <Ionicons name="close" size={20} color="#6B7280" />
+              <Ionicons name="close" size={iconSize.base} color={colors.textSecondary} />
             </TouchableOpacity>
           </View>
 
@@ -195,18 +196,18 @@ const ScanLogsModalControllerInner = forwardRef<
               flexDirection: "row",
               paddingHorizontal: 24,
               paddingVertical: 12,
-              backgroundColor: "#F7F7F9",
+              backgroundColor: colors.backgroundTertiary,
               borderBottomWidth: 1,
-              borderBottomColor: "#E5E7EB",
+              borderBottomColor: colors.border,
             }}
           >
             <Text
               style={{
                 width: 50,
                 fontFamily: "Montserrat",
-                fontSize: 12,
-                fontWeight: "700",
-                color: "#6B7280",
+                fontSize: fontSize.md,
+                fontWeight: fontWeight.bold,
+                color: colors.textSecondary,
               }}
             >
               #
@@ -215,9 +216,9 @@ const ScanLogsModalControllerInner = forwardRef<
               style={{
                 flex: 1,
                 fontFamily: "Montserrat",
-                fontSize: 12,
-                fontWeight: "700",
-                color: "#6B7280",
+                fontSize: fontSize.md,
+                fontWeight: fontWeight.bold,
+                color: colors.textSecondary,
               }}
             >
               BARCODE
@@ -226,9 +227,9 @@ const ScanLogsModalControllerInner = forwardRef<
               style={{
                 flex: 1.5,
                 fontFamily: "Montserrat",
-                fontSize: 12,
-                fontWeight: "700",
-                color: "#6B7280",
+                fontSize: fontSize.md,
+                fontWeight: fontWeight.bold,
+                color: colors.textSecondary,
               }}
             >
               PRODUCT
@@ -237,9 +238,9 @@ const ScanLogsModalControllerInner = forwardRef<
               style={{
                 width: 70,
                 fontFamily: "Montserrat",
-                fontSize: 12,
-                fontWeight: "700",
-                color: "#6B7280",
+                fontSize: fontSize.md,
+                fontWeight: fontWeight.bold,
+                color: colors.textSecondary,
                 textAlign: "center",
               }}
             >
@@ -249,9 +250,9 @@ const ScanLogsModalControllerInner = forwardRef<
               style={{
                 width: 80,
                 fontFamily: "Montserrat",
-                fontSize: 12,
-                fontWeight: "700",
-                color: "#6B7280",
+                fontSize: fontSize.md,
+                fontWeight: fontWeight.bold,
+                color: colors.textSecondary,
                 textAlign: "right",
               }}
             >
@@ -261,13 +262,13 @@ const ScanLogsModalControllerInner = forwardRef<
 
           {logs.length === 0 ? (
             <View style={{ paddingVertical: 60, alignItems: "center", justifyContent: "center" }}>
-              <Ionicons name="scan-outline" size={56} color="#D1D5DB" />
+              <Ionicons name="scan-outline" size={iconSize['5xl']} color={colors.borderMedium} />
               <Text
                 style={{
                   fontFamily: "Montserrat",
-                  fontSize: 16,
-                  fontWeight: "600",
-                  color: "#9CA3AF",
+                  fontSize: fontSize.base,
+                  fontWeight: fontWeight.semibold,
+                  color: colors.textTertiary,
                   marginTop: 16,
                 }}
               >
@@ -276,7 +277,7 @@ const ScanLogsModalControllerInner = forwardRef<
               <Text
                 style={{
                   fontFamily: "Montserrat",
-                  fontSize: 13,
+                  fontSize: fontSize.md,
                   color: "#C4C8CF",
                   marginTop: 6,
                   textAlign: "center",
@@ -297,16 +298,16 @@ const ScanLogsModalControllerInner = forwardRef<
                     paddingHorizontal: 24,
                     paddingVertical: 14,
                     borderBottomWidth: 1,
-                    borderBottomColor: "#F3F4F6",
-                    backgroundColor: index % 2 === 0 ? "#FFFFFF" : "#FAFAFA",
+                    borderBottomColor: colors.backgroundSecondary,
+                    backgroundColor: index % 2 === 0 ? colors.white : colors.backgroundLight,
                   }}
                 >
                   <Text
                     style={{
                       width: 50,
                       fontFamily: "Montserrat",
-                      fontSize: 13,
-                      color: "#9CA3AF",
+                      fontSize: fontSize.md,
+                      color: colors.textTertiary,
                     }}
                   >
                     {logs.length - index}
@@ -315,9 +316,9 @@ const ScanLogsModalControllerInner = forwardRef<
                     <Text
                       style={{
                         fontFamily: "Montserrat",
-                        fontSize: 15,
-                        fontWeight: "700",
-                        color: "#1A1A1A",
+                        fontSize: fontSize.base,
+                        fontWeight: fontWeight.bold,
+                        color: colors.text,
                         letterSpacing: 1.5,
                       }}
                       selectable
@@ -329,9 +330,9 @@ const ScanLogsModalControllerInner = forwardRef<
                     <Text
                       style={{
                         fontFamily: "Montserrat",
-                        fontSize: 13,
-                        fontWeight: "500",
-                        color: log.matched ? "#1A1A1A" : "#9CA3AF",
+                        fontSize: fontSize.md,
+                        fontWeight: fontWeight.medium,
+                        color: log.matched ? colors.text : colors.textTertiary,
                       }}
                       numberOfLines={1}
                     >
@@ -350,9 +351,9 @@ const ScanLogsModalControllerInner = forwardRef<
                       <Text
                         style={{
                           fontFamily: "Montserrat",
-                          fontSize: 11,
-                          fontWeight: "700",
-                          color: log.matched ? "#059669" : "#DC2626",
+                          fontSize: fontSize.md,
+                          fontWeight: fontWeight.bold,
+                          color: log.matched ? "#059669" : colors.errorDark,
                         }}
                       >
                         {log.matched ? "FOUND" : "MISS"}
@@ -363,8 +364,8 @@ const ScanLogsModalControllerInner = forwardRef<
                     style={{
                       width: 80,
                       fontFamily: "Montserrat",
-                      fontSize: 12,
-                      color: "#9CA3AF",
+                      fontSize: fontSize.md,
+                      color: colors.textTertiary,
                       textAlign: "right",
                     }}
                   >
@@ -387,20 +388,20 @@ const ScanLogsModalControllerInner = forwardRef<
               paddingHorizontal: 24,
               paddingVertical: 16,
               borderTopWidth: 1,
-              borderTopColor: "#F0F1F4",
-              backgroundColor: "#FAFAFA",
+              borderTopColor: colors.borderLight,
+              backgroundColor: colors.backgroundLight,
             }}
           >
             <View style={{ flexDirection: "row", alignItems: "center", gap: 16 }}>
               <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
                 <View style={{ width: 10, height: 10, borderRadius: 5, backgroundColor: "#059669" }} />
-                <Text style={{ fontFamily: "Montserrat", fontSize: 13, color: "#6B7280" }}>
+                <Text style={{ fontFamily: "Montserrat", fontSize: fontSize.md, color: colors.textSecondary }}>
                   {summary.matched} matched
                 </Text>
               </View>
               <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
-                <View style={{ width: 10, height: 10, borderRadius: 5, backgroundColor: "#DC2626" }} />
-                <Text style={{ fontFamily: "Montserrat", fontSize: 13, color: "#6B7280" }}>
+                <View style={{ width: 10, height: 10, borderRadius: 5, backgroundColor: colors.errorDark }} />
+                <Text style={{ fontFamily: "Montserrat", fontSize: fontSize.md, color: colors.textSecondary }}>
                   {summary.missed} missed
                 </Text>
               </View>
@@ -416,17 +417,17 @@ const ScanLogsModalControllerInner = forwardRef<
                   paddingVertical: 8,
                   borderRadius: 8,
                   borderWidth: 1,
-                  borderColor: "#E5E7EB",
-                  backgroundColor: "#FFF",
+                  borderColor: colors.border,
+                  backgroundColor: colors.white,
                 }}
               >
-                <Ionicons name="trash-outline" size={16} color="#DC2626" />
+                <Ionicons name="trash-outline" size={iconSize.sm} color={colors.errorDark} />
                 <Text
                   style={{
                     fontFamily: "Montserrat",
-                    fontSize: 13,
-                    fontWeight: "600",
-                    color: "#DC2626",
+                    fontSize: fontSize.md,
+                    fontWeight: fontWeight.semibold,
+                    color: colors.errorDark,
                   }}
                 >
                   Clear All
@@ -448,7 +449,7 @@ const styles = StyleSheet.create({
   },
   backdrop: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: "#000000",
+    backgroundColor: colors.black,
   },
   touchGate: {
     ...StyleSheet.absoluteFillObject,
@@ -459,7 +460,7 @@ const styles = StyleSheet.create({
     ...StyleSheet.absoluteFillObject,
   },
   panel: {
-    backgroundColor: "#FFF",
+    backgroundColor: colors.white,
     borderRadius: 16,
     width: 560,
     maxHeight: "80%",

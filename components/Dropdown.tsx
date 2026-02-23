@@ -1,6 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useState, useRef } from "react";
 import { View, Text, Pressable, Modal, ScrollView, LayoutRectangle } from "react-native";
+import { iconSize, colors } from "@/utils/theme";
 
 export interface DropdownOption {
   value: string;
@@ -72,8 +73,8 @@ export function Dropdown({
         </Text>
         <Ionicons
           name={isOpen ? "chevron-up" : "chevron-down"}
-          size={20}
-          color="#9ca3af"
+          size={iconSize.base}
+          color={colors.textTertiary}
         />
       </Pressable>
 
@@ -121,7 +122,7 @@ export function Dropdown({
                         {option.label}
                       </Text>
                       {option.value === value && (
-                        <Ionicons name="checkmark" size={20} color="#ef4444" />
+                        <Ionicons name="checkmark" size={iconSize.base} color={colors.error} />
                       )}
                     </View>
                   </Pressable>

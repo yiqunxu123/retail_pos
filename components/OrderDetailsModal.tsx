@@ -1,6 +1,7 @@
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { useState } from "react";
 import { Modal, View, Text, TouchableOpacity, ScrollView, Pressable } from "react-native";
+import { fontSize, fontWeight, colors, iconSize } from '@/utils/theme';
 
 interface OrderItem {
   id: string;
@@ -91,18 +92,18 @@ export function OrderDetailsModal({
   };
 
   // Info card component
-  const InfoCard = ({ label, value, valueColor = "#EC1A52", bgColor }: { 
+  const InfoCard = ({ label, value, valueColor = colors.primary, bgColor }: { 
     label: string; 
     value: string; 
     valueColor?: string;
     bgColor?: string;
   }) => (
     <View 
-      className="flex-1 border border-gray-200 rounded-lg p-3 min-w-[120px] bg-[#F7F7F9] shadow-sm"
-      style={bgColor ? { backgroundColor: bgColor } : undefined}
+      className="flex-1 border border-gray-200 rounded-lg p-3 min-w-[120px] shadow-sm"
+      style={bgColor ? { backgroundColor: bgColor } : { backgroundColor: colors.backgroundTertiary }}
     >
       <Text className="text-gray-600 text-xs mb-1">{label}</Text>
-      <Text style={{ color: valueColor, fontWeight: "500", fontSize: 14 }} numberOfLines={1}>
+      <Text style={{ color: valueColor, fontWeight: fontWeight.medium, fontSize: fontSize.base }} numberOfLines={1}>
         {value}
       </Text>
     </View>
@@ -110,15 +111,15 @@ export function OrderDetailsModal({
 
   // Invoice status badge
   const InvoiceStatusBadge = ({ status }: { status: string }) => {
-    const colors: Record<string, { bg: string; text: string }> = {
-      Paid: { bg: "#22C55E", text: "#FFFFFF" },
-      Unpaid: { bg: "#EF4444", text: "#FFFFFF" },
-      Partial: { bg: "#F59E0B", text: "#FFFFFF" },
+      const colors_map: Record<string, { bg: string; text: string }> = {
+      Paid: { bg: colors.success, text: colors.textWhite },
+      Unpaid: { bg: colors.error, text: colors.textWhite },
+      Partial: { bg: colors.warning, text: colors.textWhite },
     };
-    const color = colors[status] || colors.Unpaid;
+    const color = colors_map[status] || colors_map.Unpaid;
     return (
       <View className="px-3 py-1 rounded" style={{ backgroundColor: color.bg }}>
-        <Text style={{ color: color.text, fontWeight: "600", fontSize: 12 }}>{status}</Text>
+        <Text style={{ color: color.text, fontWeight: fontWeight.semibold, fontSize: fontSize.md }}>{status}</Text>
       </View>
     );
   };
@@ -139,7 +140,7 @@ export function OrderDetailsModal({
           <View className="flex-row justify-between items-center px-6 py-4 border-b border-gray-200">
             <Text className="text-xl font-bold text-gray-800">Order Details</Text>
             <TouchableOpacity onPress={onClose}>
-              <Ionicons name="close" size={24} color="#6b7280" />
+              <Ionicons name="close" size={iconSize.xl} color={colors.textSecondary} />
             </TouchableOpacity>
           </View>
 
@@ -161,7 +162,7 @@ export function OrderDetailsModal({
                 <InfoCard 
                   label="Order Type" 
                   value={order.orderType || "Walk In"} 
-                  valueColor="#1A1A1A"
+                  valueColor={colors.text}
                 />
                 <InfoCard 
                   label="Order Number" 
@@ -188,23 +189,23 @@ export function OrderDetailsModal({
                 <InfoCard 
                   label="Sub Total" 
                   value={`$${order.subTotal.toFixed(2)}`} 
-                  valueColor="#1A1A1A"
+                  valueColor={colors.text}
                 />
                 <InfoCard 
                   label="Discount" 
                   value={`$${order.discount.toFixed(2)}`} 
-                  valueColor="#1A1A1A"
+                  valueColor={colors.text}
                 />
                 <View 
                   className="flex-1 border border-gray-200 rounded-lg p-3 min-w-[120px]"
                   style={{ backgroundColor: "#FEF08A" }}
                 >
                   <Text className="text-gray-600 text-xs mb-1">Total</Text>
-                  <Text style={{ color: "#22C55E", fontWeight: "700", fontSize: 14 }}>
+                  <Text style={{ color: colors.success, fontWeight: fontWeight.bold, fontSize: fontSize.base }}>
                     ${order.total.toFixed(2)}
                   </Text>
                 </View>
-                <View className="flex-1 border border-gray-200 rounded-lg p-3 min-w-[120px] bg-[#F7F7F9] shadow-sm">
+                <View className="flex-1 border border-gray-200 rounded-lg p-3 min-w-[120px]" style={{ backgroundColor: colors.backgroundTertiary }}>
                   <Text className="text-gray-600 text-xs mb-1">Invoice Status</Text>
                   <InvoiceStatusBadge status={order.invoiceStatus || "Paid"} />
                 </View>
@@ -225,13 +226,13 @@ export function OrderDetailsModal({
                       key={tab}
                       onPress={() => setActiveTab(tab)}
                       className="mr-6 pb-3"
-                      style={isActive ? { borderBottomWidth: 2, borderBottomColor: "#1A1A1A" } : undefined}
+                      style={isActive ? { borderBottomWidth: 2, borderBottomColor: colors.text } : undefined}
                     >
                       <Text 
                         style={{ 
-                          color: isActive ? "#1A1A1A" : "#9CA3AF", 
-                          fontWeight: isActive ? "600" : "400",
-                          fontSize: 14,
+                          color: isActive ? colors.text : colors.textTertiary, 
+                          fontWeight: isActive ? fontWeight.semibold : fontWeight.regular,
+                          fontSize: fontSize.base,
                         }}
                       >
                         {tab}
@@ -247,8 +248,8 @@ export function OrderDetailsModal({
               {activeTab === "Order Details" && (
                 <>
                   {order.items.length === 0 ? (
-                    <View className="bg-[#F7F7F9] rounded-lg p-8 items-center shadow-sm">
-                      <Ionicons name="cube-outline" size={48} color="#9ca3af" />
+                    <View className="rounded-lg p-8 items-center shadow-sm" style={{ backgroundColor: colors.backgroundTertiary }}>
+                      <Ionicons name="cube-outline" size={iconSize['4xl']} color={colors.textTertiary} />
                       <Text className="text-gray-500 mt-3 text-lg">No items in this order</Text>
                       <Text className="text-gray-400 text-sm mt-1">
                         Order items will be shown here when loaded from database
@@ -257,7 +258,7 @@ export function OrderDetailsModal({
                   ) : (
                     <>
                       {/* Table Header */}
-                      <View className="flex-row bg-[#F7F7F9] px-3 py-3 rounded-t-lg border border-gray-200 shadow-sm">
+                      <View className="flex-row px-3 py-3 rounded-t-lg border border-gray-200 shadow-sm" style={{ backgroundColor: colors.backgroundTertiary }}>
                         <Text className="w-12 text-gray-600 text-xs font-semibold">Sr No</Text>
                         <Text className="flex-1 text-gray-600 text-xs font-semibold">Product Name</Text>
                         <Text className="w-24 text-gray-600 text-xs font-semibold">SKU/UPC</Text>
@@ -283,10 +284,10 @@ export function OrderDetailsModal({
                           </Text>
                           <Text className="w-24 text-blue-600 text-sm">{item.sku}{item.upc ? ` / ${item.upc}` : ""}</Text>
                           <Text className="w-20 text-gray-800 text-sm text-center">{item.orderedQty}</Text>
-                          <Text className="w-16 text-[#EC1A52] text-sm text-center">{item.unit}</Text>
+                          <Text className="w-16 text-sm text-center" style={{ color: colors.primary }}>{item.unit}</Text>
                           <Text className="w-20 text-gray-800 text-sm text-center">{item.deliveredQty}</Text>
                           <Text className="w-20 text-gray-800 text-sm text-center">{item.remainingQty}</Text>
-                          <Text className="w-20 text-[#EC1A52] text-sm text-right">${item.salePrice.toFixed(2)}</Text>
+                          <Text className="w-20 text-sm text-right" style={{ color: colors.primary }}>${item.salePrice.toFixed(2)}</Text>
                           <Text className="w-16 text-gray-800 text-sm text-right">${item.discount}</Text>
                         </View>
                       ))}
@@ -296,8 +297,8 @@ export function OrderDetailsModal({
               )}
 
               {activeTab === "Shipments" && (
-                <View className="bg-[#F7F7F9] rounded-lg p-8 items-center shadow-sm">
-                  <MaterialCommunityIcons name="truck-delivery-outline" size={48} color="#9ca3af" />
+                <View className="rounded-lg p-8 items-center shadow-sm" style={{ backgroundColor: colors.backgroundTertiary }}>
+                  <MaterialCommunityIcons name="truck-delivery-outline" size={iconSize['4xl']} color={colors.textTertiary} />
                   <Text className="text-gray-500 mt-3 text-lg">No shipment records</Text>
                   <Text className="text-gray-400 text-sm mt-1">Shipment details will appear here</Text>
                 </View>
@@ -306,8 +307,8 @@ export function OrderDetailsModal({
               {activeTab === "Payment History" && (
                 <>
                   {order.payments.length === 0 ? (
-                    <View className="bg-[#F7F7F9] rounded-lg p-8 items-center shadow-sm">
-                      <MaterialCommunityIcons name="cash-multiple" size={48} color="#9ca3af" />
+                    <View className="rounded-lg p-8 items-center shadow-sm" style={{ backgroundColor: colors.backgroundTertiary }}>
+                      <MaterialCommunityIcons name="cash-multiple" size={iconSize['4xl']} color={colors.textTertiary} />
                       <Text className="text-gray-500 mt-3 text-lg">No payment records</Text>
                       <Text className="text-gray-400 text-sm mt-1">Payment history will appear here</Text>
                     </View>
@@ -316,13 +317,14 @@ export function OrderDetailsModal({
                       {order.payments.map((payment) => (
                         <View
                           key={payment.id}
-                          className="flex-row items-center bg-[#F7F7F9] rounded-lg px-4 py-3 shadow-sm"
+                          className="flex-row items-center rounded-lg px-4 py-3 shadow-sm"
+                          style={{ backgroundColor: colors.backgroundTertiary }}
                         >
                           <View className="w-10 h-10 bg-green-100 rounded-full items-center justify-center mr-3">
                             <MaterialCommunityIcons
                               name={payment.method === "cash" ? "cash" : "credit-card"}
-                              size={20}
-                              color="#10B981"
+                              size={iconSize.base}
+                              color={colors.success}
                             />
                           </View>
                           <View className="flex-1">
@@ -342,8 +344,8 @@ export function OrderDetailsModal({
               )}
 
               {activeTab === "Invoice Activity" && (
-                <View className="bg-[#F7F7F9] rounded-lg p-8 items-center shadow-sm">
-                  <Ionicons name="document-text-outline" size={48} color="#9ca3af" />
+                <View className="rounded-lg p-8 items-center shadow-sm" style={{ backgroundColor: colors.backgroundTertiary }}>
+                  <Ionicons name="document-text-outline" size={iconSize['4xl']} color={colors.textTertiary} />
                   <Text className="text-gray-500 mt-3 text-lg">No invoice activity</Text>
                   <Text className="text-gray-400 text-sm mt-1">Invoice activity will appear here</Text>
                 </View>
@@ -356,8 +358,8 @@ export function OrderDetailsModal({
                       <Text className="text-gray-700">{order.note}</Text>
                     </View>
                   ) : (
-                    <View className="bg-[#F7F7F9] rounded-lg p-8 items-center shadow-sm">
-                      <Ionicons name="chatbubble-outline" size={48} color="#9ca3af" />
+                    <View className="rounded-lg p-8 items-center shadow-sm" style={{ backgroundColor: colors.backgroundTertiary }}>
+                      <Ionicons name="chatbubble-outline" size={iconSize['4xl']} color={colors.textTertiary} />
                       <Text className="text-gray-500 mt-3 text-lg">No notes</Text>
                       <Text className="text-gray-400 text-sm mt-1">Order notes will appear here</Text>
                     </View>
@@ -371,17 +373,18 @@ export function OrderDetailsModal({
           <View className="flex-row gap-4 px-6 py-4 border-t border-gray-200 justify-end">
             <TouchableOpacity
               onPress={onClose}
-              className="border border-gray-300 rounded-lg px-8 py-3 items-center"
+              className="border border-gray-300 rounded-lg px-8 items-center justify-center"
+              style={{ height: 40 }}
             >
               <Text className="text-gray-700 font-medium">Close</Text>
             </TouchableOpacity>
             {onPrintReceipt && (
               <TouchableOpacity
                 onPress={onPrintReceipt}
-                className="rounded-lg px-8 py-3 flex-row items-center justify-center gap-2"
-                style={{ backgroundColor: "#FCD34D" }}
+                className="rounded-lg px-8 flex-row items-center justify-center gap-2"
+                style={{ height: 40, backgroundColor: "#FCD34D" }}
               >
-                <Ionicons name="print" size={18} color="#1A1A1A" />
+                <Ionicons name="print" size={iconSize.md} color={colors.text} />
                 <Text className="text-gray-900 font-medium">Print</Text>
               </TouchableOpacity>
             )}

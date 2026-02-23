@@ -1,6 +1,8 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter, usePathname } from "expo-router";
 import { View, Text, Pressable } from "react-native";
+import { colors } from '@/utils/theme';
+import { iconSize } from "@/utils/theme";
 
 type Step = "customer" | "products" | "checkout";
 
@@ -38,14 +40,14 @@ export function StepNavigation({ onConfirm, showConfirm }: StepNavigationProps) 
   };
 
   return (
-    <View className="flex-row items-center justify-between bg-[#F7F7F9] border-t border-gray-200 px-4 py-3">
+    <View className="flex-row items-center justify-between border-t border-gray-200 px-4 py-3" style={{ backgroundColor: colors.backgroundTertiary }}>
       {/* Back Button */}
       <Pressable
         onPress={handleBack}
-        className="bg-[#EC1A52] px-6 py-3 rounded-lg flex-row items-center gap-2 shadow-sm"
-        style={({ pressed }) => ({ opacity: pressed ? 0.8 : 1 })}
+        className="px-6 py-3 rounded-lg flex-row items-center gap-2 shadow-sm"
+        style={({ pressed }) => ({ backgroundColor: colors.primary, opacity: pressed ? 0.8 : 1 })}
       >
-        <Ionicons name="menu" size={18} color="white" />
+        <Ionicons name="menu" size={iconSize.md} color="white" />
         <Text className="text-white font-semibold">Back</Text>
       </Pressable>
 
@@ -73,7 +75,7 @@ export function StepNavigation({ onConfirm, showConfirm }: StepNavigationProps) 
                 }`}
               >
                 {isCompleted ? (
-                  <Ionicons name="checkmark" size={16} color="white" />
+                  <Ionicons name="checkmark" size={iconSize.sm} color="white" />
                 ) : (
                   <Text className="text-white font-bold text-sm">{index + 1}</Text>
                 )}

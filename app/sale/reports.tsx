@@ -2,6 +2,7 @@ import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import { Pressable, ScrollView, Text, View } from "react-native";
 import { PageHeader } from "../../components";
+import { colors, iconSize } from '@/utils/theme';
 
 // Report category configuration
 const REPORT_CATEGORIES = [
@@ -69,9 +70,9 @@ function ReportCard({
     >
       <View className="mb-2">
         {["cash-register", "tag-outline", "archive-outline", "bar-chart-outline", "currency-usd", "gavel"].includes(icon) ? (
-          <MaterialCommunityIcons name={icon} size={32} color="white" />
+          <MaterialCommunityIcons name={icon} size={iconSize['2xl']} color="white" />
         ) : (
-          <Ionicons name={icon} size={32} color="white" />
+          <Ionicons name={icon} size={iconSize['2xl']} color="white" />
         )}
       </View>
       <Text className="text-white font-bold text-center text-sm">{title}</Text>
@@ -81,7 +82,7 @@ function ReportCard({
 
 export default function ReportsScreen() {
   return (
-    <View className="flex-1 bg-[#F7F7F9]">
+    <View className="flex-1" style={{ backgroundColor: colors.backgroundTertiary }}>
       <PageHeader title="View Reports" showBack />
 
       {/* Report Categories Grid */}

@@ -182,6 +182,8 @@ export default function StockAlertsScreen() {
         filters={filters}
         onFilter={handleFilter}
         columnSelector
+        horizontalScroll
+        minWidth={1100}
         addButton
         addButtonText="Create Purchase Order"
         onAddPress={() => {}}

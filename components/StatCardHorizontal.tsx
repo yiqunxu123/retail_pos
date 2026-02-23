@@ -1,5 +1,6 @@
 import { ReactNode } from "react";
 import { Text, TouchableOpacity, View } from "react-native";
+import { fontSize } from '@/utils/theme';
 
 interface StatCardHorizontalProps {
   title: string;
@@ -32,10 +33,10 @@ export function StatCardHorizontal({
       }}
     >
       {icon && <View className="mb-2">{icon}</View>}
-      <Text className="text-white font-medium text-center mb-1" style={{ fontSize: 16 }}>
+      <Text className="text-white font-medium text-center mb-1" style={{ fontSize: fontSize.base }}>
         {title}
       </Text>
-      <Text className="text-white font-bold" style={{ fontSize: 32 }}>
+      <Text className="text-white font-bold" style={{ fontSize: fontSize['3xl'] }}>
         {count}
       </Text>
     </View>

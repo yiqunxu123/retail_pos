@@ -12,6 +12,7 @@
  * - Real-time sync indicator
  */
 
+import { colors, fontSize, fontWeight, iconSize } from '@/utils/theme';
 import { Ionicons } from "@expo/vector-icons";
 import React, { ReactElement, ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
@@ -192,6 +193,21 @@ export interface DataTableProps<T = any> {
   renderRow?: (item: T, columns: ColumnDefinition<T>[], visibleColumns: Record<string, boolean>) => ReactElement | null;
   /** Row click handler */
   onRowPress?: (item: T) => void;
+  /** Optional per-render performance callback */
+  onRenderPerf?: (metrics: DataTableRenderPerfMetrics) => void;
+}
+
+export interface DataTableRenderPerfMetrics {
+  timestampMs: number;
+  currentPage: number;
+  pageSize: number;
+  totalItems: number;
+  rowCount: number;
+  renderCount: number;
+  processedDataMs: number;
+  paginatedDataMs: number;
+  rowsBuildMs: number;
+  renderBuildMs: number;
 }
 
 function isFilterValueEqual(
@@ -231,6 +247,9 @@ function areFilterMapsEqual(
 const ROW_HEIGHT = 52;
 const dataTableRowRenderCounts = new Map<string, number>();
 const dataTableCellRenderCounts = new Map<string, number>();
+// Throttle verbose cell/row logging to avoid flooding JS thread during pagination.
+let _dtDebugLogEnabled = false;
+const setDataTableDebugLog = (enabled: boolean) => { _dtDebugLogEnabled = enabled; };
 
 function getNowMs() {
   if (
@@ -251,8 +270,8 @@ const rowStyles = StyleSheet.create({
     paddingVertical: 12,
     paddingHorizontal: 20,
     borderBottomWidth: 1,
-    borderBottomColor: '#F0F1F4',
-    backgroundColor: '#F7F7F9',
+    borderBottomColor: colors.borderLight,
+    backgroundColor: colors.backgroundTertiary,
     minHeight: ROW_HEIGHT,
   },
   rowSelected: {
@@ -261,10 +280,10 @@ const rowStyles = StyleSheet.create({
     paddingVertical: 12,
     paddingHorizontal: 20,
     borderBottomWidth: 1,
-    borderBottomColor: '#F0F1F4',
-    backgroundColor: '#FFF0F3',
+    borderBottomColor: colors.borderLight,
+    backgroundColor: colors.primaryLight,
     borderLeftWidth: 4,
-    borderLeftColor: '#EC1A52',
+    borderLeftColor: colors.primary,
     minHeight: ROW_HEIGHT,
   },
   checkboxContainer: {
@@ -281,8 +300,8 @@ const rowStyles = StyleSheet.create({
     alignItems: 'flex-end',
   },
   defaultCellText: {
-    color: '#1A1A1A',
-    fontSize: 18,
+    color: colors.text,
+    fontSize: fontSize.xl,
     fontFamily: 'Montserrat',
   },
   loadingOverlay: {
@@ -327,8 +346,8 @@ function TableCheckbox({
         checked || indeterminate ? "bg-red-500 border-red-500" : "border-gray-300"
       } ${disabled ? "opacity-50" : ""}`}
     >
-      {checked && <Ionicons name="checkmark" size={14} color="white" />}
-      {!checked && indeterminate && <Ionicons name="remove" size={14} color="white" />}
+      {checked && <Ionicons name="checkmark" size={iconSize.xs} color="white" />}
+      {!checked && indeterminate && <Ionicons name="remove" size={iconSize.xs} color="white" />}
     </Pressable>
   );
 }
@@ -405,7 +424,7 @@ const DataTableRow = React.memo(function DataTableRow({
           </Text>
         );
 
-        if (__DEV__) {
+        if (__DEV__ && _dtDebugLogEnabled) {
           const cellCountKey = `${key}::${col.key}`;
           const cellRenderCount = (dataTableCellRenderCounts.get(cellCountKey) ?? 0) + 1;
           dataTableCellRenderCounts.set(cellCountKey, cellRenderCount);
@@ -429,7 +448,7 @@ const DataTableRow = React.memo(function DataTableRow({
     </Pressable>
   );
 
-  if (__DEV__) {
+  if (__DEV__ && _dtDebugLogEnabled) {
     const keyRenderCount = (dataTableRowRenderCounts.get(key) ?? 0) + 1;
     dataTableRowRenderCounts.set(key, keyRenderCount);
     const rowRenderBuildMs = Number((getNowMs() - rowRenderStartMs).toFixed(3));
@@ -500,8 +519,12 @@ export function DataTable<T = any>(props: DataTableProps<T>) {
     renderRow,
     onRowPress,
     ListFooterComponent,
+    onRenderPerf,
   } = props;
   const tableRenderStartMs = __DEV__ ? getNowMs() : 0;
+  const processedDataMsRef = useRef(0);
+  const paginatedDataMsRef = useRef(0);
+  const rowsBuildMsRef = useRef(0);
 
   // State
   const [searchQuery, setSearchQuery] = useState(searchQueryValue ?? defaultSearchQuery);
@@ -716,6 +739,7 @@ export function DataTable<T = any>(props: DataTableProps<T>) {
 
   // Filter and sort data
   const processedData = useMemo(() => {
+    const perfStart = __DEV__ ? getNowMs() : 0;
     let result = [...data];
 
     // Apply search
@@ -733,6 +757,9 @@ export function DataTable<T = any>(props: DataTableProps<T>) {
       result = onSort(result, sortBy);
     }
 
+    if (__DEV__) {
+      processedDataMsRef.current = Number((getNowMs() - perfStart).toFixed(3));
+    }
     return result;
   }, [data, searchQuery, activeFilters, sortBy, onSearch, onFilter, onSort]);
 
@@ -740,11 +767,19 @@ export function DataTable<T = any>(props: DataTableProps<T>) {
   const totalItems = isServerPagination ? (totalCount ?? processedData.length) : processedData.length;
   const totalPages = Math.ceil(totalItems / effectivePageSize) || 1;
   const paginatedData = useMemo(() => {
+    const perfStart = __DEV__ ? getNowMs() : 0;
     if (isServerPagination) {
+      if (__DEV__) {
+        paginatedDataMsRef.current = Number((getNowMs() - perfStart).toFixed(3));
+      }
       return processedData;
     }
     const start = (effectiveCurrentPage - 1) * effectivePageSize;
-    return processedData.slice(start, start + effectivePageSize);
+    const result = processedData.slice(start, start + effectivePageSize);
+    if (__DEV__) {
+      paginatedDataMsRef.current = Number((getNowMs() - perfStart).toFixed(3));
+    }
+    return result;
   }, [isServerPagination, processedData, effectiveCurrentPage, effectivePageSize]);
 
   const changePage = useCallback(
@@ -813,7 +848,7 @@ export function DataTable<T = any>(props: DataTableProps<T>) {
   }, [allFilteredSelected, filteredKeys, selectedRowKeys, setSelectedKeys]);
 
   const renderHeader = useCallback(() => (
-    <View className="flex-row bg-[#F7F7F9] border-b border-gray-200 py-4 px-5">
+    <View className="flex-row border-b border-gray-200 py-4 px-5" style={{ backgroundColor: colors.backgroundTertiary }}>
       {bulkActions && (
         <View className="w-8 mr-4">
           <TableCheckbox
@@ -842,14 +877,14 @@ export function DataTable<T = any>(props: DataTableProps<T>) {
               onPress={() => isSortable && handleSortPress(col.key)}
               className="flex-row items-center"
             >
-              <Text className="text-[#6B7280] font-Montserrat font-medium text-[16px] uppercase mr-1">
+              <Text style={{ color: colors.textSecondary }} className="font-Montserrat font-medium text-[16px] uppercase mr-1">
                 {col.title}
               </Text>
               {isSortable && (
                 <Ionicons 
                   name={sortBy === col.key ? (sortOrder === "asc" ? "caret-up" : "caret-down") : "caret-down"} 
-                  size={12} 
-                  color={sortBy === col.key ? "#EC1A52" : "#D1D5DB"} 
+                  size={iconSize.xs} 
+                  color={sortBy === col.key ? colors.primary : colors.borderMedium} 
                 />
               )}
             </Pressable>
@@ -862,7 +897,8 @@ export function DataTable<T = any>(props: DataTableProps<T>) {
   // Memoized row list - uses index keys so React REUSES native views on page change
   // (like RecyclerView ViewHolder pattern) instead of destroying + recreating them
   const renderedRows = useMemo(() => {
-    return filteredData.map((item, index) => {
+    const perfStart = __DEV__ ? getNowMs() : 0;
+    const result = filteredData.map((item, index) => {
       const key = keyExtractor(item);
       const isSelected = selectedRowKeySet.has(key);
       return (
@@ -880,14 +916,44 @@ export function DataTable<T = any>(props: DataTableProps<T>) {
         />
       );
     });
-  }, [filteredData, keyExtractor, selectedRowKeySet, columns, visibleColumns, bulkActions, onRowPress, toggleRowSelection, effectiveCurrentPage]);
+    if (__DEV__) {
+      rowsBuildMsRef.current = Number((getNowMs() - perfStart).toFixed(3));
+    }
+    return result;
+  }, [filteredData, keyExtractor, selectedRowKeySet, columns, visibleColumns, bulkActions, onRowPress, toggleRowSelection]);
+  const tableRenderBuildMs = __DEV__
+    ? Number((getNowMs() - tableRenderStartMs).toFixed(3))
+    : 0;
+
+  useEffect(() => {
+    if (!onRenderPerf) return;
+    onRenderPerf({
+      timestampMs: getNowMs(),
+      currentPage: effectiveCurrentPage,
+      pageSize: effectivePageSize,
+      totalItems,
+      rowCount: paginatedData.length,
+      renderCount: tableRenderCountRef.current,
+      processedDataMs: processedDataMsRef.current,
+      paginatedDataMs: paginatedDataMsRef.current,
+      rowsBuildMs: rowsBuildMsRef.current,
+      renderBuildMs: tableRenderBuildMs,
+    });
+  }, [
+    effectiveCurrentPage,
+    effectivePageSize,
+    onRenderPerf,
+    paginatedData.length,
+    tableRenderBuildMs,
+    totalItems,
+  ]);
 
   // Loading state
   if (isLoading && data.length === 0) {
     return (
-      <View className="flex-1 bg-[#F7F7F9]" style={containerStyle}>
+      <View className="flex-1" style={{ backgroundColor: colors.backgroundTertiary, ...containerStyle }}>
         <View className="flex-1 justify-center items-center">
-          <ActivityIndicator size="large" color="#EC1A52" />
+          <ActivityIndicator size="large" color={colors.primary} />
           <Text style={{ fontFamily: 'Montserrat' }} className="mt-4 text-gray-600">Loading...</Text>
         </View>
       </View>
@@ -896,24 +962,24 @@ export function DataTable<T = any>(props: DataTableProps<T>) {
 
   // Main render
   const tableContent = (
-    <View className="flex-1 bg-[#F7F7F9]" style={containerStyle}>
+      <View className="flex-1" style={{ backgroundColor: colors.backgroundTertiary, ...containerStyle }}>
       {/* Toolbar */}
-      <View className="bg-[#F7F7F9] px-5 py-4 border-b border-gray-200">
+      <View style={{ backgroundColor: colors.backgroundTertiary }} className="px-5 py-4 border-b border-gray-200">
         {/* Search & Actions Replica Row */}
         <View className="flex-row items-center gap-3">
           {searchable && (
             <View className="relative" style={{ flex: 1, maxWidth: 800 }}>
               <Ionicons 
                 name="search-outline" 
-                size={20} 
-                color="#9CA3AF" 
+                size={iconSize.base} 
+                color={colors.textTertiary} 
                 style={{ position: "absolute", left: 16, top: 12, zIndex: 10 }} 
               />
               <TextInput
                 className="bg-white border border-gray-200 rounded-xl pl-12 pr-4 py-3 text-[18px] shadow-sm"
                 style={{ fontFamily: 'Montserrat' }}
                 placeholder={searchPlaceholder}
-                placeholderTextColor="#9CA3AF"
+                placeholderTextColor={colors.textTertiary}
                 value={searchQuery}
                 onChangeText={(value) => {
                   setSearchQuery(value);
@@ -925,9 +991,10 @@ export function DataTable<T = any>(props: DataTableProps<T>) {
 
           {showBulkActionInToolbar && (
             <Pressable
-              className={`h-9 px-4 rounded-md flex-row items-center justify-center gap-2 ${
+              className={`px-4 rounded-lg flex-row items-center justify-center gap-2 ${
                 onBulkActionPress && selectedRows.length === 0 ? "bg-red-300" : "bg-red-500"
               }`}
+              style={{ height: 40 }}
               onPress={() => onBulkActionPress?.(selectedRows)}
               disabled={!!onBulkActionPress && selectedRows.length === 0}
             >
@@ -935,7 +1002,7 @@ export function DataTable<T = any>(props: DataTableProps<T>) {
                 {bulkActionText}
                 {selectedRows.length > 0 ? ` (${selectedRows.length})` : ""}
               </Text>
-              {!onBulkActionPress && <Ionicons name="chevron-down" size={16} color="white" />}
+              {!onBulkActionPress && <Ionicons name="chevron-down" size={iconSize.sm} color="white" />}
             </Pressable>
           )}
           
@@ -970,9 +1037,10 @@ export function DataTable<T = any>(props: DataTableProps<T>) {
           <View className="flex-row flex-wrap items-center gap-3 mt-4">
             {showLegacyBulkActionRow && (
               <Pressable
-                className={`h-9 px-4 rounded-md flex-row items-center justify-center gap-2 ${
+                className={`px-4 rounded-lg flex-row items-center justify-center gap-2 ${
                   onBulkActionPress && selectedRows.length === 0 ? "bg-red-300" : "bg-red-500"
                 }`}
+                style={{ height: 40 }}
                 onPress={() => onBulkActionPress?.(selectedRows)}
                 disabled={!!onBulkActionPress && selectedRows.length === 0}
               >
@@ -980,13 +1048,13 @@ export function DataTable<T = any>(props: DataTableProps<T>) {
                   {bulkActionText}
                   {selectedRows.length > 0 ? ` (${selectedRows.length})` : ""}
                 </Text>
-                {!onBulkActionPress && <Ionicons name="chevron-down" size={16} color="white" />}
+                {!onBulkActionPress && <Ionicons name="chevron-down" size={iconSize.sm} color="white" />}
               </Pressable>
             )}
             {addButton && onAddPress && (
               <Pressable 
-                className="px-4 py-2 rounded-lg flex-row items-center gap-2"
-                style={{ backgroundColor: "#3B82F6" }}
+                className="px-4 rounded-lg flex-row items-center gap-2"
+                style={{ height: 40, backgroundColor: colors.info }}
                 onPress={onAddPress}
               >
                 <Text style={{ fontFamily: 'Montserrat' }} className="text-white font-medium">{addButtonText}</Text>
@@ -1027,7 +1095,7 @@ export function DataTable<T = any>(props: DataTableProps<T>) {
           >
             {filteredData.length === 0 ? (
               <View className="py-16 items-center">
-                <Ionicons name={emptyIcon} size={48} color="#d1d5db" />
+                <Ionicons name={emptyIcon} size={iconSize['4xl']} color={colors.borderMedium} />
                 <Text style={{ fontFamily: 'Montserrat' }} className="text-gray-400 mt-2">{emptyText}</Text>
               </View>
             ) : (
@@ -1039,21 +1107,22 @@ export function DataTable<T = any>(props: DataTableProps<T>) {
           </ScrollView>
           {!horizontalScroll && isLoading && data.length > 0 && (
             <View pointerEvents="none" style={LOADING_OVERLAY_STYLE}>
-              <ActivityIndicator size="large" color="#EC1A52" />
+              <ActivityIndicator size="large" color={colors.primary} />
             </View>
           )}
         </View>
       </View>
 
       {/* Pagination Footer Replica */}
-      <View className="flex-row items-center justify-between px-5 py-4 bg-[#F7F7F9] border-t border-gray-200">
+      <View className="flex-row items-center justify-between px-5 py-4 border-t border-gray-200" style={{ backgroundColor: colors.backgroundTertiary }}>
         <View className="flex-row items-center gap-2">
           <Pressable 
+            accessibilityLabel="datatable-prev-page"
             className="w-8 h-8 items-center justify-center border border-gray-200 rounded bg-white shadow-sm"
             onPress={() => changePage(effectiveCurrentPage - 1)}
             disabled={effectiveCurrentPage === 1}
           >
-            <Ionicons name="chevron-back" size={16} color={effectiveCurrentPage === 1 ? "#D1D5DB" : "#6B7280"} />
+            <Ionicons name="chevron-back" size={iconSize.sm} color={effectiveCurrentPage === 1 ? colors.borderMedium : colors.textSecondary} />
           </Pressable>
           
           {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
@@ -1071,10 +1140,12 @@ export function DataTable<T = any>(props: DataTableProps<T>) {
             return (
               <Pressable 
                 key={pageNum}
-                className={`w-8 h-8 items-center justify-center rounded shadow-sm ${pageNum === effectiveCurrentPage ? "bg-[#EC1A52]" : "border border-gray-200 bg-white"}`}
+                accessibilityLabel={`datatable-page-${pageNum}`}
+                className={`w-8 h-8 items-center justify-center rounded shadow-sm ${pageNum === effectiveCurrentPage ? "" : "border border-gray-200 bg-white"}`}
+                style={pageNum === effectiveCurrentPage ? { backgroundColor: colors.primary } : undefined}
                 onPress={() => changePage(pageNum)}
               >
-                <Text className={`font-Montserrat font-medium ${pageNum === effectiveCurrentPage ? "text-white" : "text-[#6B7280]"}`}>
+                <Text className={`font-Montserrat font-medium ${pageNum === effectiveCurrentPage ? "text-white" : ""}`} style={pageNum !== effectiveCurrentPage ? { color: colors.textSecondary } : undefined}>
                   {pageNum}
                 </Text>
               </Pressable>
@@ -1082,11 +1153,12 @@ export function DataTable<T = any>(props: DataTableProps<T>) {
           })}
 
           <Pressable 
+            accessibilityLabel="datatable-next-page"
             className="w-8 h-8 items-center justify-center border border-gray-200 rounded bg-white shadow-sm"
             onPress={() => changePage(effectiveCurrentPage + 1)}
             disabled={effectiveCurrentPage === totalPages}
           >
-            <Ionicons name="chevron-forward" size={16} color={effectiveCurrentPage === totalPages ? "#D1D5DB" : "#6B7280"} />
+            <Ionicons name="chevron-forward" size={iconSize.sm} color={effectiveCurrentPage === totalPages ? colors.borderMedium : colors.textSecondary} />
           </Pressable>
           
           <Text className="ml-2 text-gray-400 font-Montserrat text-[12px]">
@@ -1095,8 +1167,8 @@ export function DataTable<T = any>(props: DataTableProps<T>) {
         </View>
 
         <View className="flex-row items-center gap-2 border border-gray-200 rounded px-3 py-1.5 bg-white shadow-sm">
-          <Text className="font-Montserrat text-[#1A1A1A] text-[14px]">{effectivePageSize}/Page</Text>
-          <Ionicons name="chevron-down" size={14} color="#6B7280" />
+          <Text className="font-Montserrat text-[14px]" style={{ color: colors.text }}>{effectivePageSize}/Page</Text>
+          <Ionicons name="chevron-down" size={iconSize.xs} color={colors.textSecondary} />
         </View>
       </View>
 
@@ -1117,17 +1189,17 @@ export function DataTable<T = any>(props: DataTableProps<T>) {
               <View className="flex-row items-center justify-between px-6 py-6 border-b border-gray-200">
                 <Text 
                   style={{ 
-                    fontSize: 32, 
-                    fontWeight: "600", 
+                    fontSize: fontSize['3xl'], 
+                    fontWeight: fontWeight.semibold, 
                     fontFamily: "Montserrat", 
-                    color: "#1A1A1A",
+                    color: colors.text,
                     letterSpacing: -0.64
                   }}
                 >
                   Select Columns
                 </Text>
                 <Pressable onPress={() => setShowColumnsModal(false)} className="p-1">
-                  <Ionicons name="close" size={28} color="#9CA3AF" />
+                  <Ionicons name="close" size={iconSize['2xl']} color={colors.textTertiary} />
                 </Pressable>
               </View>
 
@@ -1140,18 +1212,18 @@ export function DataTable<T = any>(props: DataTableProps<T>) {
                     >
                       <Text
                         style={{
-                          fontSize: 20,
-                          fontWeight: "600",
+                          fontSize: fontSize['2xl'],
+                          fontWeight: fontWeight.semibold,
                           fontFamily: "Montserrat",
-                          color: "#1A1A1A",
+                          color: colors.text,
                         }}
                       >
                         Column Selection
                       </Text>
                       <Ionicons
                         name={isColumnSelectionExpanded ? "chevron-up" : "chevron-down"}
-                        size={18}
-                        color="#6B7280"
+                        size={iconSize.md}
+                        color={colors.textSecondary}
                       />
                     </Pressable>
 
@@ -1161,8 +1233,8 @@ export function DataTable<T = any>(props: DataTableProps<T>) {
                           <View className="flex-row items-center gap-3">
                             <Text 
                               style={{ 
-                                fontSize: 14, 
-                                color: "#6B7280", 
+                                fontSize: fontSize.base, 
+                                color: colors.textSecondary, 
                                 fontFamily: "Montserrat",
                                 fontStyle: "italic" 
                               }}
@@ -1170,9 +1242,9 @@ export function DataTable<T = any>(props: DataTableProps<T>) {
                               Select all
                             </Text>
                             <Switch
-                              trackColor={{ false: "#D1D5DB", true: "#FBCFE8" }}
-                              thumbColor={allHideableColumnsSelected ? "#EC1A52" : "#FFFFFF"}
-                              ios_backgroundColor="#D1D5DB"
+                              trackColor={{ false: colors.borderMedium, true: "#FBCFE8" }}
+                              thumbColor={allHideableColumnsSelected ? colors.primary : colors.textWhite}
+                              ios_backgroundColor={colors.borderMedium}
                               onValueChange={toggleSelectAllHideable}
                               value={allHideableColumnsSelected}
                               disabled={hideableColumnKeys.length === 0}
@@ -1186,18 +1258,18 @@ export function DataTable<T = any>(props: DataTableProps<T>) {
                               const isHideable = col.hideable !== false;
                               const isVisible = visibleColumns[col.key];
                               return (
-                                <View key={col.key} className="flex-row justify-between items-center py-4 border-b border-[#E5E7EB]">
+                                <View key={col.key} className="flex-row justify-between items-center py-4" style={{ borderBottomWidth: 1, borderBottomColor: colors.border }}>
                                   <Text 
-                                    style={{ fontFamily: 'Montserrat', fontSize: 16, color: "#1A1A1A" }}
+                                    style={{ fontFamily: 'Montserrat', fontSize: fontSize.lg, color: colors.text }}
                                     className={`flex-1 mr-4 ${!isHideable ? 'text-gray-400 font-medium italic' : ''}`}
                                     numberOfLines={1}
                                   >
                                     {col.title} {!isHideable && '(Fixed)'}
                                   </Text>
                                   <Switch
-                                    trackColor={{ false: "#D1D5DB", true: "#FBCFE8" }}
-                                    thumbColor={isVisible ? "#EC1A52" : "#FFFFFF"}
-                                    ios_backgroundColor="#D1D5DB"
+                                    trackColor={{ false: colors.borderMedium, true: "#FBCFE8" }}
+                                    thumbColor={isVisible ? colors.primary : colors.textWhite}
+                                    ios_backgroundColor={colors.borderMedium}
                                     onValueChange={() => { if (isHideable) toggleColumn(col.key); }}
                                     value={isVisible}
                                     disabled={!isHideable}
@@ -1212,18 +1284,18 @@ export function DataTable<T = any>(props: DataTableProps<T>) {
                               const isHideable = col.hideable !== false;
                               const isVisible = visibleColumns[col.key];
                               return (
-                                <View key={col.key} className="flex-row justify-between items-center py-4 border-b border-[#E5E7EB]">
+                                <View key={col.key} className="flex-row justify-between items-center py-4" style={{ borderBottomWidth: 1, borderBottomColor: colors.border }}>
                                   <Text 
-                                    style={{ fontFamily: 'Montserrat', fontSize: 16, color: "#1A1A1A" }}
+                                    style={{ fontFamily: 'Montserrat', fontSize: fontSize.lg, color: colors.text }}
                                     className={`flex-1 mr-4 ${!isHideable ? 'text-gray-400 font-medium italic' : ''}`}
                                     numberOfLines={1}
                                   >
                                     {col.title} {!isHideable && '(Fixed)'}
                                   </Text>
                                   <Switch
-                                    trackColor={{ false: "#D1D5DB", true: "#FBCFE8" }}
-                                    thumbColor={isVisible ? "#EC1A52" : "#FFFFFF"}
-                                    ios_backgroundColor="#D1D5DB"
+                                    trackColor={{ false: colors.borderMedium, true: "#FBCFE8" }}
+                                    thumbColor={isVisible ? colors.primary : colors.textWhite}
+                                    ios_backgroundColor={colors.borderMedium}
                                     onValueChange={() => { if (isHideable) toggleColumn(col.key); }}
                                     value={isVisible}
                                     disabled={!isHideable}
@@ -1256,7 +1328,7 @@ export function DataTable<T = any>(props: DataTableProps<T>) {
                   <Pressable
                     onPress={() => setShowColumnsModal(false)}
                     className="flex-1 py-3 rounded-lg items-center shadow-sm"
-                    style={{ backgroundColor: "#EC1A52" }}
+                    style={{ backgroundColor: colors.primary }}
                   >
                     <Text style={{ fontFamily: 'Montserrat' }} className="text-white font-semibold">Apply</Text>
                   </Pressable>
@@ -1284,7 +1356,7 @@ export function DataTable<T = any>(props: DataTableProps<T>) {
       </ScrollView>
       {isLoading && data.length > 0 && (
         <View pointerEvents="none" style={LOADING_OVERLAY_STYLE}>
-          <ActivityIndicator size="large" color="#EC1A52" />
+          <ActivityIndicator size="large" color={colors.primary} />
         </View>
       )}
     </View>
@@ -1292,8 +1364,7 @@ export function DataTable<T = any>(props: DataTableProps<T>) {
     tableContent
   );
 
-  if (__DEV__) {
-    const tableRenderBuildMs = Number((getNowMs() - tableRenderStartMs).toFixed(3));
+  if (__DEV__ && _dtDebugLogEnabled) {
     console.log("[DataTable][render]", {
       renderCount: tableRenderCountRef.current,
       currentPage: effectiveCurrentPage,
@@ -1301,6 +1372,9 @@ export function DataTable<T = any>(props: DataTableProps<T>) {
       processedDataLength: totalItems,
       paginatedDataLength: paginatedData.length,
       selectedRowCount: selectedRowKeys.length,
+      processedDataMs: processedDataMsRef.current,
+      paginatedDataMs: paginatedDataMsRef.current,
+      rowsBuildMs: rowsBuildMsRef.current,
       renderBuildMs: tableRenderBuildMs,
     });
   }

@@ -1,3 +1,4 @@
+import { colors, fontSize, fontWeight, iconSize } from '@/utils/theme';
 import { Ionicons } from "@expo/vector-icons";
 import React, {
   forwardRef,
@@ -133,6 +134,7 @@ const SearchProductModalCore = forwardRef<
   const [searchQuery, setSearchQuery] = useState("");
   const [debouncedSearchQuery, setDebouncedSearchQuery] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
+  const [isModalOpen, setIsModalOpen] = useState(controlledVisible);
   const progress = useRef(new Animated.Value(controlledVisible ? 1 : 0)).current;
   const isOpenRef = useRef(controlledVisible);
   const targetOpenRef = useRef(controlledVisible);
@@ -333,6 +335,7 @@ const SearchProductModalCore = forwardRef<
 
       if (nextOpen) {
         isOpenRef.current = true;
+        setIsModalOpen(true);
         resetOpenMarkers();
         setTouchGateEnabled(true);
         maybeReportOverlayLayout();
@@ -357,6 +360,7 @@ const SearchProductModalCore = forwardRef<
         maybeReportFilterReady();
         maybeReportFirstRowVisible();
       } else {
+        setIsModalOpen(false);
         setTouchGateEnabled(false);
         onCloseEnd?.(reason);
         setCurrentPage(1);
@@ -494,26 +498,26 @@ const SearchProductModalCore = forwardRef<
       <Pressable
         onPress={() => handleSelectProduct(item)}
         onLayout={index === 0 ? handleFirstItemLayout : undefined}
-        className="flex-row items-center px-6 py-5 border-b border-[#F0F1F4]"
+        className="flex-row items-center px-6 py-5" style={{ borderBottomWidth: 1, borderBottomColor: colors.borderLight }}
       >
         <View className="flex-1 flex-row items-center">
-          <View className="w-16 h-16 rounded-xl bg-[#F7F7F9] overflow-hidden items-center justify-center mr-4 border border-gray-100">
+          <View className="w-16 h-16 rounded-xl overflow-hidden items-center justify-center mr-4 border border-gray-100" style={{ backgroundColor: colors.backgroundTertiary }}>
             {item.images?.[0] ? (
               <Image source={{ uri: item.images[0] }} className="w-full h-full" resizeMode="cover" />
             ) : (
-              <Ionicons name="cube-outline" size={32} color="#c4c8cf" />
+              <Ionicons name="cube-outline" size={iconSize['2xl']} color="#c4c8cf" />
             )}
           </View>
 
           <View className="flex-1 min-w-[120px]">
             <Text
-              style={{ fontFamily: "Montserrat", fontSize: 16, fontWeight: "700", color: "#1A1A1A" }}
+              style={{ fontFamily: "Montserrat", fontSize: fontSize.lg, fontWeight: fontWeight.bold, color: colors.text }}
               numberOfLines={2}
             >
               {item.name}
             </Text>
             <Text
-              style={{ fontFamily: "Montserrat", fontSize: 12, color: "#9CA3AF", marginTop: 2 }}
+              style={{ fontFamily: "Montserrat", fontSize: fontSize.md, color: colors.textTertiary, marginTop: 2 }}
               numberOfLines={1}
             >
               {item.sku || item.upc || ""}
@@ -525,9 +529,9 @@ const SearchProductModalCore = forwardRef<
           <Text
             style={{
               fontFamily: "Montserrat",
-              fontSize: 14,
-              fontWeight: "600",
-              color: "#1A1A1A",
+              fontSize: fontSize.base,
+              fontWeight: fontWeight.semibold,
+              color: colors.text,
               textAlign: "center",
             }}
             numberOfLines={1}
@@ -540,9 +544,9 @@ const SearchProductModalCore = forwardRef<
           <Text
             style={{
               fontFamily: "Montserrat",
-              fontSize: 22,
-              fontWeight: "700",
-              color: "#1A1A1A",
+              fontSize: fontSize['2xl'],
+              fontWeight: fontWeight.bold,
+              color: colors.text,
               transform: [{ translateX: -40 }],
             }}
           >
@@ -587,8 +591,11 @@ const SearchProductModalCore = forwardRef<
     { throttleMs: 100 }
   );
 
+  // Disable all pointer events when modal is closed to prevent scanner input from going to search box
+  const rootPointerEvents = isModalOpen ? "box-none" : "none";
+
   return (
-    <View pointerEvents="box-none" style={styles.rootContainer}>
+    <View pointerEvents={rootPointerEvents} style={styles.rootContainer}>
       <Animated.View
         pointerEvents="none"
         style={[styles.backdrop, { opacity: backdropOpacity }]}
@@ -601,6 +608,7 @@ const SearchProductModalCore = forwardRef<
       </View>
 
       <Animated.View
+        pointerEvents={isModalOpen ? "auto" : "none"}
         style={[
           styles.panel,
           {
@@ -614,32 +622,33 @@ const SearchProductModalCore = forwardRef<
           <View className="px-6 pt-6 pb-4 bg-white">
             <View className="flex-row items-center justify-between mb-4">
               <Text
-                style={{ fontFamily: "Montserrat", fontSize: 24, fontWeight: "700", color: "#EC1A52" }}
+                style={{ fontFamily: "Montserrat", fontSize: fontSize['2xl'], fontWeight: fontWeight.bold, color: colors.primary }}
               >
                 Search Products
               </Text>
               <Pressable
                 onPress={handleCloseButtonPress}
-                className="w-8 h-8 rounded-full bg-[#EC1A52] items-center justify-center shadow-sm"
+                className="w-8 h-8 rounded-full items-center justify-center shadow-sm"
+                style={{ backgroundColor: colors.primary }}
               >
-                <Ionicons name="close" size={20} color="white" />
+                <Ionicons name="close" size={iconSize.base} color="white" />
               </Pressable>
             </View>
 
-            <View className="flex-row items-center bg-white border-2 border-[#EC1A52] rounded-xl px-4 py-2.5 shadow-sm">
-              <Ionicons name="search" size={24} color="#EC1A52" />
+            <View className="flex-row items-center bg-white border-2 rounded-xl px-4 py-2.5 shadow-sm" style={{ borderColor: colors.primary }}>
+              <Ionicons name="search" size={iconSize.xl} color={colors.primary} />
               <TextInput
                 className="flex-1 ml-3 text-gray-800 text-[20px]"
                 style={{ fontFamily: "Montserrat", fontWeight: "500" }}
                 placeholder="SI"
-                placeholderTextColor="#9ca3af"
+                placeholderTextColor={colors.textTertiary}
                 value={searchQuery}
                 onChangeText={setSearchQuery}
                 autoFocus={false}
               />
               {searchQuery.length > 0 && (
                 <Pressable onPress={() => setSearchQuery("")}>
-                  <Ionicons name="close-circle" size={22} color="#9ca3af" />
+                  <Ionicons name="close-circle" size={iconSize.lg} color={colors.textTertiary} />
                 </Pressable>
               )}
             </View>
@@ -647,11 +656,11 @@ const SearchProductModalCore = forwardRef<
 
           {listLoading ? (
             <View className="flex-1 items-center justify-center">
-              <ActivityIndicator size="large" color="#EC1A52" />
+              <ActivityIndicator size="large" color={colors.primary} />
             </View>
           ) : filteredProducts.length === 0 ? (
             <View className="flex-1 items-center justify-center">
-              <Ionicons name="cube-outline" size={64} color="#d1d5db" />
+              <Ionicons name="cube-outline" size={iconSize['5xl']} color={colors.borderMedium} />
               <Text style={{ fontFamily: "Montserrat" }} className="text-gray-400 mt-4 text-lg">
                 No products found
               </Text>
@@ -760,7 +769,7 @@ const styles = StyleSheet.create({
     height: "100%",
     backgroundColor: "#ffffff",
     borderRightWidth: StyleSheet.hairlineWidth,
-    borderColor: "#E5E7EB",
+    borderColor: colors.border,
     shadowColor: "#000000",
     shadowOpacity: 0.12,
     shadowRadius: 8,
@@ -780,11 +789,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 10,
     borderTopWidth: StyleSheet.hairlineWidth,
-    borderColor: "#E5E7EB",
+    borderColor: colors.border,
     backgroundColor: "#FFFFFF",
   },
   paginationButton: {
-    backgroundColor: "#EC1A52",
+    backgroundColor: colors.primary,
     borderRadius: 8,
     paddingHorizontal: 12,
     paddingVertical: 8,
@@ -797,8 +806,8 @@ const styles = StyleSheet.create({
   paginationButtonText: {
     color: "#FFFFFF",
     fontFamily: "Montserrat",
-    fontWeight: "700",
-    fontSize: 13,
+    fontWeight: fontWeight.bold,
+    fontSize: fontSize.md,
   },
   pageButtonsContainer: {
     flex: 1,
@@ -814,20 +823,20 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
     borderRadius: 8,
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: "#E5E7EB",
+    borderColor: colors.border,
     backgroundColor: "#FFFFFF",
     alignItems: "center",
     justifyContent: "center",
   },
   pageButtonActive: {
-    backgroundColor: "#EC1A52",
-    borderColor: "#EC1A52",
+    backgroundColor: colors.primary,
+    borderColor: colors.primary,
   },
   pageButtonText: {
-    color: "#111827",
+    color: colors.text,
     fontFamily: "Montserrat",
-    fontSize: 12,
-    fontWeight: "700",
+    fontSize: fontSize.md,
+    fontWeight: fontWeight.bold,
     textAlign: "center",
   },
   pageButtonTextActive: {
@@ -835,10 +844,10 @@ const styles = StyleSheet.create({
   },
   totalPagesText: {
     marginRight: 8,
-    color: "#6B7280",
+    color: colors.textSecondary,
     fontFamily: "Montserrat",
-    fontSize: 11,
-    fontWeight: "600",
+    fontSize: fontSize.md,
+    fontWeight: fontWeight.semibold,
     minWidth: 82,
     textAlign: "right",
   },

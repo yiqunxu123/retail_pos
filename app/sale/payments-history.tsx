@@ -142,8 +142,8 @@ export default function PaymentsHistoryScreen() {
       align: "center",
       visible: true,
       render: () => (
-        <Pressable className="bg-blue-100 p-2 rounded">
-          <Ionicons name="eye" size={16} color="#3b82f6" />
+        <Pressable className="bg-red-50 p-2 rounded-lg">
+          <Ionicons name="eye" size={16} color="#EC1A52" />
         </Pressable>
       ),
     },

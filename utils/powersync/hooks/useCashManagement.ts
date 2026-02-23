@@ -50,7 +50,6 @@ function useTotalSales() {
        AND ${todayFilter}`
   );
   const result = data[0]?.total || 0;
-  console.log('[CashMgmt] Total Sales:', result);
   return result;
 }
 
@@ -68,7 +67,6 @@ function useTotalRefunds() {
        AND ${todayFilter}`
   );
   const result = data[0]?.total || 0;
-  console.log('[CashMgmt] Total Refunds:', result);
   return result;
 }
 
@@ -88,7 +86,6 @@ function useUserSales(userId?: string | number) {
 
   const { data } = useSyncStream<CashRow>(query);
   const result = data[0]?.total || 0;
-  console.log('[CashMgmt] User Sales (userId=' + userId + '):', result);
   return result;
 }
 

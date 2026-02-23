@@ -1,5 +1,6 @@
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { Alert, ScrollView, TouchableOpacity, View } from "react-native";
+import { iconSize, colors } from "@/utils/theme";
 import { useAuth } from "../contexts/AuthContext";
 import { useClock } from "../contexts/ClockContext";
 import { useViewMode } from "../contexts/ViewModeContext";
@@ -63,7 +64,7 @@ export default function StaffPageLayout({ children, sidebarCustomButtons, title,
   };
 
   return (
-    <View className="flex-1 bg-[#F7F7F9] flex-row">
+    <View className="flex-1 flex-row" style={{ backgroundColor: colors.backgroundTertiary }}>
       {/* Main Content Area (Left) */}
       <View className="flex-1 flex-col">
         {/* Optional Header if title is provided */}
@@ -78,8 +79,8 @@ export default function StaffPageLayout({ children, sidebarCustomButtons, title,
 
       {/* Right Sidebar */}
       <View 
-        className="bg-[#F7F7F9] flex-col" 
-        style={{ width: SIDEBAR_WIDTH }}
+        className="flex-col" 
+        style={{ width: SIDEBAR_WIDTH, backgroundColor: colors.backgroundTertiary }}
       >
         {/* Branding Section */}
         <View className="px-2">
@@ -91,13 +92,13 @@ export default function StaffPageLayout({ children, sidebarCustomButtons, title,
           <View className="flex-row gap-2">
             <SidebarButton 
               title="Time Clock" 
-              icon={<Ionicons name="time-outline" size={32} color="#EC1A52" />}
+              icon={<Ionicons name="time-outline" size={iconSize['2xl']} color={colors.primary} />}
               onPress={handleTimeClock}
               fullWidth={false}
             />
             <SidebarButton 
               title="Change User" 
-              icon={<MaterialCommunityIcons name="account-switch-outline" size={32} color="#848484" />}
+              icon={<MaterialCommunityIcons name="account-switch-outline" size={iconSize['2xl']} color="#848484" />}
               onPress={handleChangeUser}
               fullWidth={false}
               isActive={false}
@@ -114,13 +115,13 @@ export default function StaffPageLayout({ children, sidebarCustomButtons, title,
           {/* Common Bottom Buttons */}
           <SidebarButton 
             title="Clock out"
-            icon={<Ionicons name="log-out-outline" size={32} color="#EC1A52" />}
+            icon={<Ionicons name="log-out-outline" size={iconSize['2xl']} color={colors.primary} />}
             onPress={handleClockOut}
           />
 
           <SidebarButton 
             title="Exit Program"
-            icon={<Ionicons name="close-circle-outline" size={32} color="#EC1A52" />}
+            icon={<Ionicons name="close-circle-outline" size={iconSize['2xl']} color={colors.primary} />}
             onPress={handleExit}
           />
         </ScrollView>

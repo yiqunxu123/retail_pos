@@ -93,6 +93,10 @@ const customer_groups_customer = new Table({
 const products_suppliers = new Table({
   product_id: column.integer,
   supplier_id: column.integer,
+}, {
+  indexes: {
+    idx_products_suppliers_product: ['product_id', 'supplier_id'],
+  },
 })
 
 // Product-category relation (many-to-many)
@@ -100,6 +104,10 @@ const products_suppliers = new Table({
 const categories_products = new Table({
   category_id: column.integer,
   product_id: column.integer,
+}, {
+  indexes: {
+    idx_categories_products_product: ['product_id', 'category_id'],
+  },
 })
 
 // Stocks table
@@ -111,6 +119,10 @@ const stocks = new Table({
   status: column.integer,
   created_at: column.text,
   updated_at: column.text,
+}, {
+  indexes: {
+    idx_stocks_product_channel_status: ['product_id', 'channel_id', 'status'],
+  },
 })
 
 // Unit prices table
@@ -126,6 +138,10 @@ const unit_prices = new Table({
   unit: column.integer,
   created_at: column.text,
   updated_at: column.text,
+}, {
+  indexes: {
+    idx_unit_prices_product_channel_unit: ['product_id', 'channel_id', 'unit'],
+  },
 })
 
 // Taxes table

@@ -1,5 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
 import { View, Text, TextInput, Pressable } from "react-native";
+import { iconSize, colors } from "@/utils/theme";
 
 interface ProductSearchProps {
   searchQuery: string;
@@ -36,7 +37,7 @@ export function ProductSearch({
             onPress={onSearchFocus}
             className="flex-row items-center bg-white border border-gray-200 rounded-lg px-3 py-3 shadow-sm"
           >
-            <Ionicons name="search" size={20} color="#9ca3af" />
+            <Ionicons name="search" size={iconSize.base} color={colors.textTertiary} />
             <TextInput
               className="flex-1 ml-2 text-gray-800 text-[18px]"
               style={{ fontFamily: 'Montserrat' }}
@@ -67,7 +68,7 @@ export function ProductSearch({
           className="bg-red-500 px-4 py-3 rounded-lg flex-row items-center gap-2 mt-5"
           style={({ pressed }) => ({ opacity: pressed ? 0.8 : 1 })}
         >
-          <Ionicons name="refresh" size={18} color="white" />
+          <Ionicons name="refresh" size={iconSize.md} color="white" />
           <Text className="text-white font-medium">Refresh</Text>
         </Pressable>
 

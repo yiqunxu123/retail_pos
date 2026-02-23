@@ -10,6 +10,7 @@ import {
   KeyboardAvoidingView,
   Platform,
 } from "react-native";
+import { fontSize, fontWeight, colors, iconSize } from '@/utils/theme';
 
 interface ProductSettingsModalProps {
   visible: boolean;
@@ -38,13 +39,13 @@ export function ProductSettingsModal({ visible, onClose, product, onSave }: Prod
   const [countyTax, setCountyTax] = useState(false);
 
   const SettingRow = ({ label, value, onValueChange }: { label: string, value: boolean, onValueChange: (val: boolean) => void }) => (
-    <View className="flex-row justify-between items-center py-3.5 border-b border-[#E5E7EB]">
+    <View className="flex-row justify-between items-center py-3.5" style={{ borderBottomWidth: 1, borderBottomColor: colors.border }}>
       <Text 
         style={{ 
           fontFamily: 'Montserrat',
-          fontSize: 16,
-          fontWeight: "500",
-          color: "#1A1A1A"
+          fontSize: fontSize.lg,
+          fontWeight: fontWeight.medium,
+          color: colors.text
         }} 
         className="flex-1 mr-4" 
         numberOfLines={1}
@@ -52,9 +53,9 @@ export function ProductSettingsModal({ visible, onClose, product, onSave }: Prod
         {label}
       </Text>
       <Switch
-        trackColor={{ false: "#D1D5DB", true: "#FBCFE8" }} 
-        thumbColor={value ? "#EC1A52" : "#FFFFFF"} 
-        ios_backgroundColor="#D1D5DB"
+        trackColor={{ false: colors.borderMedium, true: "#FBCFE8" }} 
+        thumbColor={value ? colors.primary : colors.textWhite} 
+        ios_backgroundColor={colors.borderMedium}
         onValueChange={onValueChange}
         value={value}
       />
@@ -97,10 +98,10 @@ export function ProductSettingsModal({ visible, onClose, product, onSave }: Prod
             <View>
               <Text 
                 style={{ 
-                  fontSize: 36, 
-                  fontWeight: "700", 
+                  fontSize: fontSize['4xl'], 
+                  fontWeight: fontWeight.bold, 
                   fontFamily: "Montserrat", 
-                  color: "#1A1A1A",
+                  color: colors.text,
                   letterSpacing: -0.5
                 }}
               >
@@ -110,8 +111,8 @@ export function ProductSettingsModal({ visible, onClose, product, onSave }: Prod
                 <Text 
                   style={{ 
                     fontFamily: 'Montserrat',
-                    fontSize: 16,
-                    color: "#6B7280",
+                    fontSize: fontSize.lg,
+                    color: colors.textSecondary,
                     marginTop: 6
                   }} 
                   numberOfLines={1}
@@ -121,7 +122,7 @@ export function ProductSettingsModal({ visible, onClose, product, onSave }: Prod
               )}
             </View>
             <Pressable onPress={onClose} className="p-2">
-              <Ionicons name="close" size={36} color="#1A1A1A" />
+              <Ionicons name="close" size={iconSize['3xl']} color={colors.text} />
             </Pressable>
           </View>
 
@@ -129,10 +130,10 @@ export function ProductSettingsModal({ visible, onClose, product, onSave }: Prod
             {/* General Settings */}
             <Text 
               style={{ 
-                fontSize: 28, 
-                fontWeight: "700", 
+                fontSize: fontSize['3xl'], 
+                fontWeight: fontWeight.bold, 
                 fontFamily: "Montserrat", 
-                color: "#1A1A1A",
+                color: colors.text,
                 marginBottom: 24
               }}
             >
@@ -161,10 +162,10 @@ export function ProductSettingsModal({ visible, onClose, product, onSave }: Prod
             {/* Tax Settings */}
             <Text 
               style={{ 
-                fontSize: 28, 
-                fontWeight: "700", 
+                fontSize: fontSize['3xl'], 
+                fontWeight: fontWeight.bold, 
                 fontFamily: "Montserrat", 
-                color: "#1A1A1A",
+                color: colors.text,
                 marginBottom: 24
               }}
             >
@@ -188,14 +189,15 @@ export function ProductSettingsModal({ visible, onClose, product, onSave }: Prod
           <View className="flex-row justify-center gap-8 p-10 border-t border-gray-100">
             <Pressable
               onPress={onClose}
-              className="flex-1 py-5 bg-red-50 rounded-2xl items-center justify-center border border-red-100"
+              className="flex-1 bg-red-50 rounded-lg items-center justify-center border border-red-100"
+              style={{ height: 40 }}
             >
               <Text 
                 style={{ 
                   fontFamily: 'Montserrat',
-                  fontSize: 20,
-                  fontWeight: "600",
-                  color: "#EF4444"
+                  fontSize: fontSize['2xl'],
+                  fontWeight: fontWeight.semibold,
+                  color: colors.error
                 }}
               >
                 Cancel
@@ -203,15 +205,15 @@ export function ProductSettingsModal({ visible, onClose, product, onSave }: Prod
             </Pressable>
             <Pressable
               onPress={handleSave}
-              className="flex-1 py-5 rounded-2xl items-center justify-center shadow-xl"
-              style={{ backgroundColor: "#EC1A52" }}
+              className="flex-1 rounded-lg items-center justify-center shadow-xl"
+              style={{ height: 40, backgroundColor: colors.primary }}
             >
               <Text 
                 style={{ 
                   fontFamily: 'Montserrat',
-                  fontSize: 20,
-                  fontWeight: "600",
-                  color: "#FFFFFF"
+                  fontSize: fontSize['2xl'],
+                  fontWeight: fontWeight.semibold,
+                  color: colors.textWhite
                 }}
               >
                 Apply

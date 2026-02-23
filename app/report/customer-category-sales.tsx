@@ -4,7 +4,7 @@ import {
     Text,
     View
 } from "react-native";
-import { ColumnDefinition, DataTable } from "../../components";
+import { ColumnDefinition, DataTable, PageHeader } from "../../components";
 import { CustomerSalesReportView, useCustomerSalesReport } from "../../utils/powersync/hooks";
 
 // ============================================================================
@@ -224,6 +224,7 @@ export default function CustomerCategorySalesReportScreen() {
         isLoading={isLoading}
         isStreaming={isStreaming}
         onRefresh={refresh}
+        columnSelector
         ListFooterComponent={filteredReports.length > 0 ? renderTableFooter : null}
         horizontalScroll
         minWidth={1130}

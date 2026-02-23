@@ -17,39 +17,51 @@ interface POSSidebarProps {
   onEmptyCart?: () => void;
   onPayLater?: () => void;
   onGoToMenu?: () => void;
-  onPaymentMethod1?: () => void;
-  onPaymentMethod2?: () => void;
-  onPaymentMethod3?: () => void;
+  onOpenDrawer?: () => void;
+  onAddTax?: () => void;
+  onAddDiscount?: () => void;
+  onVoidPayment?: () => void;
+  onAddNotes?: () => void;
+  onParkOrder?: () => void;
+  onCheckout?: () => void;
   /** Hide checkout buttons when in order flow */
   hideNavButtons?: boolean;
 }
 
 /**
- * POSSidebar - Matches the buttons in the reference image
+ * POSSidebar - POS action buttons
  */
 function POSSidebarComponent({
   isLandscape,
   onAddProduct,
   onCashPayment,
+  onCardPayment,
   onDeleteProduct,
   onEmptyCart,
   onPayLater,
   onGoToMenu,
-  onPaymentMethod1,
-  onPaymentMethod3,
+  onAddTax,
+  onAddDiscount,
+  onVoidPayment,
+  onAddNotes,
+  onParkOrder,
   hideNavButtons = false,
-}: POSSidebarProps & { onPaymentMethod1?: () => void; onPaymentMethod3?: () => void }) {
+}: POSSidebarProps) {
   useRenderTrace("POSSidebar", {
     isLandscape,
     hideNavButtons,
     onAddProduct,
     onCashPayment,
+    onCardPayment,
     onDeleteProduct,
     onEmptyCart,
     onPayLater,
     onGoToMenu,
-    onPaymentMethod1,
-    onPaymentMethod3,
+    onAddTax,
+    onAddDiscount,
+    onVoidPayment,
+    onAddNotes,
+    onParkOrder,
   });
 
   return (
@@ -68,14 +80,14 @@ function POSSidebarComponent({
            <BrandingSection />
         </View>
 
-        {/* Column 1: Add New Product (Full Width Primary) */}
+        {/* Add New Product (Full Width Primary) */}
         <SidebarButton
           title="Add New Product"
           variant="primary"
           onPress={onAddProduct}
         />
 
-        {/* Row: Cash Payment | (Something else) */}
+        {/* Row: Cash Payment | Card Payment */}
         <View className="flex-row gap-3">
           <SidebarButton
             title="Cash Payment"
@@ -87,57 +99,68 @@ function POSSidebarComponent({
             title="Card Payment"
             variant="outline"
             fullWidth={false}
+            onPress={onCardPayment}
           />
         </View>
 
-        {/* Row: Payment Method 1 | Payment Method 2? (Actually image shows Method 1 and Method 3?) */}
+        {/* Row: Park Order | Add Tax */}
         <View className="flex-row gap-3">
           <SidebarButton
-            title="Payment Method 1"
+            title="Park Order"
             variant="outline"
+            icon={<Ionicons name="pause-circle-outline" size={24} color="#EC1A52" />}
             fullWidth={false}
-            onPress={onPaymentMethod1}
+            onPress={onParkOrder}
           />
           <SidebarButton
-            title="Payment Method 2"
+            title="Add Tax"
             variant="outline"
+            icon={<Ionicons name="calculator-outline" size={24} color="#EC1A52" />}
             fullWidth={false}
+            onPress={onAddTax}
           />
         </View>
 
+        {/* Row: Add Discount | Void Payment */}
         <View className="flex-row gap-3">
           <SidebarButton
-            title="Payment Method 3"
+            title="Add Discount"
             variant="outline"
+            icon={<Ionicons name="pricetag-outline" size={24} color="#EC1A52" />}
             fullWidth={false}
-            onPress={onPaymentMethod3}
+            onPress={onAddDiscount}
           />
           <SidebarButton
-            title="Payment Method 4"
+            title="Void Payment"
             variant="outline"
+            icon={<Ionicons name="close-circle-outline" size={24} color="#EC1A52" />}
             fullWidth={false}
+            onPress={onVoidPayment}
           />
         </View>
 
-        {/* Row: Pay Later | (Something else) */}
+        {/* Row: Add Notes | Pay Later */}
         <View className="flex-row gap-3">
+          <SidebarButton
+            title="Add Notes"
+            variant="outline"
+            icon={<Ionicons name="document-text-outline" size={24} color="#EC1A52" />}
+            fullWidth={false}
+            onPress={onAddNotes}
+          />
           <SidebarButton
             title="Pay Later"
             variant="outline"
+            icon={<Ionicons name="time-outline" size={24} color="#EC1A52" />}
             fullWidth={false}
             onPress={onPayLater}
           />
-          <SidebarButton
-            title="Add Misc Item"
-            variant="outline"
-            fullWidth={false}
-          />
         </View>
 
-        {/* Row: Delete Product (Solid Orange/Brown) */}
+        {/* Delete Product (Solid Orange/Brown) */}
         <SidebarButton
           title="Delete Product"
-          variant="danger" // We can keep danger or adjust color
+          variant="danger"
           onPress={onDeleteProduct}
         />
 

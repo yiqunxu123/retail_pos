@@ -9,6 +9,7 @@ import { Ionicons } from "@expo/vector-icons";
 import type { AxiosError } from "axios";
 import { useRouter } from "expo-router";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { fontSize, fontWeight, colors, iconSize } from '@/utils/theme';
 import {
     ActivityIndicator,
     Alert,
@@ -221,6 +222,7 @@ function FormInput({
   required?: boolean;
   disabled?: boolean;
 }) {
+  const isDisabled = !!disabled;
   return (
     <View className="mb-4">
       <View className="flex-row items-center mb-2">
@@ -229,17 +231,16 @@ function FormInput({
           {required && <Text className="text-red-500">*</Text>}
         </Text>
         {info && (
-          <Ionicons name="information-circle-outline" size={16} color="#9CA3AF" style={{ marginLeft: 4 }} />
+          <Ionicons name="information-circle-outline" size={iconSize.sm} color={colors.textTertiary} style={{ marginLeft: 4 }} />
         )}
       </View>
       <TextInput
-        className="bg-[#F7F7F9] border border-gray-200 rounded-lg px-4 py-3"
+        className={`border rounded-lg px-4 py-3 ${isDisabled ? "bg-gray-100 border-gray-300 text-gray-400" : "bg-[#F7F7F9] border-gray-200 text-gray-800"}`}
         placeholder={placeholder || label}
-        placeholderTextColor="#9ca3af"
+        placeholderTextColor={isDisabled ? "#B8BEC8" : colors.textTertiary}
         value={value}
         onChangeText={onChangeText}
-        editable={!disabled}
-        style={disabled ? { backgroundColor: '#F3F4F6' } : {}}
+        editable={!isDisabled}
       />
     </View>
   );
@@ -261,7 +262,7 @@ function FormSwitch({
       <Switch
         value={value}
         onValueChange={onValueChange}
-        trackColor={{ false: "#D1D5DB", true: "#EC1A52" }}
+        trackColor={{ false: colors.borderMedium, true: colors.primary }}
         thumbColor="white"
       />
     </View>
@@ -1050,7 +1051,7 @@ export default function AddProductScreen() {
               hitSlop={8}
             >
               {hasChildren ? (
-                <Ionicons name={isExpanded ? "chevron-down" : "chevron-forward"} size={14} color="#9CA3AF" />
+                <Ionicons name={isExpanded ? "chevron-down" : "chevron-forward"} size={iconSize.xs} color={colors.textTertiary} />
               ) : (
                 <View className="w-5 h-5" />
               )}
@@ -1094,17 +1095,17 @@ export default function AddProductScreen() {
             className="w-6 h-6 rounded-full bg-red-50 items-center justify-center"
             onPress={() => setShowAddCategoryModal(true)}
           >
-            <Ionicons name="add" size={16} color="#EC1A52" />
+            <Ionicons name="add" size={iconSize.sm} color={colors.primary} />
           </Pressable>
         </View>
 
         {categoryTree.length === 0 ? (
           <View className="flex-row items-center py-3">
             <Text className="text-gray-500 text-sm flex-1">No Category Found</Text>
-            <Ionicons name="information-circle-outline" size={18} color="#9CA3AF" />
+            <Ionicons name="information-circle-outline" size={iconSize.md} color={colors.textTertiary} />
           </View>
         ) : (
-          <ScrollView style={{ maxHeight: 500 }} showsVerticalScrollIndicator>
+          <ScrollView showsVerticalScrollIndicator={false}>
             {categoryTree.map((cat) => renderCategoryNode(cat, 0))}
           </ScrollView>
         )}
@@ -1119,9 +1120,9 @@ export default function AddProductScreen() {
             className="rounded-lg px-4 py-2 flex-row items-center"
             style={{
               backgroundColor:
-                status === 1 ? "#1F2937"    // ACTIVE  – dark
-                : status === 2 ? "#9CA3AF"  // INACTIVE – gray
-                : "#F59E0B",                 // DISCONTINUED – amber
+                status === 1 ? colors.textDark    // ACTIVE  – dark
+                : status === 2 ? colors.textTertiary  // INACTIVE – gray
+                : colors.warning,                 // DISCONTINUED – amber
             }}
             onPress={() => setStatus(status === 1 ? 2 : status === 2 ? 3 : 1)}
           >
@@ -1132,8 +1133,8 @@ export default function AddProductScreen() {
                 borderRadius: 4,
                 marginRight: 6,
                 backgroundColor:
-                  status === 1 ? "#22C55E"     // green dot
-                  : status === 2 ? "#EF4444"   // red dot
+                  status === 1 ? colors.success     // green dot
+                  : status === 2 ? colors.error   // red dot
                   : "transparent",
                 borderWidth: status === 3 ? 1.5 : 0,
                 borderColor: status === 3 ? "#FFFFFF" : "transparent",
@@ -1142,7 +1143,7 @@ export default function AddProductScreen() {
             <Text className="text-white font-medium mr-2">
               {status === 1 ? "ACTIVE" : status === 2 ? "INACTIVE" : "DISCONTINUED"}
             </Text>
-            <Ionicons name="chevron-down" size={14} color="white" />
+            <Ionicons name="chevron-down" size={iconSize.xs} color="white" />
           </Pressable>
         </View>
 
@@ -1193,7 +1194,7 @@ export default function AddProductScreen() {
               onPress={() => setAutoGenerateSku(!autoGenerateSku)}
             >
               <View className={`w-4 h-4 rounded border mr-2 items-center justify-center ${autoGenerateSku ? 'bg-red-500 border-red-500' : 'border-gray-300'}`}>
-                {autoGenerateSku && <Ionicons name="checkmark" size={12} color="white" />}
+                {autoGenerateSku && <Ionicons name="checkmark" size={iconSize.xs} color="white" />}
               </View>
               <Text className="text-gray-600 text-sm">Auto generated SKU</Text>
             </Pressable>
@@ -1205,14 +1206,14 @@ export default function AddProductScreen() {
                 <TextInput
                   className="flex-1 bg-white border border-gray-200 rounded-l-lg px-4 py-3 shadow-sm"
                   placeholder="Enter Weight"
-                  placeholderTextColor="#9ca3af"
+                  placeholderTextColor={colors.textTertiary}
                   value={weight}
                   onChangeText={setWeight}
                   keyboardType="decimal-pad"
                 />
                 <Pressable className="bg-gray-100 border border-l-0 border-gray-200 rounded-r-lg px-3 flex-row items-center">
                   <Text className="text-gray-600 mr-1">lb</Text>
-                  <Ionicons name="chevron-down" size={14} color="#6B7280" />
+                  <Ionicons name="chevron-down" size={iconSize.xs} color={colors.textSecondary} />
                 </Pressable>
               </View>
             </View>
@@ -1239,7 +1240,7 @@ export default function AddProductScreen() {
                     ? brandsList.find((b) => b.id === selectedBrandId)?.name || "Select"
                     : "Select"}
                 </Text>
-                <Ionicons name="chevron-down" size={16} color="#9CA3AF" />
+                <Ionicons name="chevron-down" size={iconSize.sm} color={colors.textTertiary} />
               </Pressable>
               {selectedBrandId && (
                 <Pressable className="mt-1" onPress={() => setSelectedBrandId(null)}>
@@ -1265,7 +1266,7 @@ export default function AddProductScreen() {
               onPress={() => setAutoFetchImage(!autoFetchImage)}
             >
               <View className={`w-4 h-4 rounded border mr-2 items-center justify-center ${autoFetchImage ? 'bg-red-500 border-red-500' : 'border-gray-300'}`}>
-                {autoFetchImage && <Ionicons name="checkmark" size={12} color="white" />}
+                {autoFetchImage && <Ionicons name="checkmark" size={iconSize.xs} color="white" />}
               </View>
               <Text className="text-gray-600 text-sm">Auto fetch image</Text>
             </Pressable>
@@ -1338,7 +1339,7 @@ export default function AddProductScreen() {
                     ? manufacturersList.find((m) => m.id === selectedManufacturerIds[0])?.name || "Select"
                     : "Select"}
                 </Text>
-                <Ionicons name="chevron-down" size={16} color="#9CA3AF" />
+                <Ionicons name="chevron-down" size={iconSize.sm} color={colors.textTertiary} />
               </Pressable>
               {selectedManufacturerIds.length > 0 && (
                 <Pressable className="mt-1" onPress={() => setSelectedManufacturerIds([])}>
@@ -1367,7 +1368,7 @@ export default function AddProductScreen() {
                     ? suppliersList.find((s) => s.id === selectedSupplierIds[0])?.name || "Select"
                     : "Select"}
                 </Text>
-                <Ionicons name="chevron-down" size={16} color="#9CA3AF" />
+                <Ionicons name="chevron-down" size={iconSize.sm} color={colors.textTertiary} />
               </Pressable>
               {selectedSupplierIds.length > 0 && (
                 <Pressable className="mt-1" onPress={() => setSelectedSupplierIds([])}>
@@ -1398,7 +1399,7 @@ export default function AddProductScreen() {
                     ? categoriesList.find((c) => c.id === selectedMainCategoryId)?.name || "Select"
                     : "Select"}
                 </Text>
-                <Ionicons name="chevron-down" size={16} color="#9CA3AF" />
+                <Ionicons name="chevron-down" size={iconSize.sm} color={colors.textTertiary} />
               </Pressable>
             </View>
           </View>
@@ -1421,7 +1422,7 @@ export default function AddProductScreen() {
               <TextInput
                 className="bg-[#F7F7F9] border border-gray-200 rounded-lg px-4 py-3"
                 placeholder="Place note here"
-                placeholderTextColor="#9ca3af"
+                placeholderTextColor={colors.textTertiary}
                 value={productNote}
                 onChangeText={setProductNote}
                 multiline
@@ -1487,14 +1488,14 @@ export default function AddProductScreen() {
               }
             }}
           >
-            {generatingDescription && <ActivityIndicator size="small" color="#6B7280" style={{ marginRight: 6 }} />}
+            {generatingDescription && <ActivityIndicator size="small" color={colors.textSecondary} style={{ marginRight: 6 }} />}
             <Text className="text-gray-600">{generatingDescription ? "Generating..." : "Generate Description"}</Text>
           </Pressable>
         </View>
         <TextInput
           className="bg-white border border-gray-200 rounded-lg px-4 py-3 mb-6 shadow-sm"
           placeholder="Enter product description..."
-          placeholderTextColor="#9ca3af"
+          placeholderTextColor={colors.textTertiary}
           value={description}
           onChangeText={setDescription}
           multiline
@@ -1508,7 +1509,7 @@ export default function AddProductScreen() {
           <TextInput
             className="flex-1 bg-white border border-gray-200 rounded-lg px-4 py-3 shadow-sm"
             placeholder="Enter youtube link"
-            placeholderTextColor="#9ca3af"
+            placeholderTextColor={colors.textTertiary}
             value={youtubeLink}
             onChangeText={setYoutubeLink}
           />
@@ -1530,7 +1531,7 @@ export default function AddProductScreen() {
           onPress={() => setMeasurementExpanded(!measurementExpanded)}
         >
           <Text className="text-lg font-semibold text-gray-800">Define Unit of Measurement</Text>
-          <Ionicons name={measurementExpanded ? "chevron-up" : "chevron-down"} size={20} color="#9CA3AF" />
+          <Ionicons name={measurementExpanded ? "chevron-up" : "chevron-down"} size={iconSize.base} color={colors.textTertiary} />
         </Pressable>
         
         {measurementExpanded && (
@@ -1550,7 +1551,7 @@ export default function AddProductScreen() {
                 )}
               >
                 <Text className="text-gray-800">{measuredBy}</Text>
-                <Ionicons name="chevron-down" size={16} color="#9CA3AF" />
+                <Ionicons name="chevron-down" size={iconSize.sm} color={colors.textTertiary} />
               </Pressable>
             </View>
 
@@ -1569,9 +1570,9 @@ export default function AddProductScreen() {
                   <Text className="w-20 text-gray-700">{item.unit}</Text>
                   <View className="w-40 flex-row items-center">
                     <TextInput
-                      className="bg-white border border-gray-200 rounded-lg px-3 py-2 w-20 shadow-sm"
+                      className={`border rounded-lg px-3 py-2 w-20 shadow-sm ${index !== 0 ? "bg-white border-gray-200 text-gray-800" : "bg-gray-100 border-gray-300 text-gray-400"}`}
                       placeholder={index === 0 ? "1" : "Enter Q..."}
-                      placeholderTextColor="#9ca3af"
+                      placeholderTextColor={index !== 0 ? colors.textTertiary : "#B8BEC8"}
                       value={item.qty}
                       onChangeText={(text) => {
                         const newData = [...unitData];
@@ -1588,7 +1589,7 @@ export default function AddProductScreen() {
                   <TextInput
                     className="flex-1 bg-white border border-gray-200 rounded-lg px-3 py-2 ml-4 shadow-sm"
                     placeholder="UPC"
-                    placeholderTextColor="#9ca3af"
+                    placeholderTextColor={colors.textTertiary}
                     value={item.upc}
                     onChangeText={(text) => {
                       const newData = [...unitData];
@@ -1610,7 +1611,7 @@ export default function AddProductScreen() {
           onPress={() => setPricingExpanded(!pricingExpanded)}
         >
           <Text className="text-lg font-semibold text-gray-800">Define Pricing</Text>
-          <Ionicons name={pricingExpanded ? "chevron-up" : "chevron-down"} size={20} color="#9CA3AF" />
+          <Ionicons name={pricingExpanded ? "chevron-up" : "chevron-down"} size={iconSize.base} color={colors.textTertiary} />
         </Pressable>
         
         {pricingExpanded && (
@@ -1629,7 +1630,7 @@ export default function AddProductScreen() {
                       {ch.warehouse}
                     </Text>
                     {isActiveChannel && (
-                      <View className="mt-2 h-0.5 rounded-full" style={{ backgroundColor: "#EC1A52" }} />
+                      <View className="mt-2 h-0.5 rounded-full" style={{ backgroundColor: colors.primary }} />
                     )}
                   </Pressable>
                 );
@@ -1652,7 +1653,7 @@ export default function AddProductScreen() {
                   )}
                 >
                   <Text className="text-gray-800">{soldBy}</Text>
-                  <Ionicons name="chevron-down" size={16} color="#9CA3AF" />
+                  <Ionicons name="chevron-down" size={iconSize.sm} color={colors.textTertiary} />
                 </Pressable>
               </View>
               <View className="flex-1">
@@ -1669,16 +1670,15 @@ export default function AddProductScreen() {
                   )}
                 >
                   <Text className="text-gray-800">{boughtBy}</Text>
-                  <Ionicons name="chevron-down" size={16} color="#9CA3AF" />
+                  <Ionicons name="chevron-down" size={iconSize.sm} color={colors.textTertiary} />
                 </Pressable>
               </View>
               <View className="flex-1 justify-end">
                 <Pressable 
                   className="flex-row items-center justify-center px-4 py-3 rounded-lg"
-                  style={{ backgroundColor: "#8B5CF6" }}
-                  onPress={handleCalculatePrices}
+                  style={{ backgroundColor: colors.purple }}
                 >
-                  <Ionicons name="calculator-outline" size={18} color="white" />
+                  <Ionicons name="calculator-outline" size={iconSize.md} color="white" />
                   <Text className="text-white font-medium ml-2">Calculate Prices</Text>
                 </Pressable>
               </View>
@@ -1717,9 +1717,9 @@ export default function AddProductScreen() {
                     <Text className="w-16 text-gray-700 text-sm">{item.unit}</Text>
                     <View className="w-28 flex-row items-center">
                       <TextInput
-                        className="bg-gray-100 border border-gray-200 rounded px-2 py-1.5 w-12 text-sm"
+                        className={`border rounded px-2 py-1.5 w-12 text-sm ${index !== 0 ? "bg-white border-gray-200 text-gray-800" : "bg-gray-100 border-gray-300 text-gray-400"}`}
                         placeholder={index === 0 ? "1" : "Qty"}
-                        placeholderTextColor="#9ca3af"
+                        placeholderTextColor={index !== 0 ? colors.textTertiary : "#B8BEC8"}
                         value={item.qty}
                         editable={index !== 0}
                         onChangeText={(text) => updatePricing("qty", text)}
@@ -1729,23 +1729,23 @@ export default function AddProductScreen() {
                         <Text className="text-gray-400 text-xs ml-1">= {item.qtyLabel}</Text>
                       )}
                     </View>
-                    <TextInput className="w-24 bg-white border border-gray-200 rounded px-2 py-1.5 text-sm" placeholder="Base ..." placeholderTextColor="#d1d5db" value={item.baseCost} onChangeText={(v) => updatePricing("baseCost", v)} keyboardType="decimal-pad" />
-                    <TextInput className="w-24 bg-white border border-gray-200 rounded px-2 py-1.5 text-sm ml-1" placeholder="Net c..." placeholderTextColor="#d1d5db" value={item.netCost} onChangeText={(v) => updatePricing("netCost", v)} keyboardType="decimal-pad" />
-                    <TextInput className="w-20 bg-white border border-gray-200 rounded px-2 py-1.5 text-sm ml-1" placeholder="Price" placeholderTextColor="#d1d5db" value={item.salePrice} onChangeText={(v) => updatePricing("salePrice", v)} keyboardType="decimal-pad" />
+                    <TextInput className="w-24 bg-white border border-gray-200 rounded px-2 py-1.5 text-sm" placeholder="Base ..." placeholderTextColor={colors.borderMedium} value={item.baseCost} onChangeText={(v) => updatePricing("baseCost", v)} keyboardType="decimal-pad" />
+                    <TextInput className="w-24 bg-white border border-gray-200 rounded px-2 py-1.5 text-sm ml-1" placeholder="Net c..." placeholderTextColor={colors.borderMedium} value={item.netCost} onChangeText={(v) => updatePricing("netCost", v)} keyboardType="decimal-pad" />
+                    <TextInput className="w-20 bg-white border border-gray-200 rounded px-2 py-1.5 text-sm ml-1" placeholder="Price" placeholderTextColor={colors.borderMedium} value={item.salePrice} onChangeText={(v) => updatePricing("salePrice", v)} keyboardType="decimal-pad" />
                     <View className="w-20 flex-row items-center ml-1">
-                      <TextInput className="flex-1 bg-white border border-gray-200 rounded-l px-2 py-1.5 text-sm" placeholder="Margin" placeholderTextColor="#d1d5db" value={item.margin} onChangeText={(v) => updatePricing("margin", v)} keyboardType="decimal-pad" />
+                      <TextInput className="flex-1 bg-white border border-gray-200 rounded-l px-2 py-1.5 text-sm" placeholder="Margin" placeholderTextColor={colors.borderMedium} value={item.margin} onChangeText={(v) => updatePricing("margin", v)} keyboardType="decimal-pad" />
                       <Pressable className="bg-gray-100 border border-l-0 border-gray-200 rounded-r px-1 py-1.5">
                         <Text className="text-gray-500 text-xs">$</Text>
                       </Pressable>
                     </View>
-                    <TextInput className="w-16 bg-white border border-gray-200 rounded px-2 py-1.5 text-sm ml-1" placeholder="MSRP" placeholderTextColor="#d1d5db" value={item.msrp} onChangeText={(v) => updatePricing("msrp", v)} keyboardType="decimal-pad" />
-                    <TextInput className="w-20 bg-white border border-gray-200 rounded px-2 py-1.5 text-sm ml-1" placeholder="Lowest..." placeholderTextColor="#d1d5db" value={item.lowestPrice} onChangeText={(v) => updatePricing("lowestPrice", v)} keyboardType="decimal-pad" />
-                    <TextInput className="w-20 bg-white border border-gray-200 rounded px-2 py-1.5 text-sm ml-1" placeholder="Ecom ..." placeholderTextColor="#d1d5db" value={item.ecomPrice} onChangeText={(v) => updatePricing("ecomPrice", v)} keyboardType="decimal-pad" />
-                    <TextInput className="w-20 bg-white border border-gray-200 rounded px-2 py-1.5 text-sm ml-1 shadow-sm" placeholder="Tier 1" placeholderTextColor="#d1d5db" value={item.tier1} onChangeText={(v) => updatePricing("tier1", v)} keyboardType="decimal-pad" />
-                    <TextInput className="w-20 bg-white border border-gray-200 rounded px-2 py-1.5 text-sm ml-1 shadow-sm" placeholder="Tier 2" placeholderTextColor="#d1d5db" value={item.tier2} onChangeText={(v) => updatePricing("tier2", v)} keyboardType="decimal-pad" />
-                    <TextInput className="w-20 bg-white border border-gray-200 rounded px-2 py-1.5 text-sm ml-1 shadow-sm" placeholder="Tier 3" placeholderTextColor="#d1d5db" value={item.tier3} onChangeText={(v) => updatePricing("tier3", v)} keyboardType="decimal-pad" />
-                    <TextInput className="w-20 bg-white border border-gray-200 rounded px-2 py-1.5 text-sm ml-1 shadow-sm" placeholder="Tier 4" placeholderTextColor="#d1d5db" value={item.tier4} onChangeText={(v) => updatePricing("tier4", v)} keyboardType="decimal-pad" />
-                    <TextInput className="w-20 bg-white border border-gray-200 rounded px-2 py-1.5 text-sm ml-1 shadow-sm" placeholder="Tier 5" placeholderTextColor="#d1d5db" value={item.tier5} onChangeText={(v) => updatePricing("tier5", v)} keyboardType="decimal-pad" />
+                    <TextInput className="w-16 bg-white border border-gray-200 rounded px-2 py-1.5 text-sm ml-1" placeholder="MSRP" placeholderTextColor={colors.borderMedium} value={item.msrp} onChangeText={(v) => updatePricing("msrp", v)} keyboardType="decimal-pad" />
+                    <TextInput className="w-20 bg-white border border-gray-200 rounded px-2 py-1.5 text-sm ml-1" placeholder="Lowest..." placeholderTextColor={colors.borderMedium} value={item.lowestPrice} onChangeText={(v) => updatePricing("lowestPrice", v)} keyboardType="decimal-pad" />
+                    <TextInput className="w-20 bg-white border border-gray-200 rounded px-2 py-1.5 text-sm ml-1" placeholder="Ecom ..." placeholderTextColor={colors.borderMedium} value={item.ecomPrice} onChangeText={(v) => updatePricing("ecomPrice", v)} keyboardType="decimal-pad" />
+                    <TextInput className="w-20 bg-white border border-gray-200 rounded px-2 py-1.5 text-sm ml-1 shadow-sm" placeholder="Tier 1" placeholderTextColor={colors.borderMedium} value={item.tier1} onChangeText={(v) => updatePricing("tier1", v)} keyboardType="decimal-pad" />
+                    <TextInput className="w-20 bg-white border border-gray-200 rounded px-2 py-1.5 text-sm ml-1 shadow-sm" placeholder="Tier 2" placeholderTextColor={colors.borderMedium} value={item.tier2} onChangeText={(v) => updatePricing("tier2", v)} keyboardType="decimal-pad" />
+                    <TextInput className="w-20 bg-white border border-gray-200 rounded px-2 py-1.5 text-sm ml-1 shadow-sm" placeholder="Tier 3" placeholderTextColor={colors.borderMedium} value={item.tier3} onChangeText={(v) => updatePricing("tier3", v)} keyboardType="decimal-pad" />
+                    <TextInput className="w-20 bg-white border border-gray-200 rounded px-2 py-1.5 text-sm ml-1 shadow-sm" placeholder="Tier 4" placeholderTextColor={colors.borderMedium} value={item.tier4} onChangeText={(v) => updatePricing("tier4", v)} keyboardType="decimal-pad" />
+                    <TextInput className="w-20 bg-white border border-gray-200 rounded px-2 py-1.5 text-sm ml-1 shadow-sm" placeholder="Tier 5" placeholderTextColor={colors.borderMedium} value={item.tier5} onChangeText={(v) => updatePricing("tier5", v)} keyboardType="decimal-pad" />
                   </View>
                   );
                 })}
@@ -1763,9 +1763,9 @@ export default function AddProductScreen() {
         >
           <View className="flex-row items-center">
             <Text className="text-lg font-semibold text-gray-800">Stock Information</Text>
-            <Ionicons name="information-circle-outline" size={18} color="#9CA3AF" style={{ marginLeft: 8 }} />
+            <Ionicons name="information-circle-outline" size={iconSize.md} color={colors.textTertiary} style={{ marginLeft: 8 }} />
           </View>
-          <Ionicons name={stockExpanded ? "chevron-up" : "chevron-down"} size={20} color="#9CA3AF" />
+          <Ionicons name={stockExpanded ? "chevron-up" : "chevron-down"} size={iconSize.base} color={colors.textTertiary} />
         </Pressable>
         
         {stockExpanded && (
@@ -1797,7 +1797,7 @@ export default function AddProductScreen() {
                     <TextInput
                       className="w-24 bg-white border border-gray-200 rounded px-3 py-2 text-sm ml-1"
                       placeholder="0"
-                      placeholderTextColor="#9ca3af"
+                      placeholderTextColor={colors.textTertiary}
                       value={item.availableQty}
                       keyboardType="numeric"
                       onChangeText={(text) => {
@@ -1809,14 +1809,14 @@ export default function AddProductScreen() {
                     <TextInput
                       className="w-24 bg-gray-100 border border-gray-200 rounded px-3 py-2 text-sm ml-1"
                       placeholder="0"
-                      placeholderTextColor="#9ca3af"
+                      placeholderTextColor={colors.textTertiary}
                       value={item.onHoldQty}
                       editable={false}
                     />
                     <TextInput
                       className="w-24 bg-white border border-gray-200 rounded px-3 py-2 text-sm ml-1"
                       placeholder="0"
-                      placeholderTextColor="#9ca3af"
+                      placeholderTextColor={colors.textTertiary}
                       value={item.damagedQty}
                       keyboardType="numeric"
                       onChangeText={(text) => {
@@ -1828,13 +1828,13 @@ export default function AddProductScreen() {
                     <TextInput
                       className="w-24 bg-gray-100 border border-gray-200 rounded px-3 py-2 text-sm ml-1"
                       placeholder="Back Order"
-                      placeholderTextColor="#d1d5db"
+                      placeholderTextColor={colors.borderMedium}
                       editable={false}
                     />
                     <TextInput
                       className="w-28 bg-gray-100 border border-gray-200 rounded px-3 py-2 text-sm ml-1"
                       placeholder="Coming Soon"
-                      placeholderTextColor="#d1d5db"
+                      placeholderTextColor={colors.borderMedium}
                       editable={false}
                     />
                   </View>
@@ -1858,12 +1858,12 @@ export default function AddProductScreen() {
         <View className="mb-6" onLayout={(e) => trackFieldLayout("seoSlug", e.nativeEvent.layout.y)}>
           <View className="flex-row items-center mb-2">
             <Text className="text-gray-700 text-sm font-medium">Slug</Text>
-            <Ionicons name="information-circle-outline" size={16} color="#9CA3AF" style={{ marginLeft: 4 }} />
+            <Ionicons name="information-circle-outline" size={iconSize.sm} color={colors.textTertiary} style={{ marginLeft: 4 }} />
           </View>
           <TextInput
             className="bg-[#F7F7F9] border border-gray-200 rounded-lg px-4 py-3"
             placeholder="Enter Product Slug"
-            placeholderTextColor="#d1d5db"
+            placeholderTextColor={colors.borderMedium}
             value={seoSlug}
             onChangeText={setSeoSlug}
           />
@@ -1876,7 +1876,7 @@ export default function AddProductScreen() {
           <TextInput
             className="bg-[#F7F7F9] border border-gray-200 rounded-lg px-4 py-3"
             placeholder="Enter Meta Title for Product"
-            placeholderTextColor="#d1d5db"
+            placeholderTextColor={colors.borderMedium}
             value={metaTitle}
             onChangeText={setMetaTitle}
             multiline
@@ -1892,7 +1892,7 @@ export default function AddProductScreen() {
           <TextInput
             className="bg-[#F7F7F9] border border-gray-200 rounded-lg px-4 py-3"
             placeholder="Enter Meta Description for Product"
-            placeholderTextColor="#d1d5db"
+            placeholderTextColor={colors.borderMedium}
             value={metaDescription}
             onChangeText={setMetaDescription}
             multiline
@@ -1969,7 +1969,7 @@ export default function AddProductScreen() {
                 <TextInput
                   className="flex-1 bg-white border border-gray-200 rounded-lg px-4 py-2.5"
                   placeholder="Search"
-                  placeholderTextColor="#9ca3af"
+                  placeholderTextColor={colors.textTertiary}
                   value={promotionSearch}
                   onChangeText={setPromotionSearch}
                 />
@@ -1977,7 +1977,7 @@ export default function AddProductScreen() {
                   className="flex-row items-center gap-2 px-4 py-2.5 rounded-lg border border-gray-300"
                   onPress={() => setShowAdvanceFilters(!showAdvanceFilters)}
                 >
-                  <Ionicons name="filter" size={16} color="#374151" />
+                  <Ionicons name="filter" size={iconSize.sm} color={colors.textMedium} />
                   <Text className="text-gray-700 font-medium">Advance Filters</Text>
                 </Pressable>
               </View>
@@ -2000,11 +2000,11 @@ export default function AddProductScreen() {
                             className="px-4 py-2 rounded-full border"
                             style={{
                               backgroundColor: selected ? st.color : "#fff",
-                              borderColor: selected ? st.textColor : "#D1D5DB",
+                              borderColor: selected ? st.textColor : colors.borderMedium,
                             }}
                             onPress={() => toggleStatusFilter(st.value)}
                           >
-                            <Text style={{ color: selected ? st.textColor : "#6B7280", fontWeight: selected ? "600" : "400" }}>
+                            <Text style={{ color: selected ? st.textColor : colors.textSecondary, fontWeight: selected ? fontWeight.semibold : fontWeight.regular }}>
                               {st.name}
                             </Text>
                           </Pressable>
@@ -2020,9 +2020,9 @@ export default function AddProductScreen() {
                         const badge = getStatusBadge(v);
                         return badge ? (
                           <View key={v} className="flex-row items-center px-2 py-1 rounded-full" style={{ backgroundColor: badge.color }}>
-                            <Text style={{ color: badge.textColor, fontSize: 12 }}>{badge.name}</Text>
+                            <Text style={{ color: badge.textColor, fontSize: fontSize.md }}>{badge.name}</Text>
                             <Pressable onPress={() => toggleStatusFilter(v)} className="ml-1">
-                              <Ionicons name="close-circle" size={14} color={badge.textColor} />
+                              <Ionicons name="close-circle" size={iconSize.xs} color={badge.textColor} />
                             </Pressable>
                           </View>
                         ) : null;
@@ -2043,11 +2043,7 @@ export default function AddProductScreen() {
                     </Pressable>
                     <Pressable
                       className="flex-1 py-3 rounded-lg items-center"
-                      style={{ backgroundColor: "#EC1A52" }}
-                      onPress={() => {
-                        setShowAdvanceFilters(false);
-                        loadPromotions();
-                      }}
+                      style={{ backgroundColor: colors.primary }}
                     >
                       <Text className="text-white font-medium">Apply</Text>
                     </Pressable>
@@ -2058,7 +2054,7 @@ export default function AddProductScreen() {
 
             {/* Info banner for new product (no productId yet) */}
             <View className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4 flex-row items-center">
-              <Ionicons name="information-circle-outline" size={20} color="#3B82F6" />
+              <Ionicons name="information-circle-outline" size={iconSize.base} color={colors.info} />
               <Text className="text-blue-700 text-sm ml-2 flex-1">
                 Promotions will be available after the product is saved. You can link promotions from the Marketing module.
               </Text>
@@ -2068,7 +2064,7 @@ export default function AddProductScreen() {
             {/* Loading Indicator */}
             {promotionsLoading && (
               <View className="py-8 items-center">
-                <ActivityIndicator size="large" color="#EC1A52" />
+                <ActivityIndicator size="large" color={colors.primary} />
               </View>
             )}
 
@@ -2094,7 +2090,7 @@ export default function AddProductScreen() {
                     {/* Empty State */}
                     {promotionRows.length === 0 && (
                       <View className="py-20 items-center justify-center">
-                        <Ionicons name="document-outline" size={48} color="#D1D5DB" />
+                        <Ionicons name="document-outline" size={iconSize['4xl']} color={colors.borderMedium} />
                         <Text className="text-gray-400 mt-4 text-base">No Data</Text>
                       </View>
                     )}
@@ -2116,7 +2112,7 @@ export default function AddProductScreen() {
                           <View style={{ width: 80, alignItems: "center" }}>
                             {badge ? (
                               <View className="px-2 py-1 rounded" style={{ backgroundColor: badge.color }}>
-                                <Text style={{ color: badge.textColor, fontSize: 11, fontWeight: "600" }}>{badge.name}</Text>
+                                <Text style={{ color: badge.textColor, fontSize: fontSize.md, fontWeight: fontWeight.semibold }}>{badge.name}</Text>
                               </View>
                             ) : null}
                           </View>
@@ -2145,7 +2141,7 @@ export default function AddProductScreen() {
   // Render placeholder for other tabs
   const renderPlaceholderTab = (tabName: string) => (
     <View className="flex-1 items-center justify-center">
-      <Ionicons name="construct-outline" size={48} color="#D1D5DB" />
+      <Ionicons name="construct-outline" size={iconSize['4xl']} color={colors.borderMedium} />
       <Text className="text-gray-400 mt-4 text-lg">{tabName} - Coming Soon</Text>
     </View>
   );
@@ -2163,7 +2159,7 @@ export default function AddProductScreen() {
           </Pressable>
           <Pressable
             className="px-5 py-2.5 rounded-lg flex-row items-center"
-            style={{ backgroundColor: saving ? "#F87171" : "#EC1A52", opacity: saving ? 0.7 : 1 }}
+            style={{ backgroundColor: saving ? "#F87171" : colors.primary, opacity: saving ? 0.7 : 1 }}
             onPress={handleSave}
             disabled={saving}
           >
@@ -2196,7 +2192,7 @@ export default function AddProductScreen() {
               {activeTab === tab.key && (
                 <View 
                   className="absolute bottom-0 left-0 right-0 h-0.5"
-                  style={{ backgroundColor: "#EC1A52" }}
+                  style={{ backgroundColor: colors.primary }}
                 />
               )}
             </Pressable>
@@ -2227,7 +2223,7 @@ export default function AddProductScreen() {
             <View className="flex-row items-center justify-between p-6 border-b border-gray-200">
               <Text className="text-xl font-semibold text-gray-800">Add Category</Text>
               <Pressable onPress={() => setShowAddCategoryModal(false)}>
-                <Ionicons name="close" size={24} color="#9CA3AF" />
+                <Ionicons name="close" size={iconSize.xl} color={colors.textTertiary} />
               </Pressable>
             </View>
 
@@ -2242,7 +2238,7 @@ export default function AddProductScreen() {
                   <TextInput
                     className="bg-[#F7F7F9] border border-gray-200 rounded-lg px-4 py-3"
                     placeholder="Enter Category Name"
-                    placeholderTextColor="#9ca3af"
+                    placeholderTextColor={colors.textTertiary}
                     value={categoryName}
                     onChangeText={setCategoryName}
                   />
@@ -2259,14 +2255,14 @@ export default function AddProductScreen() {
                       setMsaCodeDraft(categoryMsaCode);
                       setShowMsaCodeModal(true);
                     }}
-                    style={!categoryIsMsa ? { backgroundColor: "#F3F4F6" } : {}}
+                    style={!categoryIsMsa ? { backgroundColor: colors.backgroundSecondary } : {}}
                   >
                     <Text className={categoryMsaCode ? "text-gray-800" : "text-gray-400"}>
                       {categoryMsaCode
                         ? `${categoryMsaCode} - ${MSA_CODES.find((m) => m.code === categoryMsaCode)?.description || ""}`
                         : "Please select Msa Code"}
                     </Text>
-                    <Ionicons name="chevron-down" size={16} color="#9CA3AF" />
+                    <Ionicons name="chevron-down" size={iconSize.sm} color={colors.textTertiary} />
                   </Pressable>
                 </View>
                 <View className="items-center">
@@ -2277,7 +2273,7 @@ export default function AddProductScreen() {
                       setCategoryIsMsa(val);
                       if (!val) setCategoryMsaCode("");
                     }}
-                    trackColor={{ false: "#D1D5DB", true: "#EC1A52" }}
+                    trackColor={{ false: colors.borderMedium, true: colors.primary }}
                     thumbColor="white"
                   />
                 </View>
@@ -2286,7 +2282,7 @@ export default function AddProductScreen() {
                   <Switch
                     value={categoryIsFeature}
                     onValueChange={setCategoryIsFeature}
-                    trackColor={{ false: "#D1D5DB", true: "#EC1A52" }}
+                    trackColor={{ false: colors.borderMedium, true: colors.primary }}
                     thumbColor="white"
                   />
                 </View>
@@ -2304,7 +2300,7 @@ export default function AddProductScreen() {
                       ? categoriesList.find((c) => c.id === categoryParentId)?.name || "Select"
                       : "Please Select"}
                   </Text>
-                  <Ionicons name="chevron-down" size={16} color="#9CA3AF" />
+                  <Ionicons name="chevron-down" size={iconSize.sm} color={colors.textTertiary} />
                 </Pressable>
               </View>
 
@@ -2314,7 +2310,7 @@ export default function AddProductScreen() {
             <View className="flex-row justify-end gap-3 p-6 border-t border-gray-200">
               <Pressable
                 className="px-6 py-3 rounded-lg"
-                style={{ backgroundColor: "#3B82F6" }}
+                style={{ backgroundColor: colors.info }}
                 onPress={() => setShowAddCategoryModal(false)}
               >
                 <Text className="text-white font-medium">Close</Text>
@@ -2322,7 +2318,7 @@ export default function AddProductScreen() {
               <Pressable
                 className="px-6 py-3 rounded-lg flex-row items-center"
                 style={[
-                  { backgroundColor: "#8B5CF6" },
+                  { backgroundColor: colors.purple },
                   savingCategory ? { opacity: 0.6 } : {},
                 ]}
                 disabled={savingCategory}
@@ -2385,7 +2381,7 @@ export default function AddProductScreen() {
             <View className="flex-row items-center justify-between p-5 border-b border-gray-200">
               <Text className="text-lg font-semibold text-gray-800">Select Main Category</Text>
               <Pressable onPress={() => setShowMainCategoryModal(false)}>
-                <Ionicons name="close" size={22} color="#9CA3AF" />
+                <Ionicons name="close" size={iconSize.lg} color={colors.textTertiary} />
               </Pressable>
             </View>
             <ScrollView style={{ maxHeight: 360 }}>
@@ -2405,7 +2401,7 @@ export default function AddProductScreen() {
                     <Text className={isActive ? "text-gray-800 font-medium" : "text-gray-700"}>
                       {cat.name}
                     </Text>
-                    {isActive && <Ionicons name="checkmark" size={18} color="#EC1A52" />}
+                    {isActive && <Ionicons name="checkmark" size={iconSize.md} color={colors.primary} />}
                   </Pressable>
                 );
               })}
@@ -2426,7 +2422,7 @@ export default function AddProductScreen() {
             <View className="flex-row items-center justify-between p-5 border-b border-gray-200">
               <Text className="text-lg font-semibold text-gray-800">MSA Code</Text>
               <Pressable onPress={() => setShowMsaCodeModal(false)}>
-                <Ionicons name="close" size={22} color="#9CA3AF" />
+                <Ionicons name="close" size={iconSize.lg} color={colors.textTertiary} />
               </Pressable>
             </View>
             <ScrollView style={{ maxHeight: 360 }}>
@@ -2441,7 +2437,7 @@ export default function AddProductScreen() {
                     <Text className={isActive ? "text-gray-800 font-medium" : "text-gray-700"}>
                       {item.code} - {item.description}
                     </Text>
-                    {isActive && <Ionicons name="checkmark" size={18} color="#EC1A52" />}
+                    {isActive && <Ionicons name="checkmark" size={iconSize.md} color={colors.primary} />}
                   </Pressable>
                 );
               })}
@@ -2455,7 +2451,7 @@ export default function AddProductScreen() {
               </Pressable>
               <Pressable
                 className="px-5 py-2.5 rounded-lg"
-                style={{ backgroundColor: "#EC1A52" }}
+                style={{ backgroundColor: colors.primary }}
                 onPress={() => {
                   setCategoryMsaCode(msaCodeDraft.trim());
                   setShowMsaCodeModal(false);
@@ -2480,7 +2476,7 @@ export default function AddProductScreen() {
             <View className="flex-row items-center justify-between p-5 border-b border-gray-200">
               <Text className="text-lg font-semibold text-gray-800">Select Parent Category</Text>
               <Pressable onPress={() => setShowParentCategoryModal(false)}>
-                <Ionicons name="close" size={22} color="#9CA3AF" />
+                <Ionicons name="close" size={iconSize.lg} color={colors.textTertiary} />
               </Pressable>
             </View>
             <ScrollView style={{ maxHeight: 360 }}>
@@ -2494,7 +2490,7 @@ export default function AddProductScreen() {
                 <Text className={categoryParentId === null ? "text-gray-800 font-medium" : "text-gray-700"}>
                   No Parent
                 </Text>
-                {categoryParentId === null && <Ionicons name="checkmark" size={18} color="#EC1A52" />}
+                {categoryParentId === null && <Ionicons name="checkmark" size={iconSize.md} color={colors.primary} />}
               </Pressable>
               {parentCategoryOptions.map((item) => {
                 const isActive = categoryParentId === item.id;
@@ -2510,7 +2506,7 @@ export default function AddProductScreen() {
                     <Text className={isActive ? "text-gray-800 font-medium" : "text-gray-700"}>
                       {item.label}
                     </Text>
-                    {isActive && <Ionicons name="checkmark" size={18} color="#EC1A52" />}
+                    {isActive && <Ionicons name="checkmark" size={iconSize.md} color={colors.primary} />}
                   </Pressable>
                 );
               })}
@@ -2531,7 +2527,7 @@ export default function AddProductScreen() {
             <View className="flex-row items-center justify-between p-5 border-b border-gray-200">
               <Text className="text-lg font-semibold text-gray-800">{pickerModal.title}</Text>
               <Pressable onPress={closePicker} hitSlop={8}>
-                <Ionicons name="close" size={22} color="#9CA3AF" />
+                <Ionicons name="close" size={iconSize.lg} color={colors.textTertiary} />
               </Pressable>
             </View>
             <ScrollView style={{ maxHeight: 360 }}>
@@ -2549,7 +2545,7 @@ export default function AddProductScreen() {
                     <Text className={isActive ? "text-gray-800 font-medium" : "text-gray-700"}>
                       {opt.label}
                     </Text>
-                    {isActive && <Ionicons name="checkmark" size={18} color="#EC1A52" />}
+                    {isActive && <Ionicons name="checkmark" size={iconSize.md} color={colors.primary} />}
                   </Pressable>
                 );
               })}

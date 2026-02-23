@@ -14,6 +14,7 @@
 import QRCodeCore from "qrcode/lib/core/qrcode";
 import { forwardRef, useMemo } from "react";
 import { StyleSheet, Text, View } from "react-native";
+import { fontWeight, colors } from '@/utils/theme';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -204,7 +205,7 @@ export const ReceiptTemplate = forwardRef<View, { data: ReceiptData }>(
               style={{
                 width: qrCellSize,
                 height: qrCellSize,
-                backgroundColor: qrModules.get(r, c) ? "#000" : "#FFF",
+                backgroundColor: qrModules.get(r, c) ? colors.black : colors.white,
               }}
             />,
           );
@@ -217,8 +218,8 @@ export const ReceiptTemplate = forwardRef<View, { data: ReceiptData }>(
       }
       return (
         <View style={{ alignItems: "center", marginTop: 10 * S, marginBottom: 6 * S, marginHorizontal: QR_MARGIN }}>
-          <View style={{ padding: QR_PADDING, backgroundColor: "#FFF" }}>{rows}</View>
-          <Text style={{ fontSize: 11 * S, color: "#000", marginTop: 4 * S, fontWeight: "700" }}>
+          <View style={{ padding: QR_PADDING, backgroundColor: colors.white }}>{rows}</View>
+          <Text style={{ fontSize: 11 * S, color: colors.black, marginTop: 4 * S, fontWeight: fontWeight.bold }}>
             {orderNo}
           </Text>
         </View>
@@ -244,12 +245,12 @@ export const ReceiptTemplate = forwardRef<View, { data: ReceiptData }>(
                 style={{
                   width: Math.abs(w) * barcodeUnit,
                   height: BARCODE_HEIGHT,
-                  backgroundColor: w > 0 ? "#000" : "#FFF",
+                  backgroundColor: w > 0 ? colors.black : colors.white,
                 }}
               />
             ))}
           </View>
-          <Text style={{ fontSize: 11 * S, color: "#000", marginTop: 4 * S, fontWeight: "700", letterSpacing: 2 * S }}>
+          <Text style={{ fontSize: 11 * S, color: colors.black, marginTop: 4 * S, fontWeight: fontWeight.bold, letterSpacing: 2 * S }}>
             {orderNo}
           </Text>
         </View>
@@ -361,7 +362,7 @@ ReceiptTemplate.displayName = "ReceiptTemplate";
 const styles = StyleSheet.create({
   container: {
     width: RECEIPT_WIDTH,
-    backgroundColor: "#FFFFFF",
+    backgroundColor: colors.white,
     paddingHorizontal: 8 * S,
     paddingVertical: 6 * S,
   },
@@ -376,13 +377,13 @@ const styles = StyleSheet.create({
   dash: {
     width: 10 * S,
     height: 2 * S,
-    backgroundColor: "#000000",
+    backgroundColor: colors.black,
   },
 
   // ── Solid line ──
   solidLine: {
     borderBottomWidth: 1 * S,
-    borderBottomColor: "#000000",
+    borderBottomColor: colors.black,
     marginVertical: 5 * S,
   },
 
@@ -394,8 +395,8 @@ const styles = StyleSheet.create({
   },
   headerText: {
     fontSize: 13 * S,
-    fontWeight: "700",
-    color: "#000000",
+    fontWeight: fontWeight.bold,
+    color: colors.black,
   },
 
   // ── Item rows ──
@@ -408,14 +409,14 @@ const styles = StyleSheet.create({
   itemName: {
     flex: 1,
     fontSize: 11 * S,
-    fontWeight: "600",
-    color: "#000000",
+    fontWeight: fontWeight.semibold,
+    color: colors.black,
     marginRight: 8 * S,
   },
   itemPrice: {
     fontSize: 11 * S,
-    fontWeight: "600",
-    color: "#000000",
+    fontWeight: fontWeight.semibold,
+    color: colors.black,
   },
 
   // ── Totals ──
@@ -427,25 +428,25 @@ const styles = StyleSheet.create({
   },
   totalLabel: {
     fontSize: 11 * S,
-    fontWeight: "600",
-    color: "#000000",
+    fontWeight: fontWeight.semibold,
+    color: colors.black,
   },
   totalValue: {
     fontSize: 11 * S,
-    fontWeight: "600",
-    color: "#000000",
+    fontWeight: fontWeight.semibold,
+    color: colors.black,
   },
 
   // ── Info text ──
   infoText: {
     fontSize: 10 * S,
-    fontWeight: "500",
-    color: "#000000",
+    fontWeight: fontWeight.medium,
+    color: colors.black,
     paddingVertical: 1 * S,
   },
   // ── Modifiers ──
   bold: {
-    fontWeight: "900",
+    fontWeight: fontWeight.bold,
     fontSize: 13 * S,
   },
 });

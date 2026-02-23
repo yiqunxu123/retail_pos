@@ -20,6 +20,7 @@ import { useRenderTrace } from "../utils/debug/useRenderTrace";
 import { ensurePrintersLoaded, getPrinters } from "../utils/PrinterPoolManager";
 import { useProducts } from "../utils/powersync/hooks";
 import type { ProductView } from "../utils/powersync/hooks/useProducts";
+import { fontSize, fontWeight, colors, iconSize } from '@/utils/theme';
 
 export interface CartItem {
   productId: string;
@@ -195,8 +196,8 @@ const BarcodePrintPanelContent = React.memo(function BarcodePrintPanelContent({
           paddingHorizontal: 24,
           paddingVertical: 18,
           borderBottomWidth: 1,
-          borderBottomColor: "#F0F1F4",
-          backgroundColor: "#FAFAFA",
+          borderBottomColor: colors.borderLight,
+          backgroundColor: colors.backgroundLight,
         }}
       >
         <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
@@ -205,20 +206,20 @@ const BarcodePrintPanelContent = React.memo(function BarcodePrintPanelContent({
               width: 44,
               height: 44,
               borderRadius: 12,
-              backgroundColor: "#EC1A52",
+              backgroundColor: colors.primary,
               alignItems: "center",
               justifyContent: "center",
             }}
           >
-            <MaterialCommunityIcons name="barcode" size={24} color="#FFF" />
+            <MaterialCommunityIcons name="barcode" size={iconSize.xl} color="#FFF" />
           </View>
           <View>
             <Text
               style={{
                 fontFamily: "Montserrat",
-                fontSize: 20,
-                fontWeight: "700",
-                color: "#1A1A1A",
+                fontSize: fontSize['2xl'],
+                fontWeight: fontWeight.bold,
+                color: colors.text,
               }}
             >
               Print Barcode Labels
@@ -226,8 +227,8 @@ const BarcodePrintPanelContent = React.memo(function BarcodePrintPanelContent({
             <Text
               style={{
                 fontFamily: "Montserrat",
-                fontSize: 13,
-                color: "#9CA3AF",
+                fontSize: fontSize.md,
+                color: colors.textTertiary,
                 marginTop: 2,
               }}
             >
@@ -243,17 +244,17 @@ const BarcodePrintPanelContent = React.memo(function BarcodePrintPanelContent({
             width: 36,
             height: 36,
             borderRadius: 18,
-            backgroundColor: "#F3F4F6",
+            backgroundColor: colors.backgroundSecondary,
             alignItems: "center",
             justifyContent: "center",
           }}
         >
-          <Ionicons name="close" size={20} color="#6B7280" />
+          <Ionicons name="close" size={iconSize.base} color={colors.textSecondary} />
         </TouchableOpacity>
       </View>
 
       <View style={{ flexDirection: "row", flex: 1 }}>
-        <View style={{ flex: 1, borderRightWidth: 1, borderRightColor: "#F0F1F4" }}>
+        <View style={{ flex: 1, borderRightWidth: 1, borderRightColor: colors.borderLight }}>
           <View style={{ padding: 16 }}>
             <View
               style={{
@@ -264,26 +265,26 @@ const BarcodePrintPanelContent = React.memo(function BarcodePrintPanelContent({
                 paddingHorizontal: 12,
                 paddingVertical: 10,
                 borderWidth: 1,
-                borderColor: "#E5E7EB",
+                borderColor: colors.border,
               }}
             >
-              <Ionicons name="search" size={18} color="#9CA3AF" />
+              <Ionicons name="search" size={iconSize.md} color={colors.textTertiary} />
               <TextInput
                 style={{
                   flex: 1,
                   marginLeft: 8,
                   fontFamily: "Montserrat",
-                  fontSize: 14,
-                  color: "#1A1A1A",
+                  fontSize: fontSize.base,
+                  color: colors.text,
                 }}
                 placeholder="Search by name, SKU, or UPC..."
-                placeholderTextColor="#9CA3AF"
+                placeholderTextColor={colors.textTertiary}
                 value={searchQuery}
                 onChangeText={onSearchQueryChange}
               />
               {searchQuery.length > 0 && (
                 <TouchableOpacity onPress={onClearSearch}>
-                  <Ionicons name="close-circle" size={18} color="#9CA3AF" />
+                  <Ionicons name="close-circle" size={iconSize.md} color={colors.textTertiary} />
                 </TouchableOpacity>
               )}
             </View>
@@ -291,7 +292,7 @@ const BarcodePrintPanelContent = React.memo(function BarcodePrintPanelContent({
 
           {isLoading ? (
             <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
-              <ActivityIndicator size="large" color="#EC1A52" />
+              <ActivityIndicator size="large" color={colors.primary} />
             </View>
           ) : (
             <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: 12 }}>
@@ -308,7 +309,7 @@ const BarcodePrintPanelContent = React.memo(function BarcodePrintPanelContent({
                       paddingVertical: 12,
                       backgroundColor: selected ? "#FEF2F2" : "#FFF",
                       borderBottomWidth: 1,
-                      borderBottomColor: "#F3F4F6",
+                      borderBottomColor: colors.backgroundSecondary,
                     }}
                   >
                     <View
@@ -317,23 +318,23 @@ const BarcodePrintPanelContent = React.memo(function BarcodePrintPanelContent({
                         height: 22,
                         borderRadius: 6,
                         borderWidth: 2,
-                        borderColor: selected ? "#EC1A52" : "#D1D5DB",
-                        backgroundColor: selected ? "#EC1A52" : "#FFF",
+                        borderColor: selected ? colors.primary : colors.borderMedium,
+                        backgroundColor: selected ? colors.primary : "#FFF",
                         alignItems: "center",
                         justifyContent: "center",
                         marginRight: 12,
                       }}
                     >
-                      {selected && <Ionicons name="checkmark" size={14} color="#FFF" />}
+                      {selected && <Ionicons name="checkmark" size={iconSize.xs} color="#FFF" />}
                     </View>
 
                     <View style={{ flex: 1 }}>
                       <Text
                         style={{
                           fontFamily: "Montserrat",
-                          fontSize: 14,
-                          fontWeight: "600",
-                          color: "#1A1A1A",
+                          fontSize: fontSize.base,
+                          fontWeight: fontWeight.semibold,
+                          color: colors.text,
                         }}
                         numberOfLines={1}
                       >
@@ -341,19 +342,19 @@ const BarcodePrintPanelContent = React.memo(function BarcodePrintPanelContent({
                       </Text>
                       <View style={{ flexDirection: "row", gap: 12, marginTop: 3 }}>
                         {product.sku ? (
-                          <Text style={{ fontFamily: "Montserrat", fontSize: 11, color: "#6B7280" }}>
+                          <Text style={{ fontFamily: "Montserrat", fontSize: fontSize.md, color: colors.textSecondary }}>
                             SKU: {product.sku}
                           </Text>
                         ) : null}
                         {product.upc ? (
-                          <Text style={{ fontFamily: "Montserrat", fontSize: 11, color: "#6B7280" }}>
+                          <Text style={{ fontFamily: "Montserrat", fontSize: fontSize.md, color: colors.textSecondary }}>
                             UPC: {product.upc}
                           </Text>
                         ) : null}
                       </View>
                     </View>
 
-                    <Text style={{ fontFamily: "Montserrat", fontSize: 14, fontWeight: "700", color: "#1A1A1A" }}>
+                    <Text style={{ fontFamily: "Montserrat", fontSize: fontSize.base, fontWeight: fontWeight.bold, color: colors.text }}>
                       ${product.salePrice.toFixed(2)}
                     </Text>
                   </TouchableOpacity>
@@ -363,28 +364,28 @@ const BarcodePrintPanelContent = React.memo(function BarcodePrintPanelContent({
           )}
         </View>
 
-        <View style={{ width: 280, backgroundColor: "#FAFAFA" }}>
+        <View style={{ width: 280, backgroundColor: colors.backgroundLight }}>
           <View
             style={{
               paddingHorizontal: 16,
               paddingVertical: 14,
               borderBottomWidth: 1,
-              borderBottomColor: "#E5E7EB",
+              borderBottomColor: colors.border,
             }}
           >
-            <Text style={{ fontFamily: "Montserrat", fontSize: 15, fontWeight: "700", color: "#1A1A1A" }}>
+            <Text style={{ fontFamily: "Montserrat", fontSize: fontSize.base, fontWeight: fontWeight.bold, color: colors.text }}>
               Labels to Print ({items.length})
             </Text>
           </View>
 
           {items.length === 0 ? (
             <View style={{ flex: 1, alignItems: "center", justifyContent: "center", paddingHorizontal: 24 }}>
-              <MaterialCommunityIcons name="barcode-scan" size={48} color="#D1D5DB" />
+              <MaterialCommunityIcons name="barcode-scan" size={iconSize['4xl']} color={colors.borderMedium} />
               <Text
                 style={{
                   fontFamily: "Montserrat",
-                  fontSize: 13,
-                  color: "#9CA3AF",
+                  fontSize: fontSize.md,
+                  color: colors.textTertiary,
                   textAlign: "center",
                   marginTop: 12,
                 }}
@@ -402,16 +403,16 @@ const BarcodePrintPanelContent = React.memo(function BarcodePrintPanelContent({
                     borderRadius: 10,
                     padding: 12,
                     borderWidth: 1,
-                    borderColor: "#E5E7EB",
+                    borderColor: colors.border,
                   }}
                 >
                   <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start" }}>
                     <Text
                       style={{
                         fontFamily: "Montserrat",
-                        fontSize: 13,
-                        fontWeight: "600",
-                        color: "#1A1A1A",
+                        fontSize: fontSize.md,
+                        fontWeight: fontWeight.semibold,
+                        color: colors.text,
                         flex: 1,
                       }}
                       numberOfLines={2}
@@ -419,31 +420,31 @@ const BarcodePrintPanelContent = React.memo(function BarcodePrintPanelContent({
                       {item.product.name}
                     </Text>
                     <TouchableOpacity onPress={() => onToggleProduct(item.product)} hitSlop={8} style={{ marginLeft: 8 }}>
-                      <Ionicons name="close-circle" size={20} color="#D1D5DB" />
+                      <Ionicons name="close-circle" size={iconSize.base} color={colors.borderMedium} />
                     </TouchableOpacity>
                   </View>
 
-                  <Text style={{ fontFamily: "Montserrat", fontSize: 11, color: "#6B7280", marginTop: 4 }}>
+                  <Text style={{ fontFamily: "Montserrat", fontSize: fontSize.md, color: colors.textSecondary, marginTop: 4 }}>
                     {item.product.upc || item.product.sku || "No barcode data"}
                   </Text>
-                  <Text style={{ fontFamily: "Montserrat", fontSize: 12, fontWeight: "700", color: "#1A1A1A", marginTop: 2 }}>
+                  <Text style={{ fontFamily: "Montserrat", fontSize: fontSize.md, fontWeight: fontWeight.bold, color: colors.text, marginTop: 2 }}>
                     ${item.product.salePrice.toFixed(2)}
                   </Text>
 
                   <View style={{ flexDirection: "row", alignItems: "center", marginTop: 10, gap: 8 }}>
-                    <Text style={{ fontFamily: "Montserrat", fontSize: 12, color: "#6B7280" }}>Qty:</Text>
+                    <Text style={{ fontFamily: "Montserrat", fontSize: fontSize.md, color: colors.textSecondary }}>Qty:</Text>
                     <TouchableOpacity
                       onPress={() => onUpdateLabelQty(item.product.id, item.labelQty - 1)}
                       style={{
                         width: 28,
                         height: 28,
                         borderRadius: 6,
-                        backgroundColor: "#F3F4F6",
+                        backgroundColor: colors.backgroundSecondary,
                         alignItems: "center",
                         justifyContent: "center",
                       }}
                     >
-                      <Ionicons name="remove" size={16} color="#6B7280" />
+                      <Ionicons name="remove" size={iconSize.sm} color={colors.textSecondary} />
                     </TouchableOpacity>
                     <TextInput
                       style={{
@@ -451,12 +452,12 @@ const BarcodePrintPanelContent = React.memo(function BarcodePrintPanelContent({
                         height: 28,
                         borderRadius: 6,
                         borderWidth: 1,
-                        borderColor: "#E5E7EB",
+                        borderColor: colors.border,
                         textAlign: "center",
                         fontFamily: "Montserrat",
-                        fontSize: 13,
-                        fontWeight: "600",
-                        color: "#1A1A1A",
+                        fontSize: fontSize.md,
+                        fontWeight: fontWeight.semibold,
+                        color: colors.text,
                         backgroundColor: "#FFF",
                       }}
                       keyboardType="numeric"
@@ -469,12 +470,12 @@ const BarcodePrintPanelContent = React.memo(function BarcodePrintPanelContent({
                         width: 28,
                         height: 28,
                         borderRadius: 6,
-                        backgroundColor: "#F3F4F6",
+                        backgroundColor: colors.backgroundSecondary,
                         alignItems: "center",
                         justifyContent: "center",
                       }}
                     >
-                      <Ionicons name="add" size={16} color="#6B7280" />
+                      <Ionicons name="add" size={iconSize.sm} color={colors.textSecondary} />
                     </TouchableOpacity>
                   </View>
                 </View>
@@ -492,13 +493,13 @@ const BarcodePrintPanelContent = React.memo(function BarcodePrintPanelContent({
           paddingHorizontal: 24,
           paddingVertical: 16,
           borderTopWidth: 1,
-          borderTopColor: "#F0F1F4",
-          backgroundColor: "#FAFAFA",
+          borderTopColor: colors.borderLight,
+          backgroundColor: colors.backgroundLight,
         }}
       >
         <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
-          <MaterialCommunityIcons name="printer-outline" size={18} color="#6B7280" />
-          <Text style={{ fontFamily: "Montserrat", fontSize: 13, color: "#6B7280" }}>
+          <MaterialCommunityIcons name="printer-outline" size={iconSize.md} color={colors.textSecondary} />
+          <Text style={{ fontFamily: "Montserrat", fontSize: fontSize.md, color: colors.textSecondary }}>
             {totalLabels} label{totalLabels !== 1 ? "s" : ""} to print
           </Text>
         </View>
@@ -509,14 +510,16 @@ const BarcodePrintPanelContent = React.memo(function BarcodePrintPanelContent({
               onPress={onClearItems}
               style={{
                 paddingHorizontal: 20,
-                paddingVertical: 10,
-                borderRadius: 10,
+                height: 40,
+                borderRadius: 8,
                 borderWidth: 1,
-                borderColor: "#E5E7EB",
+                borderColor: colors.border,
                 backgroundColor: "#FFF",
+                alignItems: "center",
+                justifyContent: "center",
               }}
             >
-              <Text style={{ fontFamily: "Montserrat", fontSize: 14, fontWeight: "600", color: "#6B7280" }}>
+              <Text style={{ fontFamily: "Montserrat", fontSize: fontSize.base, fontWeight: fontWeight.semibold, color: colors.textSecondary }}>
                 Clear All
               </Text>
             </TouchableOpacity>
@@ -527,19 +530,20 @@ const BarcodePrintPanelContent = React.memo(function BarcodePrintPanelContent({
             style={{
               flexDirection: "row",
               alignItems: "center",
+              justifyContent: "center",
               gap: 8,
               paddingHorizontal: 24,
-              paddingVertical: 10,
-              borderRadius: 10,
-              backgroundColor: printing || items.length === 0 ? "#D1D5DB" : "#EC1A52",
+              height: 40,
+              borderRadius: 8,
+              backgroundColor: printing || items.length === 0 ? colors.borderMedium : colors.primary,
             }}
           >
             {printing ? (
               <ActivityIndicator size="small" color="#FFF" />
             ) : (
-              <Ionicons name="print" size={18} color="#FFF" />
+              <Ionicons name="print" size={iconSize.md} color="#FFF" />
             )}
-            <Text style={{ fontFamily: "Montserrat", fontSize: 14, fontWeight: "700", color: "#FFF" }}>
+            <Text style={{ fontFamily: "Montserrat", fontSize: fontSize.base, fontWeight: fontWeight.bold, color: "#FFF" }}>
               {printing ? "Printing..." : "Print Labels"}
             </Text>
           </TouchableOpacity>

@@ -1,6 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useState } from "react";
 import { Pressable, Text, View } from "react-native";
+import { iconSize } from "@/utils/theme";
 import { AddQuickCustomerModal, type QuickCustomerResult } from "./AddQuickCustomerModal";
 
 interface CustomerCardProps {
@@ -41,7 +42,7 @@ export function CustomerCard({ customerName, customerId, onCustomerAdded }: Cust
           className="bg-red-500 rounded-lg py-3 items-center"
           style={({ pressed }) => ({ opacity: pressed ? 0.8 : 1 })}
         >
-          <Ionicons name="add" size={24} color="white" />
+          <Ionicons name="add" size={iconSize.xl} color="white" />
           <Text className="text-white font-medium mt-1">Add Quick Customer</Text>
         </Pressable>
       </View>

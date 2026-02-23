@@ -1,4 +1,4 @@
-import { createContext, ReactNode, useContext, useState } from "react";
+import { createContext, ReactNode, useCallback, useContext, useMemo, useState } from "react";
 
 export interface OrderProduct {
   id: string;
@@ -44,7 +44,8 @@ interface OrderContextType {
   updateOrder: (updates: Partial<OrderState>) => void;
   addProduct: (product: OrderProduct) => void;
   removeProduct: (id: string) => void;
-  updateProductQuantity: (id: string, quantity: number) => void;
+  /** Update product quantity. If isDelta=true, value is added to current quantity. */
+  updateProductQuantity: (id: string, value: number, isDelta?: boolean) => void;
   clearOrder: () => void;
   getOrderSummary: () => {
     totalProducts: number;
@@ -81,36 +82,58 @@ const OrderContext = createContext<OrderContextType | null>(null);
 export function OrderProvider({ children }: { children: ReactNode }) {
   const [order, setOrder] = useState<OrderState>(initialOrder);
 
-  const updateOrder = (updates: Partial<OrderState>) => {
+  const updateOrder = useCallback((updates: Partial<OrderState>) => {
     setOrder((prev) => ({ ...prev, ...updates }));
-  };
+  }, []);
 
-  const addProduct = (product: OrderProduct) => {
-    setOrder((prev) => ({
-      ...prev,
-      products: [...prev.products, product],
-    }));
-  };
+  const addProduct = useCallback((product: OrderProduct) => {
+    setOrder((prev) => {
+      // Check if product already exists (by productId)
+      const existingIndex = prev.products.findIndex(
+        (p) => p.productId === product.productId
+      );
+      
+      if (existingIndex >= 0) {
+        // Product exists - increase quantity
+        const newProducts = [...prev.products];
+        const existing = newProducts[existingIndex];
+        const newQty = existing.quantity + product.quantity;
+        newProducts[existingIndex] = {
+          ...existing,
+          quantity: newQty,
+          total: existing.salePrice * newQty,
+        };
+        return { ...prev, products: newProducts };
+      }
+      
+      // New product - add to list
+      return { ...prev, products: [...prev.products, product] };
+    });
+  }, []);
 
-  const removeProduct = (id: string) => {
+  const removeProduct = useCallback((id: string) => {
     setOrder((prev) => ({
       ...prev,
       products: prev.products.filter((p) => p.id !== id),
     }));
-  };
+  }, []);
 
-  const updateProductQuantity = (id: string, quantity: number) => {
-    setOrder((prev) => ({
-      ...prev,
-      products: prev.products.map((p) =>
-        p.id === id ? { ...p, quantity, total: p.salePrice * quantity } : p
-      ),
-    }));
-  };
+  const updateProductQuantity = useCallback((id: string, value: number, isDelta = false) => {
+    setOrder((prev) => {
+      const newProducts = prev.products
+        .map((p) => {
+          if (p.id !== id) return p;
+          const newQty = isDelta ? p.quantity + value : value;
+          return { ...p, quantity: newQty, total: p.salePrice * newQty };
+        })
+        .filter((p) => p.quantity > 0);
+      return { ...prev, products: newProducts };
+    });
+  }, []);
 
-  const clearOrder = () => setOrder(initialOrder);
+  const clearOrder = useCallback(() => setOrder(initialOrder), []);
 
-  const getOrderSummary = () => {
+  const getOrderSummary = useCallback(() => {
     const totalProducts = order.products.length;
     const totalQuantity = order.products.reduce((sum, p) => sum + p.quantity, 0);
     const subTotal = order.products.reduce((sum, p) => sum + p.total, 0);
@@ -123,20 +146,20 @@ export function OrderProvider({ children }: { children: ReactNode }) {
     );
     const total = parseFloat((subTotal + tax + order.shippingCharges - discountAmt).toFixed(2));
     return { totalProducts, totalQuantity, subTotal, tax, total };
-  };
+  }, [order]);
+
+  const contextValue = useMemo(() => ({
+    order,
+    updateOrder,
+    addProduct,
+    removeProduct,
+    updateProductQuantity,
+    clearOrder,
+    getOrderSummary,
+  }), [order, updateOrder, addProduct, removeProduct, updateProductQuantity, clearOrder, getOrderSummary]);
 
   return (
-    <OrderContext.Provider
-      value={{
-        order,
-        updateOrder,
-        addProduct,
-        removeProduct,
-        updateProductQuantity,
-        clearOrder,
-        getOrderSummary,
-      }}
-    >
+    <OrderContext.Provider value={contextValue}>
       {children}
     </OrderContext.Provider>
   );

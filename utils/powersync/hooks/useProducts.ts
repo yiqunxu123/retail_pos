@@ -129,7 +129,7 @@ function toProductView(db: ProductJoinRow): ProductView {
 // ============================================================================
 
 /** Get all products with real-time sync */
-export function useProducts() {
+export function useProducts(options?: { enabled?: boolean }) {
   // Join with primary channel (channel_id = 1) for prices, categories, and brands
   const { data, isLoading, error, isStreaming, refresh } = useSyncStream<ProductJoinRow>(
     `SELECT 
@@ -143,7 +143,9 @@ export function useProducts() {
      LEFT JOIN unit_prices up ON p.id = up.product_id AND up.channel_id = 1
      LEFT JOIN categories c ON p.main_category_id = c.id
      LEFT JOIN brands b ON p.brand_id = b.id
-     ORDER BY p.name ASC`
+     ORDER BY p.name ASC`,
+    [],
+    { enabled: options?.enabled }
   );
 
   const products = useMemo(() => data.map(toProductView), [data]);

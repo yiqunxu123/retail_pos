@@ -17,6 +17,7 @@ import {
 } from "react-native";
 import { useAuth } from "../contexts/AuthContext";
 import { usePowerSync } from "../utils/powersync/PowerSyncProvider";
+import { fontSize, fontWeight, colors, iconSize, spacing, radius } from '@/utils/theme';
 
 /**
  * LoginScreen - Authentication screen with split layout
@@ -138,7 +139,7 @@ export default function LoginScreen() {
                   </Text>
                   <Text 
                     className="text-white font-medium"
-                    style={{ fontSize: 15, lineHeight: 20 }}
+                    style={{ fontSize: fontSize.base, lineHeight: 20 }}
                   >
                     A unified interface for managing customers, items, payments, and loyalty during checkout.
                   </Text>
@@ -147,16 +148,16 @@ export default function LoginScreen() {
 
               {/* Bottom: Footer Links - Wrap to prevent overflow */}
               <View className="flex-row flex-wrap items-center" style={{ gap: 12 }}>
-                <Text className="text-white font-bold" style={{ fontSize: 14 }}>
+                <Text className="text-white font-bold" style={{ fontSize: fontSize.base }}>
                   © 2026 Kommerce Hub
                 </Text>
-                <Text className="text-white font-medium" style={{ fontSize: 14 }}>
+                <Text className="text-white font-medium" style={{ fontSize: fontSize.base }}>
                   Privacy
                 </Text>
-                <Text className="text-white font-medium" style={{ fontSize: 14 }}>
+                <Text className="text-white font-medium" style={{ fontSize: fontSize.base }}>
                   Legal
                 </Text>
-                <Text className="text-white font-medium" style={{ fontSize: 14 }}>
+                <Text className="text-white font-medium" style={{ fontSize: fontSize.base }}>
                   Contact
                 </Text>
               </View>
@@ -181,11 +182,11 @@ export default function LoginScreen() {
                 <View className="items-center mb-8">
                   <Text 
                     className="text-gray-800 font-semibold mb-2 text-center"
-                    style={{ fontSize: 32, lineHeight: 40, letterSpacing: -0.5 }}
+                    style={{ fontSize: fontSize['3xl'], lineHeight: 40, letterSpacing: -0.5 }}
                   >
                     Login to Your Account
                   </Text>
-                  <Text className="text-gray-500 text-center" style={{ fontSize: 16 }}>
+                  <Text className="text-gray-500 text-center" style={{ fontSize: fontSize.lg }}>
                     Enter your username and password
                   </Text>
                 </View>
@@ -196,15 +197,16 @@ export default function LoginScreen() {
                   <View>
                     <Text 
                       className="text-gray-600 font-medium mb-2"
-                      style={{ fontSize: 16 }}
+                      style={{ fontSize: fontSize.lg }}
                     >
                       Email Address
                     </Text>
                     <View
-                      className="bg-white rounded-lg"
+                      className="rounded-lg"
                       style={{
+                        backgroundColor: isLoading ? colors.backgroundSecondary : colors.background,
                         borderWidth: 1,
-                        borderColor: "#D9D9D9",
+                        borderColor: isLoading ? colors.borderMedium : "#D9D9D9",
                         shadowColor: "#3F3C3D",
                         shadowOffset: { width: 0, height: 4 },
                         shadowOpacity: 0.08,
@@ -213,10 +215,10 @@ export default function LoginScreen() {
                       }}
                     >
                       <TextInput
-                        className="px-4 py-4 text-gray-800"
-                        style={{ fontSize: 16 }}
+                        className={`px-4 py-4 ${isLoading ? "text-gray-400" : "text-gray-800"}`}
+                        style={{ fontSize: fontSize.lg }}
                         placeholder="Enter your email address"
-                        placeholderTextColor="#9ca3af"
+                        placeholderTextColor={isLoading ? "#B8BEC8" : colors.textTertiary}
                         value={username}
                         onChangeText={setUsername}
                         keyboardType="email-address"
@@ -232,15 +234,16 @@ export default function LoginScreen() {
                   <View>
                     <Text 
                       className="text-gray-600 font-medium mb-2"
-                      style={{ fontSize: 16 }}
+                      style={{ fontSize: fontSize.lg }}
                     >
                       Password
                     </Text>
                     <View
-                      className="flex-row items-center bg-white rounded-lg"
+                      className="flex-row items-center rounded-lg"
                       style={{
+                        backgroundColor: isLoading ? colors.backgroundSecondary : colors.background,
                         borderWidth: 1,
-                        borderColor: "#D9D9D9",
+                        borderColor: isLoading ? colors.borderMedium : "#D9D9D9",
                         shadowColor: "#3F3C3D",
                         shadowOffset: { width: 0, height: 4 },
                         shadowOpacity: 0.08,
@@ -249,10 +252,10 @@ export default function LoginScreen() {
                       }}
                     >
                       <TextInput
-                        className="flex-1 px-4 py-4 text-gray-800"
-                        style={{ fontSize: 16 }}
+                        className={`flex-1 px-4 py-4 ${isLoading ? "text-gray-400" : "text-gray-800"}`}
+                        style={{ fontSize: fontSize.lg }}
                         placeholder="Enter your password"
-                        placeholderTextColor="#9ca3af"
+                        placeholderTextColor={isLoading ? "#B8BEC8" : colors.textTertiary}
                         value={password}
                         onChangeText={setPassword}
                         secureTextEntry={!showPassword}
@@ -269,8 +272,8 @@ export default function LoginScreen() {
                       >
                         <Ionicons
                           name={showPassword ? "eye-outline" : "eye-off-outline"}
-                          size={22}
-                          color="#9ca3af"
+                          size={iconSize.lg}
+                          color={colors.textTertiary}
                         />
                       </Pressable>
                     </View>
@@ -284,7 +287,7 @@ export default function LoginScreen() {
                     >
                       <Text 
                         className="font-semibold"
-                        style={{ fontSize: 16, color: "#EA1E51" }}
+                        style={{ fontSize: fontSize.lg, color: "#EA1E51" }}
                       >
                         Forgot your password?
                       </Text>
@@ -297,7 +300,7 @@ export default function LoginScreen() {
                     disabled={isButtonDisabled}
                     className="py-4 rounded-lg items-center flex-row justify-center mt-4"
                     style={{
-                      backgroundColor: isButtonDisabled ? "#F48BA3" : "#EC1A52",
+                      backgroundColor: isButtonDisabled ? "#F48BA3" : colors.primary,
                       shadowColor: "#000",
                       shadowOffset: { width: 0, height: 2 },
                       shadowOpacity: 0.15,
@@ -308,12 +311,12 @@ export default function LoginScreen() {
                     {isLoading ? (
                       <>
                         <ActivityIndicator size="small" color="#ffffff" />
-                        <Text className="text-white font-semibold ml-2" style={{ fontSize: 18 }}>
+                        <Text className="text-white font-semibold ml-2" style={{ fontSize: fontSize.xl }}>
                           Logging in...
                         </Text>
                       </>
                     ) : (
-                      <Text className="text-white font-semibold" style={{ fontSize: 18 }}>
+                      <Text className="text-white font-semibold" style={{ fontSize: fontSize.xl }}>
                         Login
                       </Text>
                     )}
@@ -337,14 +340,14 @@ export default function LoginScreen() {
       {/* Compact header for mobile */}
       <View 
         className="px-6 py-6"
-        style={{ backgroundColor: "#EC1A52" }}
+        style={{ backgroundColor: colors.primary }}
       >
         <Image
           source={require("../assets/images/khub-logo.png")}
           style={{ width: 100, height: 38 }}
           resizeMode="contain"
         />
-        <Text className="text-white font-bold mt-3" style={{ fontSize: 24 }}>
+        <Text className="text-white font-bold mt-3" style={{ fontSize: fontSize['2xl'] }}>
           POS System
         </Text>
       </View>
@@ -365,7 +368,7 @@ export default function LoginScreen() {
               >
                 Login to Your Account
               </Text>
-              <Text className="text-gray-500 text-center" style={{ fontSize: 14 }}>
+              <Text className="text-gray-500 text-center" style={{ fontSize: fontSize.base }}>
                 Enter your username and password
               </Text>
             </View>
@@ -374,21 +377,22 @@ export default function LoginScreen() {
             <View style={{ gap: 16 }}>
               {/* Email/Username Input */}
               <View>
-                <Text className="text-gray-600 font-medium mb-2" style={{ fontSize: 14 }}>
+                <Text className="text-gray-600 font-medium mb-2" style={{ fontSize: fontSize.base }}>
                   Email Address
                 </Text>
                 <View
-                  className="bg-white rounded-lg"
+                  className="rounded-lg"
                   style={{
+                    backgroundColor: isLoading ? colors.backgroundSecondary : colors.background,
                     borderWidth: 1,
-                    borderColor: "#D9D9D9",
+                    borderColor: isLoading ? colors.borderMedium : "#D9D9D9",
                   }}
                 >
                   <TextInput
-                    className="px-4 py-3 text-gray-800"
-                    style={{ fontSize: 16 }}
+                    className={`px-4 py-3 ${isLoading ? "text-gray-400" : "text-gray-800"}`}
+                    style={{ fontSize: fontSize.lg }}
                     placeholder="Enter your email address"
-                    placeholderTextColor="#9ca3af"
+                    placeholderTextColor={isLoading ? "#B8BEC8" : colors.textTertiary}
                     value={username}
                     onChangeText={setUsername}
                     keyboardType="email-address"
@@ -402,21 +406,22 @@ export default function LoginScreen() {
 
               {/* Password Input */}
               <View>
-                <Text className="text-gray-600 font-medium mb-2" style={{ fontSize: 14 }}>
+                <Text className="text-gray-600 font-medium mb-2" style={{ fontSize: fontSize.base }}>
                   Password
                 </Text>
                 <View
-                  className="flex-row items-center bg-white rounded-lg"
+                  className="flex-row items-center rounded-lg"
                   style={{
+                    backgroundColor: isLoading ? colors.backgroundSecondary : colors.background,
                     borderWidth: 1,
-                    borderColor: "#D9D9D9",
+                    borderColor: isLoading ? colors.borderMedium : "#D9D9D9",
                   }}
                 >
                   <TextInput
-                    className="flex-1 px-4 py-3 text-gray-800"
-                    style={{ fontSize: 16 }}
+                    className={`flex-1 px-4 py-3 ${isLoading ? "text-gray-400" : "text-gray-800"}`}
+                    style={{ fontSize: fontSize.lg }}
                     placeholder="Enter your password"
-                    placeholderTextColor="#9ca3af"
+                    placeholderTextColor={isLoading ? "#B8BEC8" : colors.textTertiary}
                     value={password}
                     onChangeText={setPassword}
                     secureTextEntry={!showPassword}
@@ -432,8 +437,8 @@ export default function LoginScreen() {
                   >
                     <Ionicons
                       name={showPassword ? "eye-outline" : "eye-off-outline"}
-                      size={20}
-                      color="#9ca3af"
+                      size={iconSize.base}
+                      color={colors.textTertiary}
                     />
                   </Pressable>
                 </View>
@@ -446,7 +451,7 @@ export default function LoginScreen() {
                 >
                   <Text 
                     className="font-semibold"
-                    style={{ fontSize: 14, color: "#EA1E51" }}
+                    style={{ fontSize: fontSize.base, color: "#EA1E51" }}
                   >
                     Forgot your password?
                   </Text>
@@ -459,8 +464,8 @@ export default function LoginScreen() {
                 disabled={isButtonDisabled}
                 className="py-4 rounded-lg items-center flex-row justify-center mt-2"
                 style={{
-                  backgroundColor: isButtonDisabled ? "#F48BA3" : "#EC1A52",
-                  shadowColor: "#000",
+                  backgroundColor: isButtonDisabled ? "#F48BA3" : colors.primary,
+                  shadowColor: colors.black,
                   shadowOffset: { width: 0, height: 2 },
                   shadowOpacity: 0.15,
                   shadowRadius: 4,
@@ -470,12 +475,12 @@ export default function LoginScreen() {
                 {isLoading ? (
                   <>
                     <ActivityIndicator size="small" color="#ffffff" />
-                    <Text className="text-white font-semibold ml-2" style={{ fontSize: 16 }}>
+                    <Text className="text-white font-semibold ml-2" style={{ fontSize: fontSize.lg }}>
                       Logging in...
                     </Text>
                   </>
                 ) : (
-                  <Text className="text-white font-semibold" style={{ fontSize: 16 }}>
+                  <Text className="text-white font-semibold" style={{ fontSize: fontSize.lg }}>
                     Login
                   </Text>
                 )}

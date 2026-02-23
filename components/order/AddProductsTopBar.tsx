@@ -1,14 +1,12 @@
 import { Ionicons } from "@expo/vector-icons";
 import React from "react";
-import { Text, TextInput, TouchableOpacity, View } from "react-native";
+import { Text, TouchableOpacity, View } from "react-native";
+import { fontSize, fontWeight, colors, iconSize } from '@/utils/theme';
 import { useRenderTrace } from "../../utils/debug/useRenderTrace";
 
 interface AddProductsTopBarProps {
   insetTop: number;
-  scanQty: string;
-  onScanQtyChange: (value: string) => void;
   scanLogsCount: number;
-  onOpenSearch: () => void;
   onOpenScanLogModal: () => void;
   onOpenBarcodePrintModal: () => void;
   onOpenProductSettings: () => void;
@@ -16,10 +14,7 @@ interface AddProductsTopBarProps {
 
 function AddProductsTopBarComponent({
   insetTop,
-  scanQty,
-  onScanQtyChange,
   scanLogsCount,
-  onOpenSearch,
   onOpenScanLogModal,
   onOpenBarcodePrintModal,
   onOpenProductSettings,
@@ -28,10 +23,7 @@ function AddProductsTopBarComponent({
     "AddProductsTopBar",
     {
       insetTop,
-      scanQty,
       scanLogsCount,
-      onScanQtyChange,
-      onOpenSearch,
       onOpenScanLogModal,
       onOpenBarcodePrintModal,
       onOpenProductSettings,
@@ -46,40 +38,24 @@ function AddProductsTopBarComponent({
     >
       <View className="flex-1">
         <Text className="text-[#5A5F66] text-[18px] mb-1" style={{ fontFamily: "Montserrat" }}>
-          Add product by Name, SKU, UPC
+          Scan barcode to add product
         </Text>
-        <TouchableOpacity
-          onPress={onOpenSearch}
-          className="flex-row items-center bg-white border border-gray-300 rounded-xl px-3 py-3 shadow-sm"
-        >
-          <Ionicons name="search" size={20} color="#9ca3af" />
+        <View className="flex-row items-center bg-gray-100 border border-gray-200 rounded-xl px-3 py-3">
+          <Ionicons name="barcode-outline" size={iconSize.base} color={colors.textTertiary} />
           <Text
             className="flex-1 ml-2 text-gray-400 text-[18px]"
             style={{ fontFamily: "Montserrat" }}
           >
-            Search Products
+            Ready for scanning...
           </Text>
-        </TouchableOpacity>
-      </View>
-
-      <View>
-        <Text className="text-[#5A5F66] text-[18px] mb-1" style={{ fontFamily: "Montserrat" }}>
-          Scan Qty
-        </Text>
-        <TextInput
-          className="w-20 bg-white border border-gray-300 rounded-xl px-2 py-3 text-center text-gray-800 text-[18px] shadow-sm"
-          style={{ fontFamily: "Montserrat" }}
-          keyboardType="numeric"
-          value={scanQty}
-          onChangeText={onScanQtyChange}
-        />
+        </View>
       </View>
 
       <TouchableOpacity
         className="h-11 px-6 rounded-xl flex-row items-center justify-center gap-1 shadow-sm"
-        style={{ backgroundColor: "#EC1A52" }}
+        style={{ backgroundColor: colors.primary }}
       >
-        <Ionicons name="refresh" size={16} color="white" />
+        <Ionicons name="refresh" size={iconSize.sm} color="white" />
         <Text className="text-white font-medium">Refresh</Text>
       </TouchableOpacity>
 
@@ -87,12 +63,12 @@ function AddProductsTopBarComponent({
         className="h-11 border border-red-500 bg-white px-6 rounded-xl flex-row items-center justify-center gap-2 shadow-sm"
         onPress={onOpenScanLogModal}
       >
-        <Ionicons name="barcode-outline" size={18} color="#EC1A52" />
+        <Ionicons name="barcode-outline" size={iconSize.md} color={colors.primary} />
         <Text className="text-red-500 font-medium">Scan Logs</Text>
         {scanLogsCount > 0 && (
           <View
             style={{
-              backgroundColor: "#EC1A52",
+              backgroundColor: colors.primary,
               borderRadius: 10,
               minWidth: 20,
               height: 20,
@@ -101,7 +77,7 @@ function AddProductsTopBarComponent({
               paddingHorizontal: 6,
             }}
           >
-            <Text style={{ color: "#FFF", fontSize: 11, fontWeight: "700" }}>{scanLogsCount}</Text>
+            <Text style={{ color: colors.textWhite, fontSize: fontSize.md, fontWeight: fontWeight.bold }}>{scanLogsCount}</Text>
           </View>
         )}
       </TouchableOpacity>
@@ -110,7 +86,7 @@ function AddProductsTopBarComponent({
         className="h-11 bg-[#3B82F6] px-5 rounded-xl flex-row items-center justify-center gap-2 shadow-sm"
         onPress={onOpenBarcodePrintModal}
       >
-        <Ionicons name="barcode-outline" size={18} color="white" />
+        <Ionicons name="barcode-outline" size={iconSize.md} color="white" />
         <Text className="text-white font-medium">Print Barcode</Text>
       </TouchableOpacity>
 
@@ -118,7 +94,7 @@ function AddProductsTopBarComponent({
         className="bg-[#20232A] p-3 rounded-xl shadow-sm"
         onPress={onOpenProductSettings}
       >
-        <Ionicons name="settings-outline" size={20} color="white" />
+        <Ionicons name="settings-outline" size={iconSize.base} color="white" />
       </TouchableOpacity>
     </View>
   );

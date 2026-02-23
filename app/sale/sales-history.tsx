@@ -7,6 +7,7 @@
 
 import { Ionicons } from "@expo/vector-icons";
 import React, { useCallback, useMemo, useState } from "react";
+import { fontSize, fontWeight, colors, iconSize } from '@/utils/theme';
 import { Alert, Pressable, Text, View } from "react-native";
 import { ColumnDefinition, DataTable, FilterDefinition, PageHeader } from "../../components";
 import { OrderDetailsModal } from "../../components/OrderDetailsModal";
@@ -66,7 +67,7 @@ const OrderStatusBadge = React.memo(({ status }: { status: number }) => {
 
   return (
     <View className="px-3 py-1 rounded-full self-start" style={{ backgroundColor: config.bg }}>
-      <Text style={{ color: config.text, fontSize: 14, fontWeight: "600", fontFamily: "Montserrat" }}>
+      <Text style={{ color: config.text, fontSize: fontSize.md, fontWeight: fontWeight.semibold, fontFamily: "Montserrat" }}>
         {statusText}
       </Text>
     </View>
@@ -74,14 +75,14 @@ const OrderStatusBadge = React.memo(({ status }: { status: number }) => {
 });
 
 const InvoiceStatusBadge = React.memo(({ status }: { status: number }) => {
-  let color = "#EC1A52";
+  let color: string = colors.primary;
   let text = "Unpaid";
 
   if (status === 2) {
-    color = "#22C55E";
+    color = colors.success;
     text = "Paid";
   } else if (status === 1) {
-    color = "#F59E0B";
+    color = colors.warning;
     text = "Partial";
   }
 
@@ -101,10 +102,10 @@ const ActionButton = React.memo(({
 }) => {
   return (
     <Pressable 
-      className="bg-[#FFF1F3] p-2 rounded-lg items-center justify-center border border-[#FFE4E8]" 
+      className="bg-red-50 p-2 rounded-lg items-center justify-center" 
       onPress={onPress}
     >
-      <Ionicons name={icon} size={18} color="#EC1A52" />
+      <Ionicons name={icon} size={iconSize.sm} color={colors.primary} />
     </Pressable>
   );
 });
@@ -404,11 +405,15 @@ export default function SalesHistoryScreen() {
         searchPlaceholder="Search Products"
         searchHint="Search by Customer Name, SKU, UPC"
         onSearch={handleSearch}
+        filters={filters}
         onFilter={handleFilter}
+        sortOptions={sortOptions}
         onSort={handleSort}
         isLoading={isLoading}
         onRefresh={refresh}
         columnSelector
+        horizontalScroll
+        minWidth={1300}
         emptyIcon="receipt-outline"
         emptyText="No orders found"
         totalCount={count}

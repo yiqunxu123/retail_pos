@@ -1,6 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
-import { useState, useEffect } from "react";
-import { Modal, View, Text, TouchableOpacity, TextInput, ScrollView, Switch, KeyboardAvoidingView, Platform } from "react-native";
+import { useEffect, useState } from "react";
+import { KeyboardAvoidingView, Modal, Platform, ScrollView, Switch, Text, TextInput, TouchableOpacity, View } from "react-native";
 import { Dropdown } from "./Dropdown";
 
 interface NewCustomerData {
@@ -360,9 +360,9 @@ export function NewCustomerModal({
               <View className="flex-1">
                 <FormField label="Tax ID">
                   <TextInput
-                    className="bg-gray-50 border border-gray-200 rounded-lg px-4 py-3"
+                    className={`border rounded-lg px-4 py-3 ${formData.taxExempt ? "bg-gray-50 border-gray-200 text-gray-800" : "bg-gray-100 border-gray-300 text-gray-400"}`}
                     placeholder="Tax ID number"
-                    placeholderTextColor="#9ca3af"
+                    placeholderTextColor={formData.taxExempt ? "#9ca3af" : "#B8BEC8"}
                     value={formData.taxId}
                     onChangeText={(text) => updateField("taxId", text)}
                     editable={formData.taxExempt}
@@ -406,13 +406,15 @@ export function NewCustomerModal({
           <View className="flex-row gap-3 px-6 py-4 border-t border-gray-200">
             <TouchableOpacity
               onPress={onClose}
-              className="flex-1 border border-gray-300 rounded-lg py-3 items-center"
+              className="flex-1 border border-gray-300 rounded-lg items-center justify-center"
+              style={{ height: 40 }}
             >
               <Text className="text-gray-700 font-medium">Cancel</Text>
             </TouchableOpacity>
             <TouchableOpacity
               onPress={handleSave}
-              className="flex-1 bg-red-500 rounded-lg py-3 items-center"
+              className="flex-1 bg-red-500 rounded-lg items-center justify-center"
+              style={{ height: 40 }}
             >
               <Text className="text-white font-medium">
                 {isEditing ? "Save Changes" : "Create Customer"}

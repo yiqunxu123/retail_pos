@@ -1,6 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import { type ReactNode } from "react";
 import { Pressable, Text, TouchableOpacity, View } from "react-native";
+import { fontSize, colors, iconSize } from '@/utils/theme';
 import { useAppNavigation } from "../hooks/useAppNavigation";
 
 interface PageHeaderProps {
@@ -38,7 +39,7 @@ export function PageHeader({
       <View
         className="rounded-xl p-5 mb-4 flex-row justify-between items-center"
         style={{
-          backgroundColor: "#EC1A52",
+          backgroundColor: colors.primary,
           shadowColor: "#989898",
           shadowOffset: { width: 4, height: 4 },
           shadowOpacity: 0.25,
@@ -54,14 +55,14 @@ export function PageHeader({
         >
           <Text
             className="text-white font-semibold font-Montserrat"
-            style={{ fontSize: 28, letterSpacing: -0.5 }}
+            style={{ fontSize: fontSize['3xl'], letterSpacing: -0.5 }}
           >
             {title}
           </Text>
           {subtitle && (
             <Text
               className="text-white font-medium font-Montserrat mt-1"
-              style={{ fontSize: 16 }}
+              style={{ fontSize: fontSize.base }}
             >
               {subtitle}
             </Text>
@@ -79,7 +80,7 @@ export function PageHeader({
       <View className="flex-row items-center gap-4">
         {showBack && (
           <Pressable onPress={() => safeGoBack()} className="p-1">
-            <Ionicons name="arrow-back" size={24} color="#374151" />
+            <Ionicons name="arrow-back" size={iconSize.xl} color={colors.textMedium} />
           </Pressable>
         )}
         <Text className="text-2xl font-bold text-gray-800 font-Montserrat flex-shrink" numberOfLines={1}>

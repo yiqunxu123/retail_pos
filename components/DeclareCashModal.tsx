@@ -1,5 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
 import { Modal, Pressable, Text, View } from "react-native";
+import { iconSize, colors } from "@/utils/theme";
 
 interface CashSummary {
   openingBalance: number;
@@ -34,8 +35,9 @@ export function DeclareCashModal({
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
       <Pressable className="flex-1 bg-black/45 justify-center items-center px-4" onPress={onClose}>
         <Pressable
-          className="bg-white rounded-xl overflow-hidden border border-[#E5E7EB]"
+          className="bg-white rounded-xl overflow-hidden"
           style={{
+            borderWidth: 1, borderColor: colors.border,
             width: "92%",
             maxWidth: 664,
             shadowColor: "#000",
@@ -47,16 +49,16 @@ export function DeclareCashModal({
           onPress={(e) => e.stopPropagation()}
         >
           <View className="flex-row justify-between items-center px-5 py-3 border-b border-[#E4E7EC]">
-            <Text className="text-2xl font-semibold text-[#111827]">Declare Cash</Text>
+            <Text className="text-2xl font-semibold" style={{ color: colors.text }}>Declare Cash</Text>
             <Pressable onPress={onClose} style={({ pressed }) => ({ opacity: pressed ? 0.55 : 1 })}>
-              <Ionicons name="close" size={30} color="#1F2937" />
+              <Ionicons name="close" size={iconSize['2xl']} color={colors.textDark} />
             </Pressable>
           </View>
 
           <View className="px-4 pt-2.5 pb-4">
             <View className="flex-row gap-3 mb-3">
               <View className="flex-1">
-                <Text className="text-[#1F2937] text-[17px] font-semibold mb-1.5">Opening Cash Amount</Text>
+                <Text style={{ color: colors.textDark }} className="text-[17px] font-semibold mb-1.5">Opening Cash Amount</Text>
                 <View
                   className="rounded-lg bg-[#F4F5F7] border border-[#E4E7EC] px-4 py-4 justify-center"
                   style={{
@@ -75,7 +77,7 @@ export function DeclareCashModal({
               </View>
 
               <View className="flex-1">
-                <Text className="text-[#1F2937] text-[17px] font-semibold mb-1.5">Total Cash Sales</Text>
+                <Text style={{ color: colors.textDark }} className="text-[17px] font-semibold mb-1.5">Total Cash Sales</Text>
                 <View
                   className="rounded-lg bg-[#F4F5F7] border border-[#E4E7EC] px-4 py-4 justify-center"
                   style={{
@@ -96,7 +98,7 @@ export function DeclareCashModal({
 
             <View className="flex-row gap-3 mb-4">
               <View className="flex-1">
-                <Text className="text-[#1F2937] text-[17px] font-semibold mb-1.5">Cash Refunds</Text>
+                <Text style={{ color: colors.textDark }} className="text-[17px] font-semibold mb-1.5">Cash Refunds</Text>
                 <View
                   className="rounded-lg bg-[#F4F5F7] border border-[#E4E7EC] px-4 py-4 justify-center"
                   style={{
@@ -115,7 +117,7 @@ export function DeclareCashModal({
               </View>
 
               <View className="flex-1">
-                <Text className="text-[#1F2937] text-[17px] font-semibold mb-1.5">Expected Cash In Drawer</Text>
+                <Text style={{ color: colors.textDark }} className="text-[17px] font-semibold mb-1.5">Expected Cash In Drawer</Text>
                 <View
                   className="rounded-lg bg-[#F4F5F7] border border-[#E4E7EC] px-4 py-4 justify-center"
                   style={{
@@ -127,7 +129,7 @@ export function DeclareCashModal({
                     minHeight: 114,
                   }}
                 >
-                  <Text className="text-[#111827] text-[54px] leading-[58px] font-bold text-right w-full">
+                  <Text style={{ color: colors.text }} className="text-[54px] leading-[58px] font-bold text-right w-full">
                     ${expectedCashInDrawer.toFixed(0)}
                   </Text>
                 </View>
@@ -137,15 +139,15 @@ export function DeclareCashModal({
             <View className="flex-row gap-3">
               <Pressable
                 onPress={onClose}
-                className="flex-1 rounded-[10px] border border-[#DDA8B8] bg-white py-3 items-center justify-center"
-                style={({ pressed }) => ({ opacity: pressed ? 0.75 : 1 })}
+                className="flex-1 rounded-lg border border-[#DDA8B8] bg-white items-center justify-center"
+                style={({ pressed }) => ({ height: 40, opacity: pressed ? 0.75 : 1 })}
               >
                 <Text className="text-[#BE4C73] text-[17px] font-medium">Cancel</Text>
               </Pressable>
               <Pressable
                 onPress={onContinue}
-                className="flex-1 rounded-[10px] bg-[#EC1A52] py-3 items-center justify-center border border-[#D51549]"
-                style={({ pressed }) => ({ opacity: pressed ? 0.8 : 1 })}
+                className="flex-1 rounded-lg items-center justify-center border border-[#D51549]"
+                style={({ pressed }) => ({ height: 40, backgroundColor: colors.primary, opacity: pressed ? 0.8 : 1 })}
               >
                 <Text className="text-white text-[17px] font-medium">Cash Entry</Text>
               </Pressable>

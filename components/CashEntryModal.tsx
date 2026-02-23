@@ -1,6 +1,7 @@
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { useState, useEffect } from "react";
 import { Modal, View, Text, TouchableOpacity } from "react-native";
+import { iconSize, colors } from "@/utils/theme";
 
 interface CashEntryModalProps {
   visible: boolean;
@@ -74,14 +75,14 @@ export function CashEntryModal({
           <View className="flex-row justify-between items-center px-6 py-4 border-b border-gray-200">
             <View className="flex-row items-center gap-3">
               <View className="w-10 h-10 bg-green-100 rounded-full items-center justify-center">
-                <MaterialCommunityIcons name="cash" size={24} color="#10B981" />
+                <MaterialCommunityIcons name="cash" size={iconSize.xl} color="#10B981" />
               </View>
               <Text className="text-xl font-semibold text-gray-800">
                 Enter Actual Cash
               </Text>
             </View>
             <TouchableOpacity onPress={onClose}>
-              <Ionicons name="close" size={24} color="#6b7280" />
+              <Ionicons name="close" size={iconSize.xl} color={colors.textSecondary} />
             </TouchableOpacity>
           </View>
 
@@ -189,7 +190,7 @@ export function CashEntryModal({
                   className="border-2 border-red-500 py-4 rounded-lg items-center justify-center flex-1"
                   activeOpacity={0.7}
                 >
-                  <Ionicons name="backspace-outline" size={24} color="#EF4444" />
+                  <Ionicons name="backspace-outline" size={iconSize.xl} color={colors.error} />
                 </TouchableOpacity>
                 <TouchableOpacity
                   onPress={handleConfirm}

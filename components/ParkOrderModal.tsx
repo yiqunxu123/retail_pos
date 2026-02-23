@@ -1,6 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useState } from "react";
 import { Modal, View, Text, TouchableOpacity, TextInput, KeyboardAvoidingView, Platform } from "react-native";
+import { iconSize, colors } from "@/utils/theme";
 
 interface ParkOrderModalProps {
   visible: boolean;
@@ -61,14 +62,14 @@ export function ParkOrderModal({
           <View className="flex-row justify-between items-center px-6 py-4 border-b border-gray-200">
             <View className="flex-row items-center gap-3">
               <View className="w-10 h-10 bg-yellow-100 rounded-full items-center justify-center">
-                <Ionicons name="pause-circle" size={24} color="#F59E0B" />
+                <Ionicons name="pause-circle" size={iconSize.xl} color={colors.warning} />
               </View>
               <Text className="text-xl font-semibold text-gray-800">
                 Park Order
               </Text>
             </View>
             <TouchableOpacity onPress={onClose}>
-              <Ionicons name="close" size={24} color="#6b7280" />
+              <Ionicons name="close" size={iconSize.xl} color={colors.textSecondary} />
             </TouchableOpacity>
           </View>
 
@@ -113,13 +114,15 @@ export function ParkOrderModal({
             <View className="flex-row gap-3">
               <TouchableOpacity
                 onPress={handleCancel}
-                className="flex-1 border border-gray-300 rounded-lg py-3 items-center"
+                className="flex-1 border border-gray-300 rounded-lg items-center justify-center"
+                style={{ height: 40 }}
               >
                 <Text className="text-gray-700 font-medium">Cancel</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 onPress={handleConfirm}
-                className="flex-1 bg-yellow-500 rounded-lg py-3 items-center"
+                className="flex-1 bg-yellow-500 rounded-lg items-center justify-center"
+                style={{ height: 40 }}
               >
                 <Text className="text-white font-medium">Park Order</Text>
               </TouchableOpacity>

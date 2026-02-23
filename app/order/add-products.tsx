@@ -1,3 +1,4 @@
+import { colors, fontSize, fontWeight, iconSize } from '@/utils/theme';
 import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useLocalSearchParams, useRouter } from "expo-router";
@@ -12,28 +13,26 @@ import { CashEntryModal } from "../../components/CashEntryModal";
 import { CashPaymentModal } from "../../components/CashPaymentModal";
 import { CashResultModal } from "../../components/CashResultModal";
 import { DeclareCashModal } from "../../components/DeclareCashModal";
-import { ParkedOrdersModal } from "../../components/ParkedOrdersModal";
-import { ParkOrderModal } from "../../components/ParkOrderModal";
 import { AddProductsCustomerCard } from "../../components/order/AddProductsCustomerCard";
 import { AddProductsOrderSummary } from "../../components/order/AddProductsOrderSummary";
 import { AddProductsTopBar } from "../../components/order/AddProductsTopBar";
+import {
+  BarcodePrintModalControllerHandle
+} from "../../components/order/BarcodePrintModalController";
 import { HiddenScannerInput } from "../../components/order/HiddenScannerInput";
 import {
-  SearchProductModalController,
-  SearchProductModalControllerHandle,
-} from "../../components/order/SearchProductModalController";
+  ScanLogsModalControllerHandle
+} from "../../components/order/ScanLogsModalController";
 import {
   SearchCustomerModalController,
   SearchCustomerModalControllerHandle,
 } from "../../components/order/SearchCustomerModalController";
 import {
-  BarcodePrintModalController,
-  BarcodePrintModalControllerHandle,
-} from "../../components/order/BarcodePrintModalController";
-import {
-  ScanLogsModalController,
-  ScanLogsModalControllerHandle,
-} from "../../components/order/ScanLogsModalController";
+  SearchProductModalController,
+  SearchProductModalControllerHandle,
+} from "../../components/order/SearchProductModalController";
+import { ParkedOrdersModal } from "../../components/ParkedOrdersModal";
+import { ParkOrderModal } from "../../components/ParkOrderModal";
 import { POSSidebar } from "../../components/POSSidebar";
 import { ProductSettingsModal } from "../../components/ProductSettingsModal";
 import { ProductTable } from "../../components/ProductTable";
@@ -42,7 +41,6 @@ import { SaleInvoiceModal } from "../../components/SaleInvoiceModal";
 import { SearchProduct } from "../../components/SearchProductModal";
 import { useAuth } from "../../contexts/AuthContext";
 import { OrderProduct, useOrder } from "../../contexts/OrderContext";
-import { useProducts } from "../../utils/powersync/hooks";
 import { useParkedOrders } from "../../contexts/ParkedOrderContext";
 import {
   createSaleOrder,
@@ -50,6 +48,8 @@ import {
   type CreateSaleOrderPayload,
   type SaleOrderEntity,
 } from "../../utils/api/orders";
+import { useRenderTrace } from "../../utils/debug/useRenderTrace";
+import { useProducts } from "../../utils/powersync/hooks";
 import {
   getPoolStatus,
   isAnyPrinterModuleAvailable,
@@ -58,7 +58,6 @@ import {
 } from "../../utils/PrinterPoolManager";
 import { printImageToAll } from "../../utils/receiptImagePrint";
 import { formatReceiptText } from "../../utils/receiptTextFormat";
-import { useRenderTrace } from "../../utils/debug/useRenderTrace";
 
 function buildCustomerSnapshot(
   customerId: string | null,
@@ -94,7 +93,7 @@ interface ScanLogEntry {
 /**
  * Staff POS Sales Screen - Matches Figma design
  */
-export default function AddProductsScreen() {
+function AddProductsHeavy() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { order, updateOrder, addProduct, updateProductQuantity, removeProduct, clearOrder, getOrderSummary } = useOrder();
@@ -133,19 +132,39 @@ export default function AddProductsScreen() {
     })();
   }, [retrieveOrderId]);
 
-  const [scanQty, setScanQty] = useState("1");
+  // Delay mounting heavy modals so first paint is fast
+  const [modalsReady, setModalsReady] = useState(false);
+  // Mount controllers/scanner later than base modals to reduce first heavy burst
+  const [controllersReady, setControllersReady] = useState(false);
+  useEffect(() => {
+    console.log('[AddProducts] modalsReady timer started');
+    const id = setTimeout(() => {
+      console.log('[AddProducts] modalsReady = true');
+      setModalsReady(true);
+    }, 300);
+    return () => clearTimeout(id);
+  }, []);
+  useEffect(() => {
+    if (!modalsReady) return;
+    const id = setTimeout(() => {
+      console.log('[AddProducts] controllersReady = true');
+      setControllersReady(true);
+    }, 350);
+    return () => clearTimeout(id);
+  }, [modalsReady]);
   const scanLogModalVisibleRef = useRef(false);
   const barcodePrintModalVisibleRef = useRef(false);
-  const [scanLogs, setScanLogs] = useState<ScanLogEntry[]>([]);
   const scanBufferRef = useRef("");
-  const scanTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const hiddenInputRef = useRef<TextInput>(null);
-  const searchModalRef = useRef<SearchProductModalControllerHandle>(null);
+  const scanQueueRef = useRef<string[]>([]);  // Queue for pending scans
+  const processingTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const hiddenInputRef = useRef<TextInput>(null!);
+  const searchProductModalRef = useRef<SearchProductModalControllerHandle>(null);
   const customerModalRef = useRef<SearchCustomerModalControllerHandle>(null);
   const barcodePrintModalRef = useRef<BarcodePrintModalControllerHandle>(null);
   const scanLogsModalRef = useRef<ScanLogsModalControllerHandle>(null);
-  const searchModalVisibleRef = useRef(false);
-  const { products: allProducts, isLoading: isProductsLoading } = useProducts();
+  const customerModalVisibleRef = useRef(false);
+  const { products: allProducts, isLoading: isProductsLoading } = useProducts({ enabled: modalsReady });
+  const [showSearchProductModal, setShowSearchProductModal] = useState(false);
   const [showCustomerModal, setShowCustomerModal] = useState(false);
   const [showCashPaymentModal, setShowCashPaymentModal] = useState(false);
   const [showDiscountModal, setShowDiscountModal] = useState(false);
@@ -190,6 +209,8 @@ export default function AddProductsScreen() {
   // Product Settings modal
   const [showProductSettingsModal, setShowProductSettingsModal] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<OrderProduct | null>(null);
+  const selectedProductRef = useRef<OrderProduct | null>(null);
+  selectedProductRef.current = selectedProduct;
 
   // Receipt image
   const receiptRef = useRef<View>(null);
@@ -200,7 +221,15 @@ export default function AddProductsScreen() {
   const [receiptImageSize, setReceiptImageSize] = useState<{ w: number; h: number }>({ w: 384, h: 600 });
 
   const products = order.products;
+  const productsRef = useRef<OrderProduct[]>([]);
+  productsRef.current = products;
   const summary = getOrderSummary();
+  const summaryRef = useRef(summary);
+  summaryRef.current = summary;
+  const orderRef = useRef(order);
+  orderRef.current = order;
+  const selectedCustomerDataRef = useRef(selectedCustomerData);
+  selectedCustomerDataRef.current = selectedCustomerData;
   const productLookupMap = useMemo(() => {
     const map = new Map<string, (typeof allProducts)[number]>();
     allProducts.forEach((product) => {
@@ -222,16 +251,17 @@ export default function AddProductsScreen() {
       })),
     [products]
   );
-  const scanLogSummary = useMemo(() => {
-    let matched = 0;
-    for (const log of scanLogs) {
-      if (log.matched) matched += 1;
-    }
-    return {
-      matched,
-      missed: scanLogs.length - matched,
-    };
-  }, [scanLogs]);
+  // TEMP: Disabled for performance testing
+  // const scanLogSummary = useMemo(() => {
+  //   let matched = 0;
+  //   for (const log of scanLogs) {
+  //     if (log.matched) matched += 1;
+  //   }
+  //   return {
+  //     matched,
+  //     missed: scanLogs.length - matched,
+  //   };
+  // }, [scanLogs]);
   const hasBlockingScanModal = useMemo(
     () =>
       showCustomerModal ||
@@ -259,42 +289,36 @@ export default function AddProductsScreen() {
       showInvoiceModal,
     ]
   );
-  const handleSearchModalVisibleStateChange = useCallback((visible: boolean) => {
-    searchModalVisibleRef.current = visible;
-  }, []);
   const handleCustomerModalVisibleStateChange = useCallback((visible: boolean) => {
+    customerModalVisibleRef.current = visible;
+    if (visible) {
+      hiddenInputRef.current?.blur();
+    }
     setShowCustomerModal(visible);
   }, []);
-  const handleScanLogModalVisibleStateChange = useCallback((visible: boolean) => {
-    scanLogModalVisibleRef.current = visible;
-  }, []);
-  const handleBarcodePrintModalVisibleStateChange = useCallback((visible: boolean) => {
-    barcodePrintModalVisibleRef.current = visible;
-  }, []);
+  // TEMP: Disabled for performance testing
+  // const handleScanLogModalVisibleStateChange = useCallback((visible: boolean) => {
+  //   scanLogModalVisibleRef.current = visible;
+  // }, []);
+  // const handleBarcodePrintModalVisibleStateChange = useCallback((visible: boolean) => {
+  //   barcodePrintModalVisibleRef.current = visible;
+  // }, []);
 
-  const handleOpenSearchModal = useCallback(
-    (source: "top_bar" | "table_empty" | "sidebar" = "top_bar") => {
-      if (scanTimerRef.current) {
-        clearTimeout(scanTimerRef.current);
-        scanTimerRef.current = null;
-      }
+  const handleSearchProductModalVisibleStateChange = useCallback((visible: boolean) => {
+    console.log(`[Modal] SearchProduct visible=${visible}`);
+    if (visible) {
       hiddenInputRef.current?.blur();
-      searchModalRef.current?.open(source);
-    },
-    []
-  );
+    } else {
+      // Unmount modal when closed
+      setShowSearchProductModal(false);
+    }
+  }, []);
 
-  const handleOpenSearchFromTopBar = useCallback(() => {
-    handleOpenSearchModal("top_bar");
-  }, [handleOpenSearchModal]);
-
-  const handleOpenSearchFromTable = useCallback(() => {
-    handleOpenSearchModal("table_empty");
-  }, [handleOpenSearchModal]);
-
+  // Open search product modal from sidebar
   const handleOpenSearchFromSidebar = useCallback(() => {
-    handleOpenSearchModal("sidebar");
-  }, [handleOpenSearchModal]);
+    hiddenInputRef.current?.blur();
+    setShowSearchProductModal(true);
+  }, []);
 
   useRenderTrace(
     "AddProductsScreen",
@@ -304,7 +328,7 @@ export default function AddProductsScreen() {
       isProductsLoading,
       summaryTotal: summary.total,
       selectedProductId: selectedProduct?.id ?? null,
-      scanLogsLength: scanLogs.length,
+      // scanLogsLength: scanLogs.length,
       hasBlockingScanModal,
       showScanLogModal: scanLogModalVisibleRef.current,
       showBarcodePrintModal: barcodePrintModalVisibleRef.current,
@@ -321,8 +345,20 @@ export default function AddProductsScreen() {
       showProductSettingsModal,
       showReceiptPreview,
     },
-    { throttleMs: 100 }
+    { throttleMs: 100, enabled: false }
   );
+
+  useEffect(() => {
+    const clickAt = (globalThis as any).__salesNavClickAt;
+    const routeMountedAt = (globalThis as any).__salesRouteMountedAt;
+    const now = Date.now();
+    if (typeof clickAt === "number") {
+      console.log(`[NavPerf][Sales] clickToHeavyTreeMountMs=${now - clickAt}`);
+    }
+    if (typeof routeMountedAt === "number" && now - routeMountedAt < 10000) {
+      console.log(`[NavPerf][Sales] routeToHeavyTreeMountMs=${now - routeMountedAt}`);
+    }
+  }, []);
 
   // Preview card / image dimensions based on screen short edge (stable across renders)
   const previewCardWidth = useMemo(() =>
@@ -333,25 +369,17 @@ export default function AddProductsScreen() {
     ? previewImgWidth * (receiptImageSize.h / receiptImageSize.w)
     : previewImgWidth * 1.5;
 
-  // Process a scanned barcode: look up product, add to cart, log it
+  // Process a scanned barcode: look up product, add to cart
   const handleScanComplete = useCallback((code: string) => {
+    const t0 = Date.now();
     const trimmed = code.trim();
     if (!trimmed) return;
 
     const keyword = trimmed.toLowerCase();
     const matchedProduct = productLookupMap.get(keyword);
-
-    const entry: ScanLogEntry = {
-      id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-      code: trimmed,
-      timestamp: new Date(),
-      matched: !!matchedProduct,
-      productName: matchedProduct?.name,
-    };
-    setScanLogs((prev) => [entry, ...prev]);
+    const t1 = Date.now();
 
     if (matchedProduct) {
-      const qty = parseInt(scanQty) || 1;
       const newProduct: OrderProduct = {
         id: `${matchedProduct.id}-${Date.now()}`,
         productId: matchedProduct.id,
@@ -359,65 +387,93 @@ export default function AddProductsScreen() {
         name: matchedProduct.name,
         salePrice: matchedProduct.salePrice,
         unit: "Piece",
-        quantity: qty,
+        quantity: 1,
         tnVaporTax: 0,
         ncVaporTax: 0,
-        total: matchedProduct.salePrice * qty,
+        total: matchedProduct.salePrice,
       };
       addProduct(newProduct);
+      const t2 = Date.now();
+      console.log(`[Scan] ✅ "${matchedProduct.name}" lookup=${t1-t0}ms addProduct=${t2-t1}ms total=${t2-t0}ms`);
+    } else {
+      console.log(`[Scan] ❌ "${keyword}" NOT FOUND, lookup=${t1-t0}ms`);
     }
-  }, [productLookupMap, scanQty, addProduct]);
-
-  // Scanner submits via Enter key (onSubmitEditing)
-  const handleScannerSubmit = useCallback(() => {
-    const code = scanBufferRef.current.trim();
-    if (code.length >= 3) {
-      handleScanComplete(code);
-    }
-    scanBufferRef.current = "";
-    hiddenInputRef.current?.setNativeProps?.({ text: "" });
-    setTimeout(() => {
-      hiddenInputRef.current?.clear();
-      if (shouldRestoreScannerFocus()) {
-        hiddenInputRef.current?.focus();
-      }
-    }, 50);
-  }, [handleScanComplete, shouldRestoreScannerFocus]);
-
-  // Track characters as they come in from the scanner
-  const handleScannerInput = useCallback((text: string) => {
-    scanBufferRef.current = text;
-
-    // Fallback: auto-submit after 400ms of silence (for scanners without Enter suffix)
-    if (scanTimerRef.current) clearTimeout(scanTimerRef.current);
-    scanTimerRef.current = setTimeout(() => {
-      const buffered = scanBufferRef.current.trim();
-      if (buffered.length >= 4) {
-        handleScanComplete(buffered);
-        scanBufferRef.current = "";
-        hiddenInputRef.current?.setNativeProps?.({ text: "" });
-        setTimeout(() => {
-          hiddenInputRef.current?.clear();
-          if (shouldRestoreScannerFocus()) {
-            hiddenInputRef.current?.focus();
-          }
-        }, 50);
-      }
-    }, 400);
-  }, [handleScanComplete, shouldRestoreScannerFocus]);
+  }, [productLookupMap, addProduct]);
 
   // Refocus hidden input whenever a modal closes
-  // NOTE: Scan Log and Barcode Print modals should NOT block scanner input
   const shouldRestoreScannerFocus = useCallback(
-    () => !hasBlockingScanModal && !searchModalVisibleRef.current,
-    [hasBlockingScanModal]
+    () => !hasBlockingScanModal && !customerModalVisibleRef.current && !showSearchProductModal,
+    [hasBlockingScanModal, showSearchProductModal]
   );
 
-  useEffect(() => {
-    if (shouldRestoreScannerFocus()) {
-      setTimeout(() => hiddenInputRef.current?.focus(), 200);
+  // Process scan queue - runs independently from input
+  const processQueue = useCallback(() => {
+    if (scanQueueRef.current.length === 0) {
+      processingTimerRef.current = null;
+      return;
     }
-  }, [shouldRestoreScannerFocus]);
+    
+    const code = scanQueueRef.current.shift()!;
+    const t0 = Date.now();
+    handleScanComplete(code);
+    const t1 = Date.now();
+    console.log(`[Scan] Processed: "${code}" in ${t1 - t0}ms, remaining: ${scanQueueRef.current.length}`);
+    
+    // Process next item
+    processingTimerRef.current = setTimeout(() => {
+      processQueue();
+    }, 50);
+  }, [handleScanComplete]);
+
+  // Track the offset of last Enter so we only extract new chars
+  const lastSubmitOffsetRef = useRef(0);
+
+  // Scanner submits via Enter key (onSubmitEditing)
+  // Don't try to clear - just track offset and extract new portion
+  const handleScannerSubmit = useCallback(() => {
+    const t0 = Date.now();
+    const fullText = scanBufferRef.current;
+    const newPart = fullText.slice(lastSubmitOffsetRef.current).trim();
+    console.log(`[Scan] Enter at ${t0}: "${newPart}" (offset=${lastSubmitOffsetRef.current})`);
+    
+    // Update offset to current position
+    lastSubmitOffsetRef.current = fullText.length;
+    
+    if (newPart.length >= 3) {
+      scanQueueRef.current.push(newPart);
+    }
+    
+    // Start processing if not already running
+    if (!processingTimerRef.current) {
+      processQueue();
+    }
+  }, [processQueue]);
+
+  // Track input - only ref, no state, no re-render
+  const handleScannerInput = useCallback((text: string) => {
+    scanBufferRef.current = text;
+  }, []);
+
+  // Focus hidden input after it's mounted and ready
+  useEffect(() => {
+    if (!controllersReady) return;
+    if (shouldRestoreScannerFocus()) {
+      setTimeout(() => {
+        hiddenInputRef.current?.focus();
+      }, 100);
+    }
+  }, [controllersReady, shouldRestoreScannerFocus]);
+
+  // Auto-open SearchProductModal when showSearchProductModal becomes true
+  useEffect(() => {
+    if (showSearchProductModal && searchProductModalRef.current) {
+      searchProductModalRef.current.open();
+    }
+  }, [showSearchProductModal]);
+
+  const handleHiddenInputFocus = useCallback(() => {
+    // Scanner input focused
+  }, []);
 
   const handleHiddenInputBlur = useCallback(() => {
     if (!shouldRestoreScannerFocus()) return;
@@ -582,7 +638,6 @@ export default function AddProductsScreen() {
 
   // Handle adding product from search modal
   const handleAddProductFromSearch = useCallback((searchProduct: SearchProduct) => {
-    const qty = parseInt(scanQty) || 1;
     const newProduct: OrderProduct = {
       id: `${searchProduct.id}-${Date.now()}`,
       productId: searchProduct.id,
@@ -590,64 +645,82 @@ export default function AddProductsScreen() {
       name: searchProduct.name,
       salePrice: searchProduct.price,
       unit: "Piece",
-      quantity: qty,
+      quantity: 1,
       tnVaporTax: 0,
       ncVaporTax: 0,
-      total: searchProduct.price * qty,
+      total: searchProduct.price,
     };
     addProduct(newProduct);
-  }, [scanQty, addProduct]);
+  }, [addProduct]);
 
   const handleQuantityChange = useCallback((id: string, delta: number) => {
-    const product = products.find((p) => p.id === id);
-    if (product) {
-      const newQty = product.quantity + delta;
-      if (newQty <= 0) {
-        removeProduct(id);
-      } else {
-        updateProductQuantity(id, newQty);
-      }
-    }
-  }, [products, removeProduct, updateProductQuantity]);
+    updateProductQuantity(id, delta, true);
+  }, [updateProductQuantity]);
 
   const handleSelectProductFromTable = useCallback((product: any) => {
     setSelectedProduct(product as OrderProduct);
   }, []);
 
-  const handleOpenScanLogModal = useCallback(() => {
-    scanLogsModalRef.current?.open();
-  }, []);
+  // TEMP: Disabled for performance testing
+  // const handleOpenScanLogModal = useCallback(() => {
+  //   scanLogsModalRef.current?.open();
+  // }, []);
 
-  const handleOpenBarcodePrintModal = useCallback(() => {
-    barcodePrintModalRef.current?.open();
-  }, []);
+  // const handleOpenBarcodePrintModal = useCallback(() => {
+  //   barcodePrintModalRef.current?.open();
+  // }, []);
+  const handleOpenScanLogModal = useCallback(() => {}, []);
+  const handleOpenBarcodePrintModal = useCallback(() => {}, []);
 
   const handleOpenProductSettings = useCallback(() => {
-    if (products.length === 0) {
+    if (productsRef.current.length === 0) {
       Alert.alert("No Product", "Please add a product first");
       return;
     }
-    const productToEdit = selectedProduct || products[0];
+    const productToEdit = selectedProductRef.current || productsRef.current[0];
     setSelectedProduct(productToEdit);
     setShowProductSettingsModal(true);
-  }, [products, selectedProduct]);
+  }, []);
 
   const handleOpenCustomerModal = useCallback(() => {
+    hiddenInputRef.current?.blur();
     customerModalRef.current?.open();
   }, []);
+
+  const handleOrderSettingsChange = useCallback(
+    (settings: {
+      paymentTerms?: string;
+      shippingType?: string;
+      orderNumber?: string;
+      invoiceDueDate?: string;
+      notesInternal?: string;
+      notesInvoice?: string;
+    }) => {
+      setOrderSettings((prev) => ({ ...prev, ...settings }));
+    },
+    []
+  );
 
   const handleRemoveCustomer = useCallback(() => {
     setSelectedCustomerData(null);
     updateOrder({ customerName: "Guest Customer", customerId: null });
   }, [updateOrder]);
 
+  const handleSelectCustomer = useCallback((customer: any) => {
+    setSelectedCustomerData(customer);
+    updateOrder({
+      customerName: customer.business_name,
+      customerId: String(customer.id),
+    });
+  }, [updateOrder]);
+
   const handleParkOrder = useCallback(() => {
-    if (products.length === 0) {
+    if (productsRef.current.length === 0) {
       Alert.alert("Error", "Please add products to cart first");
       return;
     }
     setShowParkOrderModal(true);
-  }, [products.length]);
+  }, []);
 
   const handleConfirmParkOrder = async (note?: string) => {
     try {
@@ -751,13 +824,13 @@ export default function AddProductsScreen() {
   }, [clearOrder]);
 
   const handleDeleteProduct = useCallback(() => {
-    if (!selectedProduct) {
+    if (!selectedProductRef.current) {
       Alert.alert("No Selection", "Please select a product to delete.");
       return;
     }
-    removeProduct(selectedProduct.id);
+    removeProduct(selectedProductRef.current.id);
     setSelectedProduct(null);
-  }, [removeProduct, selectedProduct]);
+  }, [removeProduct]);
 
   const handleGoToMenu = useCallback(() => {
     router.back();
@@ -767,15 +840,32 @@ export default function AddProductsScreen() {
     Alert.alert("Add Notes", "Feature coming soon");
   }, []);
 
+  const handleAddTax = useCallback(() => {
+    setShowTaxModal(true);
+  }, []);
+
+  const handleAddDiscount = useCallback(() => {
+    setShowDiscountModal(true);
+  }, []);
+
+  const handleVoidPayment = useCallback(() => {
+    Alert.alert("Void Payment", "Feature coming soon");
+  }, []);
+
   // Place Order Logic - Now part of payment flow
   const executeOrderPlacement = useCallback(async (paymentType: number = 1) => {
-    if (products.length === 0) return;
+    const currentProducts = productsRef.current;
+    const currentOrder = orderRef.current;
+    const currentSummary = summaryRef.current;
+    const currentCustomer = selectedCustomerDataRef.current;
+    
+    if (currentProducts.length === 0) return;
 
     setPlacingOrder(true);
     try {
       const now = new Date().toISOString();
       const payload: CreateSaleOrderPayload = {
-        sale_order_details: products.map((p) => ({
+        sale_order_details: currentProducts.map((p) => ({
           product_id: parseInt(p.productId, 10),
           qty: p.quantity,
           unit: 1, 
@@ -783,7 +873,7 @@ export default function AddProductsScreen() {
           discount: 0,
           discount_type: 1,
         })),
-        customer_id: order.customerId ? parseInt(order.customerId, 10) : null,
+        customer_id: currentOrder.customerId ? parseInt(currentOrder.customerId, 10) : null,
         order_type: 1,
         sale_type: 1,
         shipping_type: 1,
@@ -792,18 +882,18 @@ export default function AddProductsScreen() {
         dispatch_date: now,
         due_date: now,
         discount: parseFloat(
-          (order.discountType === 2
-            ? (summary.subTotal * order.additionalDiscount) / 100
-            : order.additionalDiscount
+          (currentOrder.discountType === 2
+            ? (currentSummary.subTotal * currentOrder.additionalDiscount) / 100
+            : currentOrder.additionalDiscount
           ).toFixed(2)
         ),
         discount_type: 1,
-        delivery_charges: order.shippingCharges || 0,
+        delivery_charges: currentOrder.shippingCharges || 0,
         payment_detail: {
           payments: [
             {
               payment_type: paymentType,
-              amount: parseFloat(summary.total.toFixed(2)),
+              amount: parseFloat(currentSummary.total.toFixed(2)),
               category: 1,
             },
           ],
@@ -823,7 +913,7 @@ export default function AddProductsScreen() {
         } catch (fetchErr: any) {
           fullOrder = {
             ...entity,
-            sale_order_details: products.map((p, idx) => ({
+            sale_order_details: currentProducts.map((p, idx) => ({
               id: idx,
               sale_order_id: entity.id,
               product_id: parseInt(p.productId, 10),
@@ -836,14 +926,14 @@ export default function AddProductsScreen() {
               discount_type: 1,
               total_price: p.salePrice * p.quantity,
             })),
-            customer: selectedCustomerData ? {
-              id: parseInt(order.customerId || "0", 10),
-              no: selectedCustomerData.no || undefined,
-              business_name: selectedCustomerData.business_name || "",
-              name: selectedCustomerData.name || undefined,
-              email: selectedCustomerData.email || undefined,
-              business_phone_no: selectedCustomerData.business_phone_no || undefined,
-              customer_billing_details: selectedCustomerData.customer_billing_details || undefined,
+            customer: currentCustomer ? {
+              id: parseInt(currentOrder.customerId || "0", 10),
+              no: currentCustomer.no || undefined,
+              business_name: currentCustomer.business_name || "",
+              name: currentCustomer.name || undefined,
+              email: currentCustomer.email || undefined,
+              business_phone_no: currentCustomer.business_phone_no || undefined,
+              customer_billing_details: currentCustomer.customer_billing_details || undefined,
             } : undefined,
           } as SaleOrderEntity;
         }
@@ -869,26 +959,26 @@ export default function AddProductsScreen() {
     } finally {
       setPlacingOrder(false);
     }
-  }, [products, order, summary, user, selectedCustomerData, buildReceiptFromOrder, clearOrder, router]);
+  }, [user, buildReceiptFromOrder, clearOrder, router]);
 
   const handleCashPayment = useCallback(() => {
-    if (products.length === 0) {
+    if (productsRef.current.length === 0) {
       Alert.alert("Error", "Please add products to cart first");
       return;
     }
     setShowCashPaymentModal(true);
-  }, [products.length]);
+  }, []);
 
   const handleCardPayment = useCallback(() => {
-    if (products.length === 0) {
+    if (productsRef.current.length === 0) {
       Alert.alert("Error", "Please add products to cart first");
       return;
     }
-    Alert.alert("Card Payment", `Charge $${summary.total.toFixed(2)}?`, [
+    Alert.alert("Card Payment", "Process card payment?", [
       { text: "Cancel", style: "cancel" },
       { text: "Confirm", onPress: () => executeOrderPlacement(2) }
     ]);
-  }, [products.length, summary.total, executeOrderPlacement]);
+  }, [executeOrderPlacement]);
 
   const handlePayLater = useCallback(() => {
     Alert.alert("Pay Later", "Feature coming soon");
@@ -918,10 +1008,7 @@ export default function AddProductsScreen() {
       <View className="flex-1">
         <AddProductsTopBar
           insetTop={insets.top}
-          scanQty={scanQty}
-          onScanQtyChange={setScanQty}
-          scanLogsCount={scanLogs.length}
-          onOpenSearch={handleOpenSearchFromTopBar}
+          scanLogsCount={0}
           onOpenScanLogModal={handleOpenScanLogModal}
           onOpenBarcodePrintModal={handleOpenBarcodePrintModal}
           onOpenProductSettings={handleOpenProductSettings}
@@ -933,7 +1020,6 @@ export default function AddProductsScreen() {
           onQuantityChange={handleQuantityChange}
           selectedProductId={selectedProduct?.id}
           onSelectProduct={handleSelectProductFromTable}
-          onAddProductPress={handleOpenSearchFromTable}
         />
 
         <View className="flex-row p-4 gap-4 bg-[#F7F7F9]">
@@ -955,39 +1041,42 @@ export default function AddProductsScreen() {
       </View>
 
       {/* Right Action Panel */}
-      <POSSidebar
-        isLandscape={true}
-        onAddProduct={handleOpenSearchFromSidebar}
-        onCashPayment={handleCashPayment}
-        onCardPayment={handleCardPayment}
-        onPayLater={handlePayLater}
-        onDeleteProduct={handleDeleteProduct}
-        onEmptyCart={handleEmptyCart}
-        onGoToMenu={handleGoToMenu}
-        hideNavButtons={false}
-      />
+      {useMemo(() => (
+        <POSSidebar
+          isLandscape={true}
+          onAddProduct={handleOpenSearchFromSidebar}
+          onCashPayment={handleCashPayment}
+          onCardPayment={handleCardPayment}
+          onPayLater={handlePayLater}
+          onDeleteProduct={handleDeleteProduct}
+          onEmptyCart={handleEmptyCart}
+          onGoToMenu={handleGoToMenu}
+          onParkOrder={handleParkOrder}
+          onAddTax={handleAddTax}
+          onAddDiscount={handleAddDiscount}
+          onVoidPayment={handleVoidPayment}
+          onAddNotes={handleAddNotes}
+          hideNavButtons={false}
+        />
+      ), [handleOpenSearchFromSidebar, handleCashPayment, handleCardPayment, handlePayLater, handleDeleteProduct, handleEmptyCart, handleGoToMenu, handleParkOrder, handleAddTax, handleAddDiscount, handleVoidPayment, handleAddNotes])}
 
-      {/* Modals */}
-      <SearchProductModalController
-        ref={searchModalRef}
-        onSelectProduct={handleAddProductFromSearch}
-        onVisibleStateChange={handleSearchModalVisibleStateChange}
-      />
+      {/* Modals — deferred to keep first paint fast */}
+      {modalsReady && (<>
 
-      <SearchCustomerModalController
+      {controllersReady && (<SearchCustomerModalController
         ref={customerModalRef}
-        onSelectCustomer={(customer) => {
-          setSelectedCustomerData(customer);
-          updateOrder({
-            customerName: customer.business_name,
-            customerId: String(customer.id),
-          });
-        }}
+        onSelectCustomer={handleSelectCustomer}
         currentCustomer={selectedCustomerData}
         orderSettings={orderSettings}
-        onOrderSettingsChange={setOrderSettings}
+        onOrderSettingsChange={handleOrderSettingsChange}
         onVisibleStateChange={handleCustomerModalVisibleStateChange}
-      />
+      />)}
+
+      {showSearchProductModal && (<SearchProductModalController
+        ref={searchProductModalRef}
+        onSelectProduct={handleAddProductFromSearch}
+        onVisibleStateChange={handleSearchProductModalVisibleStateChange}
+      />)}
 
       <CashPaymentModal
         visible={showCashPaymentModal}
@@ -1092,14 +1181,16 @@ export default function AddProductsScreen() {
         order={invoiceOrder}
       />
 
+      {/* TEMP: Disabled for performance testing */}
       {/* Barcode Print Modal */}
-      <BarcodePrintModalController
+      {/* {controllersReady && (<BarcodePrintModalController
         ref={barcodePrintModalRef}
         cartItems={barcodeCartItems}
         products={allProducts}
         productsLoading={isProductsLoading}
         onVisibleStateChange={handleBarcodePrintModalVisibleStateChange}
-      />
+      />)} */}
+      </>)}
 
       {/* Hidden receipt template for capture */}
       <View
@@ -1150,7 +1241,7 @@ export default function AddProductsScreen() {
           >
             {/* Header */}
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
-              <Text style={{ fontSize: 16, fontWeight: '700', color: '#111' }}>Print Preview</Text>
+              <Text style={{ fontSize: fontSize.lg, fontWeight: fontWeight.bold, color: '#111' }}>Print Preview</Text>
               <TouchableOpacity
                 onPress={() => {
                   setShowReceiptPreview(false);
@@ -1163,7 +1254,7 @@ export default function AddProductsScreen() {
                 }}
                 hitSlop={12}
               >
-                <Ionicons name="close-circle" size={26} color="#9CA3AF" />
+                <Ionicons name="close-circle" size={26} color={colors.textTertiary} />
               </TouchableOpacity>
             </View>
 
@@ -1177,7 +1268,7 @@ export default function AddProductsScreen() {
                 />
               ) : (
                 <View style={{ height: 120, justifyContent: 'center', alignItems: 'center' }}>
-                  <Text style={{ color: '#9CA3AF' }}>No image preview available</Text>
+                  <Text style={{ color: colors.textTertiary }}>No image preview available</Text>
                 </View>
               )}
             </ScrollView>
@@ -1189,7 +1280,7 @@ export default function AddProductsScreen() {
                 disabled={sendingToPrinter}
                 style={{
                   flex: 1,
-                  backgroundColor: sendingToPrinter ? '#9CA3AF' : '#EC1A52',
+                  backgroundColor: sendingToPrinter ? colors.textTertiary : colors.primary,
                   paddingVertical: 12,
                   borderRadius: 8,
                   flexDirection: 'row',
@@ -1198,8 +1289,8 @@ export default function AddProductsScreen() {
                   gap: 6,
                 }}
               >
-                <Ionicons name="print" size={16} color="#FFF" />
-                <Text style={{ color: '#FFF', fontWeight: '700', fontSize: 14 }}>
+                <Ionicons name="print" size={iconSize.sm} color="#FFF" />
+                <Text style={{ color: '#FFF', fontWeight: fontWeight.bold, fontSize: fontSize.base }}>
                   {sendingToPrinter ? 'Sending...' : 'Print'}
                 </Text>
               </TouchableOpacity>
@@ -1214,7 +1305,7 @@ export default function AddProductsScreen() {
                   }}
                   style={{
                     flex: 1,
-                    backgroundColor: '#3b82f6',
+                    backgroundColor: colors.info,
                     paddingVertical: 12,
                     borderRadius: 8,
                     flexDirection: 'row',
@@ -1223,29 +1314,132 @@ export default function AddProductsScreen() {
                     gap: 6,
                   }}
                 >
-                  <Ionicons name="add-circle-outline" size={16} color="#FFF" />
-                  <Text style={{ color: '#FFF', fontWeight: '700', fontSize: 14 }}>New Order</Text>
+                  <Ionicons name="add-circle-outline" size={iconSize.sm} color="#FFF" />
+                  <Text style={{ color: '#FFF', fontWeight: fontWeight.bold, fontSize: fontSize.base }}>New Order</Text>
                 </TouchableOpacity>
               )}
             </View>
           </Pressable>
         </Pressable>
       </Modal>
-      <HiddenScannerInput
+      {controllersReady && (<HiddenScannerInput
         inputRef={hiddenInputRef}
         onChangeText={handleScannerInput}
         onSubmitEditing={handleScannerSubmit}
+        onFocus={handleHiddenInputFocus}
         onBlur={handleHiddenInputBlur}
-      />
+      />)}
+      {/* TEMP: Disabled for performance testing */}
       {/* Scan Logs Modal */}
-      <ScanLogsModalController
+      {/* {controllersReady && (<ScanLogsModalController
         ref={scanLogsModalRef}
         logs={scanLogs}
         summary={scanLogSummary}
         onClearLogs={() => setScanLogs([])}
         onVisibleStateChange={handleScanLogModalVisibleStateChange}
-      />
+      />)} */}
     </View>
   );
+}
+
+function AddProductsContent() {
+  const [heavyReady, setHeavyReady] = useState(false);
+  const insets = useSafeAreaInsets();
+  const noop = useCallback(() => {}, []);
+
+  useEffect(() => {
+    const clickAt = (globalThis as any).__salesNavClickAt;
+    const routeMountedAt = (globalThis as any).__salesRouteMountedAt;
+    const now = Date.now();
+    if (typeof clickAt === "number") {
+      console.log(`[NavPerf][Sales] clickToContentMountMs=${now - clickAt}`);
+    }
+    if (typeof routeMountedAt === "number" && now - routeMountedAt < 10000) {
+      console.log(`[NavPerf][Sales] routeToContentMountMs=${now - routeMountedAt}`);
+    }
+
+    const id = setTimeout(() => {
+      const heavyAt = Date.now();
+      if (typeof clickAt === "number") {
+        console.log(`[NavPerf][Sales] clickToHeavyMountMs=${heavyAt - clickAt}`);
+      }
+      setHeavyReady(true);
+    }, 0);
+
+    return () => clearTimeout(id);
+  }, []);
+
+  if (!heavyReady) {
+    return (
+      <View style={{ flex: 1, flexDirection: "row", backgroundColor: colors.backgroundTertiary }}>
+        <View style={{ flex: 1 }}>
+          <AddProductsTopBar
+            insetTop={insets.top}
+            scanLogsCount={0}
+            onOpenScanLogModal={noop}
+            onOpenBarcodePrintModal={noop}
+            onOpenProductSettings={noop}
+          />
+          <ProductTable
+            products={[]}
+            onQuantityChange={noop}
+          />
+          <View className="flex-row p-4 gap-4 bg-[#F7F7F9]">
+            <AddProductsCustomerCard
+              customer={null}
+              onOpenCustomerModal={noop}
+              onRemoveCustomer={noop}
+            />
+            <AddProductsOrderSummary
+              productsCount={0}
+              totalQuantity={0}
+              subTotal={0}
+              tax={0}
+              total={0}
+              additionalDiscount={0}
+              discountType={1}
+            />
+          </View>
+        </View>
+        <POSSidebar
+          isLandscape={true}
+          onAddProduct={noop}
+          onCashPayment={noop}
+          onCardPayment={noop}
+          onPayLater={noop}
+          onDeleteProduct={noop}
+          onEmptyCart={noop}
+          onGoToMenu={noop}
+          onParkOrder={noop}
+          onAddTax={noop}
+          onAddDiscount={noop}
+          onVoidPayment={noop}
+          onAddNotes={noop}
+          hideNavButtons={false}
+        />
+      </View>
+    );
+  }
+
+  return <AddProductsHeavy />;
+}
+
+export default function AddProductsScreen() {
+  useEffect(() => {
+    const routeMountedAt = Date.now();
+    (globalThis as any).__salesRouteMountedAt = routeMountedAt;
+    const clickAt = (globalThis as any).__salesNavClickAt;
+    if (typeof clickAt === "number") {
+      console.log(`[NavPerf][Sales] clickToRouteMountMs=${routeMountedAt - clickAt}`);
+    }
+    const id = requestAnimationFrame(() => {
+      const firstFrameAt = Date.now();
+      if (typeof clickAt === "number") {
+        console.log(`[NavPerf][Sales] clickToFirstFrameMs=${firstFrameAt - clickAt}`);
+      }
+    });
+    return () => cancelAnimationFrame(id);
+  }, []);
+  return <AddProductsContent />;
 }
 

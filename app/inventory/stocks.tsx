@@ -4,28 +4,41 @@
  * Aligned with KHUB web Stocks columns configuration.
  */
 
+import { colors, fontSize, fontWeight as fw, iconSize } from '@/utils/theme';
 import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
-    ActivityIndicator,
-    Alert,
-    Modal,
-    Pressable,
-    ScrollView,
-    Text,
-    TextInput,
-    View,
+  ActivityIndicator,
+  Alert,
+  InteractionManager,
+  Modal,
+  Pressable,
+  ScrollView,
+  Text,
+  TextInput,
+  View,
 } from "react-native";
-import { ColumnDefinition, DataTable, FilterDefinition, FilterDropdown, PageHeader } from "../../components";
 import {
-    BulkStockUpdateItem,
-    bulkUpdateStocks,
-    getStockByProductId,
-    StockChannelInfo,
-    updateStocks as updateStocksApi,
+  ColumnDefinition,
+  DataTable,
+  DataTableRenderPerfMetrics,
+  FilterDefinition,
+  FilterDropdown,
+  PageHeader,
+} from "../../components";
+import {
+  BulkStockUpdateItem,
+  bulkUpdateStocks,
+  getStockByProductId,
+  StockChannelInfo,
+  updateStocks as updateStocksApi,
 } from "../../utils/api";
 import { StocksQueryFilters, StockView, useStocks } from "../../utils/powersync/hooks";
+import type {
+  StocksPerfCallbacks,
+  StocksPerfSnapshotMeta,
+} from "../../utils/powersync/hooks/useStocks";
 import { useSyncStream } from "../../utils/powersync/useSyncStream";
 
 // ============================================================================
@@ -34,17 +47,17 @@ import { useSyncStream } from "../../utils/powersync/useSyncStream";
 
 const formatCurrency = (value: number) => (value > 0 ? `$${value.toFixed(2)}` : "-");
 const formatQty = (value: number | null | undefined) => (value === null || value === undefined ? "-" : String(value));
-const qtyValueTextStyle = { fontSize: 12, lineHeight: 16, fontWeight: "400" as const, color: "#374151" };
+const qtyValueTextStyle = { fontSize: fontSize.md, lineHeight: 16, fontWeight: fw.regular, color: colors.textMedium };
 const qtyInputTextStyle = {
-  fontSize: 12,
+  fontSize: fontSize.md,
   lineHeight: 16,
-  fontWeight: "400" as const,
-  color: "#374151",
+  fontWeight: fw.regular,
+  color: colors.textMedium,
   paddingVertical: 0,
   textAlign: "center" as const,
   includeFontPadding: false,
 };
-const qtyUnitTextStyle = { fontSize: 11, lineHeight: 14, fontWeight: "400" as const, color: "#6b7280" };
+const qtyUnitTextStyle = { fontSize: fontSize.md, lineHeight: 14, fontWeight: fw.regular, color: colors.textSecondary };
 const parseQtyInput = (value: string, fallback = 0) => {
   const parsed = parseInt(value, 10);
   if (Number.isNaN(parsed)) return fallback;
@@ -170,6 +183,35 @@ interface StocksFilterStoragePayload {
   display_advance_filters: boolean;
   channelForBulkEdit: Array<{ id: number; name: string }>;
 }
+
+interface StocksPaginationPerfTrace {
+  runId: number;
+  fromPage: number;
+  toPage: number;
+  clickMs: number;
+  dataQueryStartMs?: number;
+  dataQueryEndMs?: number;
+  dataQueryDurationMs?: number;
+  countQueryStartMs?: number;
+  countQueryEndMs?: number;
+  countQueryDurationMs?: number;
+  loadingStartMs?: number;
+  screenDataBoundMs?: number;
+  dataTableRenderSnapshot?: DataTableRenderPerfMetrics;
+  dataReadyMs?: number;
+  frameMs?: number;
+  interactionsMs?: number;
+  completed?: boolean;
+}
+
+const nowMs = () =>
+  typeof globalThis !== "undefined" &&
+  globalThis.performance &&
+  typeof globalThis.performance.now === "function"
+    ? globalThis.performance.now()
+    : Date.now();
+
+const formatPerfMs = (value: number) => Number(value.toFixed(3));
 
 function createDefaultAdvancedFilters(defaultChannelId: number | null): StocksAdvancedFilters {
   return {
@@ -326,8 +368,8 @@ function ActionButton({
   onPress?: () => void;
 }) {
   return (
-    <Pressable className={`${bgColor} p-1.5 rounded`} onPress={onPress}>
-      <Ionicons name={icon} size={14} color={iconColor} />
+    <Pressable className={`${bgColor} p-2 rounded-lg`} onPress={onPress}>
+      <Ionicons name={icon} size={iconSize.sm} color={iconColor} />
     </Pressable>
   );
 }
@@ -339,19 +381,23 @@ function ActionButton({
 export default function StocksScreen() {
   const { data: channelRows } = useSyncStream<ChannelOptionRow>(
     "SELECT id, name, is_primary FROM channels ORDER BY name ASC",
-    []
+    [],
+    { deferInteractions: true }
   );
   const { data: brandRows } = useSyncStream<NamedOptionRow>(
     "SELECT id, name FROM brands ORDER BY name ASC",
-    []
+    [],
+    { deferInteractions: true }
   );
   const { data: supplierRows } = useSyncStream<NamedOptionRow>(
     "SELECT id, name FROM suppliers ORDER BY name ASC",
-    []
+    [],
+    { deferInteractions: true }
   );
   const { data: categoryRows } = useSyncStream<NamedOptionRow>(
     "SELECT id, name FROM categories ORDER BY name ASC",
-    []
+    [],
+    { deferInteractions: true }
   );
 
   const defaultChannelId = useMemo(() => {
@@ -371,14 +417,84 @@ export default function StocksScreen() {
   const [searchText, setSearchText] = useState("");
   const [productStatusValues, setProductStatusValues] = useState<string[]>(["1"]);
   const [tablePage, setTablePage] = useState(1);
-  const [isPageLoading, setIsPageLoading] = useState(false);
   const tablePageSize = 10;
+  const paginationPerfRunIdRef = useRef(0);
+  const paginationPerfRef = useRef<StocksPaginationPerfTrace | null>(null);
   const [advancedFilters, setAdvancedFilters] = useState<StocksAdvancedFilters>(
     () => createDefaultAdvancedFilters(null)
   );
   const [advancedFiltersDraft, setAdvancedFiltersDraft] = useState<StocksAdvancedFilters>(
     () => createDefaultAdvancedFilters(null)
   );
+
+  const handleStockQuerySnapshotEnd = useCallback((meta: StocksPerfSnapshotMeta) => {
+    if (!__DEV__) return;
+    const trace = paginationPerfRef.current;
+    if (!trace || trace.completed) return;
+    if (meta.page !== trace.toPage) return;
+    if (!meta.success) return;
+
+    if (meta.phase === "data") {
+      if (trace.dataQueryEndMs != null) return;
+      trace.dataQueryStartMs = meta.startedAtMs;
+      trace.dataQueryEndMs = meta.endedAtMs;
+      trace.dataQueryDurationMs = meta.durationMs;
+      console.log(
+        "[StocksPagePerf]",
+        JSON.stringify({
+          stage: "data_query_end",
+          runId: trace.runId,
+          fromPage: trace.fromPage,
+          toPage: trace.toPage,
+          queryDurationMs: formatPerfMs(meta.durationMs),
+          clickToQueryStartMs: formatPerfMs(meta.startedAtMs - trace.clickMs),
+          clickToQueryEndMs: formatPerfMs(meta.endedAtMs - trace.clickMs),
+          rowCount: meta.rowCount,
+        })
+      );
+      return;
+    }
+
+    if (trace.countQueryEndMs != null) return;
+    trace.countQueryStartMs = meta.startedAtMs;
+    trace.countQueryEndMs = meta.endedAtMs;
+    trace.countQueryDurationMs = meta.durationMs;
+    console.log(
+      "[StocksPagePerf]",
+      JSON.stringify({
+        stage: "count_query_end",
+        runId: trace.runId,
+        fromPage: trace.fromPage,
+        toPage: trace.toPage,
+        queryDurationMs: formatPerfMs(meta.durationMs),
+        clickToQueryStartMs: formatPerfMs(meta.startedAtMs - trace.clickMs),
+        clickToQueryEndMs: formatPerfMs(meta.endedAtMs - trace.clickMs),
+        rowCount: meta.rowCount,
+      })
+    );
+  }, []);
+
+  const handleDataTableRenderPerf = useCallback((metrics: DataTableRenderPerfMetrics) => {
+    if (!__DEV__) return;
+    const trace = paginationPerfRef.current;
+    if (!trace || trace.completed) return;
+    if (metrics.currentPage !== trace.toPage) return;
+    trace.dataTableRenderSnapshot = metrics;
+    console.log(
+      "[StocksPagePerf]",
+      JSON.stringify({
+        stage: "datatable_render",
+        runId: trace.runId,
+        fromPage: trace.fromPage,
+        toPage: trace.toPage,
+        clickToDataTableRenderMs: formatPerfMs(metrics.timestampMs - trace.clickMs),
+        processedDataMs: metrics.processedDataMs,
+        paginatedDataMs: metrics.paginatedDataMs,
+        rowsBuildMs: metrics.rowsBuildMs,
+        renderBuildMs: metrics.renderBuildMs,
+      })
+    );
+  }, []);
 
   const queryFilters = useMemo<StocksQueryFilters>(
     () => ({
@@ -396,23 +512,195 @@ export default function StocksScreen() {
     }),
     [advancedFilters, productStatusValues, searchText]
   );
+  const stockPerfCallbacks = useMemo<StocksPerfCallbacks>(
+    () => ({
+      onQuerySnapshotEnd: handleStockQuerySnapshotEnd,
+    }),
+    [handleStockQuerySnapshotEnd]
+  );
 
-  const { stocks, isLoading, isStreaming, refresh, count } = useStocks(queryFilters, {
-    page: tablePage,
-    pageSize: tablePageSize,
-  });
+  const { stocks, isLoading, isStreaming, refresh, count } = useStocks(
+    queryFilters,
+    {
+      page: tablePage,
+      pageSize: tablePageSize,
+    },
+    stockPerfCallbacks,
+    { deferInteractions: true }
+  );
 
   useEffect(() => {
     setTablePage(1);
-    setIsPageLoading(false);
   }, [queryFilters]);
 
   useEffect(() => {
-    if (!isPageLoading) return;
-    if (!isLoading) {
-      setIsPageLoading(false);
-    }
-  }, [isPageLoading, isLoading]);
+    if (!__DEV__) return;
+    const trace = paginationPerfRef.current;
+    if (!trace || trace.completed) return;
+    if (trace.toPage !== tablePage) return;
+    if (isLoading) return;
+    if (trace.screenDataBoundMs != null) return;
+
+    trace.screenDataBoundMs = nowMs();
+    const dataQueryToScreenMs =
+      trace.dataQueryEndMs == null ? null : trace.screenDataBoundMs - trace.dataQueryEndMs;
+    console.log(
+      "[StocksPagePerf]",
+      JSON.stringify({
+        stage: "screen_data_bound",
+        runId: trace.runId,
+        fromPage: trace.fromPage,
+        toPage: trace.toPage,
+        clickToScreenDataBoundMs: formatPerfMs(trace.screenDataBoundMs - trace.clickMs),
+        dataQueryToScreenMs:
+          dataQueryToScreenMs == null ? null : formatPerfMs(dataQueryToScreenMs),
+        rows: stocks.length,
+      })
+    );
+  }, [isLoading, stocks, tablePage]);
+
+  useEffect(() => {
+    if (!__DEV__) return;
+    const trace = paginationPerfRef.current;
+    if (!trace || trace.completed) return;
+    if (trace.loadingStartMs != null) return;
+    if (!isLoading) return;
+    trace.loadingStartMs = nowMs();
+    console.log(
+      "[StocksPagePerf]",
+      JSON.stringify({
+        stage: "loading_start",
+        runId: trace.runId,
+        fromPage: trace.fromPage,
+        toPage: trace.toPage,
+        clickToLoadingMs: formatPerfMs(trace.loadingStartMs - trace.clickMs),
+      })
+    );
+  }, [isLoading]);
+
+  useEffect(() => {
+    if (!__DEV__) return;
+    const trace = paginationPerfRef.current;
+    if (!trace || trace.completed) return;
+    if (trace.toPage !== tablePage) return;
+    if (isLoading) return;
+    if (trace.dataReadyMs != null) return;
+
+    trace.dataReadyMs = nowMs();
+    const clickToDataReadyMs = trace.dataReadyMs - trace.clickMs;
+    const loadingToDataReadyMs =
+      trace.loadingStartMs != null ? trace.dataReadyMs - trace.loadingStartMs : null;
+    const firstRow = stocks[0];
+
+    console.log(
+      "[StocksPagePerf]",
+      JSON.stringify({
+        stage: "data_ready",
+        runId: trace.runId,
+        fromPage: trace.fromPage,
+        toPage: trace.toPage,
+        rows: stocks.length,
+        totalCount: count,
+        firstRowId: firstRow?.id ?? null,
+        firstRowSku: firstRow?.sku ?? null,
+        clickToDataReadyMs: formatPerfMs(clickToDataReadyMs),
+        loadingToDataReadyMs:
+          loadingToDataReadyMs == null ? null : formatPerfMs(loadingToDataReadyMs),
+      })
+    );
+
+    requestAnimationFrame(() => {
+      const activeTrace = paginationPerfRef.current;
+      if (!activeTrace || activeTrace.runId !== trace.runId || activeTrace.completed) return;
+      activeTrace.frameMs = nowMs();
+      const clickToFrameMs = activeTrace.frameMs - activeTrace.clickMs;
+      const dataReadyToFrameMs = activeTrace.frameMs - (activeTrace.dataReadyMs ?? activeTrace.clickMs);
+
+      InteractionManager.runAfterInteractions(() => {
+        const finalTrace = paginationPerfRef.current;
+        if (!finalTrace || finalTrace.runId !== trace.runId || finalTrace.completed) return;
+        finalTrace.interactionsMs = nowMs();
+        finalTrace.completed = true;
+
+        const clickToInteractionsMs = finalTrace.interactionsMs - finalTrace.clickMs;
+        const frameToInteractionsMs =
+          finalTrace.frameMs == null ? null : finalTrace.interactionsMs - finalTrace.frameMs;
+        const loadingToDataReadyFinalMs =
+          finalTrace.loadingStartMs == null || finalTrace.dataReadyMs == null
+            ? null
+            : finalTrace.dataReadyMs - finalTrace.loadingStartMs;
+        const screenToDataTableRenderMs =
+          finalTrace.screenDataBoundMs == null || !finalTrace.dataTableRenderSnapshot
+            ? null
+            : finalTrace.dataTableRenderSnapshot.timestampMs - finalTrace.screenDataBoundMs;
+        const dataQueryToScreenMs =
+          finalTrace.dataQueryEndMs == null || finalTrace.screenDataBoundMs == null
+            ? null
+            : finalTrace.screenDataBoundMs - finalTrace.dataQueryEndMs;
+        const clickToDataQueryEndMs =
+          finalTrace.dataQueryEndMs == null
+            ? null
+            : finalTrace.dataQueryEndMs - finalTrace.clickMs;
+        const clickToCountQueryEndMs =
+          finalTrace.countQueryEndMs == null
+            ? null
+            : finalTrace.countQueryEndMs - finalTrace.clickMs;
+
+        console.log(
+          "[StocksPagePerf][final]",
+          JSON.stringify({
+            runId: finalTrace.runId,
+            fromPage: finalTrace.fromPage,
+            toPage: finalTrace.toPage,
+            rows: stocks.length,
+            totalCount: count,
+            clickToDataReadyMs: formatPerfMs(
+              (finalTrace.dataReadyMs ?? finalTrace.clickMs) - finalTrace.clickMs
+            ),
+            loadingToDataReadyMs:
+              loadingToDataReadyFinalMs == null
+                ? null
+                : formatPerfMs(loadingToDataReadyFinalMs),
+            dataQueryDurationMs:
+              finalTrace.dataQueryDurationMs == null
+                ? null
+                : formatPerfMs(finalTrace.dataQueryDurationMs),
+            clickToDataQueryEndMs:
+              clickToDataQueryEndMs == null ? null : formatPerfMs(clickToDataQueryEndMs),
+            countQueryDurationMs:
+              finalTrace.countQueryDurationMs == null
+                ? null
+                : formatPerfMs(finalTrace.countQueryDurationMs),
+            clickToCountQueryEndMs:
+              clickToCountQueryEndMs == null ? null : formatPerfMs(clickToCountQueryEndMs),
+            clickToScreenDataBoundMs:
+              finalTrace.screenDataBoundMs == null
+                ? null
+                : formatPerfMs(finalTrace.screenDataBoundMs - finalTrace.clickMs),
+            dataQueryToScreenMs:
+              dataQueryToScreenMs == null ? null : formatPerfMs(dataQueryToScreenMs),
+            screenToDataTableRenderMs:
+              screenToDataTableRenderMs == null ? null : formatPerfMs(screenToDataTableRenderMs),
+            clickToFrameMs: formatPerfMs(clickToFrameMs),
+            dataReadyToFrameMs: formatPerfMs(dataReadyToFrameMs),
+            clickToInteractionsMs: formatPerfMs(clickToInteractionsMs),
+            frameToInteractionsMs:
+              frameToInteractionsMs == null ? null : formatPerfMs(frameToInteractionsMs),
+            dataTableProcessedDataMs:
+              finalTrace.dataTableRenderSnapshot?.processedDataMs ?? null,
+            dataTablePaginatedDataMs:
+              finalTrace.dataTableRenderSnapshot?.paginatedDataMs ?? null,
+            dataTableRowsBuildMs:
+              finalTrace.dataTableRenderSnapshot?.rowsBuildMs ?? null,
+            dataTableRenderBuildMs:
+              finalTrace.dataTableRenderSnapshot?.renderBuildMs ?? null,
+          })
+        );
+
+        paginationPerfRef.current = null;
+      });
+    });
+  }, [count, isLoading, stocks, tablePage]);
 
   const lastCompareLogRef = useRef<string>("");
   const activeCompareCase = useMemo(
@@ -823,7 +1111,7 @@ export default function StocksScreen() {
         visible: true,
         render: () => (
           <View className="w-12 h-12 rounded bg-gray-100 items-center justify-center">
-            <Ionicons name="cube-outline" size={20} color="#9ca3af" />
+            <Ionicons name="cube-outline" size={iconSize.base} color={colors.textTertiary} />
           </View>
         ),
       },
@@ -980,8 +1268,8 @@ export default function StocksScreen() {
           <View className="flex-row items-center justify-center gap-1">
             <ActionButton
               icon="pencil"
-              iconColor="#3b82f6"
-              bgColor="bg-blue-100"
+              iconColor={colors.primary}
+              bgColor="bg-red-50"
               onPress={() => handleEdit(item)}
             />
           </View>
@@ -1079,7 +1367,27 @@ export default function StocksScreen() {
     const normalizedPage = Math.max(1, Math.floor(nextPage || 1));
     setTablePage((prev) => {
       if (prev === normalizedPage) return prev;
-      setIsPageLoading(true);
+      if (__DEV__) {
+        const runId = paginationPerfRunIdRef.current + 1;
+        paginationPerfRunIdRef.current = runId;
+        const clickMs = nowMs();
+        paginationPerfRef.current = {
+          runId,
+          fromPage: prev,
+          toPage: normalizedPage,
+          clickMs,
+        };
+        console.log(
+          "[StocksPagePerf]",
+          JSON.stringify({
+            stage: "click",
+            runId,
+            fromPage: prev,
+            toPage: normalizedPage,
+            clickMs: formatPerfMs(clickMs),
+          })
+        );
+      }
       return normalizedPage;
     });
   }, []);
@@ -1135,10 +1443,10 @@ export default function StocksScreen() {
     <View>
       <Text 
         style={{ 
-          fontSize: 24, 
-          fontWeight: "600", 
+          fontSize: fontSize['2xl'], 
+          fontWeight: fw.semibold, 
           fontFamily: "Montserrat", 
-          color: "#1A1A1A",
+          color: colors.text,
           marginBottom: 16, 
         }}
       >
@@ -1201,9 +1509,9 @@ export default function StocksScreen() {
             <Text className="text-xs font-medium text-gray-700 mb-1">Zone</Text>
             <TextInput
               className="bg-gray-50 border border-gray-200 rounded-lg px-3"
-              style={{ height: 40, fontSize: 14 }}
+              style={{ height: 40, fontSize: fontSize.base }}
               placeholder="Search Zone"
-              placeholderTextColor="#9ca3af"
+              placeholderTextColor={colors.textTertiary}
               value={advancedFiltersDraft.searchZone}
               onChangeText={(value) =>
                 setAdvancedFiltersDraft((prev) => ({ ...prev, searchZone: value }))
@@ -1214,9 +1522,9 @@ export default function StocksScreen() {
             <Text className="text-xs font-medium text-gray-700 mb-1">Aisle</Text>
             <TextInput
               className="bg-gray-50 border border-gray-200 rounded-lg px-3"
-              style={{ height: 40, fontSize: 14 }}
+              style={{ height: 40, fontSize: fontSize.base }}
               placeholder="Search Aisle"
-              placeholderTextColor="#9ca3af"
+              placeholderTextColor={colors.textTertiary}
               value={advancedFiltersDraft.searchAisle}
               onChangeText={(value) =>
                 setAdvancedFiltersDraft((prev) => ({ ...prev, searchAisle: value }))
@@ -1229,9 +1537,9 @@ export default function StocksScreen() {
           <Text className="text-xs font-medium text-gray-700 mb-1">Bin</Text>
           <TextInput
             className="bg-gray-50 border border-gray-200 rounded-lg px-3"
-            style={{ height: 40, fontSize: 14 }}
+            style={{ height: 40, fontSize: fontSize.base }}
             placeholder="Search by Bin"
-            placeholderTextColor="#9ca3af"
+            placeholderTextColor={colors.textTertiary}
             value={advancedFiltersDraft.searchBin}
             onChangeText={(value) =>
               setAdvancedFiltersDraft((prev) => ({ ...prev, searchBin: value }))
@@ -1269,7 +1577,7 @@ export default function StocksScreen() {
           <Text className="text-gray-700 font-medium">Clear Filter</Text>
         </Pressable>
         <Pressable
-          className="rounded-lg bg-blue-500 items-center justify-center"
+          className="rounded-lg bg-[#EC1A52] items-center justify-center"
           style={{ width: "49%", height: 40 }}
           onPress={applyAdvancedFilters}
         >
@@ -1295,8 +1603,35 @@ export default function StocksScreen() {
       <PageHeader title="Stocks" showBack={false} />
 
       {!filtersReady ? (
-        <View className="flex-1 items-center justify-center">
-          <ActivityIndicator size="large" color="#3b82f6" />
+        <View style={{ flex: 1, padding: 16 }}>
+          {/* Skeleton search bar */}
+          <View style={{ flexDirection: "row", gap: 8, marginBottom: 12 }}>
+            <View style={{ flex: 1, height: 44, backgroundColor: colors.background, borderRadius: 8, borderWidth: 1, borderColor: colors.border }} />
+            <View style={{ width: 100, height: 44, backgroundColor: colors.background, borderRadius: 8, borderWidth: 1, borderColor: colors.border }} />
+          </View>
+          {/* Skeleton table */}
+          <View style={{ flex: 1, backgroundColor: colors.background, borderRadius: 12, borderWidth: 1, borderColor: colors.border, overflow: "hidden" }}>
+            {/* Header row */}
+            <View style={{ flexDirection: "row", borderBottomWidth: 1, borderBottomColor: colors.border, paddingVertical: 14, paddingHorizontal: 12 }}>
+              {[120, 80, 60, 100, 60, 60, 60].map((w, i) => (
+                <View key={i} style={{ width: w, height: 14, backgroundColor: colors.backgroundSecondary, borderRadius: 4, marginHorizontal: 8 }} />
+              ))}
+            </View>
+            {/* Data rows */}
+            {Array.from({ length: 10 }).map((_, i) => (
+              <View key={i} style={{ flexDirection: "row", borderBottomWidth: 1, borderBottomColor: colors.backgroundLight, paddingVertical: 18, paddingHorizontal: 12 }}>
+                {[120, 80, 60, 100, 60, 60, 60].map((w, j) => (
+                  <View key={j} style={{ width: w, height: 12, backgroundColor: i % 2 === 0 ? colors.backgroundLight : colors.backgroundSecondary, borderRadius: 4, marginHorizontal: 8 }} />
+                ))}
+              </View>
+            ))}
+          </View>
+          {/* Skeleton pagination */}
+          <View style={{ flexDirection: "row", justifyContent: "center", alignItems: "center", marginTop: 12, gap: 8 }}>
+            <View style={{ width: 80, height: 32, backgroundColor: colors.backgroundSecondary, borderRadius: 6 }} />
+            <View style={{ width: 40, height: 32, backgroundColor: colors.border, borderRadius: 6 }} />
+            <View style={{ width: 80, height: 32, backgroundColor: colors.backgroundSecondary, borderRadius: 6 }} />
+          </View>
         </View>
       ) : (
         <>
@@ -1339,7 +1674,7 @@ export default function StocksScreen() {
             onBulkActionPress={handleBulkEditOpen}
             selectedRowKeys={selectedRowKeys}
             onSelectionChange={handleSelectionChange}
-            isLoading={isLoading || isPageLoading}
+            isLoading={isLoading}
             isStreaming={isStreaming}
             onRefresh={refresh}
             emptyIcon="cube-outline"
@@ -1349,6 +1684,7 @@ export default function StocksScreen() {
             currentPage={tablePage}
             pageSize={tablePageSize}
             onPageChange={handleTablePageChange}
+            onRenderPerf={handleDataTableRenderPerf}
             horizontalScroll
             minWidth={2400}
           />
@@ -1371,13 +1707,13 @@ export default function StocksScreen() {
                 </Text>
               </View>
               <Pressable onPress={closeSingleEditModal} disabled={singleEditSubmitting}>
-                <Ionicons name="close" size={24} color="#9ca3af" />
+                <Ionicons name="close" size={iconSize.xl} color={colors.textTertiary} />
               </Pressable>
             </View>
 
             {singleEditLoading ? (
               <View className="py-8 items-center justify-center">
-                <ActivityIndicator size="large" color="#3b82f6" />
+                <ActivityIndicator size="large" color={colors.info} />
               </View>
             ) : (
               <ScrollView style={{ maxHeight: "68%" }} showsVerticalScrollIndicator={false}>
@@ -1428,7 +1764,7 @@ export default function StocksScreen() {
                         <View
                           key={row.key}
                           className="py-2"
-                          style={index < singleEditRows.length - 1 ? { borderBottomWidth: 1, borderBottomColor: "#f3f4f6" } : undefined}
+                          style={index < singleEditRows.length - 1 ? { borderBottomWidth: 1, borderBottomColor: colors.backgroundSecondary } : undefined}
                         >
                           <View className="flex-row items-start">
                             <View style={{ width: 220, paddingRight: 8 }}>
@@ -1438,16 +1774,22 @@ export default function StocksScreen() {
                             </View>
 
                             <View style={{ width: 150, paddingRight: 8 }}>
-                              <View className="h-10 rounded border border-gray-200 flex-row items-center bg-white overflow-hidden">
+                              <View
+                                className="h-10 rounded border border-gray-200 flex-row items-center overflow-hidden"
+                                style={singleEditSubmitting ? { backgroundColor: colors.backgroundSecondary, borderColor: colors.borderMedium } : { backgroundColor: colors.background }}
+                              >
                                 <TextInput
                                   className="flex-1 px-2"
                                   keyboardType="number-pad"
                                   value={singleEditMap[row.key]?.availableQty ?? String(row.availableQty)}
                                   onChangeText={(value) => updateSingleEditValue(row.key, "availableQty", value)}
                                   placeholder="Available QTY"
-                                  placeholderTextColor="#9ca3af"
+                                  placeholderTextColor={singleEditSubmitting ? "#B8BEC8" : colors.textTertiary}
                                   selectTextOnFocus
-                                  style={qtyInputTextStyle}
+                                  style={[
+                                    qtyInputTextStyle,
+                                    singleEditSubmitting ? { color: colors.textTertiary } : null,
+                                  ]}
                                   editable={!singleEditSubmitting}
                                 />
                                 <View className="h-full px-2 border-l border-gray-200 bg-gray-50 justify-center">
@@ -1474,16 +1816,22 @@ export default function StocksScreen() {
                             </View>
 
                             <View style={{ width: 145, paddingRight: 8 }}>
-                              <View className="h-10 rounded border border-gray-200 flex-row items-center bg-white overflow-hidden">
+                              <View
+                                className="h-10 rounded border border-gray-200 flex-row items-center overflow-hidden"
+                                style={singleEditSubmitting ? { backgroundColor: colors.backgroundSecondary, borderColor: colors.borderMedium } : { backgroundColor: colors.background }}
+                              >
                                 <TextInput
                                   className="flex-1 px-2"
                                   keyboardType="number-pad"
                                   value={singleEditMap[row.key]?.damagedQty ?? String(row.damagedQty)}
                                   onChangeText={(value) => updateSingleEditValue(row.key, "damagedQty", value)}
                                   placeholder="Damaged"
-                                  placeholderTextColor="#9ca3af"
+                                  placeholderTextColor={singleEditSubmitting ? "#B8BEC8" : colors.textTertiary}
                                   selectTextOnFocus
-                                  style={qtyInputTextStyle}
+                                  style={[
+                                    qtyInputTextStyle,
+                                    singleEditSubmitting ? { color: colors.textTertiary } : null,
+                                  ]}
                                   editable={!singleEditSubmitting}
                                 />
                                 <View className="h-full px-2 border-l border-gray-200 bg-gray-50 justify-center">
@@ -1524,16 +1872,22 @@ export default function StocksScreen() {
                             </View>
 
                             <View style={{ width: 145, paddingRight: 8 }}>
-                              <View className="h-10 rounded border border-gray-200 flex-row items-center bg-white overflow-hidden">
+                              <View
+                                className="h-10 rounded border border-gray-200 flex-row items-center overflow-hidden"
+                                style={singleEditSubmitting ? { backgroundColor: colors.backgroundSecondary, borderColor: colors.borderMedium } : { backgroundColor: colors.background }}
+                              >
                                 <TextInput
                                   className="flex-1 px-2"
                                   keyboardType="number-pad"
                                   value={singleEditMap[row.key]?.minQty ?? String(row.minQty)}
                                   onChangeText={(value) => updateSingleEditValue(row.key, "minQty", value)}
                                   placeholder="Minimum"
-                                  placeholderTextColor="#9ca3af"
+                                  placeholderTextColor={singleEditSubmitting ? "#B8BEC8" : colors.textTertiary}
                                   selectTextOnFocus
-                                  style={qtyInputTextStyle}
+                                  style={[
+                                    qtyInputTextStyle,
+                                    singleEditSubmitting ? { color: colors.textTertiary } : null,
+                                  ]}
                                   editable={!singleEditSubmitting}
                                 />
                                 <View className="h-full px-2 border-l border-gray-200 bg-gray-50 justify-center">
@@ -1543,16 +1897,22 @@ export default function StocksScreen() {
                             </View>
 
                             <View style={{ width: 145 }}>
-                              <View className="h-10 rounded border border-gray-200 flex-row items-center bg-white overflow-hidden">
+                              <View
+                                className="h-10 rounded border border-gray-200 flex-row items-center overflow-hidden"
+                                style={singleEditSubmitting ? { backgroundColor: colors.backgroundSecondary, borderColor: colors.borderMedium } : { backgroundColor: colors.background }}
+                              >
                                 <TextInput
                                   className="flex-1 px-2"
                                   keyboardType="number-pad"
                                   value={singleEditMap[row.key]?.maxQty ?? String(row.maxQty)}
                                   onChangeText={(value) => updateSingleEditValue(row.key, "maxQty", value)}
                                   placeholder="Maximum"
-                                  placeholderTextColor="#9ca3af"
+                                  placeholderTextColor={singleEditSubmitting ? "#B8BEC8" : colors.textTertiary}
                                   selectTextOnFocus
-                                  style={qtyInputTextStyle}
+                                  style={[
+                                    qtyInputTextStyle,
+                                    singleEditSubmitting ? { color: colors.textTertiary } : null,
+                                  ]}
                                   editable={!singleEditSubmitting}
                                 />
                                 <View className="h-full px-2 border-l border-gray-200 bg-gray-50 justify-center">
@@ -1571,14 +1931,16 @@ export default function StocksScreen() {
 
             <View className="flex-row justify-end mt-4 gap-2">
               <Pressable
-                className="px-4 py-2 rounded-lg bg-gray-100"
+                className="px-4 rounded-lg bg-gray-100 items-center justify-center"
+                style={{ height: 40 }}
                 onPress={closeSingleEditModal}
                 disabled={singleEditSubmitting}
               >
                 <Text className="text-gray-700 font-medium">Close</Text>
               </Pressable>
               <Pressable
-                className="px-4 py-2 rounded-lg bg-blue-500 min-w-24 items-center"
+                className="px-4 rounded-lg bg-[#EC1A52] min-w-24 items-center justify-center"
+                style={{ height: 40 }}
                 onPress={handleSingleEditSubmit}
                 disabled={singleEditSubmitting || singleEditLoading}
               >
@@ -1605,13 +1967,13 @@ export default function StocksScreen() {
             <View className="px-6 py-4 border-b border-gray-100">
               <View className="flex-row items-start justify-between">
                 <View className="flex-1">
-                  <Text style={{ fontSize: 20, fontWeight: '700', color: '#1F2937', fontFamily: 'Montserrat', marginBottom: 6 }}>
+                  <Text style={{ fontSize: fontSize['2xl'], fontWeight: fw.bold, color: colors.textDark, fontFamily: 'Montserrat', marginBottom: 6 }}>
                     Bulk Edit Stock
                   </Text>
-                  <Text style={{ fontSize: 13, color: '#6B7280', marginTop: 4, fontFamily: 'Montserrat' }}>
+                  <Text style={{ fontSize: fontSize.md, color: colors.textSecondary, marginTop: 4, fontFamily: 'Montserrat' }}>
                     Please note that stock changes on this screen apply to unit: PIECE.
                   </Text>
-                  <Text style={{ fontSize: 13, color: '#6B7280', marginTop: 2, fontFamily: 'Montserrat' }}>
+                  <Text style={{ fontSize: fontSize.md, color: colors.textSecondary, marginTop: 2, fontFamily: 'Montserrat' }}>
                     Channel: {bulkRows[0]?.channelName || "-"} | Selected: {bulkRows.length}
                   </Text>
                 </View>
@@ -1620,7 +1982,7 @@ export default function StocksScreen() {
                   className="p-1"
                   hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
                 >
-                  <Ionicons name="close" size={22} color="#9CA3AF" />
+                  <Ionicons name="close" size={iconSize.lg} color={colors.textTertiary} />
                 </Pressable>
               </View>
             </View>
@@ -1632,25 +1994,25 @@ export default function StocksScreen() {
                   {/* Table Header */}
                   <View className="flex-row items-center bg-gray-50 border-b border-gray-200 px-4 py-3">
                     <View style={{ width: 180 }}>
-                      <Text style={{ fontSize: 13, fontWeight: '500', color: '#6B7280', fontFamily: 'Montserrat' }}>Products</Text>
+                      <Text style={{ fontSize: fontSize.md, fontWeight: fw.medium, color: colors.textSecondary, fontFamily: 'Montserrat' }}>Products</Text>
                     </View>
                     <View style={{ width: 140 }}>
-                      <Text style={{ fontSize: 13, fontWeight: '500', color: '#6B7280', fontFamily: 'Montserrat' }}>Available Qty</Text>
+                      <Text style={{ fontSize: fontSize.md, fontWeight: fw.medium, color: colors.textSecondary, fontFamily: 'Montserrat' }}>Available Qty</Text>
                     </View>
                     <View style={{ width: 140 }}>
-                      <Text style={{ fontSize: 13, fontWeight: '500', color: '#6B7280', fontFamily: 'Montserrat' }}>Damaged Qty</Text>
+                      <Text style={{ fontSize: fontSize.md, fontWeight: fw.medium, color: colors.textSecondary, fontFamily: 'Montserrat' }}>Damaged Qty</Text>
                     </View>
                     <View style={{ width: 130 }}>
-                      <Text style={{ fontSize: 13, fontWeight: '500', color: '#6B7280', fontFamily: 'Montserrat' }}>On Hold Qty</Text>
+                      <Text style={{ fontSize: fontSize.md, fontWeight: fw.medium, color: colors.textSecondary, fontFamily: 'Montserrat' }}>On Hold Qty</Text>
                     </View>
                     <View style={{ width: 140 }}>
-                      <Text style={{ fontSize: 13, fontWeight: '500', color: '#6B7280', fontFamily: 'Montserrat' }}>Back Order Qty</Text>
+                      <Text style={{ fontSize: fontSize.md, fontWeight: fw.medium, color: colors.textSecondary, fontFamily: 'Montserrat' }}>Back Order Qty</Text>
                     </View>
                     <View style={{ width: 180 }}>
-                      <Text style={{ fontSize: 13, fontWeight: '500', color: '#6B7280', fontFamily: 'Montserrat' }}>Delivered Without Stock</Text>
+                      <Text style={{ fontSize: fontSize.md, fontWeight: fw.medium, color: colors.textSecondary, fontFamily: 'Montserrat' }}>Delivered Without Stock</Text>
                     </View>
                     <View style={{ width: 120 }}>
-                      <Text style={{ fontSize: 13, fontWeight: '500', color: '#6B7280', fontFamily: 'Montserrat' }}>Channel Name</Text>
+                      <Text style={{ fontSize: fontSize.md, fontWeight: fw.medium, color: colors.textSecondary, fontFamily: 'Montserrat' }}>Channel Name</Text>
                     </View>
                   </View>
 
@@ -1671,16 +2033,16 @@ export default function StocksScreen() {
                         className="flex-row items-center px-4 py-3"
                         style={{ 
                           borderBottomWidth: index < bulkRows.length - 1 ? 1 : 0, 
-                          borderBottomColor: "#F3F4F6",
-                          backgroundColor: index % 2 === 1 ? '#FAFAFA' : '#FFFFFF'
+                          borderBottomColor: colors.backgroundSecondary,
+                          backgroundColor: index % 2 === 1 ? colors.backgroundLight : colors.background
                         }}
                       >
                         {/* Product Name */}
                         <View style={{ width: 180 }}>
-                          <Text style={{ fontSize: 14, fontWeight: '500', color: '#1F2937', fontFamily: 'Montserrat' }} numberOfLines={1}>
+                          <Text style={{ fontSize: fontSize.base, fontWeight: fw.medium, color: colors.textDark, fontFamily: 'Montserrat' }} numberOfLines={1}>
                             {row.productName || "-"}
                           </Text>
-                          <Text style={{ fontSize: 12, color: '#9CA3AF', marginTop: 2, fontFamily: 'Montserrat' }} numberOfLines={1}>
+                          <Text style={{ fontSize: fontSize.md, color: colors.textTertiary, marginTop: 2, fontFamily: 'Montserrat' }} numberOfLines={1}>
                             {row.sku || "-"}/{row.upc || "-"}
                           </Text>
                         </View>
@@ -1692,9 +2054,9 @@ export default function StocksScreen() {
                               height: 36, 
                               width: 70, 
                               borderWidth: 1, 
-                              borderColor: '#E5E7EB', 
+                              borderColor: colors.border, 
                               borderRadius: 4,
-                              backgroundColor: '#FFFFFF',
+                              backgroundColor: colors.background,
                               justifyContent: 'center',
                             }}>
                               <TextInput
@@ -1702,21 +2064,21 @@ export default function StocksScreen() {
                                 value={bulkEditMap[row.id]?.availableQty ?? String(row.availableQty ?? 0)}
                                 onChangeText={(value) => updateBulkValue(row.id, "availableQty", value)}
                                 placeholder="0"
-                                placeholderTextColor="#D1D5DB"
+                                placeholderTextColor={colors.borderMedium}
                                 selectTextOnFocus
                                 style={{ 
-                                  fontSize: 14, 
-                                  color: '#1F2937', 
+                                  fontSize: fontSize.base, 
+                                  color: colors.textDark, 
                                   textAlign: 'center',
                                   fontFamily: 'Montserrat',
                                   paddingHorizontal: 8,
                                 }}
                               />
                             </View>
-                            <Text style={{ fontSize: 13, color: '#9CA3AF', marginLeft: 8, fontFamily: 'Montserrat' }}>Piece</Text>
+                            <Text style={{ fontSize: fontSize.md, color: colors.textTertiary, marginLeft: 8, fontFamily: 'Montserrat' }}>Piece</Text>
                           </View>
                           {showPreview && (
-                            <Text style={{ fontSize: 11, color: '#6B7280', fontStyle: 'italic', marginTop: 4 }}>
+                            <Text style={{ fontSize: fontSize.md, color: colors.textSecondary, fontStyle: 'italic', marginTop: 4 }}>
                               New: {preview.new_inhand_qty}
                             </Text>
                           )}
@@ -1729,9 +2091,9 @@ export default function StocksScreen() {
                               height: 36, 
                               width: 70, 
                               borderWidth: 1, 
-                              borderColor: '#E5E7EB', 
+                              borderColor: colors.border, 
                               borderRadius: 4,
-                              backgroundColor: '#FFFFFF',
+                              backgroundColor: colors.background,
                               justifyContent: 'center',
                             }}>
                               <TextInput
@@ -1739,18 +2101,18 @@ export default function StocksScreen() {
                                 value={bulkEditMap[row.id]?.damagedQty ?? String(row.damagedQty ?? 0)}
                                 onChangeText={(value) => updateBulkValue(row.id, "damagedQty", value)}
                                 placeholder="0"
-                                placeholderTextColor="#D1D5DB"
+                                placeholderTextColor={colors.borderMedium}
                                 selectTextOnFocus
                                 style={{ 
-                                  fontSize: 14, 
-                                  color: '#1F2937', 
+                                  fontSize: fontSize.base, 
+                                  color: colors.textDark, 
                                   textAlign: 'center',
                                   fontFamily: 'Montserrat',
                                   paddingHorizontal: 8,
                                 }}
                               />
                             </View>
-                            <Text style={{ fontSize: 13, color: '#9CA3AF', marginLeft: 8, fontFamily: 'Montserrat' }}>Piece</Text>
+                            <Text style={{ fontSize: fontSize.md, color: colors.textTertiary, marginLeft: 8, fontFamily: 'Montserrat' }}>Piece</Text>
                           </View>
                         </View>
 
@@ -1761,20 +2123,20 @@ export default function StocksScreen() {
                               height: 36, 
                               width: 70, 
                               borderWidth: 1, 
-                              borderColor: '#E5E7EB', 
+                              borderColor: colors.border, 
                               borderRadius: 4,
-                              backgroundColor: '#F9FAFB',
+                              backgroundColor: colors.backgroundLight,
                               justifyContent: 'center',
                               alignItems: 'center',
                             }}>
-                              <Text style={{ fontSize: 14, color: '#6B7280', fontFamily: 'Montserrat' }}>
+                              <Text style={{ fontSize: fontSize.base, color: colors.textSecondary, fontFamily: 'Montserrat' }}>
                                 {row.onHoldQty ?? 0}
                               </Text>
                             </View>
-                            <Text style={{ fontSize: 13, color: '#9CA3AF', marginLeft: 8, fontFamily: 'Montserrat' }}>Piece</Text>
+                            <Text style={{ fontSize: fontSize.md, color: colors.textTertiary, marginLeft: 8, fontFamily: 'Montserrat' }}>Piece</Text>
                           </View>
                           {showPreview && (
-                            <Text style={{ fontSize: 11, color: '#6B7280', fontStyle: 'italic', marginTop: 4 }}>
+                            <Text style={{ fontSize: fontSize.md, color: colors.textSecondary, fontStyle: 'italic', marginTop: 4 }}>
                               New: {preview.new_onHold_qty}
                             </Text>
                           )}
@@ -1787,20 +2149,20 @@ export default function StocksScreen() {
                               height: 36, 
                               width: 70, 
                               borderWidth: 1, 
-                              borderColor: '#E5E7EB', 
+                              borderColor: colors.border, 
                               borderRadius: 4,
-                              backgroundColor: '#F9FAFB',
+                              backgroundColor: colors.backgroundLight,
                               justifyContent: 'center',
                               alignItems: 'center',
                             }}>
-                              <Text style={{ fontSize: 14, color: '#6B7280', fontFamily: 'Montserrat' }}>
+                              <Text style={{ fontSize: fontSize.base, color: colors.textSecondary, fontFamily: 'Montserrat' }}>
                                 {row.backOrderQty ?? 0}
                               </Text>
                             </View>
-                            <Text style={{ fontSize: 13, color: '#9CA3AF', marginLeft: 8, fontFamily: 'Montserrat' }}>Piece</Text>
+                            <Text style={{ fontSize: fontSize.md, color: colors.textTertiary, marginLeft: 8, fontFamily: 'Montserrat' }}>Piece</Text>
                           </View>
                           {showPreview && (
-                            <Text style={{ fontSize: 11, color: '#6B7280', fontStyle: 'italic', marginTop: 4 }}>
+                            <Text style={{ fontSize: fontSize.md, color: colors.textSecondary, fontStyle: 'italic', marginTop: 4 }}>
                               New: {preview.new_bo_qty}
                             </Text>
                           )}
@@ -1813,20 +2175,20 @@ export default function StocksScreen() {
                               height: 36, 
                               width: 70, 
                               borderWidth: 1, 
-                              borderColor: '#E5E7EB', 
+                              borderColor: colors.border, 
                               borderRadius: 4,
-                              backgroundColor: '#F9FAFB',
+                              backgroundColor: colors.backgroundLight,
                               justifyContent: 'center',
                               alignItems: 'center',
                             }}>
-                              <Text style={{ fontSize: 14, color: '#6B7280', fontFamily: 'Montserrat' }}>
+                              <Text style={{ fontSize: fontSize.base, color: colors.textSecondary, fontFamily: 'Montserrat' }}>
                                 {row.deliveredWithoutStockQty ?? 0}
                               </Text>
                             </View>
-                            <Text style={{ fontSize: 13, color: '#9CA3AF', marginLeft: 8, fontFamily: 'Montserrat' }}>Piece</Text>
+                            <Text style={{ fontSize: fontSize.md, color: colors.textTertiary, marginLeft: 8, fontFamily: 'Montserrat' }}>Piece</Text>
                           </View>
                           {showPreview && (
-                            <Text style={{ fontSize: 11, color: '#6B7280', fontStyle: 'italic', marginTop: 4 }}>
+                            <Text style={{ fontSize: fontSize.md, color: colors.textSecondary, fontStyle: 'italic', marginTop: 4 }}>
                               New: {preview.new_hold_free_shipment}
                             </Text>
                           )}
@@ -1834,7 +2196,7 @@ export default function StocksScreen() {
 
                         {/* Channel Name */}
                         <View style={{ width: 120 }}>
-                          <Text style={{ fontSize: 14, color: '#1F2937', fontFamily: 'Montserrat' }} numberOfLines={1}>
+                          <Text style={{ fontSize: fontSize.base, color: colors.textDark, fontFamily: 'Montserrat' }} numberOfLines={1}>
                             {row.channelName || "-"}
                           </Text>
                         </View>
@@ -1848,23 +2210,23 @@ export default function StocksScreen() {
             {/* Footer Buttons */}
             <View className="flex-row justify-end px-6 py-4 border-t border-gray-100 gap-3">
               <Pressable
-                className="px-6 py-2.5 rounded-md bg-white border border-gray-300"
+                className="px-6 rounded-lg bg-white border border-gray-300 items-center justify-center"
                 onPress={() => setBulkModalVisible(false)}
                 disabled={bulkSubmitting}
-                style={{ minWidth: 90 }}
+                style={{ height: 40, minWidth: 90 }}
               >
-                <Text style={{ fontSize: 14, fontWeight: '500', color: '#374151', textAlign: 'center', fontFamily: 'Montserrat' }}>Cancel</Text>
+                <Text style={{ fontSize: fontSize.base, fontWeight: fw.medium, color: colors.textMedium, textAlign: 'center', fontFamily: 'Montserrat' }}>Cancel</Text>
               </Pressable>
               <Pressable
-                className="px-6 py-2.5 rounded-md bg-[#EC1A52]"
+                className="px-6 rounded-lg bg-[#EC1A52] items-center justify-center"
                 onPress={handleBulkEditSubmit}
                 disabled={bulkSubmitting}
-                style={{ minWidth: 90 }}
+                style={{ height: 40, minWidth: 90 }}
               >
                 {bulkSubmitting ? (
                   <ActivityIndicator size="small" color="white" />
                 ) : (
-                  <Text style={{ fontSize: 14, fontWeight: '500', color: '#FFFFFF', textAlign: 'center', fontFamily: 'Montserrat' }}>Update</Text>
+                  <Text style={{ fontSize: fontSize.base, fontWeight: fw.medium, color: colors.textWhite, textAlign: 'center', fontFamily: 'Montserrat' }}>Update</Text>
                 )}
               </Pressable>
             </View>
