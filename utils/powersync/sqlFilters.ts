@@ -144,7 +144,10 @@ export function channelFilterDirect(
   column: string = 'channel_id',
 ): string {
   if (!channelIds.length) return '';
-  return ` AND ${column} IN (${channelIds.join(',')})`;
+  const normalizedColumn = column
+    .replace(/channelId/g, 'channel_id')
+    .replace(/channeLid/g, 'channel_id');
+  return ` AND ${normalizedColumn} IN (${channelIds.join(',')})`;
 }
 
 /** Return type for JOIN-based channel filters. */
