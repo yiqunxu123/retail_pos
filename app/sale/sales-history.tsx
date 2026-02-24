@@ -219,7 +219,7 @@ export default function SalesHistoryScreen() {
       key: "orderDate",
       title: "Date / Time",
       sortKey: "orderDate",
-      width: "15%",
+      width: 250,
       visible: true,
       render: (item) => (
         <Text className="text-[#1A1A1A] text-base" numberOfLines={1}>
@@ -382,27 +382,28 @@ export default function SalesHistoryScreen() {
     
     // Cache dates to avoid repeated new Date() calls during sort
     const dateCache = new Map<string, number>();
-    const getCachedTime = (orderDate: string | null) => {
-      if (!orderDate) return 0;
-      if (dateCache.has(orderDate)) return dateCache.get(orderDate)!;
-      const time = new Date(orderDate).getTime();
-      dateCache.set(orderDate, time);
+    const getCachedTime = (orderDate: string | null, createdAt?: string | null) => {
+      const dateValue = createdAt || orderDate;
+      if (!dateValue) return 0;
+      if (dateCache.has(dateValue)) return dateCache.get(dateValue)!;
+      const time = new Date(dateValue).getTime();
+      dateCache.set(dateValue, time);
       return time;
     };
 
     switch (sortBy) {
       case "date_desc":
-        return sorted.sort((a, b) => getCachedTime(b.orderDate) - getCachedTime(a.orderDate));
+        return sorted.sort((a, b) => getCachedTime(b.orderDate, b.createdAt) - getCachedTime(a.orderDate, a.createdAt));
       case "date_asc":
-        return sorted.sort((a, b) => getCachedTime(a.orderDate) - getCachedTime(b.orderDate));
+        return sorted.sort((a, b) => getCachedTime(a.orderDate, a.createdAt) - getCachedTime(b.orderDate, b.createdAt));
       case "total_desc":
         return sorted.sort((a, b) => (b.totalPrice || 0) - (a.totalPrice || 0));
       case "total_asc":
         return sorted.sort((a, b) => (a.totalPrice || 0) - (b.totalPrice || 0));
       case "orderDate":
         return sorted.sort((a, b) => asc
-          ? getCachedTime(a.orderDate) - getCachedTime(b.orderDate)
-          : getCachedTime(b.orderDate) - getCachedTime(a.orderDate));
+          ? getCachedTime(a.orderDate, a.createdAt) - getCachedTime(b.orderDate, b.createdAt)
+          : getCachedTime(b.orderDate, b.createdAt) - getCachedTime(a.orderDate, a.createdAt));
       case "orderNo":
         return sorted.sort((a, b) => {
           const na = a.orderNo || a.id;

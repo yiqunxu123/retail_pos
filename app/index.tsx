@@ -199,10 +199,10 @@ export default function Dashboard() {
   // Initialize with primary channel when loaded
   useEffect(() => {
     if (primaryChannel && selectedChannelIds.length === 0) {
-      // Don't filter by channel initially (show all, same as K Web "All Channels")
-      // User can select specific channels if needed
+      // Align with K Web dashboard default: select primary channel initially.
+      setSelectedChannelIds([primaryChannel.id]);
     }
-  }, [primaryChannel]);
+  }, [primaryChannel, selectedChannelIds.length]);
 
   // Build filters
   const dashboardFilters = useMemo<DashboardFilters>(() => ({

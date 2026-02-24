@@ -16,7 +16,25 @@
  */
 
 import { useMemo } from 'react';
-import { ShippingType } from '../../constants';
+import {
+  InvoiceStatus,
+  PaymentCategory,
+  PaymentStatus,
+  PaymentType,
+  PurchaseOrderStatus,
+  SaleOrderStatus,
+  SaleType,
+  ShippingType,
+} from '../../constants';
+import {
+  channelFilterDirect,
+  channelFilterViaInvoice,
+  channelFilterViaPayment,
+  dateRangeLocal,
+  dateRangeUTCConverted,
+  dateRangeUTCRaw,
+  getLocalToday,
+} from '../sqlFilters';
 import { useSyncStream } from '../useSyncStream';
 
 // ============================================================================
@@ -155,20 +173,108 @@ function useOrderCount() {
 }
 
 /** Main hook - combines all dashboard stats in a SINGLE query */
-export function useDashboardStats(_filters?: DashboardFilters) {
+export function useDashboardStats(filters?: DashboardFilters) {
+  const startDate = filters?.startDate || getLocalToday();
+  const endDate = filters?.endDate || getLocalToday();
+  const channelIds = filters?.channelIds || [];
+
+  const saleDateFilter = dateRangeLocal('so.order_date', startDate, endDate);
+  const paymentDateFilter = dateRangeLocal('payments.payment_date', startDate, endDate);
+  const receivableDateFilter = dateRangeUTCConverted('invoices.created_at', startDate, endDate);
+  const payableDateFilter = dateRangeUTCRaw('purchase_invoices.created_at', startDate, endDate);
+
+  const saleChannelFilter = channelFilterDirect(channelIds, 'so.channel_id');
+  const purchaseChannelFilter = channelFilterDirect(channelIds, 'po.channel_id');
+  const stockChannelFilter = channelFilterDirect(channelIds, 's.channel_id');
+  const invoiceChannelFilter = channelFilterViaInvoice(channelIds);
+  const paymentChannelFilter = channelFilterViaPayment(channelIds);
+
   const { data, isLoading } = useSyncStream<Record<string, number>>(
     `SELECT
-      COALESCE((SELECT SUM(total_price) FROM sale_orders), 0) AS totalRevenue,
-      COALESCE((SELECT SUM(amount) FROM payments WHERE status = 1), 0) AS paidAmount,
-      COALESCE((SELECT SUM(balance) FROM customers WHERE balance > 0), 0) AS receivableAmount,
-      COALESCE((SELECT SUM(balance) FROM suppliers WHERE balance > 0), 0) AS payableAmount,
-      COALESCE((SELECT SUM(s.qty * COALESCE(up.cost, 0)) FROM stocks s LEFT JOIN unit_prices up ON s.product_id = up.product_id AND s.channel_id = up.channel_id), 0) AS extendedStockValue,
-      COALESCE((SELECT COUNT(*) FROM sale_orders WHERE shipping_type = ${ShippingType.PICK_UP}), 0) AS pickupOrdersCount,
-      COALESCE((SELECT COUNT(*) FROM sale_orders WHERE shipping_type = ${ShippingType.DELIVERY}), 0) AS deliveryOrdersCount,
-      COALESCE((SELECT COUNT(*) FROM sale_orders WHERE shipping_type = ${ShippingType.DROP_OFF}), 0) AS dropOffOrdersCount,
+      COALESCE((
+        SELECT SUM(so.total_price)
+        FROM sale_orders so
+        WHERE so.status NOT IN (${SaleOrderStatus.VOID}, ${SaleOrderStatus.DISCARDED})
+          AND so.balance_adjustment_id IS NULL
+          AND ${saleDateFilter}
+          ${saleChannelFilter}
+      ), 0) AS totalRevenue,
+      COALESCE((
+        SELECT SUM(
+          CASE
+            WHEN payments.category IN (${PaymentCategory.SALE_RECEIPT}, ${PaymentCategory.RECHARGE}, ${PaymentCategory.MUTUAL_PAYMENT})
+              THEN payments.amount
+            WHEN payments.category = ${PaymentCategory.SALE_REFUND}
+              THEN payments.amount * -1
+            ELSE 0
+          END
+        )
+        FROM payments
+        ${paymentChannelFilter.joins}
+        WHERE payments.status IN (${PaymentStatus.PAID}, ${PaymentStatus.PENDING})
+          AND payments.invoice_id IS NOT NULL
+          AND payments.payment_type NOT IN (${PaymentType.CUSTOMER_ADD_CREDIT}, ${PaymentType.CUSTOMER_USE_CREDIT})
+          AND payments.category IN (${PaymentCategory.SALE_RECEIPT}, ${PaymentCategory.SALE_REFUND}, ${PaymentCategory.RECHARGE}, ${PaymentCategory.MUTUAL_PAYMENT})
+          AND ${paymentDateFilter}
+          ${paymentChannelFilter.conditions}
+      ), 0) AS paidAmount,
+      COALESCE((
+        SELECT ABS(SUM(purchase_invoices.invoice_balance))
+        FROM purchase_orders po
+        JOIN purchase_invoices ON po.id = purchase_invoices.purchase_order_id
+        WHERE po.status IN (${PurchaseOrderStatus.PARTIALLY_RECEIVED}, ${PurchaseOrderStatus.RECEIVED}, ${PurchaseOrderStatus.CLOSED})
+          AND ${payableDateFilter}
+          ${purchaseChannelFilter}
+      ), 0) AS payableAmount,
+      COALESCE((
+        SELECT SUM(invoices.remaining_amount)
+        FROM invoices
+        ${invoiceChannelFilter.joins}
+        WHERE invoices.status != ${InvoiceStatus.PAID}
+          AND ${receivableDateFilter}
+          ${invoiceChannelFilter.conditions}
+      ), 0) AS receivableAmount,
+      COALESCE((
+        SELECT SUM(s.qty * COALESCE(up.cost, 0))
+        FROM stocks s
+        LEFT JOIN unit_prices up ON s.product_id = up.product_id AND s.channel_id = up.channel_id
+        WHERE 1=1
+          ${stockChannelFilter}
+      ), 0) AS extendedStockValue,
+      COALESCE((
+        SELECT COUNT(*)
+        FROM sale_orders so
+        WHERE so.shipping_type = ${ShippingType.PICK_UP}
+          AND so.sale_type = ${SaleType.ORDER}
+          AND ${saleDateFilter}
+          ${saleChannelFilter}
+      ), 0) AS pickupOrdersCount,
+      COALESCE((
+        SELECT COUNT(*)
+        FROM sale_orders so
+        WHERE so.shipping_type = ${ShippingType.DELIVERY}
+          AND so.sale_type = ${SaleType.ORDER}
+          AND ${saleDateFilter}
+          ${saleChannelFilter}
+      ), 0) AS deliveryOrdersCount,
+      COALESCE((
+        SELECT COUNT(*)
+        FROM sale_orders so
+        WHERE so.shipping_type = ${ShippingType.DROP_OFF}
+          AND so.sale_type = ${SaleType.ORDER}
+          AND ${saleDateFilter}
+          ${saleChannelFilter}
+      ), 0) AS dropOffOrdersCount,
       COALESCE((SELECT COUNT(*) FROM customers), 0) AS customerCount,
       COALESCE((SELECT COUNT(*) FROM products), 0) AS productCount,
-      COALESCE((SELECT COUNT(*) FROM sale_orders), 0) AS orderCount`
+      COALESCE((
+        SELECT COUNT(*)
+        FROM sale_orders so
+        WHERE so.status NOT IN (${SaleOrderStatus.VOID}, ${SaleOrderStatus.DISCARDED})
+          AND so.balance_adjustment_id IS NULL
+          AND ${saleDateFilter}
+          ${saleChannelFilter}
+      ), 0) AS orderCount`
   );
 
   const row = data[0];

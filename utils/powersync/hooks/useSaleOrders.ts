@@ -8,6 +8,8 @@
  */
 
 import { useMemo } from 'react';
+import { useTimezone } from '../../../contexts/TimezoneContext';
+import { DEVICE_TIMEZONE } from '../../timezone';
 import { powerSyncDb } from '../PowerSyncProvider';
 import { useSyncStream } from '../useSyncStream';
 
@@ -41,6 +43,15 @@ interface SaleOrderJoinRow {
   created_by_username: string | null;
   created_by_first_name: string | null;
   created_by_last_name: string | null;
+}
+
+interface SettingRow {
+  value: unknown;
+}
+
+interface TenantTimezoneInfo {
+  value: string | null;
+  abbrev: string | null;
 }
 
 /** Sale order data as displayed in the UI */
@@ -83,38 +94,203 @@ export const FULFILMENT_STATUS = {
   2: 'Fulfilled',
 } as const;
 
+const DEVICE_TZ_CACHE_KEY = '__device__';
+const DATE_TIME_FORMATTER_CACHE = new Map<string, Intl.DateTimeFormat>();
+const TZ_NAME_FORMATTER_CACHE = new Map<string, Intl.DateTimeFormat>();
+
+function extractTenantTimezoneInfo(value: unknown): TenantTimezoneInfo {
+  try {
+    const parsed = typeof value === 'string' ? JSON.parse(value) : value;
+    const timezone = (parsed as { timezone?: unknown })?.timezone;
+    if (!timezone || typeof timezone !== 'object') {
+      return { value: null, abbrev: null };
+    }
+    const tzValue = (timezone as { value?: unknown }).value;
+    const tzAbbrev = (timezone as { abbrev?: unknown }).abbrev;
+    return {
+      value: typeof tzValue === 'string' && tzValue.trim().length > 0 ? tzValue.trim() : null,
+      abbrev: typeof tzAbbrev === 'string' && tzAbbrev.trim().length > 0 ? tzAbbrev.trim() : null,
+    };
+  } catch {
+    return { value: null, abbrev: null };
+  }
+}
+
+function normalizeUtcDateString(value: string): string {
+  const trimmed = value.trim();
+  if (!trimmed) return '';
+  if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) {
+    return `${trimmed}T00:00:00.000Z`;
+  }
+
+  const withT = trimmed.replace(' ', 'T');
+  const match = withT.match(/^(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2})(\.\d+)?([zZ]|[+\-]\d{2}:?\d{2})?$/);
+  if (!match) {
+    return withT;
+  }
+
+  const base = match[1];
+  const fractionRaw = match[2] ? match[2].slice(1) : '';
+  const millis = fractionRaw ? fractionRaw.slice(0, 3).padEnd(3, '0') : '000';
+  let zone = match[3] || 'Z';
+
+  if (/^[+\-]\d{4}$/.test(zone)) {
+    zone = `${zone.slice(0, 3)}:${zone.slice(3)}`;
+  }
+  if (zone === 'z') {
+    zone = 'Z';
+  }
+
+  return `${base}.${millis}${zone}`;
+}
+
+function parseAsUtcDate(value: string): Date | null {
+  const normalized = normalizeUtcDateString(value);
+  if (!normalized) return null;
+
+  const parsed = new Date(normalized);
+  if (!Number.isNaN(parsed.getTime())) {
+    return parsed;
+  }
+
+  const fallback = new Date(value);
+  if (!Number.isNaN(fallback.getTime())) {
+    return fallback;
+  }
+
+  return null;
+}
+
+function getDateTimeFormatter(timezoneValue?: string): Intl.DateTimeFormat {
+  const key = timezoneValue || DEVICE_TZ_CACHE_KEY;
+  const cached = DATE_TIME_FORMATTER_CACHE.get(key);
+  if (cached) return cached;
+
+  const options: Intl.DateTimeFormatOptions = {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: false,
+  };
+  if (timezoneValue) {
+    options.timeZone = timezoneValue;
+  }
+
+  try {
+    const formatter = new Intl.DateTimeFormat('en-US', options);
+    DATE_TIME_FORMATTER_CACHE.set(key, formatter);
+    return formatter;
+  } catch {
+    const fallback = new Intl.DateTimeFormat('en-US', {
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+      hour12: false,
+    });
+    DATE_TIME_FORMATTER_CACHE.set(key, fallback);
+    return fallback;
+  }
+}
+
+function getTimezoneNameFormatter(timezoneValue?: string): Intl.DateTimeFormat {
+  const key = timezoneValue || DEVICE_TZ_CACHE_KEY;
+  const cached = TZ_NAME_FORMATTER_CACHE.get(key);
+  if (cached) return cached;
+
+  const options: Intl.DateTimeFormatOptions = {
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: false,
+    timeZoneName: 'short',
+  };
+  if (timezoneValue) {
+    options.timeZone = timezoneValue;
+  }
+
+  try {
+    const formatter = new Intl.DateTimeFormat('en-US', options);
+    TZ_NAME_FORMATTER_CACHE.set(key, formatter);
+    return formatter;
+  } catch {
+    const fallback = new Intl.DateTimeFormat('en-US', {
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+      hour12: false,
+      timeZoneName: 'short',
+    });
+    TZ_NAME_FORMATTER_CACHE.set(key, fallback);
+    return fallback;
+  }
+}
+
 // ============================================================================
 // Data Transformers
 // ============================================================================
 
-/** Fast date formatter - avoids slow toLocaleString on Hermes/Android */
-function formatOrderDate(dateStr: string): string {
+/** K Web-aligned date formatter: MM/DD/YYYY, HH:mm:ss , {TZ} using created_at + tenant timezone. */
+function formatOrderDate(dateStr: string, timezoneValue?: string | null, timezoneAbbrev?: string | null): string {
   if (!dateStr) return '-';
+
+  const parsed = parseAsUtcDate(dateStr);
+  if (!parsed) return '-';
+
+  const tz = timezoneValue && timezoneValue.trim().length > 0 ? timezoneValue : undefined;
   try {
-    const d = new Date(dateStr);
-    if (isNaN(d.getTime())) return '-';
-    const mm = String(d.getMonth() + 1).padStart(2, '0');
-    const dd = String(d.getDate()).padStart(2, '0');
-    const yyyy = d.getFullYear();
-    let hh = d.getHours();
-    const min = String(d.getMinutes()).padStart(2, '0');
-    const sec = String(d.getSeconds()).padStart(2, '0');
-    const ampm = hh >= 12 ? 'PM' : 'AM';
-    hh = hh % 12 || 12;
-    return `${mm}/${dd}/${yyyy}, ${String(hh).padStart(2, '0')}:${min}:${sec} ${ampm} , CST`;
+    const formattedParts = getDateTimeFormatter(tz).formatToParts(parsed);
+    const partMap: Record<string, string> = {};
+    for (const part of formattedParts) {
+      if (part.type !== 'literal') {
+        partMap[part.type] = part.value;
+      }
+    }
+
+    const yyyy = partMap.year;
+    const mm = partMap.month;
+    const dd = partMap.day;
+    const hh = partMap.hour;
+    const min = partMap.minute;
+    const sec = partMap.second;
+
+    if (!yyyy || !mm || !dd || !hh || !min || !sec) {
+      return '-';
+    }
+
+    let abbrev = timezoneAbbrev && timezoneAbbrev.trim().length > 0 ? timezoneAbbrev.trim() : '';
+    if (!abbrev) {
+      const tzNamePart = getTimezoneNameFormatter(tz)
+        .formatToParts(parsed)
+        .find((part) => part.type === 'timeZoneName');
+      abbrev = tzNamePart?.value || '';
+    }
+
+    const formatted = `${mm}/${dd}/${yyyy}, ${hh}:${min}:${sec}`;
+    return abbrev ? `${formatted} , ${abbrev}` : formatted;
   } catch {
     return '-';
   }
 }
 
 /** Transform database record to UI view */
-function toSaleOrderView(db: SaleOrderJoinRow): SaleOrderView {
+function toSaleOrderView(
+  db: SaleOrderJoinRow,
+  options?: { dateSource?: 'order_date' | 'created_at'; timezoneValue?: string | null; timezoneAbbrev?: string | null }
+): SaleOrderView {
   // Build creator name from first_name and last_name, fallback to username
   const createdByName = db.created_by_first_name && db.created_by_last_name
     ? `${db.created_by_first_name} ${db.created_by_last_name}`
     : db.created_by_username || 'Unknown';
 
-  const rawDate = db.order_date || db.created_at || '';
+  const orderDateRaw = db.order_date || db.created_at || '';
+  const createdAtRaw = db.created_at || '';
+  const dateSource = options?.dateSource === 'created_at' ? createdAtRaw : orderDateRaw;
 
   return {
     id: db.id,
@@ -131,11 +307,11 @@ function toSaleOrderView(db: SaleOrderJoinRow): SaleOrderView {
     deliveryCharges: db.delivery_charges || 0,
     shippingType: db.shipping_type,
     fulfilmentStatus: db.fulfilment_status,
-    orderDate: rawDate,
-    orderDateFormatted: formatOrderDate(rawDate),
+    orderDate: orderDateRaw,
+    orderDateFormatted: formatOrderDate(dateSource, options?.timezoneValue, options?.timezoneAbbrev),
     createdById: db.created_by_id,
     createdByName,
-    createdAt: db.created_at || '',
+    createdAt: createdAtRaw,
   };
 }
 
@@ -145,6 +321,7 @@ function toSaleOrderView(db: SaleOrderJoinRow): SaleOrderView {
 
 /** Get all sale orders with real-time sync */
 export function useSaleOrders() {
+  const { timezone } = useTimezone();
   const { data, isLoading, error, isStreaming, refresh } = useSyncStream<SaleOrderJoinRow>(
     `SELECT 
       so.*,
@@ -159,7 +336,29 @@ export function useSaleOrders() {
      ORDER BY so.created_at DESC`
   );
 
-  const orders = useMemo(() => data.map(toSaleOrderView), [data]);
+  const { data: settingsRows } = useSyncStream<SettingRow>(
+    `SELECT value FROM settings WHERE type = 'admin-panel' AND sub_type = 'basic' LIMIT 1`
+  );
+
+  const tenantTimezone = useMemo(
+    () => extractTenantTimezoneInfo(settingsRows[0]?.value),
+    [settingsRows]
+  );
+
+  const effectiveTimezoneValue = tenantTimezone.value || (timezone !== DEVICE_TIMEZONE ? timezone : null);
+  const effectiveTimezoneAbbrev = tenantTimezone.abbrev || null;
+
+  const orders = useMemo(
+    () =>
+      data.map((row) =>
+        toSaleOrderView(row, {
+          dateSource: 'created_at',
+          timezoneValue: effectiveTimezoneValue,
+          timezoneAbbrev: effectiveTimezoneAbbrev,
+        })
+      ),
+    [data, effectiveTimezoneAbbrev, effectiveTimezoneValue]
+  );
 
   return {
     orders,
