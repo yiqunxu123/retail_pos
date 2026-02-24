@@ -3,22 +3,21 @@
  * Same size as SearchProductModal for consistency across Add Product, Add Customer, etc.
  */
 
-import { buttonSize, colors, iconSize } from "@/utils/theme";
-import { Ionicons } from "@expo/vector-icons";
+import { colors, spacing } from "@/utils/theme";
 import React, { useEffect, useMemo } from "react";
 import {
-  BackHandler,
-  Modal,
-  Platform,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  useWindowDimensions,
-  View,
+    BackHandler,
+    Modal,
+    Platform,
+    Pressable,
+    ScrollView,
+    StyleSheet,
+    Text,
+    useWindowDimensions,
+    View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { CloseButton } from "./CloseButton";
 
 const PANEL_WIDTH_RATIO = 0.5;
 const BACKDROP_OPACITY = 0.35;
@@ -98,28 +97,16 @@ export function SlidePanelModal({
               className="bg-white h-full border-r border-gray-200 rounded-tr-3xl rounded-br-3xl"
               style={[styles.panel, { width: panelWidth }, safeAreaPadding]}
             >
-              {/* Header */}
-              <View className="px-6 pt-6 pb-4">
+              {/* Header - 与 LeftSlidePanel/ActionCard 一致 */}
+              <View style={styles.header}>
                 <View className="flex-row items-center justify-between">
                   <Text
-                    className="text-2xl font-bold"
-                    style={{ color: colors.primary }}
+                    className="text-2xl font-semibold"
+                    style={{ color: colors.text }}
                   >
                     {title}
                   </Text>
-                  <TouchableOpacity
-                    onPress={onClose}
-                    style={{
-                      width: buttonSize.md.height,
-                      height: buttonSize.md.height,
-                      borderRadius: 16,
-                      backgroundColor: colors.primary,
-                      alignItems: "center",
-                      justifyContent: "center",
-                    }}
-                  >
-                    <Ionicons name="close" size={20} color="white" />
-                  </TouchableOpacity>
+                  <CloseButton onPress={onClose} />
                 </View>
               </View>
 
@@ -183,6 +170,11 @@ const styles = StyleSheet.create({
   },
   panelHost: {
     height: "100%",
+  },
+  header: {
+    paddingHorizontal: spacing.xl,
+    paddingTop: spacing.xl,
+    paddingBottom: spacing.md,
   },
   panel: {
     height: "100%",

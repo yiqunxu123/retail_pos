@@ -21,6 +21,7 @@ import { ClockOutModal } from "../components/ClockOutModal";
 import { DashboardSidebar } from "../components/DashboardSidebar";
 import { SubPageSidebar } from "../components/SubPageSidebar";
 import { AuthProvider, useAuth } from "../contexts/AuthContext";
+import { BulkEditProvider } from "../contexts/BulkEditContext";
 import { ClockProvider, useClock } from "../contexts/ClockContext";
 import { ParkedOrderProvider } from "../contexts/ParkedOrderContext";
 import { TimezoneProvider } from "../contexts/TimezoneContext";
@@ -201,14 +202,15 @@ function LayoutContent() {
       }}
     >
       {/* Main layout container */}
-      <View className={`flex-1 ${isLandscape && !hideSidebar ? "flex-row" : "flex-col"}`}>
-        {/* Page content area - renders current route */}
-        <View className="flex-1">
-          <Slot />
-        </View>
+      <BulkEditProvider>
+        <View className={`flex-1 ${isLandscape && !hideSidebar ? "flex-row" : "flex-col"}`}>
+          {/* Page content area - renders current route */}
+          <View className="flex-1">
+            <Slot />
+          </View>
 
-        {/* Sidebar - Dashboard gets full sidebar, sub-pages get simplified sidebar */}
-        {!hideSidebar && (
+          {/* Sidebar - Dashboard gets full sidebar, sub-pages get simplified sidebar */}
+          {!hideSidebar && (
           isDashboard ? (
             <DashboardSidebar
               isLandscape={isLandscape}
@@ -225,7 +227,8 @@ function LayoutContent() {
             />
           )
         )}
-      </View>
+        </View>
+      </BulkEditProvider>
 
       {/* Clock In Modal */}
       <ClockInModal

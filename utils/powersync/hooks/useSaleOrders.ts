@@ -314,6 +314,114 @@ export async function fetchSaleOrderProducts(
   }));
 }
 
+/** Get all sale returns (sale_type = 2) with real-time sync */
+export function useSaleReturns() {
+  const { data, isLoading, error, isStreaming, refresh } = useSyncStream<
+    SaleOrderJoinRow & { channel_name: string | null }
+  >(
+    `SELECT 
+      so.*,
+      c.name as customer_name,
+      c.business_name,
+      u.username as created_by_username,
+      u.first_name as created_by_first_name,
+      u.last_name as created_by_last_name,
+      ch.name as channel_name
+     FROM sale_orders so
+     LEFT JOIN customers c ON so.customer_id = c.id
+     LEFT JOIN tenant_users u ON so.created_by_id = u.id
+     LEFT JOIN channels ch ON so.channel_id = ch.id
+     WHERE so.sale_type = 2
+     ORDER BY so.created_at DESC`
+  );
+
+  const returns = useMemo(
+    () =>
+      data.map((row) => ({
+        ...toSaleOrderView(row),
+        channelName: row.channel_name || 'Primary',
+      })),
+    [data]
+  );
+
+  return {
+    returns,
+    isLoading,
+    error,
+    isStreaming,
+    refresh,
+    count: returns.length,
+  };
+}
+
+export type SaleReturnView = ReturnType<typeof useSaleReturns>['returns'][number];
+
+/** Fulfillment view for fulfillments screen */
+export interface FulfillmentView {
+  id: string;
+  businessName: string;
+  customerName: string;
+  orderNo: string;
+  shippingType: string;
+  pickerDetails: string;
+  pickerAssigned: boolean;
+}
+
+function getShippingTypeLabel(type: number): string {
+  switch (type) {
+    case 1: return 'Delivery';
+    case 2: return 'Shipping';
+    default: return 'Pickup';
+  }
+}
+
+/** Get fulfillments - sale orders in progress (pending, picking, packing, etc.) */
+export function useFulfillments() {
+  const FULFILLMENT_STATUSES = [10, 15, 20, 21, 22, 23, 26, 30, 35]; // Pending through Partially Executed
+  const { data, isLoading, error, isStreaming, refresh } = useSyncStream<
+    SaleOrderJoinRow & { channel_name: string | null }
+  >(
+    `SELECT 
+      so.*,
+      c.name as customer_name,
+      c.business_name,
+      u.username as created_by_username,
+      u.first_name as created_by_first_name,
+      u.last_name as created_by_last_name,
+      ch.name as channel_name
+     FROM sale_orders so
+     LEFT JOIN customers c ON so.customer_id = c.id
+     LEFT JOIN tenant_users u ON so.created_by_id = u.id
+     LEFT JOIN channels ch ON so.channel_id = ch.id
+     WHERE so.sale_type = 1
+       AND so.status IN (${FULFILLMENT_STATUSES.join(',')})
+     ORDER BY so.created_at DESC`
+  );
+
+  const fulfillments = useMemo<FulfillmentView[]>(
+    () =>
+      data.map((row) => ({
+        id: row.id,
+        businessName: row.business_name || row.customer_name || 'Guest',
+        customerName: row.customer_name || '',
+        orderNo: row.no || '',
+        shippingType: getShippingTypeLabel(row.shipping_type),
+        pickerDetails: 'Not assigned',
+        pickerAssigned: false,
+      })),
+    [data]
+  );
+
+  return {
+    fulfillments,
+    isLoading,
+    error,
+    isStreaming,
+    refresh,
+    count: fulfillments.length,
+  };
+}
+
 /** Search sale orders by order number or customer name */
 export function useSaleOrderSearch(query: string) {
   const searchTerm = `%${query}%`;

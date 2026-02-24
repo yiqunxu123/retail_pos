@@ -9,7 +9,7 @@ export default function ReportPage() {
 
   return (
     <View className="flex-1 bg-[#F7F7F9]">
-      <PageHeader title={title || "Report"} showBack={true} />
+      <PageHeader title={title || "Report"} showBack={false} />
       <View className="flex-1 justify-center items-center">
         <Ionicons name="construct-outline" size={64} color={colors.border} />
         <Text className="text-lg font-medium mt-4" style={{ color: colors.textTertiary }}>Coming Soon</Text>

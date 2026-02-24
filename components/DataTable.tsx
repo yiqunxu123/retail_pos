@@ -12,24 +12,28 @@
  * - Real-time sync indicator
  */
 
-import { buttonSize, colors, iconSize } from '@/utils/theme';
+import { buttonSize, colors, iconSize, modalContent } from '@/utils/theme';
 import { Ionicons } from "@expo/vector-icons";
 import React, { ReactElement, ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { CenteredModal } from "./CenteredModal";
 import {
-  ActivityIndicator,
-  Modal,
-  Pressable,
-  RefreshControl,
-  ScrollView,
-  StyleSheet,
-  Switch,
-  Text,
-  TextInput,
-  View,
-  ViewStyle,
+    ActivityIndicator,
+    Pressable,
+    RefreshControl,
+    ScrollView,
+    StyleSheet,
+    Switch,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View,
+    ViewStyle,
 } from "react-native";
 import { FilterDropdown } from "./FilterDropdown";
 import { TableToolbarButton } from "./TableToolbarButton";
+
+/** Unified Action column width - fixed px so buttons stay in one row on the right */
+export const ACTION_COL_WIDTH = 100;
 
 // ============================================================================
 // Types
@@ -40,8 +44,8 @@ export interface ColumnDefinition<T = any> {
   key: string;
   /** Column display title */
   title: string;
-  /** Column width (flex or fixed) */
-  width?: number | "flex";
+  /** Column width: number (px), "flex", or "15%" (percentage of table width) */
+  width?: number | "flex" | `${number}%`;
   /** Whether visible by default */
   visible?: boolean;
   /** Whether hideable (false = always shown) */
@@ -115,6 +119,10 @@ export interface DataTableProps<T = any> {
   actionRowExtras?: ReactNode;
   /** Extra content rendered inside the Settings/Columns modal (e.g. advance filters) */
   settingsModalExtras?: ReactNode;
+  /** When true, filters and sort are rendered inside the Settings modal instead of below toolbar */
+  filtersInSettingsModal?: boolean;
+  /** Search box flex (e.g. 0.3 for 30% width). Default: 1 */
+  searchBoxFlex?: number;
   /** Called when the settings/columns modal opens */
   onSettingsModalOpen?: () => void;
   /** Whether to hide default footer buttons in settings/columns modal */
@@ -123,8 +131,8 @@ export interface DataTableProps<T = any> {
   // Sort related
   /** Sort options */
   sortOptions?: FilterOption[];
-  /** Custom sort logic */
-  onSort?: (data: T[], sortBy: string | null) => T[];
+  /** Custom sort logic. sortOrder is passed when sortBy is a column key. */
+  onSort?: (data: T[], sortBy: string | null, sortOrder?: "asc" | "desc") => T[];
   
   // Feature toggles
   /** Whether to show column selector */
@@ -135,6 +143,8 @@ export interface DataTableProps<T = any> {
   bulkActionText?: string;
   /** Whether to render bulk action button in toolbar row */
   bulkActionInActionRow?: boolean;
+  /** When true, bulk action moves to sidebar (SubPageSidebar); toolbar button hidden */
+  bulkActionInSidebar?: boolean;
   /** Bulk action handler */
   onBulkActionPress?: (selectedRows: T[]) => void;
   /** Controlled selected row keys */
@@ -157,6 +167,12 @@ export interface DataTableProps<T = any> {
   refreshing?: boolean;
   /** Refresh callback */
   onRefresh?: () => void | Promise<void>;
+  /** Toolbar button icon color (e.g. Column selector) */
+  toolbarIconColor?: string;
+  /** Use shopping cart style: primary Refresh with text, surfaceDark Settings icon-only */
+  toolbarButtonStyle?: "default" | "shopping-cart";
+  /** Refresh button background color (default: primary). Use #E91E63 for image style. */
+  refreshButtonColor?: string;
   
   // Empty state
   /** Empty state icon */
@@ -334,37 +350,6 @@ const ALIGN_RIGHT_STYLE = rowStyles.alignRight;
 const DEFAULT_CELL_TEXT_STYLE = rowStyles.defaultCellText;
 const LOADING_OVERLAY_STYLE = rowStyles.loadingOverlay;
 
-function TableCheckbox({
-  checked = false,
-  indeterminate = false,
-  onPress,
-  disabled = false,
-}: {
-  checked?: boolean;
-  indeterminate?: boolean;
-  onPress?: () => void;
-  disabled?: boolean;
-}) {
-  return (
-    <Pressable
-      onPress={onPress}
-      disabled={disabled}
-      style={{
-        width: buttonSize.md.height,
-        height: buttonSize.md.height,
-        borderRadius: buttonSize.md.borderRadius,
-        borderWidth: 1,
-        borderColor: checked || indeterminate ? colors.primary : colors.border,
-        backgroundColor: checked || indeterminate ? colors.primary : "transparent",
-      }}
-      className={`border items-center justify-center ${disabled ? "opacity-50" : ""}`}
-    >
-      {checked && <Ionicons name="checkmark" size={iconSize.md} color="white" />}
-      {!checked && indeterminate && <Ionicons name="remove" size={iconSize.md} color="white" />}
-    </Pressable>
-  );
-}
-
 /**
  * DataTableRow - Optimized memoized row component to prevent unnecessary re-renders
  */
@@ -405,21 +390,13 @@ const DataTableRow = React.memo(function DataTableRow({
         onRowPress?.(item);
       }}
     >
-      {bulkActions && (
-        <View style={CHECKBOX_CONTAINER_STYLE}>
-          <TableCheckbox
-            checked={isSelected}
-            onPress={() => toggleRowSelection(key)}
-          />
-        </View>
-      )}
       {columns.map((col) => {
         if (!visibleColumns[col.key]) return null;
         
         const colStyle = col.width === "flex" 
           ? FLEX_COL_STYLE 
           : col.width 
-            ? { width: col.width as number } 
+            ? { width: col.width as number | `${number}%` } 
             : FLEX_COL_STYLE;
         
         const alignStyle = col.align === "center" 
@@ -501,6 +478,8 @@ export function DataTable<T = any>(props: DataTableProps<T>) {
     filtersInActionRow = false,
     actionRowExtras,
     settingsModalExtras,
+    filtersInSettingsModal = false,
+    searchBoxFlex,
     onSettingsModalOpen,
     hideSettingsModalFooter = false,
     sortOptions = [],
@@ -509,6 +488,7 @@ export function DataTable<T = any>(props: DataTableProps<T>) {
     bulkActions = false,
     bulkActionText = "Bulk Actions",
     bulkActionInActionRow = false,
+    bulkActionInSidebar = false,
     onBulkActionPress,
     selectedRowKeys: controlledSelectedRowKeys,
     onSelectionChange,
@@ -519,6 +499,9 @@ export function DataTable<T = any>(props: DataTableProps<T>) {
     isStreaming = false,
     refreshing = false,
     onRefresh,
+    toolbarIconColor,
+    toolbarButtonStyle = "default",
+    refreshButtonColor,
     emptyIcon = "document-outline",
     emptyText = "No data found",
     totalCount,
@@ -646,9 +629,9 @@ export function DataTable<T = any>(props: DataTableProps<T>) {
     () => selectedRowKeys.map((k) => keyToRow.get(k)).filter(Boolean) as T[],
     [selectedRowKeys, keyToRow]
   );
-  const showBulkActionInToolbar = bulkActions && bulkActionInActionRow;
-  const showLegacyBulkActionRow = bulkActions && !bulkActionInActionRow;
-  const hasSettingsModalExtras = Boolean(settingsModalExtras);
+  const showBulkActionInToolbar = bulkActions && bulkActionInActionRow && !bulkActionInSidebar;
+  const showLegacyBulkActionRow = bulkActions && !bulkActionInActionRow && !bulkActionInSidebar;
+  const hasSettingsModalExtras = Boolean(settingsModalExtras) || (filtersInSettingsModal && (filters.length > 0 || sortOptions.length > 0));
   const settingsModalWidth = hasSettingsModalExtras ? 1080 : 600;
 
   const setSelectedKeys = useCallback(
@@ -767,14 +750,14 @@ export function DataTable<T = any>(props: DataTableProps<T>) {
 
     // Apply sorting
     if (sortBy && onSort) {
-      result = onSort(result, sortBy);
+      result = onSort(result, sortBy, sortOrder);
     }
 
     if (__DEV__) {
       processedDataMsRef.current = Number((getNowMs() - perfStart).toFixed(3));
     }
     return result;
-  }, [data, searchQuery, activeFilters, sortBy, onSearch, onFilter, onSort]);
+  }, [data, searchQuery, activeFilters, sortBy, sortOrder, onSearch, onFilter, onSort]);
 
   // Pagination logic
   const totalItems = isServerPagination ? (totalCount ?? processedData.length) : processedData.length;
@@ -867,19 +850,10 @@ export function DataTable<T = any>(props: DataTableProps<T>) {
 
   const renderHeader = useCallback(() => (
     <View className="flex-row border-b border-gray-200 py-4 px-5" style={{ backgroundColor: colors.backgroundTertiary }}>
-      {bulkActions && (
-        <View className="w-8 mr-4">
-          <TableCheckbox
-            checked={allFilteredSelected}
-            indeterminate={someFilteredSelected && !allFilteredSelected}
-            onPress={toggleSelectAllFiltered}
-          />
-        </View>
-      )}
       {columns.map((col) => {
         if (!visibleColumns[col.key]) return null;
         
-        const colWidth = col.width === "flex" ? { flex: 1 } : col.width ? { width: col.width } : { flex: 1 };
+        const colWidth = col.width === "flex" ? { flex: 1 } : col.width ? { width: col.width as number | `${number}%` } : { flex: 1 };
         const align = col.align || "left";
         const isSortable = !!onSort && !!col.sortKey;
         
@@ -895,14 +869,14 @@ export function DataTable<T = any>(props: DataTableProps<T>) {
               onPress={() => isSortable && handleSortPress(col.key)}
               className="flex-row items-center"
             >
-              <Text style={{ color: colors.textSecondary }} className="font-medium text-base uppercase mr-1">
+              <Text style={{ color: colors.textSecondary }} className="font-medium text-base uppercase mr-1.5">
                 {col.title}
               </Text>
               {isSortable && (
                 <Ionicons 
-                  name={sortBy === col.key ? (sortOrder === "asc" ? "caret-up" : "caret-down") : "caret-down"} 
-                  size={iconSize.md} 
-                  color={sortBy === col.key ? colors.primary : colors.borderMedium} 
+                  name="swap-vertical-outline" 
+                  size={iconSize.sm} 
+                  color={sortBy === col.key ? colors.primary : colors.textTertiary} 
                 />
               )}
             </Pressable>
@@ -910,7 +884,7 @@ export function DataTable<T = any>(props: DataTableProps<T>) {
         );
       })}
     </View>
-  ), [bulkActions, allFilteredSelected, someFilteredSelected, toggleSelectAllFiltered, columns, visibleColumns, onSort, sortBy, sortOrder, handleSortPress]);
+  ), [columns, visibleColumns, onSort, sortBy, sortOrder, handleSortPress]);
 
   // Memoized row list - uses index keys so React REUSES native views on page change
   // (like RecyclerView ViewHolder pattern) instead of destroying + recreating them
@@ -986,7 +960,7 @@ export function DataTable<T = any>(props: DataTableProps<T>) {
         {/* Search & Actions Replica Row */}
         <View className="flex-row items-center gap-4">
           {searchable && (
-            <View className="relative" style={{ flex: 1, maxWidth: 800 }}>
+            <View className="relative" style={{ flex: searchBoxFlex ?? 1, maxWidth: searchBoxFlex ? undefined : 800 }}>
               <Ionicons 
                 name="search-outline" 
                 size={iconSize.base} 
@@ -1024,28 +998,67 @@ export function DataTable<T = any>(props: DataTableProps<T>) {
               {!onBulkActionPress && <Ionicons name="chevron-down" size={iconSize.md} color="white" />}
             </Pressable>
           )}
+
+          {/* Spacer to push Refresh & Settings to the right */}
+          {(onRefresh || columnSelector) && <View style={{ flex: 1, minWidth: 8 }} />}
           
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 12, flexShrink: 0 }}>
           {onRefresh && (
-            <TableToolbarButton
-              title="Refresh"
-              icon="refresh"
-              onPress={handleRefresh}
-              isLoading={isRefreshing}
-              variant="primary"
-            />
+            toolbarButtonStyle === "shopping-cart" ? (
+              <TouchableOpacity
+                className="px-6 rounded-xl flex-row items-center justify-center gap-1 shadow-sm"
+                onPress={handleRefresh}
+                disabled={isRefreshing}
+                style={{ height: buttonSize.md.height, backgroundColor: colors.primary, borderRadius: buttonSize.md.borderRadius }}
+              >
+                {isRefreshing ? (
+                  <ActivityIndicator size="small" color="white" />
+                ) : (
+                  <>
+                    <Ionicons name="refresh" size={iconSize.sm} color="white" />
+                    <Text className="text-white font-medium">Refresh</Text>
+                  </>
+                )}
+              </TouchableOpacity>
+            ) : (
+              <TableToolbarButton
+                title="Refresh"
+                icon="refresh"
+                onPress={handleRefresh}
+                isLoading={isRefreshing}
+                variant="primary"
+                iconColor={toolbarIconColor}
+              />
+            )
           )}
 
           {columnSelector && (
-            <TableToolbarButton
-              icon="settings-sharp"
-              onPress={() => {
-                onSettingsModalOpen?.();
-                setIsColumnSelectionExpanded(true);
-                setShowColumnsModal(true);
-              }}
-              variant="dark"
-            />
+            toolbarButtonStyle === "shopping-cart" ? (
+              <TouchableOpacity
+                className="items-center justify-center rounded-xl shadow-sm"
+                onPress={() => {
+                  onSettingsModalOpen?.();
+                  setIsColumnSelectionExpanded(true);
+                  setShowColumnsModal(true);
+                }}
+                style={{ width: buttonSize.md.height, height: buttonSize.md.height, backgroundColor: colors.surfaceDark, borderRadius: buttonSize.md.borderRadius }}
+              >
+                <Ionicons name="settings-outline" size={iconSize.base} color="white" />
+              </TouchableOpacity>
+            ) : (
+              <TableToolbarButton
+                icon="settings-outline"
+                onPress={() => {
+                  onSettingsModalOpen?.();
+                  setIsColumnSelectionExpanded(true);
+                  setShowColumnsModal(true);
+                }}
+                variant="dark"
+                iconColor={toolbarIconColor}
+              />
+            )
           )}
+          </View>
 
           {filtersInActionRow && filters.length > 0 && filters.map(renderFilterDropdown)}
           {filtersInActionRow && actionRowExtras}
@@ -1084,8 +1097,8 @@ export function DataTable<T = any>(props: DataTableProps<T>) {
           </View>
         )}
 
-        {/* Filters if any */}
-        {!filtersInActionRow && filters.length > 0 && (
+        {/* Filters if any (skip when filters are in settings modal) */}
+        {!filtersInActionRow && !filtersInSettingsModal && filters.length > 0 && (
           <View className="flex-row flex-wrap gap-4 mt-4">
             {filters.map(renderFilterDropdown)}
             {sortOptions.length > 0 && (
@@ -1201,40 +1214,53 @@ export function DataTable<T = any>(props: DataTableProps<T>) {
 
       {/* Columns Selection Modal */}
       {columnSelector && (
-        <Modal
+        <CenteredModal
           visible={showColumnsModal}
-          transparent
-          animationType="fade"
-          onRequestClose={() => setShowColumnsModal(false)}
-        >
-          <View className="flex-1 bg-black/50 justify-center items-center">
-            <View
-              className="bg-white rounded-xl max-w-[95%] max-h-[85%] overflow-hidden shadow-lg"
-              style={{ width: settingsModalWidth }}
-            >
-              {/* Header */}
-              <View className="flex-row items-center justify-between px-6 py-6 border-b border-gray-200">
+          onClose={() => setShowColumnsModal(false)}
+          size="md"
+          showCloseButton={false}
+          scrollable={false}
+          contentPadding={false}
+          header={
+            <View className="flex-row items-center justify-between flex-1">
                 <Text 
-                  className="text-3xl font-semibold"
-                  style={{ color: colors.text, letterSpacing: -0.64 }}
+                  style={{ fontSize: modalContent.titleFontSize + 4, fontWeight: modalContent.titleFontWeight, color: modalContent.titleColor, letterSpacing: -0.64 }}
                 >
-                  Select Columns
-                </Text>
-                <Pressable onPress={() => setShowColumnsModal(false)} className="p-1">
-                  <Ionicons name="close" size={iconSize['2xl']} color={colors.textTertiary} />
-                </Pressable>
-              </View>
-
-              <ScrollView className="px-6 pt-6" showsVerticalScrollIndicator={false} style={{ flexShrink: 1 }} contentContainerStyle={{ paddingBottom: 24 }}>
+                Select Columns
+              </Text>
+              <Pressable onPress={() => setShowColumnsModal(false)} className="p-1">
+                <Ionicons name="close" size={iconSize['2xl']} color={colors.textTertiary} />
+              </Pressable>
+            </View>
+          }
+          footer={!hideSettingsModalFooter ? (
+            <View className="flex-row justify-center gap-4 flex-1">
+              <Pressable
+                onPress={() => setShowColumnsModal(false)}
+                className="flex-1 rounded-lg items-center justify-center border border-[#E4E7EC]"
+                style={{ height: buttonSize.lg.height, backgroundColor: colors.primaryLight }}
+              >
+                <Text className="text-xl font-semibold" style={{ color: colors.primary }}>Cancel</Text>
+              </Pressable>
+              <Pressable
+                onPress={() => setShowColumnsModal(false)}
+                className="flex-1 rounded-lg items-center justify-center shadow-sm"
+                style={{ height: buttonSize.lg.height, backgroundColor: colors.primary, borderRadius: buttonSize.lg.borderRadius }}
+              >
+                <Text className="text-xl font-semibold text-white">Apply</Text>
+              </Pressable>
+            </View>
+          ) : null}
+        >
+          <ScrollView className="px-6 pt-6" showsVerticalScrollIndicator={false} style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: 24 }}>
                 <View className={hasSettingsModalExtras ? "flex-row gap-16" : undefined}>
                   <View className={hasSettingsModalExtras ? "flex-1" : undefined}>
                     <Pressable
                       onPress={() => setIsColumnSelectionExpanded((prev) => !prev)}
                       className="flex-row items-center justify-between py-2 mb-2"
                     >
-                      <Text
-                        className="text-2xl font-semibold"
-                        style={{ color: colors.text }}
+                      <Text 
+                        style={{ fontSize: modalContent.titleFontSize + 2, fontWeight: modalContent.titleFontWeight, color: modalContent.titleColor }}
                       >
                         Column Selection
                       </Text>
@@ -1325,35 +1351,40 @@ export function DataTable<T = any>(props: DataTableProps<T>) {
                     )}
                   </View>
 
-                  {settingsModalExtras && (
+                  {(filtersInSettingsModal && (filters.length > 0 || sortOptions.length > 0)) || settingsModalExtras ? (
                     <View className="flex-1 border-l border-gray-200 pl-12 ml-4">
+                      {filtersInSettingsModal && (filters.length > 0 || sortOptions.length > 0) && (
+                        <View className="mb-6">
+                          <Text className="text-xl font-semibold mb-4" style={{ color: colors.text }}>Filters & Sort</Text>
+                          <View className="gap-3">
+                            {filters.map((filter) => (
+                              <View key={filter.key}>
+                                <Text className="text-[#5A5F66] text-lg mb-1.5">{filter.placeholder}</Text>
+                                {renderFilterDropdown(filter)}
+                              </View>
+                            ))}
+                            {sortOptions.length > 0 && (
+                              <View>
+                                <Text className="text-[#5A5F66] text-lg mb-1.5">Sort By</Text>
+                                <FilterDropdown
+                                  label=""
+                                  value={sortBy}
+                                  options={sortOptions}
+                                  onChange={(value) => setSortBy(typeof value === "string" ? value : null)}
+                                  placeholder="Sort By"
+                                  width={200}
+                                />
+                              </View>
+                            )}
+                          </View>
+                        </View>
+                      )}
                       {settingsModalExtras}
                     </View>
-                  )}
+                  ) : null}
                 </View>
               </ScrollView>
-
-              {!hideSettingsModalFooter && (
-                <View className="flex-row justify-center gap-4 p-6 border-t border-gray-200">
-                  <Pressable
-                    onPress={() => setShowColumnsModal(false)}
-                    className="flex-1 rounded-lg items-center justify-center border border-[#E4E7EC]"
-                    style={{ height: buttonSize.lg.height, backgroundColor: colors.primaryLight }}
-                  >
-                    <Text className="text-xl font-semibold" style={{ color: colors.primary }}>Cancel</Text>
-                  </Pressable>
-                  <Pressable
-                    onPress={() => setShowColumnsModal(false)}
-                    className="flex-1 rounded-lg items-center justify-center shadow-sm"
-                    style={{ height: buttonSize.lg.height, backgroundColor: colors.primary, borderRadius: buttonSize.lg.borderRadius }}
-                  >
-                    <Text className="text-xl font-semibold text-white">Apply</Text>
-                  </Pressable>
-                </View>
-              )}
-            </View>
-          </View>
-        </Modal>
+        </CenteredModal>
       )}
     </View>
   );

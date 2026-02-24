@@ -10,9 +10,11 @@
 
 import { colors, iconSize } from '@/utils/theme';
 import { Ionicons } from "@expo/vector-icons";
-import { useCallback, useMemo } from "react";
-import { Pressable, Text, View } from "react-native";
-import { ColumnDefinition, DataTable, PageHeader } from "../../components";
+import { useCallback, useEffect, useMemo } from "react";
+import { Alert, Pressable, Text, View } from "react-native";
+import { useBulkEditContext } from "../../contexts/BulkEditContext";
+import { ACTION_COL_WIDTH, ColumnDefinition, DataTable, PageHeader } from "../../components";
+import { useTableContentWidth } from "../../hooks/useTableContentWidth";
 import { CustomerGroupView, useCustomerGroups } from "../../utils/powersync/hooks";
 
 // ============================================================================
@@ -20,6 +22,7 @@ import { CustomerGroupView, useCustomerGroups } from "../../utils/powersync/hook
 // ============================================================================
 
 export default function CustomerGroupsScreen() {
+  const contentWidth = useTableContentWidth();
   const { groups, isLoading, isStreaming, refresh, count } = useCustomerGroups();
 
   // Column config
@@ -28,7 +31,7 @@ export default function CustomerGroupsScreen() {
     {
       key: "name",
       title: "Group Name",
-      width: "flex",
+      width: "49%",
       visible: true,
       hideable: false,
       render: (item) => (
@@ -43,7 +46,7 @@ export default function CustomerGroupsScreen() {
     {
       key: "tier",
       title: "Tier",
-      width: 100,
+      width: "10%",
       align: "center",
       visible: true,
       render: () => <Text className="text-gray-400 text-lg">-</Text>,
@@ -51,7 +54,7 @@ export default function CustomerGroupsScreen() {
     {
       key: "customerCount",
       title: "Customers",
-      width: 140,
+      width: "12%",
       align: "center",
       visible: true,
       render: (item) => <Text className="text-lg font-bold" style={{ color: colors.text }}>{item.customerCount}</Text>,
@@ -59,7 +62,7 @@ export default function CustomerGroupsScreen() {
     {
       key: "products",
       title: "Products",
-      width: 120,
+      width: "11%",
       align: "center",
       visible: true,
       render: () => <Text className="text-gray-400 text-lg">-</Text>,
@@ -67,7 +70,7 @@ export default function CustomerGroupsScreen() {
     {
       key: "actions",
       title: "Actions",
-      width: 80,
+      width: ACTION_COL_WIDTH,
       align: "center",
       visible: true,
       hideable: false,
@@ -86,6 +89,21 @@ export default function CustomerGroupsScreen() {
     { label: "Name (A-Z)", value: "name_asc" },
     { label: "Name (Z-A)", value: "name_desc" },
   ];
+
+  const { setConfig: setBulkEditConfig, setSelection: setBulkEditSelection } = useBulkEditContext();
+
+  const handleBulkAction = useCallback((rows: CustomerGroupView[]) => {
+    if (rows.length === 0) {
+      Alert.alert("Bulk Edit", "Please select group(s) first.");
+      return;
+    }
+    Alert.alert("Bulk Edit Groups", `${rows.length} group(s) selected. Bulk edit is coming soon.`);
+  }, []);
+
+  useEffect(() => {
+    setBulkEditConfig({ label: "Bulk Edit", onPress: handleBulkAction });
+    return () => setBulkEditConfig(null);
+  }, [handleBulkAction, setBulkEditConfig]);
 
   const handleSearch = useCallback((item: CustomerGroupView, query: string) => {
     const q = query.toLowerCase();
@@ -117,9 +135,16 @@ export default function CustomerGroupsScreen() {
         searchPlaceholder="Search groups..."
         searchHint="Search by Customer Group"
         onSearch={handleSearch}
+        bulkActions
+        bulkActionText="Bulk Edit"
+        bulkActionInActionRow
+        bulkActionInSidebar
+        onBulkActionPress={handleBulkAction}
+        onSelectionChange={(_, rows) => setBulkEditSelection(rows)}
         sortOptions={sortOptions}
         onSort={handleSort}
         columnSelector
+        toolbarButtonStyle="shopping-cart"
         addButton
         addButtonText="Create Customer Group"
         onAddPress={() => {}}
@@ -129,6 +154,8 @@ export default function CustomerGroupsScreen() {
         emptyIcon="people-circle-outline"
         emptyText="No groups found"
         totalCount={count}
+        horizontalScroll
+        minWidth={contentWidth}
       />
     </View>
   );

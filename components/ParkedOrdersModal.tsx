@@ -1,6 +1,7 @@
-import { buttonSize, colors, iconSize } from "@/utils/theme";
+import { buttonSize, colors, iconSize, modalContent } from "@/utils/theme";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
-import { Alert, Modal, Pressable, ScrollView, Text, TouchableOpacity, View } from "react-native";
+import { Alert, Pressable, ScrollView, Text, TouchableOpacity, View } from "react-native";
+import { CenteredModal } from "./CenteredModal";
 import { ThemedButton } from "./ThemedButton";
 import { ParkedOrder } from "../contexts/ParkedOrderContext";
 
@@ -45,44 +46,37 @@ export function ParkedOrdersModal({
   };
 
   return (
-    <Modal
+    <CenteredModal
       visible={visible}
-      transparent
-      animationType="fade"
-      onRequestClose={onClose}
-    >
-      <TouchableOpacity
-        className="flex-1 bg-black/50 justify-center items-center"
-        activeOpacity={1}
-        onPress={onClose}
-      >
-        <TouchableOpacity
-          className="bg-white rounded-xl overflow-hidden"
-          style={{ width: 600, maxHeight: "80%" }}
-          activeOpacity={1}
-          onPress={(e) => e.stopPropagation()}
-        >
-          {/* Header */}
-          <View className="flex-row justify-between items-center px-6 py-4 border-b border-gray-200">
-            <View className="flex-row items-center gap-3">
-              <View className="w-10 h-10 bg-yellow-100 rounded-full items-center justify-center">
-                <Ionicons name="layers" size={iconSize.xl} color={colors.warning} />
-              </View>
-              <View>
-                <Text className="text-xl font-semibold text-gray-800">
-                  Parked Orders
-                </Text>
-                <Text className="text-gray-500 text-sm">
-                  {parkedOrders.length} order{parkedOrders.length !== 1 ? "s" : ""} parked
-                </Text>
-              </View>
-            </View>
-            <Pressable onPress={onClose} style={{ width: buttonSize.md.height, height: buttonSize.md.height, alignItems: 'center', justifyContent: 'center' }}>
-              <Ionicons name="close" size={iconSize.xl} color={colors.textSecondary} />
-            </Pressable>
+      onClose={onClose}
+      size="md"
+      header={
+        <View className="flex-row items-center gap-3 flex-1">
+          <View className="h-10 bg-yellow-100 rounded-full items-center justify-center" style={{ width: "10%" }}>
+            <Ionicons name="layers" size={iconSize.xl} color={colors.warning} />
           </View>
-
-          {/* Content */}
+          <View>
+            <Text className="text-xl font-semibold" style={{ color: colors.textDark }}>
+              Parked Orders
+            </Text>
+            <Text className="text-sm" style={{ color: colors.textSecondary }}>
+              {parkedOrders.length} order{parkedOrders.length !== 1 ? "s" : ""} parked
+            </Text>
+          </View>
+        </View>
+      }
+      scrollable={false}
+      contentPadding={false}
+      footer={
+        <ThemedButton
+          title="Close"
+          variant="outline"
+          onPress={onClose}
+          fullWidth
+          style={{ backgroundColor: colors.backgroundSecondary }}
+        />
+      }
+    >
           {parkedOrders.length === 0 ? (
             <View className="py-16 items-center">
               <MaterialCommunityIcons name="clipboard-text-outline" size={iconSize['5xl']} color={colors.borderMedium} />
@@ -92,26 +86,27 @@ export function ParkedOrdersModal({
               </Text>
             </View>
           ) : (
-            <ScrollView className="max-h-96">
+            <ScrollView style={{ flex: 1 }}>
               {/* Table Header */}
-              <View className="flex-row bg-[#F7F7F9] px-4 py-3 border-b border-gray-200">
-                <Text className="w-24 text-gray-600 text-sm font-semibold">Order ID</Text>
+              <View className="flex-row bg-[#F7F7F9] py-3 border-b border-gray-200" style={{ paddingHorizontal: "3%" }}>
+                <Text style={{ width: "12%", color: modalContent.labelColor, fontSize: modalContent.labelFontSize, fontWeight: modalContent.titleFontWeight }}>Order ID</Text>
                 <Text className="flex-1 text-gray-600 text-sm font-semibold">Customer</Text>
-                <Text className="w-16 text-gray-600 text-sm font-semibold text-center">Items</Text>
-                <Text className="w-24 text-gray-600 text-sm font-semibold text-right">Total</Text>
-                <Text className="w-32 text-gray-600 text-sm font-semibold text-center">Parked At</Text>
-                <Text className="w-24 text-gray-600 text-sm font-semibold text-center">Actions</Text>
+                <Text style={{ width: "8%", color: colors.textSecondary, fontSize: 14, fontWeight: "600", textAlign: "center" }}>Items</Text>
+                <Text style={{ width: "12%", color: colors.textSecondary, fontSize: 14, fontWeight: "600", textAlign: "right" }}>Total</Text>
+                <Text style={{ width: "16%", color: colors.textSecondary, fontSize: 14, fontWeight: "600", textAlign: "center" }}>Parked At</Text>
+                <Text style={{ width: "18%", color: colors.textSecondary, fontSize: 14, fontWeight: "600", textAlign: "center" }}>Actions</Text>
               </View>
 
               {/* Table Body */}
               {parkedOrders.map((order, index) => (
                 <View
                   key={order.id}
-                  className={`flex-row items-center px-4 py-3 border-b border-gray-100 ${
+                  style={{ paddingHorizontal: "3%", paddingVertical: 12 }}
+                  className={`flex-row items-center border-b border-gray-100 ${
                     index % 2 === 0 ? "bg-[#F7F7F9]" : "bg-white"
                   }`}
                 >
-                  <View className="w-24">
+                  <View style={{ width: "12%" }}>
                     <Text className="text-red-500 text-sm font-medium">{order.id}</Text>
                     {order.note && (
                       <Text className="text-gray-400 text-sm" numberOfLines={1}>
@@ -120,20 +115,20 @@ export function ParkedOrdersModal({
                     )}
                   </View>
                   <Text className="flex-1 text-gray-800 text-sm">{order.customerName}</Text>
-                  <Text className="w-16 text-gray-800 text-sm text-center">
+                  <Text style={{ width: "8%", color: colors.textDark, fontSize: 14, textAlign: "center" }}>
                     {order.products.length}
                   </Text>
-                  <Text className="w-24 text-red-500 text-sm font-medium text-right">
+                  <Text style={{ width: "12%", color: colors.primary, fontSize: 14, fontWeight: "500", textAlign: "right" }}>
                     ${order.total.toFixed(2)}
                   </Text>
-                  <Text className="w-32 text-gray-600 text-sm text-center">
+                  <Text style={{ width: "16%", color: colors.textSecondary, fontSize: 14, textAlign: "center" }}>
                     {formatTime(order.parkedAt)}
                   </Text>
-                  <View className="flex-row justify-center gap-4" style={{ minWidth: 140 }}>
+                  <View className="flex-row justify-center gap-4" style={{ width: "18%", minWidth: "15%" }}>
                     <ThemedButton
                       title="Resume"
                       onPress={() => onResumeOrder(order.id)}
-                      style={{ minWidth: 72, backgroundColor: colors.success }}
+                      style={{ flex: 1, minWidth: "40%", backgroundColor: colors.success }}
                     />
                     <ThemedButton
                       icon="trash-outline"
@@ -147,19 +142,6 @@ export function ParkedOrdersModal({
               ))}
             </ScrollView>
           )}
-
-          {/* Footer */}
-          <View className="px-6 py-4 border-t border-gray-200">
-            <ThemedButton
-              title="Close"
-              variant="outline"
-              onPress={onClose}
-              fullWidth
-              style={{ backgroundColor: colors.backgroundSecondary }}
-            />
-          </View>
-        </TouchableOpacity>
-      </TouchableOpacity>
-    </Modal>
+    </CenteredModal>
   );
 }

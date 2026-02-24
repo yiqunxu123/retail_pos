@@ -15,7 +15,7 @@ interface SidebarButtonProps {
 // Consistent text style for all button states
 const TEXT_STYLE = {
   fontSize: 18,
-  fontWeight: '600' as const,
+  fontWeight: '400' as const,
 };
 
 /**

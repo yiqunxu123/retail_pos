@@ -30,18 +30,13 @@ function AddProductsTopBarComponent({
       className="flex-row items-end gap-3 bg-[#F7F7F9] border-b border-gray-200"
       style={{ paddingTop: insetTop + 10, paddingHorizontal: 16, paddingBottom: 10 }}
     >
-      <View className="flex-1">
-        <Text className="text-[#5A5F66] text-lg mb-1" >
+      <View className="flex-1 justify-center">
+        <Text className="text-2xl font-bold" style={{ color: colors.text }}>
+          Shopping Cart
+        </Text>
+        <Text className="text-[#5A5F66] text-base mt-0.5">
           Scan barcode to add product
         </Text>
-        <View className="flex-row items-center bg-gray-100 border border-gray-200 rounded-xl px-3 py-3">
-          <Ionicons name="barcode-outline" size={iconSize.base} color={colors.textTertiary} />
-          <Text
-            className="flex-1 ml-2 text-gray-400 text-lg"
-          >
-            Ready for scanning...
-          </Text>
-        </View>
       </View>
 
       <TouchableOpacity

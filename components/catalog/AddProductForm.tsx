@@ -1,15 +1,13 @@
 /**
- * Add Product Screen
- * 
- * Form to add a new product to the catalog.
+ * AddProductForm - 产品创建表单
+ * 仅用于 LeftSlidePanel 内嵌，无独立页面。
  * Based on kapp web UI design.
  */
 
 import { colors, iconSize } from '@/utils/theme';
 import { Ionicons } from "@expo/vector-icons";
 import type { AxiosError } from "axios";
-import { useRouter } from "expo-router";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import React, { forwardRef, useCallback, useEffect, useImperativeHandle, useMemo, useRef, useState } from "react";
 import {
     ActivityIndicator,
     Alert,
@@ -21,8 +19,6 @@ import {
     TextInput,
     View,
 } from "react-native";
-import { PageHeader } from "../../components";
-import { CATEGORIES_TABLE, DevDataOverlay, PRODUCTS_TABLE, PROMOTION_DETAILS_TABLE } from "../../components/DevDataOverlay";
 import {
     createCategory,
     createProduct,
@@ -235,7 +231,7 @@ function FormInput({
         )}
       </View>
       <TextInput
-        className={`border rounded-lg px-4 py-3 ${isDisabled ? "bg-gray-100 border-gray-300 text-gray-400" : "bg-[#F7F7F9] border-gray-200 text-gray-800"}`}
+        className={`border rounded-xl px-3 py-3 text-lg shadow-sm ${isDisabled ? "bg-gray-100 border-gray-300 text-gray-400" : "bg-white border-gray-200 text-gray-800"}`}
         placeholder={placeholder || label}
         placeholderTextColor={isDisabled ? "#B8BEC8" : colors.textTertiary}
         value={value}
@@ -269,8 +265,19 @@ function FormSwitch({
   );
 }
 
-export default function AddProductScreen() {
-  const router = useRouter();
+export interface AddProductFormRef {
+  submit: () => void;
+}
+
+export interface AddProductFormProps {
+  /** 保存成功后回调（用于关闭面板） */
+  onSaveSuccess: () => void;
+}
+
+const AddProductFormInner = forwardRef<
+  AddProductFormRef,
+  AddProductFormProps
+>(function AddProductFormInner({ onSaveSuccess }, ref) {
   
   // Active Tab
   const [activeTab, setActiveTab] = useState("basic");
@@ -954,7 +961,7 @@ export default function AddProductScreen() {
       const { data } = await createProduct(payload);
 
       Alert.alert("Success", data.message || "Product created successfully", [
-        { text: "OK", onPress: () => router.back() },
+        { text: "OK", onPress: onSaveSuccess },
       ]);
     } catch (error) {
       const axErr = error as AxiosError;
@@ -966,7 +973,11 @@ export default function AddProductScreen() {
     }
   }, [productName, autoGenerateSku, sku, selectedMainCategoryId, selectedCategoryIds,
     unitData, pricingData, stockData, weight, seoSlug, youtubeLink, isMsa, activeTab,
-    buildPayload, router, showValidationError]);
+    buildPayload, showValidationError, onSaveSuccess]);
+
+  useImperativeHandle(ref, () => ({
+    submit: () => handleSave(),
+  }), [handleSave]);
 
   const categoryTree = useMemo(() => buildCategoryTree(categoriesList), [categoriesList]);
 
@@ -1117,7 +1128,7 @@ export default function AddProductScreen() {
         <View className="flex-row items-center justify-between mb-6">
           <Text className="text-lg font-semibold text-gray-800">General Information</Text>
           <Pressable
-            className="rounded-lg px-4 py-2 flex-row items-center"
+            className="rounded-xl px-3 py-3 flex-row items-center"
             style={{
               backgroundColor:
                 status === 1 ? colors.textDark    // ACTIVE  – dark
@@ -1201,7 +1212,7 @@ export default function AddProductScreen() {
           </View>
           <View className="flex-1">
             <View className="mb-4">
-              <Text className="text-gray-700 text-sm font-medium mb-2">Weight</Text>
+              <Text className="text-[#5A5F66] text-lg mb-1.5">Weight</Text>
               <View className="flex-row">
                 <TextInput
                   className="flex-1 bg-white border border-gray-200 rounded-l-lg px-4 py-3 shadow-sm"
@@ -1222,10 +1233,10 @@ export default function AddProductScreen() {
             {/* Brand picker — shows list from brandsList */}
             <View className="mb-4">
               <View className="flex-row items-center mb-2">
-                <Text className="text-gray-700 text-sm font-medium">Select Brand</Text>
+                <Text className="text-[#5A5F66] text-lg mb-1.5">Select Brand</Text>
               </View>
               <Pressable
-                className="bg-white border border-gray-200 rounded-lg px-4 py-3 flex-row justify-between items-center shadow-sm"
+                className="bg-white border border-gray-200 rounded-xl px-3 py-3 flex-row justify-between items-center shadow-sm"
                 onPress={() => {
                   if (brandsList.length === 0) return;
                   // Cycle through brands or show picker
@@ -1235,7 +1246,7 @@ export default function AddProductScreen() {
                 }}
                 onLongPress={() => setSelectedBrandId(null)}
               >
-                <Text className={selectedBrandId ? "text-gray-800" : "text-gray-400"}>
+                <Text className={`flex-1 text-lg ${selectedBrandId ? "text-gray-800" : "text-gray-400"}`}>
                   {selectedBrandId
                     ? brandsList.find((b) => b.id === selectedBrandId)?.name || "Select"
                     : "Select"}
@@ -1323,9 +1334,9 @@ export default function AddProductScreen() {
           {/* Manufacturer picker */}
           <View className="flex-1">
             <View className="mb-4">
-              <Text className="text-gray-700 text-sm font-medium mb-2">Manufacturer</Text>
+              <Text className="text-[#5A5F66] text-lg mb-1.5">Manufacturer</Text>
               <Pressable
-                className="bg-white border border-gray-200 rounded-lg px-4 py-3 flex-row justify-between items-center shadow-sm"
+                className="bg-white border border-gray-200 rounded-xl px-3 py-3 flex-row justify-between items-center shadow-sm"
                 onPress={() => {
                   if (manufacturersList.length === 0) return;
                   const currentIdx = manufacturersList.findIndex((m) => selectedManufacturerIds.includes(m.id));
@@ -1334,7 +1345,7 @@ export default function AddProductScreen() {
                 }}
                 onLongPress={() => setSelectedManufacturerIds([])}
               >
-                <Text className={selectedManufacturerIds.length ? "text-gray-800" : "text-gray-400"} numberOfLines={1}>
+                <Text className={`flex-1 text-lg ${selectedManufacturerIds.length ? "text-gray-800" : "text-gray-400"}`} numberOfLines={1}>
                   {selectedManufacturerIds.length
                     ? manufacturersList.find((m) => m.id === selectedManufacturerIds[0])?.name || "Select"
                     : "Select"}
@@ -1352,9 +1363,9 @@ export default function AddProductScreen() {
           {/* Suppliers picker */}
           <View className="flex-1">
             <View className="mb-4">
-              <Text className="text-gray-700 text-sm font-medium mb-2">Select Suppliers</Text>
+              <Text className="text-[#5A5F66] text-lg mb-1.5">Select Suppliers</Text>
               <Pressable
-                className="bg-white border border-gray-200 rounded-lg px-4 py-3 flex-row justify-between items-center shadow-sm"
+                className="bg-white border border-gray-200 rounded-xl px-3 py-3 flex-row justify-between items-center shadow-sm"
                 onPress={() => {
                   if (suppliersList.length === 0) return;
                   const currentIdx = suppliersList.findIndex((s) => selectedSupplierIds.includes(s.id));
@@ -1381,11 +1392,11 @@ export default function AddProductScreen() {
           {/* Main Category picker */}
           <View className="flex-1">
             <View className="mb-4">
-              <Text className="text-gray-700 text-sm font-medium mb-2">
+              <Text className="text-[#5A5F66] text-lg mb-1.5">
                 Select Main Category<Text className="text-red-500">*</Text>
               </Text>
               <Pressable
-                className="bg-white border border-gray-200 rounded-lg px-4 py-3 flex-row justify-between items-center shadow-sm"
+                className="bg-white border border-gray-200 rounded-xl px-3 py-3 flex-row justify-between items-center shadow-sm"
                 onPress={() => {
                   if (selectedCategoryIds.length === 0) {
                     Alert.alert("Info", "Please select categories from the left panel first");
@@ -1418,9 +1429,9 @@ export default function AddProductScreen() {
           </View>
           <View className="flex-[2]">
             <View className="mb-4">
-              <Text className="text-gray-700 text-sm font-medium mb-2">Product Note</Text>
+              <Text className="text-[#5A5F66] text-lg mb-1.5">Product Note</Text>
               <TextInput
-                className="bg-[#F7F7F9] border border-gray-200 rounded-lg px-4 py-3"
+                className="bg-white border border-gray-200 rounded-xl px-3 py-3 shadow-sm"
                 placeholder="Place note here"
                 placeholderTextColor={colors.textTertiary}
                 value={productNote}
@@ -1456,7 +1467,7 @@ export default function AddProductScreen() {
         <View className="flex-row items-center justify-between mb-4">
           <Text className="text-lg font-semibold text-gray-800">Detail Product Description</Text>
           <Pressable
-            className="border border-gray-300 rounded-lg px-4 py-2 flex-row items-center"
+            className="border border-gray-300 rounded-xl px-3 py-3 flex-row items-center"
             style={generatingDescription ? { opacity: 0.6 } : {}}
             disabled={generatingDescription}
             onPress={async () => {
@@ -1493,7 +1504,7 @@ export default function AddProductScreen() {
           </Pressable>
         </View>
         <TextInput
-          className="bg-white border border-gray-200 rounded-lg px-4 py-3 mb-6 shadow-sm"
+          className="bg-white border border-gray-200 rounded-xl px-3 py-3 mb-6 shadow-sm"
           placeholder="Enter product description..."
           placeholderTextColor={colors.textTertiary}
           value={description}
@@ -1507,7 +1518,7 @@ export default function AddProductScreen() {
         <View className="mb-6 flex-row items-center" onLayout={(e) => trackFieldLayout("youtubeLink", e.nativeEvent.layout.y)}>
           <Text className="text-gray-700 text-sm font-medium mr-3" style={{ width: 90 }}>Youtube Link</Text>
           <TextInput
-            className="flex-1 bg-white border border-gray-200 rounded-lg px-4 py-3 shadow-sm"
+            className="flex-1 bg-white border border-gray-200 rounded-xl px-3 py-3 text-lg shadow-sm"
             placeholder="Enter youtube link"
             placeholderTextColor={colors.textTertiary}
             value={youtubeLink}
@@ -1542,7 +1553,7 @@ export default function AddProductScreen() {
                 This product is measured by<Text className="text-red-500">*</Text>
               </Text>
               <Pressable
-                className="bg-white border border-gray-200 rounded-lg px-4 py-3 flex-row justify-between items-center w-48"
+                className="bg-white border border-gray-200 rounded-xl px-3 py-3 flex-row justify-between items-center w-48 shadow-sm"
                 onPress={() => openPicker(
                   "Measured By",
                   [{ label: "Count", value: "Count" }],
@@ -1570,7 +1581,7 @@ export default function AddProductScreen() {
                   <Text className="w-20 text-gray-700">{item.unit}</Text>
                   <View className="w-40 flex-row items-center">
                     <TextInput
-                      className={`border rounded-lg px-3 py-2 w-20 shadow-sm ${index !== 0 ? "bg-white border-gray-200 text-gray-800" : "border-gray-300 text-gray-400"}`}
+                      className={`border rounded-xl px-3 py-3 w-20 text-lg shadow-sm ${index !== 0 ? "bg-white border-gray-200 text-gray-800" : "border-gray-300 text-gray-400"}`}
                     style={index === 0 ? { backgroundColor: colors.backgroundSecondary } : undefined}
                       placeholder={index === 0 ? "1" : "Enter Q..."}
                       placeholderTextColor={index !== 0 ? colors.textTertiary : "#B8BEC8"}
@@ -1588,7 +1599,7 @@ export default function AddProductScreen() {
                     )}
                   </View>
                   <TextInput
-                    className="flex-1 bg-white border border-gray-200 rounded-lg px-3 py-2 ml-4 shadow-sm"
+                    className="flex-1 bg-white border border-gray-200 rounded-xl px-3 py-3 text-lg ml-4 shadow-sm"
                     placeholder="UPC"
                     placeholderTextColor={colors.textTertiary}
                     value={item.upc}
@@ -1645,7 +1656,7 @@ export default function AddProductScreen() {
                   This product is sold by<Text className="text-red-500">*</Text>
                 </Text>
                 <Pressable
-                  className="bg-white border border-gray-200 rounded-lg px-4 py-3 flex-row justify-between items-center shadow-sm"
+                  className="bg-white border border-gray-200 rounded-xl px-3 py-3 flex-row justify-between items-center shadow-sm"
                   onPress={() => openPicker(
                     "This product is sold by",
                     definedUnits.map((u) => ({ label: u.unit, value: u.unit })),
@@ -1662,7 +1673,7 @@ export default function AddProductScreen() {
                   This product is bought by<Text className="text-red-500">*</Text>
                 </Text>
                 <Pressable
-                  className="bg-white border border-gray-200 rounded-lg px-4 py-3 flex-row justify-between items-center shadow-sm"
+                  className="bg-white border border-gray-200 rounded-xl px-3 py-3 flex-row justify-between items-center shadow-sm"
                   onPress={() => openPicker(
                     "This product is bought by",
                     definedUnits.map((u) => ({ label: u.unit, value: u.unit })),
@@ -1718,7 +1729,7 @@ export default function AddProductScreen() {
                     <Text className="w-16 text-gray-700 text-sm">{item.unit}</Text>
                     <View className="w-28 flex-row items-center">
                       <TextInput
-                        className={`border rounded px-2 py-1.5 w-12 text-sm ${index !== 0 ? "bg-white border-gray-200 text-gray-800" : "border-gray-300 text-gray-400"}`}
+                        className={`border rounded-xl px-2 py-2.5 w-12 text-base ${index !== 0 ? "bg-white border-gray-200 text-gray-800" : "border-gray-300 text-gray-400"}`}
                         style={index === 0 ? { backgroundColor: colors.backgroundSecondary } : undefined}
                         placeholder={index === 0 ? "1" : "Qty"}
                         placeholderTextColor={index !== 0 ? colors.textTertiary : "#B8BEC8"}
@@ -1731,23 +1742,23 @@ export default function AddProductScreen() {
                         <Text className="text-gray-400 text-sm ml-1">= {item.qtyLabel}</Text>
                       )}
                     </View>
-                    <TextInput className="w-24 bg-white border border-gray-200 rounded px-2 py-1.5 text-sm" placeholder="Base ..." placeholderTextColor={colors.borderMedium} value={item.baseCost} onChangeText={(v) => updatePricing("baseCost", v)} keyboardType="decimal-pad" />
-                    <TextInput className="w-24 bg-white border border-gray-200 rounded px-2 py-1.5 text-sm ml-1" placeholder="Net c..." placeholderTextColor={colors.borderMedium} value={item.netCost} onChangeText={(v) => updatePricing("netCost", v)} keyboardType="decimal-pad" />
-                    <TextInput className="w-20 bg-white border border-gray-200 rounded px-2 py-1.5 text-sm ml-1" placeholder="Price" placeholderTextColor={colors.borderMedium} value={item.salePrice} onChangeText={(v) => updatePricing("salePrice", v)} keyboardType="decimal-pad" />
+                    <TextInput className="w-24 bg-white border border-gray-200 rounded-xl px-2 py-2.5 text-base" placeholder="Base ..." placeholderTextColor={colors.borderMedium} value={item.baseCost} onChangeText={(v) => updatePricing("baseCost", v)} keyboardType="decimal-pad" />
+                    <TextInput className="w-24 bg-white border border-gray-200 rounded-xl px-2 py-2.5 text-base ml-1" placeholder="Net c..." placeholderTextColor={colors.borderMedium} value={item.netCost} onChangeText={(v) => updatePricing("netCost", v)} keyboardType="decimal-pad" />
+                    <TextInput className="w-20 bg-white border border-gray-200 rounded-xl px-2 py-2.5 text-base ml-1" placeholder="Price" placeholderTextColor={colors.borderMedium} value={item.salePrice} onChangeText={(v) => updatePricing("salePrice", v)} keyboardType="decimal-pad" />
                     <View className="w-20 flex-row items-center ml-1">
-                      <TextInput className="flex-1 bg-white border border-gray-200 rounded-l px-2 py-1.5 text-sm" placeholder="Margin" placeholderTextColor={colors.borderMedium} value={item.margin} onChangeText={(v) => updatePricing("margin", v)} keyboardType="decimal-pad" />
-                      <Pressable className="border border-l-0 border-gray-200 rounded-r px-1 py-1.5" style={{ backgroundColor: colors.backgroundSecondary }}>
+                      <TextInput className="flex-1 bg-white border border-gray-200 rounded-l-xl px-2 py-2.5 text-base" placeholder="Margin" placeholderTextColor={colors.borderMedium} value={item.margin} onChangeText={(v) => updatePricing("margin", v)} keyboardType="decimal-pad" />
+                      <Pressable className="border border-l-0 border-gray-200 rounded-r-xl px-1 py-2.5" style={{ backgroundColor: colors.backgroundSecondary }}>
                         <Text className="text-gray-500 text-sm">$</Text>
                       </Pressable>
                     </View>
-                    <TextInput className="w-16 bg-white border border-gray-200 rounded px-2 py-1.5 text-sm ml-1" placeholder="MSRP" placeholderTextColor={colors.borderMedium} value={item.msrp} onChangeText={(v) => updatePricing("msrp", v)} keyboardType="decimal-pad" />
-                    <TextInput className="w-20 bg-white border border-gray-200 rounded px-2 py-1.5 text-sm ml-1" placeholder="Lowest..." placeholderTextColor={colors.borderMedium} value={item.lowestPrice} onChangeText={(v) => updatePricing("lowestPrice", v)} keyboardType="decimal-pad" />
-                    <TextInput className="w-20 bg-white border border-gray-200 rounded px-2 py-1.5 text-sm ml-1" placeholder="Ecom ..." placeholderTextColor={colors.borderMedium} value={item.ecomPrice} onChangeText={(v) => updatePricing("ecomPrice", v)} keyboardType="decimal-pad" />
-                    <TextInput className="w-20 bg-white border border-gray-200 rounded px-2 py-1.5 text-sm ml-1 shadow-sm" placeholder="Tier 1" placeholderTextColor={colors.borderMedium} value={item.tier1} onChangeText={(v) => updatePricing("tier1", v)} keyboardType="decimal-pad" />
-                    <TextInput className="w-20 bg-white border border-gray-200 rounded px-2 py-1.5 text-sm ml-1 shadow-sm" placeholder="Tier 2" placeholderTextColor={colors.borderMedium} value={item.tier2} onChangeText={(v) => updatePricing("tier2", v)} keyboardType="decimal-pad" />
-                    <TextInput className="w-20 bg-white border border-gray-200 rounded px-2 py-1.5 text-sm ml-1 shadow-sm" placeholder="Tier 3" placeholderTextColor={colors.borderMedium} value={item.tier3} onChangeText={(v) => updatePricing("tier3", v)} keyboardType="decimal-pad" />
-                    <TextInput className="w-20 bg-white border border-gray-200 rounded px-2 py-1.5 text-sm ml-1 shadow-sm" placeholder="Tier 4" placeholderTextColor={colors.borderMedium} value={item.tier4} onChangeText={(v) => updatePricing("tier4", v)} keyboardType="decimal-pad" />
-                    <TextInput className="w-20 bg-white border border-gray-200 rounded px-2 py-1.5 text-sm ml-1 shadow-sm" placeholder="Tier 5" placeholderTextColor={colors.borderMedium} value={item.tier5} onChangeText={(v) => updatePricing("tier5", v)} keyboardType="decimal-pad" />
+                    <TextInput className="w-16 bg-white border border-gray-200 rounded-xl px-2 py-2.5 text-base ml-1" placeholder="MSRP" placeholderTextColor={colors.borderMedium} value={item.msrp} onChangeText={(v) => updatePricing("msrp", v)} keyboardType="decimal-pad" />
+                    <TextInput className="w-20 bg-white border border-gray-200 rounded-xl px-2 py-2.5 text-base ml-1" placeholder="Lowest..." placeholderTextColor={colors.borderMedium} value={item.lowestPrice} onChangeText={(v) => updatePricing("lowestPrice", v)} keyboardType="decimal-pad" />
+                    <TextInput className="w-20 bg-white border border-gray-200 rounded-xl px-2 py-2.5 text-base ml-1" placeholder="Ecom ..." placeholderTextColor={colors.borderMedium} value={item.ecomPrice} onChangeText={(v) => updatePricing("ecomPrice", v)} keyboardType="decimal-pad" />
+                    <TextInput className="w-20 bg-white border border-gray-200 rounded-xl px-2 py-2.5 text-base ml-1 shadow-sm" placeholder="Tier 1" placeholderTextColor={colors.borderMedium} value={item.tier1} onChangeText={(v) => updatePricing("tier1", v)} keyboardType="decimal-pad" />
+                    <TextInput className="w-20 bg-white border border-gray-200 rounded-xl px-2 py-2.5 text-base ml-1 shadow-sm" placeholder="Tier 2" placeholderTextColor={colors.borderMedium} value={item.tier2} onChangeText={(v) => updatePricing("tier2", v)} keyboardType="decimal-pad" />
+                    <TextInput className="w-20 bg-white border border-gray-200 rounded-xl px-2 py-2.5 text-base ml-1 shadow-sm" placeholder="Tier 3" placeholderTextColor={colors.borderMedium} value={item.tier3} onChangeText={(v) => updatePricing("tier3", v)} keyboardType="decimal-pad" />
+                    <TextInput className="w-20 bg-white border border-gray-200 rounded-xl px-2 py-2.5 text-base ml-1 shadow-sm" placeholder="Tier 4" placeholderTextColor={colors.borderMedium} value={item.tier4} onChangeText={(v) => updatePricing("tier4", v)} keyboardType="decimal-pad" />
+                    <TextInput className="w-20 bg-white border border-gray-200 rounded-xl px-2 py-2.5 text-base ml-1 shadow-sm" placeholder="Tier 5" placeholderTextColor={colors.borderMedium} value={item.tier5} onChangeText={(v) => updatePricing("tier5", v)} keyboardType="decimal-pad" />
                   </View>
                   );
                 })}
@@ -1791,14 +1802,14 @@ export default function AddProductScreen() {
                     <Text className="w-16 text-gray-700 text-sm">{item.srNo}</Text>
                     <View className="w-40">
                       <TextInput
-                        className="border border-gray-200 rounded px-3 py-2 text-sm"
+                        className="border border-gray-200 rounded-xl px-3 py-2.5 text-base"
                         style={{ backgroundColor: colors.backgroundSecondary }}
                         value={item.warehouse}
                         editable={false}
                       />
                     </View>
                     <TextInput
-                      className="w-24 bg-white border border-gray-200 rounded px-3 py-2 text-sm ml-1"
+                      className="w-24 bg-white border border-gray-200 rounded-xl px-3 py-2.5 text-base ml-1"
                       placeholder="0"
                       placeholderTextColor={colors.textTertiary}
                       value={item.availableQty}
@@ -1810,7 +1821,7 @@ export default function AddProductScreen() {
                       }}
                     />
                     <TextInput
-                      className="w-24 border border-gray-200 rounded px-3 py-2 text-sm ml-1"
+                      className="w-24 border border-gray-200 rounded-xl px-3 py-2.5 text-base ml-1"
                       style={{ backgroundColor: colors.backgroundSecondary }}
                       placeholder="0"
                       placeholderTextColor={colors.textTertiary}
@@ -1818,7 +1829,7 @@ export default function AddProductScreen() {
                       editable={false}
                     />
                     <TextInput
-                      className="w-24 bg-white border border-gray-200 rounded px-3 py-2 text-sm ml-1"
+                      className="w-24 bg-white border border-gray-200 rounded-xl px-3 py-2.5 text-base ml-1"
                       placeholder="0"
                       placeholderTextColor={colors.textTertiary}
                       value={item.damagedQty}
@@ -1830,14 +1841,14 @@ export default function AddProductScreen() {
                       }}
                     />
                     <TextInput
-                      className="w-24 border border-gray-200 rounded px-3 py-2 text-sm ml-1"
+                      className="w-24 border border-gray-200 rounded-xl px-3 py-2.5 text-base ml-1"
                       style={{ backgroundColor: colors.backgroundSecondary }}
                       placeholder="Back Order"
                       placeholderTextColor={colors.borderMedium}
                       editable={false}
                     />
                     <TextInput
-                      className="w-28 border border-gray-200 rounded px-3 py-2 text-sm ml-1"
+                      className="w-28 border border-gray-200 rounded-xl px-3 py-2.5 text-base ml-1"
                       style={{ backgroundColor: colors.backgroundSecondary }}
                       placeholder="Coming Soon"
                       placeholderTextColor={colors.borderMedium}
@@ -1863,11 +1874,11 @@ export default function AddProductScreen() {
         {/* Slug */}
         <View className="mb-6" onLayout={(e) => trackFieldLayout("seoSlug", e.nativeEvent.layout.y)}>
           <View className="flex-row items-center mb-2">
-            <Text className="text-gray-700 text-sm font-medium">Slug</Text>
+            <Text className="text-[#5A5F66] text-lg mb-1.5">Slug</Text>
             <Ionicons name="information-circle-outline" size={iconSize.md} color={colors.textTertiary} style={{ marginLeft: 4 }} />
           </View>
           <TextInput
-            className="bg-[#F7F7F9] border border-gray-200 rounded-lg px-4 py-3"
+            className="bg-white border border-gray-200 rounded-xl px-3 py-3 shadow-sm"
             placeholder="Enter Product Slug"
             placeholderTextColor={colors.borderMedium}
             value={seoSlug}
@@ -1878,9 +1889,9 @@ export default function AddProductScreen() {
 
         {/* Meta Title */}
         <View className="mb-6">
-          <Text className="text-gray-700 text-sm font-medium mb-2">Meta Title</Text>
+          <Text className="text-[#5A5F66] text-lg mb-1.5">Meta Title</Text>
           <TextInput
-            className="bg-[#F7F7F9] border border-gray-200 rounded-lg px-4 py-3"
+            className="bg-white border border-gray-200 rounded-xl px-3 py-3 shadow-sm"
             placeholder="Enter Meta Title for Product"
             placeholderTextColor={colors.borderMedium}
             value={metaTitle}
@@ -1894,9 +1905,9 @@ export default function AddProductScreen() {
 
         {/* Meta Description */}
         <View className="mb-2">
-          <Text className="text-gray-700 text-sm font-medium mb-2">Meta Description</Text>
+          <Text className="text-[#5A5F66] text-lg mb-1.5">Meta Description</Text>
           <TextInput
-            className="bg-[#F7F7F9] border border-gray-200 rounded-lg px-4 py-3"
+            className="bg-white border border-gray-200 rounded-xl px-3 py-3 shadow-sm"
             placeholder="Enter Meta Description for Product"
             placeholderTextColor={colors.borderMedium}
             value={metaDescription}
@@ -1973,14 +1984,14 @@ export default function AddProductScreen() {
               <Text className="text-gray-800 font-medium mb-3">Search Promotions</Text>
               <View className="flex-row gap-3">
                 <TextInput
-                  className="flex-1 bg-white border border-gray-200 rounded-lg px-4 py-2.5"
+                  className="flex-1 bg-white border border-gray-200 rounded-xl px-3 py-3 text-lg"
                   placeholder="Search"
                   placeholderTextColor={colors.textTertiary}
                   value={promotionSearch}
                   onChangeText={setPromotionSearch}
                 />
                 <Pressable
-                  className="flex-row items-center gap-2 px-4 py-2.5 rounded-lg border border-gray-300"
+                  className="flex-row items-center gap-2 px-3 py-3 rounded-xl border border-gray-300"
                   onPress={() => setShowAdvanceFilters(!showAdvanceFilters)}
                 >
                   <Ionicons name="filter" size={iconSize.md} color={colors.textMedium} />
@@ -1995,7 +2006,7 @@ export default function AddProductScreen() {
 
                   {/* Status multi-select chips */}
                   <View className="mb-4">
-                    <Text className="text-gray-700 text-sm font-medium mb-2">Status</Text>
+                    <Text className="text-[#5A5F66] text-lg mb-1.5">Status</Text>
                     <View className="flex-row flex-wrap gap-2">
                       {Object.keys(PROMOTION_STATUS).map((key) => {
                         const st = PROMOTION_STATUS[key];
@@ -2154,27 +2165,6 @@ export default function AddProductScreen() {
 
   return (
     <View className="flex-1 bg-[#F7F7F9]">
-      <PageHeader title="Add Product" rightContent={
-        <View className="flex-row items-center gap-3">
-          <Pressable
-            className="px-5 py-2.5 rounded-lg border border-gray-300"
-            onPress={() => router.back()}
-            disabled={saving}
-          >
-            <Text className="text-gray-700 font-medium">Cancel</Text>
-          </Pressable>
-          <Pressable
-            className="px-5 py-2.5 rounded-lg flex-row items-center"
-            style={{ backgroundColor: saving ? "#F87171" : colors.primary, opacity: saving ? 0.7 : 1 }}
-            onPress={handleSave}
-            disabled={saving}
-          >
-            {saving && <ActivityIndicator size="small" color="white" style={{ marginRight: 6 }} />}
-            <Text className="text-white font-medium">{saving ? "Saving..." : "Save"}</Text>
-          </Pressable>
-        </View>
-      } />
-
       {/* Tab Navigation */}
       <View className="bg-[#F7F7F9] border-b border-gray-200">
         <ScrollView 
@@ -2238,11 +2228,11 @@ export default function AddProductScreen() {
               {/* Row 1: Category Name, MSA Code, Is MSA, Is Feature */}
               <View className="flex-row gap-4 mb-4">
                 <View className="flex-1">
-                  <Text className="text-gray-700 text-sm font-medium mb-2">
+                  <Text className="text-[#5A5F66] text-lg mb-1.5">
                     Category Name<Text className="text-red-500">*</Text>
                   </Text>
                   <TextInput
-                    className="bg-[#F7F7F9] border border-gray-200 rounded-lg px-4 py-3"
+                    className="bg-white border border-gray-200 rounded-xl px-3 py-3 shadow-sm"
                     placeholder="Enter Category Name"
                     placeholderTextColor={colors.textTertiary}
                     value={categoryName}
@@ -2250,9 +2240,9 @@ export default function AddProductScreen() {
                   />
                 </View>
                 <View className="flex-1">
-                  <Text className="text-gray-700 text-sm font-medium mb-2">MSA Code</Text>
+                  <Text className="text-[#5A5F66] text-lg mb-1.5">MSA Code</Text>
                   <Pressable
-                    className="bg-white border border-gray-200 rounded-lg px-4 py-3 flex-row justify-between items-center shadow-sm"
+                    className="bg-white border border-gray-200 rounded-xl px-3 py-3 flex-row justify-between items-center shadow-sm"
                     onPress={() => {
                       if (!categoryIsMsa) {
                         Alert.alert("Info", "Turn on Is MSA to enter MSA code");
@@ -2272,7 +2262,7 @@ export default function AddProductScreen() {
                   </Pressable>
                 </View>
                 <View className="items-center">
-                  <Text className="text-gray-700 text-sm font-medium mb-2">Is MSA</Text>
+                  <Text className="text-[#5A5F66] text-lg mb-1.5">Is MSA</Text>
                   <Switch
                     value={categoryIsMsa}
                     onValueChange={(val) => {
@@ -2284,7 +2274,7 @@ export default function AddProductScreen() {
                   />
                 </View>
                 <View className="items-center">
-                  <Text className="text-gray-700 text-sm font-medium mb-2">Is Feature</Text>
+                  <Text className="text-[#5A5F66] text-lg mb-1.5">Is Feature</Text>
                   <Switch
                     value={categoryIsFeature}
                     onValueChange={setCategoryIsFeature}
@@ -2296,9 +2286,9 @@ export default function AddProductScreen() {
 
               {/* Row 2: Parent Category */}
               <View className="mb-6">
-                <Text className="text-gray-700 text-sm font-medium mb-2">Parent Category</Text>
+                <Text className="text-[#5A5F66] text-lg mb-1.5">Parent Category</Text>
                 <Pressable
-                  className="bg-white border border-gray-200 rounded-lg px-4 py-3 flex-row justify-between items-center w-64"
+                  className="bg-white border border-gray-200 rounded-xl px-3 py-3 flex-row justify-between items-center w-64 shadow-sm"
                   onPress={() => setShowParentCategoryModal(true)}
                 >
                   <Text className={categoryParentId ? "text-gray-800" : "text-gray-400"}>
@@ -2450,13 +2440,13 @@ export default function AddProductScreen() {
             </ScrollView>
             <View className="flex-row justify-end gap-3 p-5 border-t border-gray-200">
               <Pressable
-                className="px-5 py-2.5 rounded-lg border border-gray-300"
+                className="px-3 py-3 rounded-xl border border-gray-300"
                 onPress={() => setShowMsaCodeModal(false)}
               >
                 <Text className="text-gray-700 font-medium">Cancel</Text>
               </Pressable>
               <Pressable
-                className="px-5 py-2.5 rounded-lg"
+                className="px-3 py-3 rounded-xl"
                 style={{ backgroundColor: colors.primary }}
                 onPress={() => {
                   setCategoryMsaCode(msaCodeDraft.trim());
@@ -2565,10 +2555,9 @@ export default function AddProductScreen() {
         </View>
       </Modal>
 
-      <DevDataOverlay
-        tables={[PRODUCTS_TABLE, CATEGORIES_TABLE, PROMOTION_DETAILS_TABLE]}
-        defaultTable="products"
-      />
     </View>
   );
-}
+});
+
+export const AddProductForm = React.memo(AddProductFormInner);
+AddProductForm.displayName = "AddProductForm";

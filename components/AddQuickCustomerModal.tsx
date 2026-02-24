@@ -1,29 +1,28 @@
-import { colors, iconSize } from "@/utils/theme";
-import { ThemedButton } from "./ThemedButton";
-import { Ionicons } from "@expo/vector-icons";
+import { colors } from "@/utils/theme";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
-  ActivityIndicator,
-  Alert,
-  Pressable,
-  ScrollView,
-  Text,
-  TextInput,
-  View,
+    ActivityIndicator,
+    Alert,
+    Pressable,
+    ScrollView,
+    Text,
+    TextInput,
+    View,
 } from "react-native";
-import { SlidePanelModal } from "./SlidePanelModal";
 import {
-  createQuickCustomer,
-  fetchSalesReps,
-  getCustomerById,
-  parseCustomerApiError,
-  searchCustomers,
-  updateCustomer,
-  type CustomerEntity,
-  type QuickCustomerPayload,
-  type SaleAgent,
+    createQuickCustomer,
+    fetchSalesReps,
+    getCustomerById,
+    parseCustomerApiError,
+    searchCustomers,
+    updateCustomer,
+    type CustomerEntity,
+    type QuickCustomerPayload,
+    type SaleAgent,
 } from "../utils/api/customers";
 import { Dropdown } from "./Dropdown";
+import { SlidePanelModal } from "./SlidePanelModal";
+import { ThemedButton } from "./ThemedButton";
 
 export interface QuickCustomerResult {
   id: number;

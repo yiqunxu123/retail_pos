@@ -1,10 +1,9 @@
 import { useRouter } from "expo-router";
-import { useCallback, useMemo, useState } from "react";
-import {
-    Text,
-    View
-} from "react-native";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { Alert, Text, View } from "react-native";
+import { useBulkEditContext } from "../../contexts/BulkEditContext";
 import { ColumnDefinition, DataTable, PageHeader } from "../../components";
+import { useTableContentWidth } from "../../hooks/useTableContentWidth";
 import { CustomerSalesReportView, useCustomerSalesReport } from "../../utils/powersync/hooks";
 
 // ============================================================================
@@ -48,6 +47,7 @@ function formatDate(dateStr: string): string {
 
 export default function CustomerCategorySalesReportScreen() {
   const router = useRouter();
+  const contentWidth = useTableContentWidth();
   
   // Data from PowerSync
   const { reports, isLoading, isStreaming, refresh } = useCustomerSalesReport();
@@ -96,6 +96,21 @@ export default function CustomerCategorySalesReportScreen() {
     return result;
   }, [reports, searchQuery, sortBy]);
 
+  const { setConfig: setBulkEditConfig, setSelection: setBulkEditSelection } = useBulkEditContext();
+
+  const handleBulkAction = useCallback((rows: CustomerSalesReportView[]) => {
+    if (rows.length === 0) {
+      Alert.alert("Bulk Export", "Please select row(s) first.");
+      return;
+    }
+    Alert.alert("Bulk Export", `${rows.length} row(s) selected. Export is coming soon.`);
+  }, []);
+
+  useEffect(() => {
+    setBulkEditConfig({ label: "Bulk Export", onPress: handleBulkAction });
+    return () => setBulkEditConfig(null);
+  }, [handleBulkAction, setBulkEditConfig]);
+
   const handleSearch = useCallback((item: CustomerSalesReportView, query: string) => {
     const q = query.toLowerCase();
     return (
@@ -134,7 +149,7 @@ export default function CustomerCategorySalesReportScreen() {
     {
       key: "orderDate",
       title: "Date",
-      width: 150,
+      width: "12%",
       render: (item) => (
         <Text className="text-[#1A1A1A] text-lg">{formatDate(item.orderDate)}</Text>
       ),
@@ -142,7 +157,7 @@ export default function CustomerCategorySalesReportScreen() {
     {
       key: "orderNo",
       title: "Order No",
-      width: 180,
+      width: "14%",
       render: (item) => (
         <Text className="text-blue-600 text-lg font-medium">{item.orderNo || '-'}</Text>
       ),
@@ -150,9 +165,9 @@ export default function CustomerCategorySalesReportScreen() {
     {
       key: "customerName",
       title: "Customer Name",
-      width: 250,
+      width: "22%",
       render: (item) => (
-        <Text className="text-[#1A1A1A] text-lg font-medium" numberOfLines={1}>
+        <Text className="text-blue-600 text-base" numberOfLines={1}>
           {item.customerName || '-'}
         </Text>
       ),
@@ -160,9 +175,9 @@ export default function CustomerCategorySalesReportScreen() {
     {
       key: "businessName",
       title: "Business Name",
-      width: 250,
+      width: "22%",
       render: (item) => (
-        <Text className="text-blue-600 text-lg" numberOfLines={1}>
+        <Text className="text-blue-600 text-lg font-bold" numberOfLines={1}>
           {item.businessName || '-'}
         </Text>
       ),
@@ -170,7 +185,7 @@ export default function CustomerCategorySalesReportScreen() {
     {
       key: "city",
       title: "City",
-      width: 150,
+      width: "12%",
       render: (item) => (
         <Text className="text-[#1A1A1A] text-lg">{item.city || '-'}</Text>
       ),
@@ -178,7 +193,7 @@ export default function CustomerCategorySalesReportScreen() {
     {
       key: "totalAmount",
       title: "Total",
-      width: 150,
+      width: "12%",
       align: "right",
       render: (item) => (
         <Text className="text-green-600 text-lg font-bold text-right">
@@ -219,15 +234,22 @@ export default function CustomerCategorySalesReportScreen() {
         searchable
         searchPlaceholder="Search customers, orders..."
         onSearch={handleSearch}
+        bulkActions
+        bulkActionText="Bulk Export"
+        bulkActionInActionRow
+        bulkActionInSidebar
+        onBulkActionPress={handleBulkAction}
+        onSelectionChange={(_, rows) => setBulkEditSelection(rows)}
         sortOptions={SORT_OPTIONS}
         onSort={handleSort}
         isLoading={isLoading}
         isStreaming={isStreaming}
         onRefresh={refresh}
         columnSelector
+        toolbarButtonStyle="shopping-cart"
         ListFooterComponent={filteredReports.length > 0 ? renderTableFooter : null}
         horizontalScroll
-        minWidth={1130}
+        minWidth={contentWidth}
       />
     </View>
   );

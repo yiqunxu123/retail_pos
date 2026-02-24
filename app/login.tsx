@@ -1,12 +1,11 @@
 import { Ionicons } from "@expo/vector-icons";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
     ActivityIndicator,
     Alert,
     Image,
     Keyboard,
     KeyboardAvoidingView,
-    Platform,
     Pressable,
     ScrollView,
     Text,
@@ -28,13 +27,26 @@ import { buttonSize, colors, iconSize, spacing, radius } from '@/utils/theme';
 export default function LoginScreen() {
   const { login, isLoading: authLoading, error: authError, clearError } = useAuth();
   const { reconnect } = usePowerSync();
-  const { width, height } = useWindowDimensions();
+  const { width } = useWindowDimensions();
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const isWideScreen = width >= 768;
+  // Stabilize isWideScreen to prevent flicker when dimensions fluctuate (e.g. keyboard, rotation)
+  const [isWideScreen, setIsWideScreen] = useState(() => width >= 768);
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => {
+    const next = width >= 768;
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => {
+      setIsWideScreen(next);
+      debounceRef.current = null;
+    }, 150);
+    return () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+    };
+  }, [width]);
 
   // Show error alert when authError changes
   useEffect(() => {
@@ -169,7 +181,7 @@ export default function LoginScreen() {
 
         {/* Right Panel - Login Form */}
         <KeyboardAvoidingView
-          behavior={Platform.OS === "ios" ? "padding" : "height"}
+          behavior="padding"
           className="flex-1 bg-[#F7F7F9]"
           keyboardVerticalOffset={0}
         >
@@ -199,12 +211,12 @@ export default function LoginScreen() {
                   {/* Email/Username Input */}
                   <View>
                     <Text 
-                      className="text-gray-600 font-medium mb-2 text-lg"
+                      className="text-[#5A5F66] text-lg mb-1.5"
                     >
                       Email Address
                     </Text>
                     <View
-                      className="rounded-lg"
+                      className="rounded-xl"
                       style={{
                         backgroundColor: isLoading ? colors.backgroundSecondary : colors.background,
                         borderWidth: 1,
@@ -217,7 +229,8 @@ export default function LoginScreen() {
                       }}
                     >
                       <TextInput
-                        className={`px-4 py-4 text-lg ${isLoading ? "text-gray-400" : "text-gray-800"}`}
+                        testID="login-username"
+                        className={`px-3 py-3 text-lg ${isLoading ? "text-gray-400" : "text-gray-800"}`}
                         placeholder="Enter your email address"
                         placeholderTextColor={isLoading ? "#B8BEC8" : colors.textTertiary}
                         value={username}
@@ -234,12 +247,12 @@ export default function LoginScreen() {
                   {/* Password Input */}
                   <View>
                     <Text 
-                      className="text-gray-600 font-medium mb-2 text-lg"
+                      className="text-[#5A5F66] text-lg mb-1.5"
                     >
                       Password
                     </Text>
                     <View
-                      className="flex-row items-center rounded-lg"
+                      className="flex-row items-center rounded-xl"
                       style={{
                         backgroundColor: isLoading ? colors.backgroundSecondary : colors.background,
                         borderWidth: 1,
@@ -252,7 +265,8 @@ export default function LoginScreen() {
                       }}
                     >
                       <TextInput
-                        className={`flex-1 px-4 py-4 text-lg ${isLoading ? "text-gray-400" : "text-gray-800"}`}
+                        testID="login-password"
+                        className={`flex-1 px-3 py-3 text-lg ${isLoading ? "text-gray-400" : "text-gray-800"}`}
                         placeholder="Enter your password"
                         placeholderTextColor={isLoading ? "#B8BEC8" : colors.textTertiary}
                         value={password}
@@ -265,7 +279,7 @@ export default function LoginScreen() {
                       />
                       <Pressable
                         onPress={() => setShowPassword(!showPassword)}
-                        className="px-4 py-4"
+                        className="px-3 py-3"
                         style={({ pressed }) => ({ opacity: pressed ? 0.5 : 1 })}
                         disabled={isLoading}
                       >
@@ -323,7 +337,7 @@ export default function LoginScreen() {
   // For narrow screens (phone), show stacked layout
   return (
     <KeyboardAvoidingView
-      behavior={Platform.OS === "ios" ? "padding" : "height"}
+      behavior="padding"
       className="flex-1 bg-[#F7F7F9]"
       keyboardVerticalOffset={0}
     >
@@ -368,11 +382,11 @@ export default function LoginScreen() {
             <View style={{ gap: 16 }}>
               {/* Email/Username Input */}
               <View>
-                <Text className="text-base text-gray-600 font-medium mb-2">
+                <Text className="text-[#5A5F66] text-lg mb-1.5">
                   Email Address
                 </Text>
                 <View
-                  className="rounded-lg"
+                  className="rounded-xl"
                   style={{
                     backgroundColor: isLoading ? colors.backgroundSecondary : colors.background,
                     borderWidth: 1,
@@ -380,7 +394,7 @@ export default function LoginScreen() {
                   }}
                 >
                   <TextInput
-                    className={`px-4 py-3 text-lg ${isLoading ? "text-gray-400" : "text-gray-800"}`}
+                    className={`px-3 py-3 text-lg ${isLoading ? "text-gray-400" : "text-gray-800"}`}
                     placeholder="Enter your email address"
                     placeholderTextColor={isLoading ? "#B8BEC8" : colors.textTertiary}
                     value={username}
@@ -396,11 +410,11 @@ export default function LoginScreen() {
 
               {/* Password Input */}
               <View>
-                <Text className="text-base text-gray-600 font-medium mb-2">
+                <Text className="text-[#5A5F66] text-lg mb-1.5">
                   Password
                 </Text>
                 <View
-                  className="flex-row items-center rounded-lg"
+                  className="flex-row items-center rounded-xl"
                   style={{
                     backgroundColor: isLoading ? colors.backgroundSecondary : colors.background,
                     borderWidth: 1,
@@ -408,7 +422,7 @@ export default function LoginScreen() {
                   }}
                 >
                   <TextInput
-                    className={`flex-1 px-4 py-3 text-lg ${isLoading ? "text-gray-400" : "text-gray-800"}`}
+                    className={`flex-1 px-3 py-3 text-lg ${isLoading ? "text-gray-400" : "text-gray-800"}`}
                     placeholder="Enter your password"
                     placeholderTextColor={isLoading ? "#B8BEC8" : colors.textTertiary}
                     value={password}
@@ -421,7 +435,7 @@ export default function LoginScreen() {
                   />
                   <Pressable
                     onPress={() => setShowPassword(!showPassword)}
-                    className="px-4 py-3"
+                    className="px-3 py-3"
                     disabled={isLoading}
                   >
                     <Ionicons

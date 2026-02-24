@@ -1,7 +1,8 @@
-import { buttonSize, colors, iconSize } from "@/utils/theme";
+import { colors, iconSize, modalContent } from "@/utils/theme";
 import { ThemedButton } from "./ThemedButton";
 import { Ionicons } from "@expo/vector-icons";
-import { Modal, Pressable, Text, View } from "react-native";
+import { Pressable, Text, View } from "react-native";
+import { CenteredModal } from "./CenteredModal";
 
 interface CashSummary {
   openingBalance: number;
@@ -33,64 +34,62 @@ export function DeclareCashModal({
   const expectedCashInDrawer = cashSummary.expectedCash;
 
   return (
-    <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
-      <Pressable className="flex-1 bg-black/45 justify-center items-center px-4" onPress={onClose}>
-        <Pressable
-          className="bg-white rounded-xl overflow-hidden"
-          style={{
-            borderWidth: 1, borderColor: colors.border,
-            width: "92%",
-            maxWidth: 664,
-            shadowColor: "#000",
-            shadowOffset: { width: 0, height: 8 },
-            shadowOpacity: 0.18,
-            shadowRadius: 20,
-            elevation: 8,
-          }}
-          onPress={(e) => e.stopPropagation()}
-        >
-          <View className="flex-row justify-between items-center px-5 py-3 border-b border-[#E4E7EC]">
-            <Text className="text-2xl font-semibold" style={{ color: colors.text }}>Declare Cash</Text>
-            <Pressable onPress={onClose} style={({ pressed }) => ({ opacity: pressed ? 0.55 : 1 })}>
-              <Ionicons name="close" size={iconSize['2xl']} color={colors.textDark} />
-            </Pressable>
-          </View>
-
-          <View className="px-4 pt-2.5 pb-4">
+    <CenteredModal
+      visible={visible}
+      onClose={onClose}
+      size="md"
+      showCloseButton={false}
+      header={
+        <View className="flex-row justify-between items-center flex-1">
+          <Text className="text-2xl font-semibold" style={{ color: colors.text }}>Declare Cash</Text>
+          <Pressable onPress={onClose} style={({ pressed }) => ({ opacity: pressed ? 0.55 : 1 })}>
+            <Ionicons name="close" size={iconSize['2xl']} color={colors.textDark} />
+          </Pressable>
+        </View>
+      }
+      footer={
+        <View className="flex-row gap-4 flex-1">
+          <ThemedButton
+            title="Cancel"
+            variant="outline"
+            onPress={onClose}
+            fullWidth
+            size="lg"
+            style={{ flex: 1, borderColor: colors.primary }}
+            textStyle={{ color: colors.primary, fontSize: 18 }}
+          />
+          <ThemedButton
+            title="Cash Entry"
+            onPress={onContinue}
+            fullWidth
+            size="lg"
+            style={{ flex: 1, backgroundColor: colors.primary }}
+            textStyle={{ fontSize: 18 }}
+          />
+        </View>
+      }
+    >
+      <View className="px-4 pt-2.5 pb-4">
             <View className="flex-row gap-3 mb-3">
               <View className="flex-1">
-                <Text style={{ color: colors.textDark }} className="text-lg font-semibold mb-1.5">Opening Cash Amount</Text>
+                <Text className="mb-1.5" style={{ fontSize: modalContent.titleFontSize, fontWeight: modalContent.titleFontWeight, color: modalContent.titleColor }}>Opening Cash Amount</Text>
                 <View
-                  className="rounded-lg bg-[#F4F5F7] border border-[#E4E7EC] px-4 py-4 justify-center"
-                  style={{
-                    shadowColor: "#000",
-                    shadowOffset: { width: 0, height: 3 },
-                    shadowOpacity: 0.07,
-                    shadowRadius: 5,
-                    elevation: 2,
-                    minHeight: 114,
-                  }}
+                  className="justify-center"
+                  style={{ backgroundColor: modalContent.boxBackgroundAlt, borderWidth: modalContent.boxBorderWidth, borderColor: modalContent.boxBorderColor, padding: modalContent.boxPadding, borderRadius: modalContent.boxRadius, minHeight: 114 }}
                 >
-                  <Text className="text-[#D83767] text-5xl leading-[58px] font-bold text-right w-full">
+                  <Text className="font-bold text-right w-full" style={{ fontSize: modalContent.valueLargeFontSize, lineHeight: 58, color: "#D83767" }}>
                     ${openingCash.toFixed(0)}
                   </Text>
                 </View>
               </View>
 
               <View className="flex-1">
-                <Text style={{ color: colors.textDark }} className="text-lg font-semibold mb-1.5">Total Cash Sales</Text>
+                <Text className="mb-1.5" style={{ fontSize: modalContent.titleFontSize, fontWeight: modalContent.titleFontWeight, color: modalContent.titleColor }}>Total Cash Sales</Text>
                 <View
-                  className="rounded-lg bg-[#F4F5F7] border border-[#E4E7EC] px-4 py-4 justify-center"
-                  style={{
-                    shadowColor: "#000",
-                    shadowOffset: { width: 0, height: 3 },
-                    shadowOpacity: 0.07,
-                    shadowRadius: 5,
-                    elevation: 2,
-                    minHeight: 114,
-                  }}
+                  className="justify-center"
+                  style={{ backgroundColor: modalContent.boxBackgroundAlt, borderWidth: modalContent.boxBorderWidth, borderColor: modalContent.boxBorderColor, padding: modalContent.boxPadding, borderRadius: modalContent.boxRadius, minHeight: 114 }}
                 >
-                  <Text className="text-[#1C9B73] text-5xl leading-[58px] font-bold text-right w-full">
+                  <Text className="font-bold text-right w-full" style={{ fontSize: modalContent.valueLargeFontSize, lineHeight: 58, color: "#1C9B73" }}>
                     ${totalCashSales.toFixed(0)}
                   </Text>
                 </View>
@@ -99,66 +98,30 @@ export function DeclareCashModal({
 
             <View className="flex-row gap-3 mb-4">
               <View className="flex-1">
-                <Text style={{ color: colors.textDark }} className="text-lg font-semibold mb-1.5">Cash Refunds</Text>
+                <Text className="mb-1.5" style={{ fontSize: modalContent.titleFontSize, fontWeight: modalContent.titleFontWeight, color: modalContent.titleColor }}>Cash Refunds</Text>
                 <View
-                  className="rounded-lg bg-[#F4F5F7] border border-[#E4E7EC] px-4 py-4 justify-center"
-                  style={{
-                    shadowColor: "#000",
-                    shadowOffset: { width: 0, height: 3 },
-                    shadowOpacity: 0.07,
-                    shadowRadius: 5,
-                    elevation: 2,
-                    minHeight: 114,
-                  }}
+                  className="justify-center"
+                  style={{ backgroundColor: modalContent.boxBackgroundAlt, borderWidth: modalContent.boxBorderWidth, borderColor: modalContent.boxBorderColor, padding: modalContent.boxPadding, borderRadius: modalContent.boxRadius, minHeight: 114 }}
                 >
-                  <Text className="text-[#CC5B23] text-5xl leading-[58px] font-bold text-right w-full">
+                  <Text className="font-bold text-right w-full" style={{ fontSize: modalContent.valueLargeFontSize, lineHeight: 58, color: "#CC5B23" }}>
                     ${cashRefunds.toFixed(0)}
                   </Text>
                 </View>
               </View>
 
               <View className="flex-1">
-                <Text style={{ color: colors.textDark }} className="text-lg font-semibold mb-1.5">Expected Cash In Drawer</Text>
+                <Text className="mb-1.5" style={{ fontSize: modalContent.titleFontSize, fontWeight: modalContent.titleFontWeight, color: modalContent.titleColor }}>Expected Cash In Drawer</Text>
                 <View
-                  className="rounded-lg bg-[#F4F5F7] border border-[#E4E7EC] px-4 py-4 justify-center"
-                  style={{
-                    shadowColor: "#000",
-                    shadowOffset: { width: 0, height: 3 },
-                    shadowOpacity: 0.07,
-                    shadowRadius: 5,
-                    elevation: 2,
-                    minHeight: 114,
-                  }}
+                  className="justify-center"
+                  style={{ backgroundColor: modalContent.boxBackgroundAlt, borderWidth: modalContent.boxBorderWidth, borderColor: modalContent.boxBorderColor, padding: modalContent.boxPadding, borderRadius: modalContent.boxRadius, minHeight: 114 }}
                 >
-                  <Text style={{ color: colors.text }} className="text-5xl leading-[58px] font-bold text-right w-full">
+                  <Text className="font-bold text-right w-full" style={{ fontSize: modalContent.valueLargeFontSize, lineHeight: 58, color: modalContent.valueColor }}>
                     ${expectedCashInDrawer.toFixed(0)}
                   </Text>
                 </View>
               </View>
             </View>
-
-            <View className="flex-row gap-4">
-              <ThemedButton
-                title="Cancel"
-                variant="outline"
-                onPress={onClose}
-                fullWidth
-                size="lg"
-                style={{ flex: 1, borderColor: colors.primary }}
-                textStyle={{ color: colors.primary, fontSize: 18 }}
-              />
-              <ThemedButton
-                title="Cash Entry"
-                onPress={onContinue}
-                fullWidth
-                size="lg"
-                style={{ flex: 1, backgroundColor: colors.primary }}
-                textStyle={{ fontSize: 18 }}
-              />
-            </View>
-          </View>
-        </Pressable>
-      </Pressable>
-    </Modal>
+      </View>
+    </CenteredModal>
   );
 }

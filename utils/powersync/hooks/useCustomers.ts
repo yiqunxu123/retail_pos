@@ -9,6 +9,7 @@
  */
 
 import { useMemo } from 'react';
+import type { CustomerEntity } from '../../api/customers';
 import { Customer as DBCustomer } from '../schema';
 import { useSyncStream } from '../useSyncStream';
 
@@ -41,6 +42,33 @@ export interface CustomerView {
 // ============================================================================
 // Data Transformers
 // ============================================================================
+
+/** 将 DBCustomer 转为 CustomerEntity 格式，供 SearchResultCard / toQuickCustomerResult 使用 */
+export function dbCustomerToEntity(db: DBCustomer & { id: string }): CustomerEntity {
+  const addr = [db.address, db.business_city, db.business_state, db.business_country, db.business_zip_code]
+    .filter(Boolean)
+    .join(", ");
+  return {
+    id: Number(db.id),
+    no: db.no ?? undefined,
+    business_name: db.business_name || "",
+    name: db.name ?? undefined,
+    email: db.email ?? undefined,
+    business_phone_no: db.business_phone_no ?? undefined,
+    is_active: db.status === 1,
+    customer_billing_details: addr
+      ? {
+          address: db.address ?? undefined,
+          city: db.business_city ?? undefined,
+          state: db.business_state ?? undefined,
+          country: db.business_country ?? undefined,
+        }
+      : null,
+    tenant_users: undefined,
+    customer_type: null,
+    class_of_trades: "Retailer",
+  };
+}
 
 /** Transform database record to UI view */
 function toCustomerView(db: DBCustomer & { id: string }): CustomerView {
@@ -101,20 +129,24 @@ export function useCustomerById(id: string | null) {
   return { customer, isLoading, error };
 }
 
-/** Search customers by name or business name */
+/** Search customers by name, business name, email, phone, no, or id (offline-first) */
 export function useCustomerSearch(query: string) {
-  const searchTerm = `%${query}%`;
-  
+  const trimmed = query.trim();
+  const searchTerm = `%${trimmed}%`;
+
   const { data, isLoading, error } = useSyncStream<DBCustomer & { id: string }>(
     `SELECT * FROM customers 
-     WHERE business_name LIKE ? OR name LIKE ? OR email LIKE ? OR phone_no LIKE ?
+     WHERE business_name LIKE ? OR name LIKE ? OR email LIKE ? 
+        OR phone_no LIKE ? OR business_phone_no LIKE ?
+        OR no LIKE ? OR id = ?
      ORDER BY business_name ASC
      LIMIT 50`,
-    [searchTerm, searchTerm, searchTerm, searchTerm],
-    { enabled: query.length >= 2 }
+    [searchTerm, searchTerm, searchTerm, searchTerm, searchTerm, searchTerm, trimmed],
+    { enabled: trimmed.length >= 1 }
   );
 
   const customers = useMemo(() => data.map(toCustomerView), [data]);
+  const entities = useMemo(() => data.map(dbCustomerToEntity), [data]);
 
-  return { customers, isLoading, error };
+  return { customers, entities, isLoading, error };
 }

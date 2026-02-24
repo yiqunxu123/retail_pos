@@ -1,7 +1,8 @@
-import { buttonSize, colors, iconSize } from "@/utils/theme";
+import { buttonSize, colors, iconSize, modalContent } from "@/utils/theme";
 import { Ionicons } from "@expo/vector-icons";
 import { useEffect, useState } from "react";
-import { Modal, Pressable, Text, TouchableOpacity, View } from "react-native";
+import { Pressable, Text, TouchableOpacity, View } from "react-native";
+import { CenteredModal } from "./CenteredModal";
 
 interface CashEntryModalProps {
   visible: boolean;
@@ -54,54 +55,35 @@ export function CashEntryModal({
   ];
 
   return (
-    <Modal
+    <CenteredModal
       visible={visible}
-      transparent
-      animationType="fade"
-      onRequestClose={onClose}
+      onClose={onClose}
+      size="md"
+      showCloseButton={false}
+      header={
+        <View className="flex-row justify-between items-center flex-1">
+          <Text className="text-2xl font-semibold" style={{ color: colors.text }}>Enter Actual Cash</Text>
+          <Pressable onPress={onClose} style={({ pressed }) => ({ opacity: pressed ? 0.55 : 1 })}>
+            <Ionicons name="close" size={iconSize['2xl']} color={colors.textDark} />
+          </Pressable>
+        </View>
+      }
     >
-      <TouchableOpacity
-        className="flex-1 bg-black/45 justify-center items-center px-4"
-        activeOpacity={1}
-        onPress={onClose}
-      >
-        <TouchableOpacity
-          className="bg-white rounded-xl overflow-hidden"
-          style={{
-            width: "92%",
-            maxWidth: 664,
-            borderWidth: 1,
-            borderColor: colors.border,
-            shadowColor: "#000",
-            shadowOffset: { width: 0, height: 8 },
-            shadowOpacity: 0.18,
-            shadowRadius: 20,
-            elevation: 8,
-          }}
-          activeOpacity={1}
-          onPress={(e) => e.stopPropagation()}
-        >
-          {/* Header */}
-          <View className="flex-row justify-between items-center px-5 py-4 border-b border-[#E4E7EC]">
-            <Text className="text-2xl font-semibold" style={{ color: colors.text }}>Enter Actual Cash</Text>
-            <Pressable onPress={onClose} style={({ pressed }) => ({ opacity: pressed ? 0.55 : 1 })}>
-              <Ionicons name="close" size={iconSize['2xl']} color={colors.textDark} />
-            </Pressable>
-          </View>
-
-          {/* Content */}
+      {/* Content */}
           <View className="px-4 pt-4 pb-5">
             {/* Amount Display */}
             <View className="flex-row gap-3 mb-4">
               {/* Expected Cash */}
               <View className="flex-1">
-                <Text className="text-lg font-semibold mb-2" style={{ color: colors.textDark }}>Expected Cash</Text>
+                <Text className="mb-2" style={{ fontSize: modalContent.titleFontSize, fontWeight: modalContent.titleFontWeight, color: modalContent.titleColor }}>Expected Cash</Text>
                 <View
-                  className="rounded-lg px-4 py-4 justify-center"
+                  className="justify-center"
                   style={{
-                    backgroundColor: "#F4F5F7",
-                    borderWidth: 1,
-                    borderColor: "#E4E7EC",
+                    backgroundColor: modalContent.boxBackgroundAlt,
+                    borderWidth: modalContent.boxBorderWidth,
+                    borderColor: modalContent.boxBorderColor,
+                    padding: modalContent.boxPadding,
+                    borderRadius: modalContent.boxRadius,
                     minHeight: 100,
                     shadowColor: "#000",
                     shadowOffset: { width: 0, height: 3 },
@@ -110,7 +92,7 @@ export function CashEntryModal({
                     elevation: 2,
                   }}
                 >
-                  <Text className="text-purple-600 text-5xl font-bold text-right w-full">
+                  <Text className="font-bold text-right w-full" style={{ fontSize: modalContent.valueXlFontSize, color: "#7c3aed" }}>
                     ${expectedCash.toFixed(0)}
                   </Text>
                 </View>
@@ -118,13 +100,15 @@ export function CashEntryModal({
 
               {/* Actual Cash */}
               <View className="flex-1">
-                <Text className="text-lg font-semibold mb-2" style={{ color: colors.textDark }}>Actual Cash</Text>
+                <Text className="mb-2" style={{ fontSize: modalContent.titleFontSize, fontWeight: modalContent.titleFontWeight, color: modalContent.titleColor }}>Actual Cash</Text>
                 <View
-                  className="rounded-lg px-4 py-4 justify-center"
+                  className="justify-center"
                   style={{
                     backgroundColor: "#ECFDF5",
-                    borderWidth: 1,
+                    borderWidth: modalContent.boxBorderWidth,
                     borderColor: colors.success,
+                    padding: modalContent.boxPadding,
+                    borderRadius: modalContent.boxRadius,
                     minHeight: 100,
                     shadowColor: "#000",
                     shadowOffset: { width: 0, height: 3 },
@@ -133,7 +117,7 @@ export function CashEntryModal({
                     elevation: 2,
                   }}
                 >
-                  <Text className="text-green-600 text-5xl font-bold text-right w-full">
+                  <Text className="font-bold text-right w-full" style={{ fontSize: modalContent.valueXlFontSize, color: "#16a34a" }}>
                     ${cashAmount || "0"}
                   </Text>
                 </View>
@@ -141,13 +125,15 @@ export function CashEntryModal({
 
               {/* Difference */}
               <View className="flex-1">
-                <Text className="text-lg font-semibold mb-2" style={{ color: colors.textDark }}>Difference</Text>
+                <Text className="mb-2" style={{ fontSize: modalContent.titleFontSize, fontWeight: modalContent.titleFontWeight, color: modalContent.titleColor }}>Difference</Text>
                 <View
-                  className="rounded-lg px-4 py-4 justify-center"
+                  className="justify-center"
                   style={{
                     backgroundColor: difference === 0 ? "#ECFDF5" : difference > 0 ? "#EFF6FF" : "#FEF2F2",
-                    borderWidth: 1,
+                    borderWidth: modalContent.boxBorderWidth,
                     borderColor: difference === 0 ? colors.success : difference > 0 ? colors.info : colors.error,
+                    padding: modalContent.boxPadding,
+                    borderRadius: modalContent.boxRadius,
                     minHeight: 100,
                     shadowColor: "#000",
                     shadowOffset: { width: 0, height: 3 },
@@ -157,13 +143,8 @@ export function CashEntryModal({
                   }}
                 >
                   <Text
-                    className={`text-5xl font-bold text-right w-full ${
-                      difference === 0
-                        ? "text-green-600"
-                        : difference > 0
-                        ? "text-blue-600"
-                        : "text-red-500"
-                    }`}
+                    className="font-bold text-right w-full"
+                    style={{ fontSize: modalContent.valueXlFontSize, color: difference === 0 ? "#16a34a" : difference > 0 ? "#2563eb" : "#ef4444" }}
                   >
                     {difference >= 0 ? "+" : ""}${difference.toFixed(0)}
                   </Text>
@@ -181,10 +162,11 @@ export function CashEntryModal({
                       <TouchableOpacity
                         key={num}
                         onPress={() => handleNumberPress(num)}
-                        className="flex-1 bg-[#F4F5F7] py-4 rounded-lg items-center justify-center border border-[#E4E7EC]"
+                        className="flex-1 py-4 items-center justify-center"
+                        style={{ backgroundColor: modalContent.boxBackgroundAlt, borderRadius: modalContent.boxRadius, borderWidth: modalContent.boxBorderWidth, borderColor: modalContent.boxBorderColor }}
                         activeOpacity={0.7}
                       >
-                        <Text className="text-2xl font-semibold text-gray-800">
+                        <Text style={{ fontSize: modalContent.valueLargeFontSize, fontWeight: modalContent.titleFontWeight, color: modalContent.valueColor }}>
                           {num}
                         </Text>
                       </TouchableOpacity>
@@ -195,17 +177,17 @@ export function CashEntryModal({
                 <View className="flex-row gap-2">
                   <TouchableOpacity
                     onPress={() => handleNumberPress("0")}
-                    className="flex-1 bg-[#F4F5F7] py-4 rounded-lg items-center justify-center border border-[#E4E7EC]"
+                    style={{ flex: 1, backgroundColor: modalContent.boxBackgroundAlt, paddingVertical: 16, borderRadius: modalContent.boxRadius, borderWidth: modalContent.boxBorderWidth, borderColor: modalContent.boxBorderColor, alignItems: 'center', justifyContent: 'center' }}
                     activeOpacity={0.7}
                   >
-                    <Text className="text-2xl font-semibold text-gray-800">0</Text>
+                    <Text style={{ fontSize: modalContent.valueLargeFontSize, fontWeight: modalContent.titleFontWeight, color: modalContent.valueColor }}>0</Text>
                   </TouchableOpacity>
                   <TouchableOpacity
                     onPress={() => handleNumberPress(".")}
-                    className="flex-1 bg-[#F4F5F7] py-4 rounded-lg items-center justify-center border border-[#E4E7EC]"
+                    style={{ flex: 1, backgroundColor: modalContent.boxBackgroundAlt, paddingVertical: 16, borderRadius: modalContent.boxRadius, borderWidth: modalContent.boxBorderWidth, borderColor: modalContent.boxBorderColor, alignItems: 'center', justifyContent: 'center' }}
                     activeOpacity={0.7}
                   >
-                    <Text className="text-2xl font-semibold text-gray-800">.</Text>
+                    <Text style={{ fontSize: modalContent.valueLargeFontSize, fontWeight: modalContent.titleFontWeight, color: modalContent.valueColor }}>.</Text>
                   </TouchableOpacity>
                 </View>
               </View>
@@ -249,8 +231,6 @@ export function CashEntryModal({
               </View>
             </View>
           </View>
-        </TouchableOpacity>
-      </TouchableOpacity>
-    </Modal>
+    </CenteredModal>
   );
 }

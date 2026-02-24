@@ -1,8 +1,9 @@
-import { buttonSize, colors, iconSize } from "@/utils/theme";
-import { ThemedButton } from "./ThemedButton";
+import { buttonSize, colors, iconSize, modalContent } from "@/utils/theme";
 import { Ionicons } from "@expo/vector-icons";
 import { useState } from "react";
-import { KeyboardAvoidingView, Modal, Platform, Text, TextInput, TouchableOpacity, View } from "react-native";
+import { Text, TextInput, View } from "react-native";
+import { CenteredModal } from "./CenteredModal";
+import { ThemedButton } from "./ThemedButton";
 
 interface ParkOrderModalProps {
   visible: boolean;
@@ -38,101 +39,76 @@ export function ParkOrderModal({
   };
 
   return (
-    <Modal
+    <CenteredModal
       visible={visible}
-      transparent
-      animationType="fade"
-      onRequestClose={onClose}
-    >
-      <KeyboardAvoidingView
-        behavior={Platform.OS === "ios" ? "padding" : "height"}
-        className="flex-1"
-      >
-        <TouchableOpacity
-          className="flex-1 bg-black/50 justify-center items-center"
-          activeOpacity={1}
-          onPress={onClose}
-        >
-          <TouchableOpacity
-            className="bg-white rounded-xl overflow-hidden"
-            style={{ width: 420 }}
-            activeOpacity={1}
-            onPress={(e) => e.stopPropagation()}
-          >
-          {/* Header */}
-          <View className="flex-row justify-between items-center px-6 py-4 border-b border-gray-200">
-            <View className="flex-row items-center gap-3">
-              <View className="w-10 h-10 bg-yellow-100 rounded-full items-center justify-center">
-                <Ionicons name="pause-circle" size={iconSize.xl} color={colors.warning} />
-              </View>
-              <Text className="text-xl font-semibold text-gray-800">
-                Park Order
-              </Text>
-            </View>
-            <TouchableOpacity onPress={onClose}>
-              <Ionicons name="close" size={iconSize.xl} color={colors.textSecondary} />
-            </TouchableOpacity>
+      onClose={onClose}
+      size="md"
+      title="Park Order"
+      keyboardAvoiding
+      header={
+        <View className="flex-row items-center flex-1">
+          <View className="h-10 bg-yellow-100 rounded-full items-center justify-center mr-3" style={{ width: "10%" }}>
+            <Ionicons name="pause-circle" size={iconSize.xl} color={colors.warning} />
           </View>
+          <Text className="text-xl font-semibold" style={{ color: colors.textDark }}>
+            Park Order
+          </Text>
+        </View>
+      }
+      scrollable={false}
+      footer={
+        <>
+          <ThemedButton
+            title="Cancel"
+            variant="outline"
+            onPress={handleCancel}
+            fullWidth
+            size="lg"
+            textStyle={{ fontSize: 18 }}
+          />
+          <ThemedButton
+            title="Park Order"
+            onPress={handleConfirm}
+            fullWidth
+            style={{ flex: 1, backgroundColor: colors.warning }}
+            textStyle={{ color: colors.text }}
+          />
+        </>
+      }
+    >
+      <Text className="text-center mb-6" style={{ fontSize: modalContent.valueFontSize, color: modalContent.labelColor }}>
+        Are you sure you want to park this order?{"\n"}
+        The order will be saved and can be resumed later.
+      </Text>
 
-          {/* Content */}
-          <View className="px-6 py-5">
-            <Text className="text-gray-600 text-center mb-6">
-              Are you sure you want to park this order?{"\n"}
-              The order will be saved and can be resumed later.
-            </Text>
+      <View className="mb-5 shadow-sm" style={{ backgroundColor: modalContent.boxBackground, padding: modalContent.boxPaddingPct, borderRadius: modalContent.boxRadius, borderWidth: modalContent.boxBorderWidth, borderColor: modalContent.boxBorderColor }}>
+        <View className="flex-row justify-between mb-2">
+          <Text style={{ fontSize: modalContent.labelFontSize, color: modalContent.labelColor }}>Customer</Text>
+          <Text style={{ fontSize: modalContent.valueFontSize, fontWeight: modalContent.valueFontWeight, color: modalContent.valueColor }}>{customerName}</Text>
+        </View>
+        <View className="flex-row justify-between mb-2">
+          <Text style={{ fontSize: modalContent.labelFontSize, color: modalContent.labelColor }}>Total Items</Text>
+          <Text style={{ fontSize: modalContent.valueFontSize, fontWeight: modalContent.valueFontWeight, color: modalContent.valueColor }}>{totalItems}</Text>
+        </View>
+        <View className="flex-row justify-between">
+          <Text style={{ fontSize: modalContent.labelFontSize, color: modalContent.labelColor }}>Total Amount</Text>
+          <Text className="font-bold" style={{ fontSize: modalContent.valueLargeFontSize, color: colors.primary }}>${totalAmount.toFixed(2)}</Text>
+        </View>
+      </View>
 
-            {/* Order Summary */}
-            <View className="bg-[#F7F7F9] rounded-lg p-4 mb-5 shadow-sm">
-              <View className="flex-row justify-between mb-2">
-                <Text className="text-gray-600">Customer</Text>
-                <Text className="text-gray-800 font-medium">{customerName}</Text>
-              </View>
-              <View className="flex-row justify-between mb-2">
-                <Text className="text-gray-600">Total Items</Text>
-                <Text className="text-gray-800 font-medium">{totalItems}</Text>
-              </View>
-              <View className="flex-row justify-between">
-                <Text className="text-gray-600">Total Amount</Text>
-                <Text className="text-red-500 font-bold text-lg">${totalAmount.toFixed(2)}</Text>
-              </View>
-            </View>
-
-            {/* Note Input */}
-            <View className="mb-5">
-              <Text className="text-gray-600 text-sm mb-2">Add Note (Optional)</Text>
-              <TextInput
-                className="bg-white border border-gray-200 rounded-lg px-4 py-3 shadow-sm"
-                placeholder="Enter a note for this parked order..."
-                placeholderTextColor="#9ca3af"
-                value={note}
-                onChangeText={setNote}
-                multiline
-                numberOfLines={2}
-              />
-            </View>
-
-            {/* Action Buttons */}
-            <View className="flex-row gap-4">
-              <ThemedButton
-                title="Cancel"
-                variant="outline"
-                onPress={handleCancel}
-                fullWidth
-                size="lg"
-                textStyle={{ fontSize: 18 }}
-              />
-              <ThemedButton
-                title="Park Order"
-                onPress={handleConfirm}
-                fullWidth
-                style={{ flex: 1, backgroundColor: colors.warning }}
-                textStyle={{ color: colors.text }}
-              />
-            </View>
-            </View>
-          </TouchableOpacity>
-        </TouchableOpacity>
-      </KeyboardAvoidingView>
-    </Modal>
+      <View className="mb-5">
+        <Text className="mb-1.5" style={{ fontSize: modalContent.titleFontSize, fontWeight: modalContent.titleFontWeight, color: modalContent.titleColor }}>Add Note (Optional)</Text>
+        <TextInput
+          className="shadow-sm"
+          style={{ backgroundColor: modalContent.inputBackground, borderWidth: modalContent.boxBorderWidth, borderColor: modalContent.inputBorderColor, borderRadius: modalContent.boxRadius, paddingHorizontal: modalContent.inputPaddingHorizontal, paddingVertical: modalContent.inputPaddingVertical, fontSize: modalContent.inputFontSize }}
+          placeholder="Enter a note for this parked order..."
+          placeholderTextColor="#9ca3af"
+          value={note}
+          onChangeText={setNote}
+          multiline
+          numberOfLines={2}
+        />
+      </View>
+    </CenteredModal>
   );
 }

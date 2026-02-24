@@ -1,4 +1,4 @@
-import { buttonSize, colors } from '@/utils/theme';
+import { buttonSize, colors, iconSize } from '@/utils/theme';
 import { Ionicons } from "@expo/vector-icons";
 import React, {
   useCallback,
@@ -24,8 +24,10 @@ import {
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { searchCustomers, type CustomerEntity } from "../utils/api/customers";
+import type { CustomerEntity } from "../utils/api/customers";
+import { useCustomerSearch } from "../utils/powersync/hooks";
 import { AddQuickCustomerModal, type QuickCustomerResult } from "./AddQuickCustomerModal";
+import { CloseButton } from "./CloseButton";
 import { Dropdown } from "./Dropdown";
 
 type SearchFieldKey =
@@ -165,7 +167,7 @@ function SearchResultCard({
   return (
     <Pressable
       onPress={() => onSelect(customer)}
-      className="border border-gray-200 rounded-lg px-3 py-2.5"
+      className="border border-gray-200 rounded-xl px-3 py-3"
       style={({ pressed }) => ({
         backgroundColor: pressed ? "#f4f5f6" : colors.backgroundTertiary,
         opacity: customer.is_active === false ? 0.55 : 1,
@@ -247,10 +249,30 @@ function SearchCustomerModalImpl({
   const [skipMsaCheck, setSkipMsaCheck] = useState(true);
 
   const [searchInputs, setSearchInputs] = useState<SearchInputState>(EMPTY_SEARCH_INPUTS);
-  const [searchResults, setSearchResults] = useState<CustomerEntity[]>([]);
+  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState("");
   const [activeSearchField, setActiveSearchField] = useState<SearchFieldKey | null>(null);
-  const [searchLoading, setSearchLoading] = useState<SearchFieldKey | null>(null);
-  const debounceTimers = useRef<Partial<Record<SearchFieldKey, ReturnType<typeof setTimeout>>>>({});
+  const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const combinedQuery = useMemo(() => {
+    const a = searchInputs.searchbyNameBusinessName?.trim() || "";
+    const b = searchInputs.searchbyIdNumber?.trim() || "";
+    const c = searchInputs.searchbyEmailAddressPhone?.trim() || "";
+    return [a, b, c].filter(Boolean).join(" ").trim();
+  }, [searchInputs]);
+
+  useEffect(() => {
+    if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
+    if (!combinedQuery) {
+      setDebouncedSearchQuery("");
+      return;
+    }
+    debounceTimerRef.current = setTimeout(() => setDebouncedSearchQuery(combinedQuery), 400);
+    return () => {
+      if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
+    };
+  }, [combinedQuery]);
+
+  const { entities: searchResults, isLoading: searchLoading } = useCustomerSearch(debouncedSearchQuery);
 
   const paymentTermValue = useMemo(
     () => normalizePaymentTerm(orderSettings?.paymentTerms || ""),
@@ -290,36 +312,8 @@ function SearchCustomerModalImpl({
 
   const handleSearch = useCallback((text: string, fieldKey: SearchFieldKey) => {
     setSearchInputs((prev) => ({ ...prev, [fieldKey]: text }));
-
-    const existingTimer = debounceTimers.current[fieldKey];
-    if (existingTimer) clearTimeout(existingTimer);
-
-    const trimmed = text.trim();
-    if (!trimmed) {
-      setSearchResults([]);
-      setActiveSearchField(null);
-      setSearchLoading(null);
-      return;
-    }
-
     setActiveSearchField(fieldKey);
-    setSearchLoading(fieldKey);
-
-    debounceTimers.current[fieldKey] = setTimeout(async () => {
-      try {
-        const res = await searchCustomers({
-          [fieldKey]: trimmed,
-          isActive: 1,
-          sort_by: "id:asc",
-        });
-        setSearchResults(res.data.entities || []);
-      } catch (error) {
-        console.warn("[SearchCustomerModal] Search failed:", error);
-        setSearchResults([]);
-      } finally {
-        setSearchLoading((prev) => (prev === fieldKey ? null : prev));
-      }
-    }, 500);
+    if (!text.trim()) setDebouncedSearchQuery("");
   }, []);
 
   const handleSelectCustomer = useCallback(
@@ -334,10 +328,9 @@ function SearchCustomerModalImpl({
 
       const mapped = toQuickCustomerResult(customer);
       onSelectCustomer(mapped);
-      setSearchResults([]);
-      setActiveSearchField(null);
-      setSearchLoading(null);
       setSearchInputs(EMPTY_SEARCH_INPUTS);
+      setDebouncedSearchQuery("");
+      setActiveSearchField(null);
     },
     [onSelectCustomer]
   );
@@ -435,34 +428,15 @@ function SearchCustomerModalImpl({
             style={[styles.panel, { width: panelWidth }, safeAreaPadding]}
           >
             <View className="px-6 pt-8 pb-4">
-              <Text
-                className="text-2xl font-bold"
-                style={{ color: colors.primary }}
-              >
-                Add Customer
-              </Text>
-
-              <TouchableOpacity
-                onPress={handleDismiss}
-                style={{
-                  position: "absolute",
-                  top: 24,
-                  right: 24,
-                  width: buttonSize.md.height,
-                  height: buttonSize.md.height,
-                  borderRadius: 16,
-                  backgroundColor: colors.primary,
-                  alignItems: "center",
-                  justifyContent: "center",
-                  zIndex: 999,
-                  elevation: 5,
-                }}
-                hitSlop={{ top: 20, bottom: 20, left: 20, right: 20 }}
-                activeOpacity={0.7}
-              >
-                <Ionicons name="close" size={20} color="white" />
-              </TouchableOpacity>
-
+              <View className="flex-row items-center justify-between mb-4">
+                <Text
+                  className="text-2xl font-semibold"
+                  style={{ color: colors.text }}
+                >
+                  Add Customer
+                </Text>
+                <CloseButton onPress={handleDismiss} />
+              </View>
               <Text
                 className="text-base font-semibold"
                 style={{ color: colors.text, marginTop: 12 }}
@@ -478,16 +452,19 @@ function SearchCustomerModalImpl({
             >
               {searchFields.map((field) => {
                 const isActive = activeSearchField === field.key;
-                const isLoading = searchLoading === field.key;
+                const isLoading = searchLoading;
                 const showDropdown = isActive && !!searchInputs[field.key].trim();
 
                 return (
                   <View key={field.key} style={{ zIndex: field.zIndex, marginBottom: 14 }}>
-                    <View className="flex-row items-center bg-white rounded-lg px-3 py-3 shadow-sm" style={{ borderWidth: 1, borderColor: colors.border }}>
-                      <Ionicons name={field.icon} size={22} color={colors.textTertiary} />
+                    <View
+                    className="flex-row items-center bg-white border border-gray-200 rounded-xl px-3 py-3 shadow-sm"
+                    style={{ minHeight: buttonSize.md.height }}
+                  >
+                      <Ionicons name={field.icon} size={iconSize.base} color={colors.textTertiary} />
                       <TextInput
-                        className="flex-1 ml-3 text-gray-800 text-base"
-                        style={{  fontWeight: "500" }}
+                        className="flex-1 ml-3 text-gray-800 text-lg"
+                        style={{ fontWeight: "500" }}
                         placeholder={field.placeholder}
                         placeholderTextColor={colors.borderMedium}
                         value={searchInputs[field.key]}
@@ -505,8 +482,8 @@ function SearchCustomerModalImpl({
 
                     {showDropdown && (
                       <View
-                        className="absolute top-[52px] left-0 right-0 rounded-lg bg-white shadow-xl z-[100] overflow-hidden"
-                        style={{ maxHeight: 240, borderWidth: 1, borderColor: colors.border }}
+                        className="absolute left-0 right-0 rounded-xl bg-white shadow-xl z-[100] overflow-hidden"
+                        style={{ top: buttonSize.md.height + 8, maxHeight: 240, borderWidth: 1, borderColor: colors.border }}
                       >
                         {isLoading ? (
                           <View style={{ paddingVertical: 16, alignItems: "center" }}>
@@ -543,9 +520,7 @@ function SearchCustomerModalImpl({
               })}
 
               <View className="mb-4">
-                <Text className="text-sm font-semibold" style={{ color: colors.text, marginBottom: 8 }}>
-                  Payment Terms:
-                </Text>
+                <Text className="text-[#5A5F66] text-lg mb-1.5">Payment Terms:</Text>
                 <Dropdown
                   options={PAYMENT_TERMS_OPTIONS}
                   value={paymentTermValue}
@@ -554,24 +529,19 @@ function SearchCustomerModalImpl({
               </View>
 
               <View className="mb-4">
-                <Text className="text-sm font-semibold" style={{ color: colors.text, marginBottom: 8 }}>
-                  Invoice Due Date
-                </Text>
-                <View className="flex-row items-center justify-between bg-white rounded-lg px-3 h-12 shadow-sm" style={{ borderWidth: 1, borderColor: colors.border }}>
-                  <Text className="text-base" style={{ color: colors.text }}>
+                <Text className="text-[#5A5F66] text-lg mb-1.5">Invoice Due Date</Text>
+                <View className="flex-row items-center justify-between bg-white border border-gray-200 rounded-xl px-3 py-3 shadow-sm">
+                  <Text className="text-lg flex-1" style={{ color: colors.text }}>
                     {orderSettings?.invoiceDueDate || "DD/MM/YYYY"}
                   </Text>
-                  <Ionicons name="calendar-outline" size={20} color={colors.textTertiary} />
+                  <Ionicons name="calendar-outline" size={iconSize.base} color={colors.textTertiary} />
                 </View>
               </View>
 
               <View className="mb-4">
-                <Text className="text-sm font-semibold" style={{ color: colors.text, marginBottom: 8 }}>
-                  Order Number:
-                </Text>
+                <Text className="text-[#5A5F66] text-lg mb-1.5">Order Number:</Text>
                 <TextInput
-                  className="bg-white rounded-lg px-3 h-12 text-gray-800 shadow-sm mb-3 text-base"
-                  style={{  borderWidth: 1, borderColor: colors.border }}
+                  className="bg-white border border-gray-200 rounded-xl px-3 py-3 text-gray-800 text-lg shadow-sm mb-3"
                   placeholder="Enter Order Number"
                   placeholderTextColor={colors.borderMedium}
                   value={orderSettings?.orderNumber || ""}
@@ -599,9 +569,7 @@ function SearchCustomerModalImpl({
               </View>
 
               <View className="mb-4">
-                <Text className="text-sm font-semibold" style={{ color: colors.text, marginBottom: 8 }}>
-                  Shipping Type
-                </Text>
+                <Text className="text-[#5A5F66] text-lg mb-1.5">Shipping Type</Text>
                 <Dropdown
                   options={SHIPPING_TYPE_OPTIONS}
                   value={shippingTypeValue}
@@ -611,7 +579,7 @@ function SearchCustomerModalImpl({
 
               <View className="flex-row items-center justify-between mb-4">
                 <View className="flex-row items-center gap-2">
-                  <Text className="text-sm font-semibold" style={{ color: colors.text }}>
+                  <Text className="text-lg font-medium" style={{ color: colors.text }}>
                     Skip MSA Eligibility check
                   </Text>
                   <Switch
@@ -624,12 +592,10 @@ function SearchCustomerModalImpl({
               </View>
 
               <View className="mb-4">
-                <Text className="text-sm font-semibold" style={{ color: colors.text, marginBottom: 8 }}>
-                  Notes (Internal)
-                </Text>
+                <Text className="text-[#5A5F66] text-lg mb-1.5">Notes (Internal)</Text>
                 <TextInput
-                  className="bg-white rounded-lg px-3 py-3 text-gray-800 min-h-[100px] shadow-sm"
-                  style={{  textAlignVertical: "top", borderWidth: 1, borderColor: colors.border }}
+                  className="bg-white border border-gray-200 rounded-xl px-3 py-3 text-gray-800 text-lg min-h-[100px] shadow-sm"
+                  style={{ textAlignVertical: "top" }}
                   placeholder="Notes"
                   placeholderTextColor={colors.borderMedium}
                   value={orderSettings?.notesInternal || ""}
@@ -641,12 +607,10 @@ function SearchCustomerModalImpl({
               </View>
 
               <View className="mb-4">
-                <Text className="text-sm font-semibold" style={{ color: colors.text, marginBottom: 8 }}>
-                  Notes (Print on Invoice)
-                </Text>
+                <Text className="text-[#5A5F66] text-lg mb-1.5">Notes (Print on Invoice)</Text>
                 <TextInput
-                  className="bg-white rounded-lg px-3 py-3 text-gray-800 min-h-[100px] shadow-sm"
-                  style={{  textAlignVertical: "top", borderWidth: 1, borderColor: colors.border }}
+                  className="bg-white border border-gray-200 rounded-xl px-3 py-3 text-gray-800 text-lg min-h-[100px] shadow-sm"
+                  style={{ textAlignVertical: "top" }}
                   placeholder="Notes"
                   placeholderTextColor={colors.borderMedium}
                   value={orderSettings?.notesInvoice || ""}

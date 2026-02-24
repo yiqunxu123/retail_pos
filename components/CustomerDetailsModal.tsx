@@ -1,6 +1,8 @@
-import { buttonSize, colors, iconSize } from '@/utils/theme';
+import { colors, iconSize, modalContent } from '@/utils/theme';
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
-import { Modal, Pressable, ScrollView, Text, TouchableOpacity, View } from "react-native";
+import { ScrollView, Text, TouchableOpacity, View } from "react-native";
+import { CloseButton } from "./CloseButton";
+import { CenteredModal } from "./CenteredModal";
 import { ThemedButton } from "./ThemedButton";
 
 interface CustomerOrder {
@@ -65,244 +67,224 @@ export function CustomerDetailsModal({
   };
 
   return (
-    <Modal
+    <CenteredModal
       visible={visible}
-      transparent
-      animationType="fade"
-      onRequestClose={onClose}
-    >
-      <TouchableOpacity
-        className="flex-1 bg-black/50 justify-center items-center"
-        activeOpacity={1}
-        onPress={onClose}
-      >
-        <TouchableOpacity
-          className="bg-white rounded-xl overflow-hidden"
-          style={{ width: 600, maxHeight: "85%" }}
-          activeOpacity={1}
-          onPress={(e) => e.stopPropagation()}
-        >
-          {/* Header */}
-          <View className="flex-row justify-between items-center px-6 py-4 border-b border-gray-200 bg-gradient-to-r from-red-500 to-red-600"
-            style={{ backgroundColor: colors.primary }}
-          >
-            <View className="flex-row items-center gap-3">
-              <View className="w-12 h-12 bg-white rounded-full items-center justify-center">
-                <Ionicons name="person" size={iconSize['2xl']} color={colors.primary} />
-              </View>
-              <View>
-                <Text className="text-xl font-semibold text-white">
-                  {customer.businessName}
-                </Text>
-                {customer.contactName && (
-                  <Text className="text-white/80">{customer.contactName}</Text>
-                )}
-              </View>
-            </View>
-            <Pressable onPress={onClose} style={{ width: buttonSize.md.height, height: buttonSize.md.height, alignItems: 'center', justifyContent: 'center' }}>
-              <Ionicons name="close" size={iconSize.xl} color="white" />
-            </Pressable>
+      onClose={onClose}
+      size="md"
+      showCloseButton={false}
+      scrollable={false}
+      contentPadding={false}
+      headerStyle={{ backgroundColor: colors.primary }}
+      header={
+        <View className="flex-row items-center gap-3 flex-1">
+          <View className="h-12 bg-white rounded-full items-center justify-center" style={{ width: "12%" }}>
+            <Ionicons name="person" size={iconSize['2xl']} color={colors.primary} />
           </View>
+          <View>
+            <Text className="text-xl font-semibold text-white">
+              {customer.businessName}
+            </Text>
+            {customer.contactName && (
+              <Text className="text-white/80">{customer.contactName}</Text>
+            )}
+          </View>
+          <View className="ml-auto pr-2">
+            <CloseButton onPress={onClose} variant="light" />
+          </View>
+        </View>
+      }
+      footer={
+        <>
+          <ThemedButton title="Close" variant="outline" onPress={onClose} fullWidth />
+          {onEdit && (
+            <ThemedButton
+              title="Edit"
+              icon="pencil-outline"
+              variant="outline"
+              onPress={onEdit}
+              fullWidth
+              style={{ flex: 1, borderColor: colors.primary, borderWidth: 1 }}
+              textStyle={{ color: colors.primary }}
+            />
+          )}
+          {onAddOrder && (
+            <ThemedButton
+              title="New Order"
+              icon="add"
+              onPress={onAddOrder}
+              fullWidth
+              style={{ flex: 1, backgroundColor: colors.primary }}
+            />
+          )}
+        </>
+      }
+    >
+      <ScrollView style={{ flex: 1 }} showsVerticalScrollIndicator={false}>
+        {/* Stats Cards */}
+        <View className="flex-row gap-4 py-4" style={{ paddingHorizontal: "5%" }}>
+          <View className="flex-1 items-center" style={{ backgroundColor: "#EFF6FF", padding: modalContent.boxPaddingPct, borderRadius: modalContent.boxRadius, borderWidth: modalContent.boxBorderWidth, borderColor: modalContent.boxBorderColor }}>
+            <MaterialCommunityIcons name="shopping" size={iconSize.xl} color={colors.info} />
+            <Text className="mt-1" style={{ fontSize: modalContent.labelFontSize, color: modalContent.labelColor }}>Total Orders</Text>
+            <Text className="font-bold" style={{ fontSize: modalContent.valueLargeFontSize, color: colors.info }}>{customer.totalOrders}</Text>
+          </View>
+          <View className="flex-1 items-center" style={{ backgroundColor: "#ECFDF5", padding: modalContent.boxPaddingPct, borderRadius: modalContent.boxRadius, borderWidth: modalContent.boxBorderWidth, borderColor: modalContent.boxBorderColor }}>
+            <MaterialCommunityIcons name="cash-multiple" size={iconSize.xl} color={colors.success} />
+            <Text className="mt-1" style={{ fontSize: modalContent.labelFontSize, color: modalContent.labelColor }}>Total Spent</Text>
+            <Text className="font-bold" style={{ fontSize: modalContent.valueLargeFontSize, color: colors.success }}>
+              ${customer.totalSpent.toFixed(2)}
+            </Text>
+          </View>
+          <View className="flex-1 items-center" style={{ backgroundColor: "#F5F3FF", padding: modalContent.boxPaddingPct, borderRadius: modalContent.boxRadius, borderWidth: modalContent.boxBorderWidth, borderColor: modalContent.boxBorderColor }}>
+            <MaterialCommunityIcons name="wallet" size={iconSize.xl} color={colors.purple} />
+            <Text className="mt-1" style={{ fontSize: modalContent.labelFontSize, color: modalContent.labelColor }}>Balance</Text>
+            <Text
+              className="font-bold"
+              style={{ fontSize: modalContent.valueLargeFontSize, color: customer.balance > 0 ? colors.error : colors.success }}
+            >
+              ${Math.abs(customer.balance).toFixed(2)}
+            </Text>
+          </View>
+          {customer.loyaltyPoints !== undefined && (
+            <View className="flex-1 items-center" style={{ backgroundColor: "#FFFBEB", padding: modalContent.boxPaddingPct, borderRadius: modalContent.boxRadius, borderWidth: modalContent.boxBorderWidth, borderColor: modalContent.boxBorderColor }}>
+              <MaterialCommunityIcons name="star" size={iconSize.xl} color={colors.warning} />
+              <Text className="mt-1" style={{ fontSize: modalContent.labelFontSize, color: modalContent.labelColor }}>Points</Text>
+              <Text className="font-bold" style={{ fontSize: modalContent.valueLargeFontSize, color: colors.warning }}>
+                {customer.loyaltyPoints}
+              </Text>
+            </View>
+          )}
+        </View>
 
-          <ScrollView className="flex-1">
-            {/* Stats Cards */}
-            <View className="flex-row gap-4 px-6 py-4">
-              <View className="flex-1 bg-blue-50 rounded-lg p-4 items-center">
-                <MaterialCommunityIcons name="shopping" size={iconSize.xl} color={colors.info} />
-                <Text className="text-gray-600 text-sm mt-1">Total Orders</Text>
-                <Text className="text-blue-600 font-bold text-xl">{customer.totalOrders}</Text>
+        {/* Contact Information */}
+        <View className="py-4 border-t border-gray-100" style={{ paddingHorizontal: "5%" }}>
+          <Text className="mb-3" style={{ fontSize: modalContent.titleFontSize, fontWeight: modalContent.titleFontWeight, color: modalContent.titleColor }}>Contact Information</Text>
+          <View className="gap-3 shadow-sm" style={{ backgroundColor: modalContent.boxBackground, padding: modalContent.boxPaddingPct, borderRadius: modalContent.boxRadius, borderWidth: modalContent.boxBorderWidth, borderColor: modalContent.boxBorderColor }}>
+            {customer.email && (
+              <View className="flex-row items-center gap-3">
+                <View className="h-8 rounded-full items-center justify-center" style={{ width: "8%", backgroundColor: "#DBEAFE" }}>
+                  <Ionicons name="mail-outline" size={iconSize.md} color={colors.info} />
+                </View>
+                <View>
+                  <Text style={{ fontSize: modalContent.labelFontSize, color: modalContent.labelColor }}>Email</Text>
+                  <Text style={{ fontSize: modalContent.valueFontSize, fontWeight: modalContent.valueFontWeight, color: modalContent.valueColor }}>{customer.email}</Text>
+                </View>
               </View>
-              <View className="flex-1 bg-green-50 rounded-lg p-4 items-center">
-                <MaterialCommunityIcons name="cash-multiple" size={iconSize.xl} color={colors.success} />
-                <Text className="text-gray-600 text-sm mt-1">Total Spent</Text>
-                <Text className="text-green-600 font-bold text-xl">
-                  ${customer.totalSpent.toFixed(2)}
-                </Text>
+            )}
+            {customer.phone && (
+              <View className="flex-row items-center gap-3">
+                <View className="h-8 rounded-full items-center justify-center" style={{ width: "8%", backgroundColor: "#D1FAE5" }}>
+                  <Ionicons name="call-outline" size={iconSize.md} color={colors.success} />
+                </View>
+                <View>
+                  <Text style={{ fontSize: modalContent.labelFontSize, color: modalContent.labelColor }}>Phone</Text>
+                  <Text style={{ fontSize: modalContent.valueFontSize, fontWeight: modalContent.valueFontWeight, color: modalContent.valueColor }}>{customer.phone}</Text>
+                </View>
               </View>
-              <View className="flex-1 bg-purple-50 rounded-lg p-4 items-center">
-                <MaterialCommunityIcons name="wallet" size={iconSize.xl} color={colors.purple} />
-                <Text className="text-gray-600 text-sm mt-1">Balance</Text>
-                <Text
-                  className={`font-bold text-xl ${
-                    customer.balance > 0 ? "text-red-500" : "text-green-600"
-                  }`}
-                >
-                  ${Math.abs(customer.balance).toFixed(2)}
-                </Text>
-              </View>
-              {customer.loyaltyPoints !== undefined && (
-                <View className="flex-1 bg-yellow-50 rounded-lg p-4 items-center">
-                  <MaterialCommunityIcons name="star" size={iconSize.xl} color={colors.warning} />
-                  <Text className="text-gray-600 text-sm mt-1">Points</Text>
-                  <Text className="text-yellow-600 font-bold text-xl">
-                    {customer.loyaltyPoints}
+            )}
+            {customer.address && (
+              <View className="flex-row items-center gap-3">
+                <View className="h-8 rounded-full items-center justify-center" style={{ width: "8%", backgroundColor: "#EDE9FE" }}>
+                  <Ionicons name="location-outline" size={iconSize.md} color={colors.purple} />
+                </View>
+                <View className="flex-1">
+                  <Text style={{ fontSize: modalContent.labelFontSize, color: modalContent.labelColor }}>Address</Text>
+                  <Text style={{ fontSize: modalContent.valueFontSize, fontWeight: modalContent.valueFontWeight, color: modalContent.valueColor }}>
+                    {customer.address}
+                    {customer.city && `, ${customer.city}`}
+                    {customer.state && `, ${customer.state}`}
+                    {customer.zipCode && ` ${customer.zipCode}`}
                   </Text>
                 </View>
+              </View>
+            )}
+          </View>
+        </View>
+
+        {/* Business Information */}
+        <View className="py-4 border-t border-gray-100" style={{ paddingHorizontal: "5%" }}>
+          <Text className="mb-3" style={{ fontSize: modalContent.titleFontSize, fontWeight: modalContent.titleFontWeight, color: modalContent.titleColor }}>Business Information</Text>
+          <View className="flex-row gap-4">
+            <View className="flex-1 shadow-sm" style={{ backgroundColor: modalContent.boxBackground, padding: modalContent.boxPadding, borderRadius: modalContent.boxRadius, borderWidth: modalContent.boxBorderWidth, borderColor: modalContent.boxBorderColor }}>
+              <Text style={{ fontSize: modalContent.labelFontSize, color: modalContent.labelColor }}>Customer Type</Text>
+              <Text style={{ fontSize: modalContent.valueFontSize, fontWeight: modalContent.valueFontWeight, color: modalContent.valueColor }}>{customer.customerType}</Text>
+            </View>
+            <View className="flex-1 shadow-sm" style={{ backgroundColor: modalContent.boxBackground, padding: modalContent.boxPadding, borderRadius: modalContent.boxRadius, borderWidth: modalContent.boxBorderWidth, borderColor: modalContent.boxBorderColor }}>
+              <Text style={{ fontSize: modalContent.labelFontSize, color: modalContent.labelColor }}>Class of Trades</Text>
+              <Text style={{ fontSize: modalContent.valueFontSize, fontWeight: modalContent.valueFontWeight, color: modalContent.valueColor }}>{customer.classOfTrades}</Text>
+            </View>
+            <View className="flex-1 shadow-sm" style={{ backgroundColor: modalContent.boxBackground, padding: modalContent.boxPadding, borderRadius: modalContent.boxRadius, borderWidth: modalContent.boxBorderWidth, borderColor: modalContent.boxBorderColor }}>
+              <Text style={{ fontSize: modalContent.labelFontSize, color: modalContent.labelColor }}>Customer Since</Text>
+              <Text style={{ fontSize: modalContent.valueFontSize, fontWeight: modalContent.valueFontWeight, color: modalContent.valueColor }}>{formatDate(customer.createdAt)}</Text>
+            </View>
+          </View>
+        </View>
+
+        {/* Recent Orders */}
+        {customer.recentOrders && customer.recentOrders.length > 0 && (
+          <View className="py-4 border-t border-gray-100" style={{ paddingHorizontal: "5%" }}>
+            <View className="flex-row justify-between items-center mb-3">
+              <Text style={{ fontSize: modalContent.titleFontSize, fontWeight: modalContent.titleFontWeight, color: modalContent.titleColor }}>Recent Orders</Text>
+              {onViewOrders && (
+                <TouchableOpacity onPress={onViewOrders}>
+                  <Text className="font-medium" style={{ color: colors.primary }}>View All</Text>
+                </TouchableOpacity>
               )}
             </View>
-
-            {/* Contact Information */}
-            <View className="px-6 py-4 border-t border-gray-100">
-              <Text className="text-gray-800 font-semibold mb-3">Contact Information</Text>
-              <View className="rounded-lg p-4 gap-3 shadow-sm" style={{ backgroundColor: colors.backgroundTertiary }}>
-                {customer.email && (
-                  <View className="flex-row items-center gap-3">
-                    <View className="w-8 h-8 bg-blue-100 rounded-full items-center justify-center">
-                      <Ionicons name="mail-outline" size={iconSize.md} color={colors.info} />
-                    </View>
-                    <View>
-                      <Text className="text-gray-500 text-sm">Email</Text>
-                      <Text className="text-gray-800">{customer.email}</Text>
-                    </View>
+            <View className="gap-2">
+              {customer.recentOrders.slice(0, 3).map((order) => (
+                <View
+                  key={order.id}
+                  className="flex-row items-center py-3 shadow-sm"
+                  style={{ backgroundColor: modalContent.boxBackground, paddingHorizontal: modalContent.boxPaddingPct, borderRadius: modalContent.boxRadius, borderWidth: modalContent.boxBorderWidth, borderColor: modalContent.boxBorderColor }}
+                >
+                  <View className="flex-1">
+                    <Text style={{ fontSize: modalContent.valueFontSize, fontWeight: modalContent.valueFontWeight, color: modalContent.valueColor }}>#{order.orderNumber}</Text>
+                    <Text style={{ fontSize: modalContent.labelFontSize, color: modalContent.labelColor }}>{formatDate(order.date)}</Text>
                   </View>
-                )}
-                {customer.phone && (
-                  <View className="flex-row items-center gap-3">
-                    <View className="w-8 h-8 bg-green-100 rounded-full items-center justify-center">
-                      <Ionicons name="call-outline" size={iconSize.md} color={colors.success} />
-                    </View>
-                    <View>
-                      <Text className="text-gray-500 text-sm">Phone</Text>
-                      <Text className="text-gray-800">{customer.phone}</Text>
-                    </View>
-                  </View>
-                )}
-                {customer.address && (
-                  <View className="flex-row items-center gap-3">
-                    <View className="w-8 h-8 bg-purple-100 rounded-full items-center justify-center">
-                      <Ionicons name="location-outline" size={iconSize.md} color={colors.purple} />
-                    </View>
-                    <View className="flex-1">
-                      <Text className="text-gray-500 text-sm">Address</Text>
-                      <Text className="text-gray-800">
-                        {customer.address}
-                        {customer.city && `, ${customer.city}`}
-                        {customer.state && `, ${customer.state}`}
-                        {customer.zipCode && ` ${customer.zipCode}`}
+                  <View className="items-end">
+                    <Text className="font-bold" style={{ fontSize: modalContent.valueFontSize, color: modalContent.valueColor }}>${order.total.toFixed(2)}</Text>
+                    <View
+                      className="px-2 py-0.5 rounded mt-1"
+                      style={{
+                        backgroundColor:
+                          order.status === "completed"
+                            ? "#DEF7EC"
+                            : order.status === "pending"
+                            ? "#FEF3C7"
+                            : "#FEE2E2",
+                      }}
+                    >
+                      <Text
+                        className="text-sm font-medium"
+                        style={{
+                          color:
+                            order.status === "completed"
+                              ? "#03543F"
+                              : order.status === "pending"
+                              ? "#92400E"
+                              : "#991B1B",
+                        }}
+                      >
+                        {order.status.toUpperCase()}
                       </Text>
                     </View>
                   </View>
-                )}
-              </View>
+                </View>
+              ))}
             </View>
-
-            {/* Business Information */}
-            <View className="px-6 py-4 border-t border-gray-100">
-              <Text className="text-gray-800 font-semibold mb-3">Business Information</Text>
-              <View className="flex-row gap-4">
-                <View className="flex-1 rounded-lg p-3 shadow-sm" style={{ backgroundColor: colors.backgroundTertiary }}>
-                  <Text className="text-gray-500 text-sm">Customer Type</Text>
-                  <Text className="text-gray-800 font-medium">{customer.customerType}</Text>
-                </View>
-                <View className="flex-1 rounded-lg p-3 shadow-sm" style={{ backgroundColor: colors.backgroundTertiary }}>
-                  <Text className="text-gray-500 text-sm">Class of Trades</Text>
-                  <Text className="text-gray-800 font-medium">{customer.classOfTrades}</Text>
-                </View>
-                <View className="flex-1 rounded-lg p-3 shadow-sm" style={{ backgroundColor: colors.backgroundTertiary }}>
-                  <Text className="text-gray-500 text-sm">Customer Since</Text>
-                  <Text className="text-gray-800 font-medium">{formatDate(customer.createdAt)}</Text>
-                </View>
-              </View>
-            </View>
-
-            {/* Recent Orders */}
-            {customer.recentOrders && customer.recentOrders.length > 0 && (
-              <View className="px-6 py-4 border-t border-gray-100">
-                <View className="flex-row justify-between items-center mb-3">
-                  <Text className="text-gray-800 font-semibold">Recent Orders</Text>
-                  {onViewOrders && (
-                    <TouchableOpacity onPress={onViewOrders}>
-                      <Text className="text-red-500 font-medium">View All</Text>
-                    </TouchableOpacity>
-                  )}
-                </View>
-                <View className="gap-2">
-                  {customer.recentOrders.slice(0, 3).map((order) => (
-                    <View
-                      key={order.id}
-                      className="flex-row items-center rounded-lg px-4 py-3 shadow-sm"
-                      style={{ backgroundColor: colors.backgroundTertiary }}
-                    >
-                      <View className="flex-1">
-                        <Text className="text-gray-800 font-medium">#{order.orderNumber}</Text>
-                        <Text className="text-gray-500 text-sm">{formatDate(order.date)}</Text>
-                      </View>
-                      <View className="items-end">
-                        <Text className="text-gray-800 font-bold">${order.total.toFixed(2)}</Text>
-                        <View
-                          className="px-2 py-0.5 rounded mt-1"
-                          style={{
-                            backgroundColor:
-                              order.status === "completed"
-                                ? "#DEF7EC"
-                                : order.status === "pending"
-                                ? "#FEF3C7"
-                                : "#FEE2E2",
-                          }}
-                        >
-                          <Text
-                            className="text-sm font-medium"
-                            style={{
-                              color:
-                                order.status === "completed"
-                                  ? "#03543F"
-                                  : order.status === "pending"
-                                  ? "#92400E"
-                                  : "#991B1B",
-                            }}
-                          >
-                            {order.status.toUpperCase()}
-                          </Text>
-                        </View>
-                      </View>
-                    </View>
-                  ))}
-                </View>
-              </View>
-            )}
-
-            {/* Notes */}
-            {customer.notes && (
-              <View className="px-6 py-4 border-t border-gray-100">
-                <Text className="text-gray-800 font-semibold mb-2">Notes</Text>
-                <View className="bg-yellow-50 rounded-lg p-3">
-                  <Text className="text-gray-700">{customer.notes}</Text>
-                </View>
-              </View>
-            )}
-          </ScrollView>
-
-          {/* Footer Actions */}
-          <View className="flex-row gap-4 px-6 py-4 border-t border-gray-200">
-            <ThemedButton
-              title="Close"
-              variant="outline"
-              onPress={onClose}
-              fullWidth
-            />
-            {onEdit && (
-              <ThemedButton
-                title="Edit"
-                icon="pencil-outline"
-                variant="outline"
-                onPress={onEdit}
-                fullWidth
-                style={{ flex: 1, borderColor: colors.primary, borderWidth: 1 }}
-                textStyle={{ color: colors.primary }}
-              />
-            )}
-            {onAddOrder && (
-              <ThemedButton
-                title="New Order"
-                icon="add"
-                onPress={onAddOrder}
-                fullWidth
-                style={{ flex: 1, backgroundColor: colors.primary }}
-              />
-            )}
           </View>
-        </TouchableOpacity>
-      </TouchableOpacity>
-    </Modal>
+        )}
+
+        {/* Notes */}
+        {customer.notes && (
+          <View className="py-4 border-t border-gray-100" style={{ paddingHorizontal: "5%" }}>
+            <Text className="mb-2" style={{ fontSize: modalContent.titleFontSize, fontWeight: modalContent.titleFontWeight, color: modalContent.titleColor }}>Notes</Text>
+            <View style={{ backgroundColor: "#FFFBEB", padding: modalContent.boxPadding, borderRadius: modalContent.boxRadius, borderWidth: modalContent.boxBorderWidth, borderColor: modalContent.boxBorderColor }}>
+              <Text style={{ fontSize: modalContent.valueFontSize, fontWeight: modalContent.valueFontWeight, color: modalContent.valueColor }}>{customer.notes}</Text>
+            </View>
+          </View>
+        )}
+      </ScrollView>
+    </CenteredModal>
   );
 }

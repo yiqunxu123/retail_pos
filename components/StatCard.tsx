@@ -69,7 +69,7 @@ export function StatCard({
           style={{ height: height }}
         >
           <Text 
-            className="text-5xl font-semibold"
+            className="text-3xl font-semibold"
             style={{ color: "#FFFFFF" }}
           >
             {value}

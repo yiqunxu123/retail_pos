@@ -1,0 +1,121 @@
+# Maestro flow: Screenshot all pages + modals (全自动)
+# 截图保存到: screenshots/ 文件夹
+# Run: npm run screenshot:maestro
+# Requires: Maestro (https://maestro.mobile.dev)
+# App: com.anonymous.ititansapp (Android)
+# Login: preprod / Password@123
+
+appId: com.anonymous.ititansapp
+
+---
+- launchApp
+- extendedWaitUntil:
+    visible:
+      text: "Login"
+    timeout: 15000
+- takeScreenshot: 01-login
+- tapOn: "Enter your email address"
+- inputText: preprod
+- tapOn: "Enter your password"
+- inputText: "Password@123"
+- tapOn: "Login"
+- extendedWaitUntil:
+    visible:
+      text: "Time Clock"
+    timeout: 15000
+- takeScreenshot: 02-dashboard
+- tapOn:
+    text: "Time Clock"
+- extendedWaitUntil:
+    visible:
+      text: "Clock in to your Account"
+    timeout: 5000
+- takeScreenshot: 03-clock-in-modal
+- tapOn:
+    text: "1"
+- tapOn:
+    text: "Clock In"
+- extendedWaitUntil:
+    visible:
+      text: "Sales History"
+    timeout: 10000
+- takeScreenshot: 04-dashboard-clocked-in
+- tapOn:
+    text: "Sales History"
+- extendedWaitUntil:
+    visible:
+      text: "Add Order"
+    timeout: 8000
+- takeScreenshot: 05-sales-history
+- tapOn: "Go to Menu"
+- extendedWaitUntil:
+    visible:
+      text: "Sales History"
+    timeout: 5000
+- tapOn:
+    text: "View Reports"
+- extendedWaitUntil:
+    visible:
+      text: "View Reports"
+    timeout: 5000
+- takeScreenshot: 06-reports
+- tapOn: "Go to Menu"
+- extendedWaitUntil:
+    visible:
+      text: "Sales History"
+    timeout: 5000
+- tapOn:
+    text: "View Customers"
+- extendedWaitUntil:
+    visible:
+      text: "Add Customer"
+    timeout: 8000
+- takeScreenshot: 07-customers
+- tapOn: "Go to Menu"
+- extendedWaitUntil:
+    visible:
+      text: "Sales History"
+    timeout: 5000
+- tapOn:
+    text: "View Parked Orders"
+- extendedWaitUntil:
+    visible:
+      text: "Parked Orders"
+    timeout: 8000
+- takeScreenshot: 08-parked-orders
+- tapOn: "Go to Menu"
+- extendedWaitUntil:
+    visible:
+      text: "Sales History"
+    timeout: 5000
+- tapOn:
+    text: "Sales Return"
+- extendedWaitUntil:
+    visible:
+      text: "Create Sale Return"
+    timeout: 8000
+- takeScreenshot: 09-sales-return
+- tapOn: "Go to Menu"
+- extendedWaitUntil:
+    visible:
+      text: "Sales History"
+    timeout: 5000
+- tapOn:
+    text: "Settings"
+- extendedWaitUntil:
+    visible:
+      text: "Settings"
+    timeout: 5000
+- takeScreenshot: 10-settings
+- tapOn: "Go to Menu"
+- extendedWaitUntil:
+    visible:
+      text: "Sales History"
+    timeout: 5000
+- tapOn:
+    text: "Add Order"
+- extendedWaitUntil:
+    visible:
+      text: "Shopping Cart"
+    timeout: 15000
+- takeScreenshot: 11-add-products

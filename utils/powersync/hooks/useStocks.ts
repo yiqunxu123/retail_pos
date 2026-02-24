@@ -515,15 +515,49 @@ export function useStocks(
   };
 }
 
-/** Get low stock alerts - NOTE: DB does not have qty_alert, this feature is unavailable */
-export function useStockAlerts() {
+/** StockAlert shape for stock-alerts screen */
+export interface StockAlertView {
+  id: string;
+  productName: string;
+  skuUpc: string;
+  channelName: string;
+  categoryName: string;
+  availableQty: number;
+  backOrderQty: number;
+  totalQty: number;
+  minQty: number;
+  maxQty: number;
+}
+
+function toStockAlertView(s: StockView): StockAlertView {
   return {
-    alerts: [] as StockView[],
-    isLoading: false,
-    error: null,
-    isStreaming: false,
-    refresh: async () => {},
-    count: 0,
+    id: s.id,
+    productName: s.productName,
+    skuUpc: [s.sku, s.upc].filter(Boolean).join(' / ') || '-',
+    channelName: s.channelName || 'Primary',
+    categoryName: s.categoryName || '',
+    availableQty: s.availableQty,
+    backOrderQty: s.backOrderQty,
+    totalQty: s.totalQty,
+    minQty: s.minQty ?? 0,
+    maxQty: 99999,
+  };
+}
+
+/** Get low stock alerts - items with available_qty = 0 or below threshold */
+export function useStockAlerts() {
+  const { stocks, isLoading, error, isStreaming, refresh } = useStocks({
+    outOfStock: true,
+    productStatus: [1],
+  });
+  const alerts = useMemo(() => stocks.map(toStockAlertView), [stocks]);
+  return {
+    alerts,
+    isLoading,
+    error,
+    isStreaming,
+    refresh,
+    count: alerts.length,
   };
 }
 

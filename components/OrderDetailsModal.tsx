@@ -1,8 +1,9 @@
-import { buttonSize, colors, iconSize } from '@/utils/theme';
+import { buttonSize, colors, iconSize, modalContent } from '@/utils/theme';
 import { ThemedButton } from './ThemedButton';
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { useState } from "react";
-import { Modal, Pressable, ScrollView, Text, TouchableOpacity, View } from "react-native";
+import { Pressable, ScrollView, Text, View } from "react-native";
+import { CenteredModal } from "./CenteredModal";
 
 interface OrderItem {
   id: string;
@@ -100,11 +101,14 @@ export function OrderDetailsModal({
     bgColor?: string;
   }) => (
     <View 
-      className="flex-1 border border-gray-200 rounded-lg p-3 min-w-[120px] shadow-sm"
-      style={bgColor ? { backgroundColor: bgColor } : { backgroundColor: colors.backgroundTertiary }}
+      className="flex-1 shadow-sm"
+      style={[
+        bgColor ? { backgroundColor: bgColor } : { backgroundColor: modalContent.boxBackground },
+        { minWidth: "12%", padding: modalContent.boxPadding, borderRadius: modalContent.boxRadius, borderWidth: modalContent.boxBorderWidth, borderColor: modalContent.boxBorderColor },
+      ]}
     >
-      <Text className="text-gray-600 text-sm mb-1">{label}</Text>
-      <Text className="text-base font-medium" style={{ color: valueColor }} numberOfLines={1}>
+      <Text className="mb-1" style={{ fontSize: modalContent.labelFontSize, color: modalContent.labelColor }}>{label}</Text>
+      <Text style={{ fontSize: modalContent.valueFontSize, fontWeight: modalContent.valueFontWeight, color: valueColor }} numberOfLines={1}>
         {value}
       </Text>
     </View>
@@ -126,31 +130,33 @@ export function OrderDetailsModal({
   };
 
   return (
-    <Modal
+    <CenteredModal
       visible={visible}
-      transparent
-      animationType="fade"
-      onRequestClose={onClose}
+      onClose={onClose}
+      size="md"
+      title="Order Details"
+      scrollable={false}
+      contentPadding={false}
+      footer={
+        <>
+          <ThemedButton title="Close" variant="outline" onPress={onClose} />
+          {onPrintReceipt && (
+            <ThemedButton
+              title="Print"
+              icon="print"
+              onPress={onPrintReceipt}
+              style={{ backgroundColor: colors.warning }}
+              textStyle={{ color: colors.text }}
+            />
+          )}
+        </>
+      }
     >
-      <View className="flex-1 bg-black/50 justify-center items-center">
-        <View
-          className="bg-white rounded-xl overflow-hidden"
-          style={{ width: 800, maxHeight: "90%" }}
-        >
-          {/* Header */}
-          <View className="flex-row justify-between items-center px-6 py-4 border-b border-gray-200">
-            <Text className="text-xl font-bold text-gray-800">Order Details</Text>
-            <TouchableOpacity onPress={onClose}>
-              <Ionicons name="close" size={iconSize.xl} color={colors.textSecondary} />
-            </TouchableOpacity>
-          </View>
-
-          {/* Divider line */}
-          <View className="h-[1px] bg-gray-200 mx-6" />
-
-          <ScrollView style={{ maxHeight: 600 }} showsVerticalScrollIndicator={false}>
+      <View className="rounded-xl overflow-hidden flex-1">
+        <View className="h-[1px] bg-gray-200" style={{ marginHorizontal: "5%" }} />
+        <ScrollView style={{ flex: 1 }} showsVerticalScrollIndicator={false}>
             {/* Info Cards Row 1 */}
-            <View className="px-6 pt-4 pb-2">
+            <View style={{ paddingHorizontal: "5%", paddingTop: 16, paddingBottom: 8 }}>
               <View className="flex-row gap-4">
                 <InfoCard 
                   label="Customer Name" 
@@ -181,7 +187,7 @@ export function OrderDetailsModal({
             </View>
 
             {/* Info Cards Row 2 */}
-            <View className="px-6 pb-4">
+            <View style={{ paddingHorizontal: "5%", paddingBottom: 16 }}>
               <View className="flex-row gap-4">
                 <InfoCard 
                   label="Chanel Name" 
@@ -198,16 +204,16 @@ export function OrderDetailsModal({
                   valueColor={colors.text}
                 />
                 <View 
-                  className="flex-1 border border-gray-200 rounded-lg p-3 min-w-[120px]"
-                  style={{ backgroundColor: "#FEF08A" }}
+                  className="flex-1"
+                  style={{ backgroundColor: "#FEF08A", minWidth: "12%", padding: modalContent.boxPadding, borderRadius: modalContent.boxRadius, borderWidth: modalContent.boxBorderWidth, borderColor: modalContent.boxBorderColor }}
                 >
-                  <Text className="text-gray-600 text-sm mb-1">Total</Text>
+                  <Text className="mb-1" style={{ fontSize: modalContent.labelFontSize, color: modalContent.labelColor }}>Total</Text>
                   <Text className="text-base font-bold" style={{ color: colors.success }}>
                     ${order.total.toFixed(2)}
                   </Text>
                 </View>
-                <View className="flex-1 border border-gray-200 rounded-lg p-3 min-w-[120px]" style={{ backgroundColor: colors.backgroundTertiary }}>
-                  <Text className="text-gray-600 text-sm mb-1">Invoice Status</Text>
+                <View className="flex-1" style={{ backgroundColor: modalContent.boxBackground, minWidth: "12%", padding: modalContent.boxPadding, borderRadius: modalContent.boxRadius, borderWidth: modalContent.boxBorderWidth, borderColor: modalContent.boxBorderColor }}>
+                  <Text className="mb-1" style={{ fontSize: modalContent.labelFontSize, color: modalContent.labelColor }}>Invoice Status</Text>
                   <InvoiceStatusBadge status={order.invoiceStatus || "Paid"} />
                 </View>
                 <InfoCard 
@@ -218,7 +224,7 @@ export function OrderDetailsModal({
             </View>
 
             {/* Tabs */}
-            <View className="px-6 border-b border-gray-200">
+            <View style={{ paddingHorizontal: "5%" }} className="border-b border-gray-200">
               <View className="flex-row">
                 {TABS.map((tab) => {
                   const isActive = activeTab === tab;
@@ -245,11 +251,11 @@ export function OrderDetailsModal({
             </View>
 
             {/* Tab Content */}
-            <View className="px-6 py-4">
+            <View style={{ paddingHorizontal: "5%", paddingVertical: 16 }}>
               {activeTab === "Order Details" && (
                 <>
                   {order.items.length === 0 ? (
-                    <View className="rounded-lg p-8 items-center shadow-sm" style={{ backgroundColor: colors.backgroundTertiary }}>
+                    <View className="rounded-lg items-center shadow-sm" style={{ backgroundColor: colors.backgroundTertiary, padding: "8%" }}>
                       <Ionicons name="cube-outline" size={iconSize['4xl']} color={colors.textTertiary} />
                       <Text className="text-gray-500 mt-3 text-lg">No items in this order</Text>
                       <Text className="text-gray-400 text-sm mt-1">
@@ -259,37 +265,38 @@ export function OrderDetailsModal({
                   ) : (
                     <>
                       {/* Table Header */}
-                      <View className="flex-row px-3 py-3 rounded-t-lg border border-gray-200 shadow-sm" style={{ backgroundColor: colors.backgroundTertiary }}>
-                        <Text className="w-12 text-gray-600 text-sm font-semibold">Sr No</Text>
+                      <View className="flex-row py-3 rounded-t-lg border border-gray-200 shadow-sm" style={{ backgroundColor: colors.backgroundTertiary, paddingHorizontal: "3%" }}>
+                        <Text style={{ width: "6%", color: colors.textSecondary, fontSize: 14, fontWeight: "600" }}>Sr No</Text>
                         <Text className="flex-1 text-gray-600 text-sm font-semibold">Product Name</Text>
-                        <Text className="w-24 text-gray-600 text-sm font-semibold">SKU/UPC</Text>
-                        <Text className="w-20 text-gray-600 text-sm font-semibold text-center">Ordered Qty</Text>
-                        <Text className="w-16 text-gray-600 text-sm font-semibold text-center">Unit</Text>
-                        <Text className="w-20 text-gray-600 text-sm font-semibold text-center">Delivered Qty</Text>
-                        <Text className="w-20 text-gray-600 text-sm font-semibold text-center">Remaining Qty</Text>
-                        <Text className="w-20 text-gray-600 text-sm font-semibold text-right">Sale Price</Text>
-                        <Text className="w-16 text-gray-600 text-sm font-semibold text-right">Discount</Text>
+                        <Text style={{ width: "16%", color: colors.textSecondary, fontSize: 14, fontWeight: "600" }}>SKU/UPC</Text>
+                        <Text style={{ width: "12%", color: colors.textSecondary, fontSize: 14, fontWeight: "600", textAlign: "center" }}>Ordered Qty</Text>
+                        <Text style={{ width: "8%", color: colors.textSecondary, fontSize: 14, fontWeight: "600", textAlign: "center" }}>Unit</Text>
+                        <Text style={{ width: "12%", color: colors.textSecondary, fontSize: 14, fontWeight: "600", textAlign: "center" }}>Delivered Qty</Text>
+                        <Text style={{ width: "12%", color: colors.textSecondary, fontSize: 14, fontWeight: "600", textAlign: "center" }}>Remaining Qty</Text>
+                        <Text style={{ width: "12%", color: colors.textSecondary, fontSize: 14, fontWeight: "600", textAlign: "right" }}>Sale Price</Text>
+                        <Text style={{ width: "10%", color: colors.textSecondary, fontSize: 14, fontWeight: "600", textAlign: "right" }}>Discount</Text>
                       </View>
 
                       {/* Table Body */}
                       {order.items.map((item, index) => (
                         <View
                           key={item.id}
-                          className={`flex-row items-center px-3 py-3 border-l border-r border-b border-gray-200 ${
+                          style={{ paddingHorizontal: "3%", paddingVertical: 12 }}
+                          className={`flex-row items-center border-l border-r border-b border-gray-200 ${
                             index === order.items.length - 1 ? "rounded-b-lg" : ""
                           }`}
                         >
-                          <Text className="w-12 text-gray-800 text-sm">{item.srNo || index + 1}</Text>
+                          <Text style={{ width: "6%", color: colors.textDark, fontSize: 14 }}>{item.srNo || index + 1}</Text>
                           <Text className="flex-1 text-gray-800 text-sm" numberOfLines={1}>
                             {item.name}
                           </Text>
-                          <Text className="w-24 text-blue-600 text-sm">{item.sku}{item.upc ? ` / ${item.upc}` : ""}</Text>
-                          <Text className="w-20 text-gray-800 text-sm text-center">{item.orderedQty}</Text>
-                          <Text className="w-16 text-sm text-center" style={{ color: colors.primary }}>{item.unit}</Text>
-                          <Text className="w-20 text-gray-800 text-sm text-center">{item.deliveredQty}</Text>
-                          <Text className="w-20 text-gray-800 text-sm text-center">{item.remainingQty}</Text>
-                          <Text className="w-20 text-sm text-right" style={{ color: colors.primary }}>${item.salePrice.toFixed(2)}</Text>
-                          <Text className="w-16 text-gray-800 text-sm text-right">${item.discount}</Text>
+                          <Text style={{ width: "16%", color: colors.info, fontSize: 14 }}>{item.sku}{item.upc ? ` / ${item.upc}` : ""}</Text>
+                          <Text style={{ width: "12%", color: colors.textDark, fontSize: 14, textAlign: "center" }}>{item.orderedQty}</Text>
+                          <Text style={{ width: "8%", fontSize: 14, textAlign: "center", color: colors.primary }}>{item.unit}</Text>
+                          <Text style={{ width: "12%", color: colors.textDark, fontSize: 14, textAlign: "center" }}>{item.deliveredQty}</Text>
+                          <Text style={{ width: "12%", color: colors.textDark, fontSize: 14, textAlign: "center" }}>{item.remainingQty}</Text>
+                          <Text style={{ width: "12%", fontSize: 14, textAlign: "right", color: colors.primary }}>${item.salePrice.toFixed(2)}</Text>
+                          <Text style={{ width: "10%", color: colors.textDark, fontSize: 14, textAlign: "right" }}>${item.discount}</Text>
                         </View>
                       ))}
                     </>
@@ -298,7 +305,7 @@ export function OrderDetailsModal({
               )}
 
               {activeTab === "Shipments" && (
-                <View className="rounded-lg p-8 items-center shadow-sm" style={{ backgroundColor: colors.backgroundTertiary }}>
+                <View className="rounded-lg items-center shadow-sm" style={{ backgroundColor: colors.backgroundTertiary, padding: "8%" }}>
                   <MaterialCommunityIcons name="truck-delivery-outline" size={iconSize['4xl']} color={colors.textTertiary} />
                   <Text className="text-gray-500 mt-3 text-lg">No shipment records</Text>
                   <Text className="text-gray-400 text-sm mt-1">Shipment details will appear here</Text>
@@ -308,7 +315,7 @@ export function OrderDetailsModal({
               {activeTab === "Payment History" && (
                 <>
                   {order.payments.length === 0 ? (
-                    <View className="rounded-lg p-8 items-center shadow-sm" style={{ backgroundColor: colors.backgroundTertiary }}>
+                    <View className="rounded-lg items-center shadow-sm" style={{ backgroundColor: colors.backgroundTertiary, padding: "8%" }}>
                       <MaterialCommunityIcons name="cash-multiple" size={iconSize['4xl']} color={colors.textTertiary} />
                       <Text className="text-gray-500 mt-3 text-lg">No payment records</Text>
                       <Text className="text-gray-400 text-sm mt-1">Payment history will appear here</Text>
@@ -318,10 +325,10 @@ export function OrderDetailsModal({
                       {order.payments.map((payment) => (
                         <View
                           key={payment.id}
-                          className="flex-row items-center rounded-lg px-4 py-3 shadow-sm"
-                          style={{ backgroundColor: colors.backgroundTertiary }}
+                          className="flex-row items-center rounded-lg py-3 shadow-sm"
+                          style={{ backgroundColor: colors.backgroundTertiary, paddingHorizontal: "3%" }}
                         >
-                          <View className="w-10 h-10 bg-green-100 rounded-full items-center justify-center mr-3">
+                          <View className="h-10 bg-green-100 rounded-full items-center justify-center mr-3" style={{ width: "10%" }}>
                             <MaterialCommunityIcons
                               name={payment.method === "cash" ? "cash" : "credit-card"}
                               size={iconSize.base}
@@ -345,7 +352,7 @@ export function OrderDetailsModal({
               )}
 
               {activeTab === "Invoice Activity" && (
-                <View className="rounded-lg p-8 items-center shadow-sm" style={{ backgroundColor: colors.backgroundTertiary }}>
+                <View className="rounded-lg items-center shadow-sm" style={{ backgroundColor: colors.backgroundTertiary, padding: "8%" }}>
                   <Ionicons name="document-text-outline" size={iconSize['4xl']} color={colors.textTertiary} />
                   <Text className="text-gray-500 mt-3 text-lg">No invoice activity</Text>
                   <Text className="text-gray-400 text-sm mt-1">Invoice activity will appear here</Text>
@@ -355,11 +362,11 @@ export function OrderDetailsModal({
               {activeTab === "Notes" && (
                 <>
                   {order.note ? (
-                    <View className="bg-yellow-50 rounded-lg p-4 border border-yellow-200">
+                    <View className="bg-yellow-50 rounded-lg border border-yellow-200" style={{ padding: "4%" }}>
                       <Text className="text-gray-700">{order.note}</Text>
                     </View>
                   ) : (
-                    <View className="rounded-lg p-8 items-center shadow-sm" style={{ backgroundColor: colors.backgroundTertiary }}>
+                    <View className="rounded-lg items-center shadow-sm" style={{ backgroundColor: colors.backgroundTertiary, padding: "8%" }}>
                       <Ionicons name="chatbubble-outline" size={iconSize['4xl']} color={colors.textTertiary} />
                       <Text className="text-gray-500 mt-3 text-lg">No notes</Text>
                       <Text className="text-gray-400 text-sm mt-1">Order notes will appear here</Text>
@@ -368,27 +375,8 @@ export function OrderDetailsModal({
                 </>
               )}
             </View>
-          </ScrollView>
-
-          {/* Footer Actions */}
-          <View className="flex-row gap-4 px-6 py-4 border-t border-gray-200 justify-end">
-            <ThemedButton
-              title="Close"
-              variant="outline"
-              onPress={onClose}
-            />
-            {onPrintReceipt && (
-              <ThemedButton
-                title="Print"
-                icon="print"
-                onPress={onPrintReceipt}
-                style={{ backgroundColor: colors.warning }}
-                textStyle={{ color: colors.text }}
-              />
-            )}
-          </View>
-        </View>
+        </ScrollView>
       </View>
-    </Modal>
+    </CenteredModal>
   );
 }

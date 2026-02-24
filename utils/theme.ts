@@ -176,6 +176,68 @@ export const spacing = {
 } as const;
 
 // ============================================================================
+// Modal Content — 弹窗内容统一 (字体、框样式)
+// ============================================================================
+//
+// 所有 CenteredModal 内容应使用以下 token，保持视觉一致
+
+export const modalContent = {
+  /** 区块标题 (如 "Contact Information") */
+  titleFontSize: 16,
+  titleFontWeight: '600' as const,
+  titleColor: colors.textDark,
+
+  /** 字段标签 (如 "Email", "Expected Cash") */
+  labelFontSize: 14,
+  labelColor: colors.textSecondary,
+
+  /** 字段值 / 正文 */
+  valueFontSize: 16,
+  valueFontWeight: '500' as const,
+  valueColor: colors.textDark,
+
+  /** 大数字显示 (金额、数量) */
+  valueLargeFontSize: 24,
+  /** 超大数字 (现金金额等) */
+  valueXlFontSize: 32,
+
+  /** 框/卡片 - 背景、边框、内边距 */
+  boxBackground: colors.backgroundTertiary,
+  boxBackgroundAlt: '#F4F5F7',        // 与 backgroundSecondary 相近，用于输入区
+  boxBorderColor: colors.border,
+  boxBorderWidth: 1,
+  boxPadding: 12,
+  boxPaddingPct: '4%' as const,
+  boxRadius: 8,
+
+  /** 输入框统一 */
+  inputBackground: colors.background,
+  inputBorderColor: colors.border,
+  inputBorderRadius: 8,
+  inputPaddingHorizontal: 12,
+  inputPaddingVertical: 10,
+  inputFontSize: 16,
+} as const;
+
+// ============================================================================
+// Modal Sizes — 弹窗尺寸 (统一 CenteredModal 使用)
+// ============================================================================
+//
+// sm  (420) — 确认/简短提示 (Park Order, 简单表单)
+// md  (560) — 标准表单、详情 (Customer Details)
+// lg  (720) — 复杂内容 (Order Details)
+// xl  (960) — 大表格、批量编辑
+// full — 全屏占比 92%，maxWidth 1100，maxHeight 88%
+
+export const modalSizes = {
+  sm: { width: "88%" as const, maxWidth: "95%", maxHeight: "93%" },
+  md: { width: "90%" as const, maxWidth: "95%", maxHeight: "93%" },
+  lg: { width: "92%" as const, maxWidth: "95%", maxHeight: "93%" },
+  xl: { width: "94%" as const, maxWidth: "96%", maxHeight: "93%" },
+  full: { width: "96%" as const, maxWidth: "96%", maxHeight: "93%" as const },
+} as const;
+
+// ============================================================================
 // Border Radius — 圆角
 // ============================================================================
 

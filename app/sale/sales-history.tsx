@@ -7,10 +7,12 @@
 
 import { buttonSize, colors, iconSize } from '@/utils/theme';
 import { Ionicons } from "@expo/vector-icons";
-import React, { useCallback, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { Alert, Pressable, Text, View } from "react-native";
-import { ColumnDefinition, DataTable, FilterDefinition, PageHeader } from "../../components";
+import { useBulkEditContext } from "../../contexts/BulkEditContext";
+import { ACTION_COL_WIDTH, ColumnDefinition, DataTable, FilterDefinition, PageHeader } from "../../components";
 import { OrderDetailsModal } from "../../components/OrderDetailsModal";
+import { useTableContentWidth } from "../../hooks/useTableContentWidth";
 import { SaleOrderView, useParkedOrders, useSaleOrders } from "../../utils/powersync/hooks";
 
 // ============================================================================
@@ -194,46 +196,53 @@ export default function SalesHistoryScreen() {
     Alert.alert("Print", `Printing invoice for order ${order.orderNo || order.id.slice(0, 8)}...`);
   }, []);
 
+  const contentWidth = useTableContentWidth();
+
   // Column config
   const columns = useMemo<ColumnDefinition<SaleOrderView>[]>(() => [
     {
       key: "orderNo",
       title: "Order Number",
-      width: 180,
+      sortKey: "orderNo",
+      width: "12%",
       visible: true,
       hideable: false,
       render: (item) => (
-        <Text className="text-[#2196F3] text-lg font-semibold" numberOfLines={1}>
-          {item.orderNo || item.id.slice(0, 8)}
-        </Text>
+        <Pressable onPress={() => handleViewOrder(item)}>
+          <Text className="text-[#2196F3] text-lg font-semibold" numberOfLines={1}>
+            {item.orderNo || item.id.slice(0, 8)}
+          </Text>
+        </Pressable>
       ),
     },
     {
       key: "orderDate",
       title: "Date / Time",
-      width: 240,
+      sortKey: "orderDate",
+      width: "15%",
       visible: true,
       render: (item) => (
-        <Text className="text-[#1A1A1A] text-base">
-          {item.orderDateFormatted || "-"}
+        <Text className="text-[#1A1A1A] text-base" numberOfLines={1}>
+          {(item.orderDateFormatted || "-").replace(/\s+/g, " ").trim()}
         </Text>
       ),
     },
     {
       key: "customerName",
       title: "Customer Name",
-      width: "flex",
+      sortKey: "customerName",
+      width: "25%",
       visible: true,
       render: (item) => (
-        <Text className="text-[#2196F3] text-lg font-medium" numberOfLines={1}>
-          {item.businessName || item.customerName || "Test Customer Name"}
+        <Text className="text-blue-600 text-base" numberOfLines={1}>
+          {item.businessName || item.customerName || "Guest Customer"}
         </Text>
       ),
     },
     {
       key: "createdBy",
       title: "Created By",
-      width: 140,
+      width: "10%",
       visible: true,
       render: (item) => (
         <Text className="text-[#1A1A1A] text-base">
@@ -244,7 +253,8 @@ export default function SalesHistoryScreen() {
     {
       key: "total",
       title: "Total",
-      width: 140,
+      sortKey: "total",
+      width: "10%",
       visible: true,
       render: (item) => (
         <Text className="text-[#EC1A52] text-lg font-bold">
@@ -255,21 +265,21 @@ export default function SalesHistoryScreen() {
     {
       key: "invoiceStatus",
       title: "Invoice Status",
-      width: 140,
+      width: "10%",
       visible: true,
       render: (item) => <InvoiceStatusBadge status={item.fulfilmentStatus || 0} />,
     },
     {
       key: "status",
       title: "Status",
-      width: 140,
+      width: "10%",
       visible: true,
       render: (item) => <OrderStatusBadge status={item.status || 1} />,
     },
     {
       key: "actions",
       title: "Actions",
-      width: 120,
+      width: ACTION_COL_WIDTH,
       align: "center",
       visible: true,
       render: (item) => (
@@ -324,6 +334,21 @@ export default function SalesHistoryScreen() {
     { label: "Total (Low-High)", value: "total_asc" },
   ], []);
 
+  const { setConfig: setBulkEditConfig, setSelection: setBulkEditSelection } = useBulkEditContext();
+
+  const handleBulkAction = useCallback((rows: SaleOrderView[]) => {
+    if (rows.length === 0) {
+      Alert.alert("Edit Order", "Please select order(s) first.");
+      return;
+    }
+    Alert.alert("Edit Order", `${rows.length} order(s) selected. Edit order is coming soon.`);
+  }, []);
+
+  useEffect(() => {
+    setBulkEditConfig({ label: "Edit Order", onPress: handleBulkAction });
+    return () => setBulkEditConfig(null);
+  }, [handleBulkAction, setBulkEditConfig]);
+
   // Search logic
   const handleSearch = useCallback((item: SaleOrderView, query: string) => {
     const q = query.toLowerCase();
@@ -350,9 +375,10 @@ export default function SalesHistoryScreen() {
   }, []);
 
   // Sort logic
-  const handleSort = useCallback((data: SaleOrderView[], sortBy: string | null) => {
+  const handleSort = useCallback((data: SaleOrderView[], sortBy: string | null, sortOrder?: "asc" | "desc") => {
     if (!sortBy) return data;
     const sorted = [...data];
+    const asc = sortOrder === "asc";
     
     // Cache dates to avoid repeated new Date() calls during sort
     const dateCache = new Map<string, number>();
@@ -373,6 +399,28 @@ export default function SalesHistoryScreen() {
         return sorted.sort((a, b) => (b.totalPrice || 0) - (a.totalPrice || 0));
       case "total_asc":
         return sorted.sort((a, b) => (a.totalPrice || 0) - (b.totalPrice || 0));
+      case "orderDate":
+        return sorted.sort((a, b) => asc
+          ? getCachedTime(a.orderDate) - getCachedTime(b.orderDate)
+          : getCachedTime(b.orderDate) - getCachedTime(a.orderDate));
+      case "orderNo":
+        return sorted.sort((a, b) => {
+          const na = a.orderNo || a.id;
+          const nb = b.orderNo || b.id;
+          return asc ? na.localeCompare(nb) : nb.localeCompare(na);
+        });
+      case "customerName":
+        return sorted.sort((a, b) => {
+          const na = (a.businessName || a.customerName || "").toLowerCase();
+          const nb = (b.businessName || b.customerName || "").toLowerCase();
+          return asc ? na.localeCompare(nb) : nb.localeCompare(na);
+        });
+      case "total":
+        return sorted.sort((a, b) => {
+          const ta = a.totalPrice || 0;
+          const tb = b.totalPrice || 0;
+          return asc ? ta - tb : tb - ta;
+        });
       default:
         return sorted;
     }
@@ -403,27 +451,39 @@ export default function SalesHistoryScreen() {
         columns={columns}
         keyExtractor={(item) => item.id}
         searchable
-        searchPlaceholder="Search Products"
-        searchHint="Search by Customer Name, SKU, UPC"
+        searchPlaceholder="Search Sales History"
+        searchHint="Search by Customer Name, Order No"
+        searchBoxFlex={0.3}
         onSearch={handleSearch}
         filters={filters}
         onFilter={handleFilter}
         sortOptions={sortOptions}
         onSort={handleSort}
+        filtersInSettingsModal
+        bulkActions
+        bulkActionText="Edit Order"
+        bulkActionInActionRow
+        bulkActionInSidebar
+        onBulkActionPress={handleBulkAction}
+        onSelectionChange={(_, rows) => setBulkEditSelection(rows)}
         isLoading={isLoading}
         onRefresh={refresh}
+        toolbarButtonStyle="shopping-cart"
         columnSelector
         horizontalScroll
-        minWidth={1300}
+        minWidth={contentWidth}
         emptyIcon="receipt-outline"
         emptyText="No orders found"
         totalCount={count}
       />
 
-      {/* Order Details Modal */}
+      {/* Order Details Modal - opened when clicking Order Number or eye icon */}
       <OrderDetailsModal
         visible={showOrderDetails}
-        onClose={() => setShowOrderDetails(false)}
+        onClose={() => {
+          setShowOrderDetails(false);
+          setSelectedOrder(null);
+        }}
         order={selectedOrder}
       />
     </View>

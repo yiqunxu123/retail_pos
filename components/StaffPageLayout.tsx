@@ -24,8 +24,8 @@ interface StaffPageLayoutProps {
 
 export default function StaffPageLayout({ children, sidebarCustomButtons, title, subTitle, showBack = false }: StaffPageLayoutProps) {
   const { navigateTo } = useAppNavigation();
-  const { clockOut } = useAuth();
-  const { isClockedIn } = useClock();
+  const { logout } = useAuth();
+  const { isClockedIn, clockOut } = useClock();
   const { isStaffMode, setViewMode } = useViewMode();
 
   // Handle Change User - switch mode and navigate to homepage
@@ -59,8 +59,11 @@ export default function StaffPageLayout({ children, sidebarCustomButtons, title,
     navigateTo("/");
   };
 
-  const handleExit = () => {
-    Alert.alert("Exit", "This would exit the POS application");
+  const handleExitProgram = () => {
+    Alert.alert("Exit Program", "Are you sure you want to logout?", [
+      { text: "Cancel", style: "cancel" },
+      { text: "Exit", style: "destructive", onPress: () => logout() },
+    ]);
   };
 
   return (
@@ -122,7 +125,7 @@ export default function StaffPageLayout({ children, sidebarCustomButtons, title,
           <SidebarButton 
             title="Exit Program"
             icon={<Ionicons name="close-circle-outline" size={iconSize['2xl']} color={colors.primary} />}
-            onPress={handleExit}
+            onPress={handleExitProgram}
           />
         </ScrollView>
       </View>

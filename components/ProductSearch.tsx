@@ -33,7 +33,7 @@ export function ProductSearch({
           </Text>
           <Pressable
             onPress={onSearchFocus}
-            className="flex-row items-center bg-white border border-gray-200 rounded-lg px-3 py-3 shadow-sm"
+            className="flex-row items-center bg-white border border-gray-200 rounded-xl px-3 py-3 shadow-sm"
           >
             <Ionicons name="search" size={iconSize.base} color={colors.textTertiary} />
             <TextInput
@@ -51,7 +51,7 @@ export function ProductSearch({
         <View>
           <Text className="text-[#5A5F66] text-lg mb-2">Scan Qty</Text>
           <TextInput
-            className="w-20 bg-white border border-gray-200 rounded-lg px-3 py-3 text-center text-gray-800 text-lg shadow-sm"
+            className="w-20 bg-white border border-gray-200 rounded-xl px-3 py-3 text-center text-gray-800 text-lg shadow-sm"
             keyboardType="numeric"
             value={scanQty}
             onChangeText={onScanQtyChange}

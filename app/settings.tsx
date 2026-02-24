@@ -1,9 +1,9 @@
 import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { buttonSize, colors, iconSize } from '@/utils/theme';
+import { buttonSize, colors, iconSize, modalContent } from '@/utils/theme';
 import { useEffect, useState } from "react";
-import { Alert, Modal, Pressable, ScrollView, Switch, Text, TextInput, TouchableOpacity, View } from "react-native";
-import { PageHeader, ThemedButton } from "../components";
+import { Alert, Pressable, ScrollView, Switch, Text, TextInput, TouchableOpacity, View } from "react-native";
+import { CenteredModal, PageHeader, ThemedButton } from "../components";
 import {
     addPrinter,
     getPrinters,
@@ -276,37 +276,26 @@ export default function SettingsScreen() {
   ];
 
   const renderPrintFormatPicker = () => (
-    <Modal
+    <CenteredModal
       visible={showPrintFormatPicker}
-      transparent
-      animationType="fade"
-      onRequestClose={() => setShowPrintFormatPicker(false)}
-    >
-      <TouchableOpacity
-        className="flex-1 bg-black/50 justify-center items-center"
-        activeOpacity={1}
-        onPress={() => setShowPrintFormatPicker(false)}
-      >
-        <View
-          className="bg-white rounded-2xl overflow-hidden"
-          style={{ width: 400 }}
-          onStartShouldSetResponder={() => true}
-        >
-          {/* Header */}
-          <View className="flex-row justify-between items-center px-6 py-4 border-b border-gray-200 bg-gray-50">
-            <View className="flex-row items-center gap-3">
-              <View className="w-10 h-10 bg-blue-100 rounded-full items-center justify-center">
-                <Ionicons name="print-outline" size={iconSize.xl} color={colors.info} />
-              </View>
-              <Text className="text-xl font-semibold text-gray-800">Print Format</Text>
-            </View>
-            <TouchableOpacity onPress={() => setShowPrintFormatPicker(false)}>
-              <Ionicons name="close" size={iconSize.xl} color={colors.textSecondary} />
-            </TouchableOpacity>
+      onClose={() => setShowPrintFormatPicker(false)}
+      size="md"
+      showCloseButton={false}
+      header={
+        <View className="flex-row items-center gap-3 flex-1">
+          <View className="w-10 h-10 bg-blue-100 rounded-full items-center justify-center">
+            <Ionicons name="print-outline" size={iconSize.xl} color={colors.info} />
           </View>
-
-          {/* Options */}
-          <View className="p-4">
+          <Text className="text-xl font-semibold text-gray-800">Print Format</Text>
+          <View style={{ flex: 1 }} />
+          <TouchableOpacity onPress={() => setShowPrintFormatPicker(false)}>
+            <Ionicons name="close" size={iconSize.xl} color={colors.textSecondary} />
+          </TouchableOpacity>
+        </View>
+      }
+    >
+      {/* Options */}
+      <View className="p-4">
             {PRINT_FORMAT_OPTIONS.map((opt) => {
               const isSelected = opt.value === printFormat;
               return (
@@ -331,13 +320,15 @@ export default function SettingsScreen() {
                   </View>
                   <View className="flex-1">
                     <Text
-                      className={`text-base font-semibold ${
-                        isSelected ? 'text-blue-700' : 'text-gray-700'
-                      }`}
+                      style={{
+                        fontSize: modalContent.valueFontSize,
+                        fontWeight: modalContent.titleFontWeight,
+                        color: isSelected ? '#1d4ed8' : modalContent.valueColor,
+                      }}
                     >
                       {opt.label}
                     </Text>
-                    <Text className="text-gray-400 text-sm mt-0.5">{opt.desc}</Text>
+                    <Text className="mt-0.5" style={{ fontSize: modalContent.labelFontSize, color: modalContent.labelColor }}>{opt.desc}</Text>
                   </View>
                   {isSelected && (
                     <Ionicons name="checkmark-circle" size={iconSize.lg} color={colors.info} />
@@ -345,10 +336,8 @@ export default function SettingsScreen() {
                 </TouchableOpacity>
               );
             })}
-          </View>
-        </View>
-      </TouchableOpacity>
-    </Modal>
+      </View>
+    </CenteredModal>
   );
 
   // Get printer type icon
@@ -421,43 +410,50 @@ export default function SettingsScreen() {
 
   // Render add/edit modal
   const renderModal = () => (
-    <Modal
+    <CenteredModal
       visible={isModalVisible}
-      transparent
-      animationType="fade"
-      onRequestClose={() => setIsModalVisible(false)}
-    >
-      <TouchableOpacity 
-        className="flex-1 bg-black/50 justify-center items-center"
-        activeOpacity={1}
-        onPress={() => setIsModalVisible(false)}
-      >
-        <View 
-          className="bg-white rounded-2xl overflow-hidden"
-          style={{ width: 500, maxHeight: "90%" }}
-          onStartShouldSetResponder={() => true}
-        >
-          {/* Modal Header */}
-          <View className="flex-row justify-between items-center px-6 py-4 border-b border-gray-200 bg-gray-50">
-            <View className="flex-row items-center gap-3">
-              <View className="w-10 h-10 bg-blue-100 rounded-full items-center justify-center">
-                <Ionicons name={editingPrinter ? "pencil" : "add"} size={iconSize.xl} color={colors.info} />
-              </View>
-              <Text className="text-xl font-semibold text-gray-800">
-                {editingPrinter ? "Edit Printer" : "Add Printer"}
-              </Text>
+      onClose={() => setIsModalVisible(false)}
+      size="md"
+      showCloseButton={false}
+      header={
+        <View className="flex-row items-center justify-between flex-1">
+          <View className="flex-row items-center gap-3">
+            <View className="w-10 h-10 bg-blue-100 rounded-full items-center justify-center">
+              <Ionicons name={editingPrinter ? "pencil" : "add"} size={iconSize.xl} color={colors.info} />
             </View>
-            <TouchableOpacity onPress={() => setIsModalVisible(false)}>
-              <Ionicons name="close" size={iconSize.xl} color={colors.textSecondary} />
-            </TouchableOpacity>
+            <Text className="text-xl font-semibold text-gray-800">
+              {editingPrinter ? "Edit Printer" : "Add Printer"}
+            </Text>
           </View>
-
-          <ScrollView className="p-6">
+          <TouchableOpacity onPress={() => setIsModalVisible(false)}>
+            <Ionicons name="close" size={iconSize.xl} color={colors.textSecondary} />
+          </TouchableOpacity>
+        </View>
+      }
+      footer={
+        <View className="flex-row gap-4 flex-1">
+          <ThemedButton
+            title="Cancel"
+            variant="outline"
+            onPress={() => setIsModalVisible(false)}
+            fullWidth
+            size="lg"
+            textStyle={{ fontSize: 18 }}
+          />
+          <ThemedButton
+            title={editingPrinter ? "Save Changes" : "Add Printer"}
+            onPress={handleSavePrinter}
+            style={{ flex: 1, backgroundColor: colors.info }}
+          />
+        </View>
+      }
+    >
+      <ScrollView className="p-6">
             {/* Printer Name */}
             <View className="mb-5">
-              <Text className="text-gray-700 font-medium mb-2">Printer Name *</Text>
+              <Text className="mb-1.5" style={{ fontSize: modalContent.titleFontSize, color: modalContent.labelColor }}>Printer Name *</Text>
               <TextInput
-                className="bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-base"
+                style={{ backgroundColor: modalContent.inputBackground, borderWidth: modalContent.boxBorderWidth, borderColor: modalContent.inputBorderColor, borderRadius: modalContent.boxRadius, paddingHorizontal: modalContent.inputPaddingHorizontal, paddingVertical: modalContent.inputPaddingVertical, fontSize: modalContent.inputFontSize }}
                 placeholder="e.g., Cashier Printer"
                 placeholderTextColor="#9ca3af"
                 value={formName}
@@ -467,7 +463,7 @@ export default function SettingsScreen() {
 
             {/* Printer Type */}
             <View className="mb-5">
-              <Text className="text-gray-700 font-medium mb-2">Printer Type *</Text>
+              <Text className="mb-1.5" style={{ fontSize: modalContent.titleFontSize, color: modalContent.labelColor }}>Printer Type *</Text>
               <View className="flex-row gap-3">
                 {PRINTER_TYPES.map(type => (
                   <TouchableOpacity
@@ -498,9 +494,9 @@ export default function SettingsScreen() {
             {formType === "ethernet" && (
               <>
                 <View className="mb-5">
-                  <Text className="text-gray-700 font-medium mb-2">IP Address *</Text>
+                  <Text className="mb-1.5" style={{ fontSize: modalContent.titleFontSize, color: modalContent.labelColor }}>IP Address *</Text>
                   <TextInput
-                    className="bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-base"
+                    style={{ backgroundColor: modalContent.inputBackground, borderWidth: modalContent.boxBorderWidth, borderColor: modalContent.inputBorderColor, borderRadius: modalContent.boxRadius, paddingHorizontal: modalContent.inputPaddingHorizontal, paddingVertical: modalContent.inputPaddingVertical, fontSize: modalContent.inputFontSize }}
                     placeholder="e.g., 192.168.1.100"
                     placeholderTextColor="#9ca3af"
                     value={formIp}
@@ -509,9 +505,9 @@ export default function SettingsScreen() {
                   />
                 </View>
                 <View className="mb-5">
-                  <Text className="text-gray-700 font-medium mb-2">Port</Text>
+                  <Text className="mb-1.5" style={{ fontSize: modalContent.titleFontSize, color: modalContent.labelColor }}>Port</Text>
                   <TextInput
-                    className="bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-base"
+                    style={{ backgroundColor: modalContent.inputBackground, borderWidth: modalContent.boxBorderWidth, borderColor: modalContent.inputBorderColor, borderRadius: modalContent.boxRadius, paddingHorizontal: modalContent.inputPaddingHorizontal, paddingVertical: modalContent.inputPaddingVertical, fontSize: modalContent.inputFontSize }}
                     placeholder="Default 9100"
                     placeholderTextColor="#9ca3af"
                     value={formPort}
@@ -526,9 +522,9 @@ export default function SettingsScreen() {
             {formType === "usb" && (
               <>
                 <View className="mb-5">
-                  <Text className="text-gray-700 font-medium mb-2">Vendor ID *</Text>
+                  <Text className="mb-1.5" style={{ fontSize: modalContent.titleFontSize, color: modalContent.labelColor }}>Vendor ID *</Text>
                   <TextInput
-                    className="bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-base"
+                    style={{ backgroundColor: modalContent.inputBackground, borderWidth: modalContent.boxBorderWidth, borderColor: modalContent.inputBorderColor, borderRadius: modalContent.boxRadius, paddingHorizontal: modalContent.inputPaddingHorizontal, paddingVertical: modalContent.inputPaddingVertical, fontSize: modalContent.inputFontSize }}
                     placeholder="e.g., 0x0483 or 1155"
                     placeholderTextColor="#9ca3af"
                     value={formVendorId}
@@ -536,9 +532,9 @@ export default function SettingsScreen() {
                   />
                 </View>
                 <View className="mb-5">
-                  <Text className="text-gray-700 font-medium mb-2">Product ID *</Text>
+                  <Text className="mb-1.5" style={{ fontSize: modalContent.titleFontSize, color: modalContent.labelColor }}>Product ID *</Text>
                   <TextInput
-                    className="bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-base"
+                    style={{ backgroundColor: modalContent.inputBackground, borderWidth: modalContent.boxBorderWidth, borderColor: modalContent.inputBorderColor, borderRadius: modalContent.boxRadius, paddingHorizontal: modalContent.inputPaddingHorizontal, paddingVertical: modalContent.inputPaddingVertical, fontSize: modalContent.inputFontSize }}
                     placeholder="e.g., 0x5740 or 22336"
                     placeholderTextColor="#9ca3af"
                     value={formProductId}
@@ -558,9 +554,9 @@ export default function SettingsScreen() {
             {formType === "bluetooth" && (
               <>
                 <View className="mb-5">
-                  <Text className="text-gray-700 font-medium mb-2">MAC Address *</Text>
+                  <Text className="mb-1.5" style={{ fontSize: modalContent.titleFontSize, color: modalContent.labelColor }}>MAC Address *</Text>
                   <TextInput
-                    className="bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-base"
+                    style={{ backgroundColor: modalContent.inputBackground, borderWidth: modalContent.boxBorderWidth, borderColor: modalContent.inputBorderColor, borderRadius: modalContent.boxRadius, paddingHorizontal: modalContent.inputPaddingHorizontal, paddingVertical: modalContent.inputPaddingVertical, fontSize: modalContent.inputFontSize }}
                     placeholder="e.g., 00:11:22:33:44:55"
                     placeholderTextColor="#9ca3af"
                     value={formMacAddress}
@@ -579,40 +575,21 @@ export default function SettingsScreen() {
 
             {/* Print Width (dots) — applies to all printer types */}
             <View className="mb-5">
-              <Text className="text-gray-700 font-medium mb-2">Print Width (dots)</Text>
+              <Text className="mb-1.5" style={{ fontSize: modalContent.titleFontSize, color: modalContent.labelColor }}>Print Width (dots)</Text>
               <TextInput
-                className="bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-base"
+                style={{ backgroundColor: modalContent.inputBackground, borderWidth: modalContent.boxBorderWidth, borderColor: modalContent.inputBorderColor, borderRadius: modalContent.boxRadius, paddingHorizontal: modalContent.inputPaddingHorizontal, paddingVertical: modalContent.inputPaddingVertical, fontSize: modalContent.inputFontSize }}
                 placeholder="576"
                 placeholderTextColor="#9ca3af"
                 value={formPrintWidth}
                 onChangeText={setFormPrintWidth}
                 keyboardType="number-pad"
               />
-              <Text className="text-gray-400 text-sm mt-1">
+              <Text className="mt-1" style={{ fontSize: modalContent.labelFontSize, color: modalContent.labelColor }}>
                 58mm paper ≈ 384, 80mm paper ≈ 576. Check printer self-test page for exact value.
               </Text>
             </View>
-          </ScrollView>
-
-          {/* Modal Footer */}
-          <View className="flex-row gap-4 px-6 py-4 border-t border-gray-200">
-            <ThemedButton
-              title="Cancel"
-              variant="outline"
-              onPress={() => setIsModalVisible(false)}
-              fullWidth
-              size="lg"
-              textStyle={{ fontSize: 18 }}
-            />
-            <ThemedButton
-              title={editingPrinter ? "Save Changes" : "Add Printer"}
-              onPress={handleSavePrinter}
-              style={{ flex: 1, backgroundColor: colors.info }}
-            />
-          </View>
-        </View>
-      </TouchableOpacity>
-    </Modal>
+      </ScrollView>
+    </CenteredModal>
   );
 
   return (

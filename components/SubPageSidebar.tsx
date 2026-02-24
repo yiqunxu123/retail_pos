@@ -1,7 +1,9 @@
 import { iconSize } from '@/utils/theme';
-import { Ionicons, MaterialCommunityIcons, MaterialIcons } from "@expo/vector-icons";
+import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { Alert, ScrollView, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useAuth } from "../contexts/AuthContext";
+import { useBulkEditContext } from "../contexts/BulkEditContext";
 import { useClock } from "../contexts/ClockContext";
 import { useViewMode } from "../contexts/ViewModeContext";
 import { useAppNavigation } from "../hooks/useAppNavigation";
@@ -29,13 +31,22 @@ export function SubPageSidebar({
 }: SubPageSidebarProps) {
   const { pathname, navigateTo, router } = useAppNavigation();
   const insets = useSafeAreaInsets();
+  const { logout } = useAuth();
   const { isClockedIn } = useClock();
   const { isStaffMode, setViewMode } = useViewMode();
+  const { config: bulkEditConfig, selectedCount, triggerBulkEdit } = useBulkEditContext();
 
   const handleChangeUser = () => {
     setViewMode(isStaffMode ? "admin" : "staff");
     // Navigate back to homepage after switching user
     navigateTo("/");
+  };
+
+  const handleExitProgram = () => {
+    Alert.alert("Exit Program", "Are you sure you want to logout?", [
+      { text: "Cancel", style: "cancel" },
+      { text: "Exit", style: "destructive", onPress: () => logout() },
+    ]);
   };
 
   // Dynamic button logic based on current page
@@ -50,7 +61,7 @@ export function SubPageSidebar({
     } else if (pathname.includes("/sale/sales-return")) {
       return {
         title: "Create Sale Return",
-        icon: <MaterialIcons name="assignment-return" size={iconSize['2xl']} />,
+        icon: <MaterialCommunityIcons name="arrow-left-box" size={iconSize['2xl']} />,
         variant: "primary",
         onPress: () => Alert.alert("Create Sale Return", "Feature coming soon"),
       };
@@ -96,7 +107,11 @@ export function SubPageSidebar({
         title: "Add Product",
         icon: <Ionicons name="add-circle-outline" size={iconSize['2xl']} />,
         variant: "primary",
-        onPress: () => navigateTo("/catalog/add-product"),
+        onPress: () =>
+          router.replace({
+            pathname: "/inventory/stocks",
+            params: { openAddProduct: String(Date.now()) },
+          }),
       };
     } else if (pathname.includes("/sale/fulfillments")) {
       return {
@@ -179,28 +194,71 @@ export function SubPageSidebar({
           onPress={dynamicBtn.onPress}
         />
 
-        {/* Print Invoice */}
-        <SidebarButton
-          title="Print Invoice"
-          icon={<MaterialCommunityIcons name="printer" size={iconSize['2xl']} />}
-          variant="yellow"
-          onPress={() => Alert.alert("Print Invoice", "Feature coming soon")}
-        />
+        {/* Page-specific buttons: Inventory, Customers, or default (Print/View Invoice) */}
+        {pathname.includes("/inventory") ? (
+          <>
+            <SidebarButton
+              title="Add Product"
+              icon={<Ionicons name="add-circle-outline" size={iconSize['2xl']} />}
+              variant="yellow"
+              onPress={() =>
+                router.replace({
+                  pathname: "/inventory/stocks",
+                  params: { openAddProduct: String(Date.now()) },
+                })
+              }
+            />
+            <SidebarButton
+              title="Stock Alerts"
+              icon={<Ionicons name="alert-circle-outline" size={iconSize['2xl']} />}
+              variant="danger"
+              onPress={() => navigateTo("/inventory/stock-alerts")}
+            />
+          </>
+        ) : pathname.includes("/sale/customers") ? (
+          <>
+            <SidebarButton
+              title="View Customer Details"
+              icon={<Ionicons name="person-outline" size={iconSize['2xl']} />}
+              variant="yellow"
+              onPress={() =>
+                router.replace({
+                  pathname: "/sale/customers",
+                  params: { openCustomerDetails: String(Date.now()) },
+                })
+              }
+            />
+            <SidebarButton
+              title="Add Customer Payment"
+              icon={<Ionicons name="card-outline" size={iconSize['2xl']} />}
+              variant="outline"
+              onPress={() => Alert.alert("Add Customer Payment", "Feature coming soon")}
+            />
+          </>
+        ) : (
+          <>
+            <SidebarButton
+              title="Print Invoice"
+              icon={<MaterialCommunityIcons name="printer" size={iconSize['2xl']} />}
+              variant="yellow"
+              onPress={() => Alert.alert("Print Invoice", "Feature coming soon")}
+            />
+            <SidebarButton
+              title="View Invoice"
+              icon={<MaterialCommunityIcons name="text-box-check-outline" size={iconSize['2xl']} />}
+              variant="outline"
+              onPress={() => Alert.alert("View Invoice", "Feature coming soon")}
+            />
+          </>
+        )}
 
-        {/* View Invoice */}
+        {/* Edit / Bulk Edit - 融合侧边栏与表格批量操作：无选择时灰色禁用，已选时红色可点击 */}
         <SidebarButton
-          title="View Invoice"
-          icon={<MaterialCommunityIcons name="text-box-check-outline" size={iconSize['2xl']} />}
-          variant="outline"
-          onPress={() => Alert.alert("View Invoice", "Feature coming soon")}
-        />
-
-        {/* Edit Order */}
-        <SidebarButton
-          title="Edit Order"
+          title={bulkEditConfig ? (selectedCount > 0 ? `${bulkEditConfig.label} (${selectedCount})` : bulkEditConfig.label) : "Edit"}
           icon={<MaterialCommunityIcons name="square-edit-outline" size={iconSize['2xl']} />}
-          variant="secondary"
-          onPress={() => Alert.alert("Edit Order", "Feature coming soon")}
+          variant={bulkEditConfig && selectedCount > 0 ? "danger" : "secondary"}
+          disabled={!bulkEditConfig || selectedCount === 0}
+          onPress={bulkEditConfig && selectedCount > 0 ? triggerBulkEdit : undefined}
         />
 
         {/* Clock out */}
@@ -216,7 +274,7 @@ export function SubPageSidebar({
           title="Exit Program"
           icon={<Ionicons name="close-circle-outline" size={iconSize['2xl']} />}
           variant="danger"
-          onPress={() => Alert.alert("Exit", "This would exit the POS application")}
+          onPress={handleExitProgram}
         />
       </ScrollView>
     </View>

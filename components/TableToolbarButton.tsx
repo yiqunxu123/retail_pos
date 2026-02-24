@@ -7,8 +7,10 @@ interface TableToolbarButtonProps {
   title?: string;
   icon: keyof typeof Ionicons.glyphMap;
   onPress: () => void;
-  variant?: "primary" | "dark";
+  variant?: "primary" | "dark" | "surfaceDark";
   isLoading?: boolean;
+  /** Override icon color (default: white) */
+  iconColor?: string;
 }
 
 /**
@@ -21,38 +23,49 @@ export function TableToolbarButton({
   onPress,
   variant = "primary",
   isLoading = false,
+  iconColor,
 }: TableToolbarButtonProps) {
   const isPrimary = variant === "primary";
-  const token = buttonSize.md; // 统一使用 md: height 40
-  
+  const isSurfaceDark = variant === "surfaceDark";
+  const token = buttonSize.md;
+  // Shopping cart style: primary/surfaceDark bg, white icon (no iconColor override)
+  const useShoppingCartStyle = isSurfaceDark || (isPrimary && !iconColor);
+  const useLightBg = !!iconColor && !useShoppingCartStyle;
+
+  const getBackgroundColor = () => {
+    if (useLightBg) return colors.white;
+    if (isSurfaceDark) return colors.surfaceDark;
+    if (isPrimary) return colors.primary;
+    return colors.text;
+  };
+
   return (
     <Pressable 
       onPress={onPress}
       disabled={isLoading}
+      className="shadow-sm"
       style={({ pressed }) => ({
         height: token.height,
-        width: title ? undefined : token.height, // icon-only: 正方形
-        paddingHorizontal: title ? token.paddingHorizontal : 0,
+        width: title ? undefined : token.height,
+        paddingHorizontal: title ? 24 : 0,
         borderRadius: token.borderRadius,
         flexDirection: "row" as const,
         alignItems: "center" as const,
         justifyContent: "center" as const,
-        gap: title ? 6 : 0,
-        backgroundColor: isPrimary ? colors.primary : colors.text,
+        gap: 6,
+        backgroundColor: getBackgroundColor(),
+        borderWidth: useLightBg ? 2 : 0,
+        borderColor: useLightBg ? (iconColor || colors.primary) : undefined,
         opacity: pressed ? 0.8 : 1,
       })}
     >
       {isLoading ? (
         <ActivityIndicator size="small" color="white" />
       ) : (
-        <Ionicons name={icon} size={iconSize.base} color="white" />
+        <Ionicons name={icon} size={title ? iconSize.sm : iconSize.base} color={iconColor ?? "white"} />
       )}
       {title && (
-        <Text style={{
-          color: colors.textWhite,
-          fontWeight: token.fontWeight,
-          fontSize: token.fontSize,
-        }}>
+        <Text className="text-white font-medium">
           {title}
         </Text>
       )}

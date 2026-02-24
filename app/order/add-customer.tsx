@@ -1,51 +1,33 @@
-import { buttonSize, colors, iconSize } from '@/utils/theme';
+import { colors, iconSize } from '@/utils/theme';
 import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
-    useCallback,
-    useEffect,
-    useMemo,
-    useRef,
-    useState,
-    type ComponentProps,
-} from "react";
-import {
-    ActivityIndicator,
-    Alert,
-    Pressable,
-    ScrollView,
-    Switch,
-    Text,
-    TextInput,
-    View,
+  ActivityIndicator,
+  Alert,
+  Pressable,
+  ScrollView,
+  Switch,
+  Text,
+  TextInput,
+  View,
 } from "react-native";
 import {
-    AddQuickCustomerModal,
-    type QuickCustomerResult,
+  AddQuickCustomerModal,
+  type QuickCustomerResult,
 } from "../../components/AddQuickCustomerModal";
-import { ThemedButton } from "../../components/ThemedButton";
 import { Dropdown } from "../../components/Dropdown";
 import { EditableStateInput } from "../../components/EditableStateInput";
+import { SearchCustomerTemplate } from "../../components/SearchCustomerTemplate";
+import { ThemedButton } from "../../components/ThemedButton";
 import { useOrder } from "../../contexts/OrderContext";
 import {
-    getCustomerById,
-    searchCustomers,
-    type CustomerEntity,
+  getCustomerById,
+  searchCustomers,
+  type CustomerEntity,
 } from "../../utils/api/customers";
 
-type SearchFieldKey =
-  | "searchbyNameBusinessName"
-  | "searchbyIdNumber"
-  | "searchbyEmailAddressPhone";
-
-type SearchInputState = Record<SearchFieldKey, string>;
-type IoniconName = ComponentProps<typeof Ionicons>["name"];
-
-const EMPTY_SEARCH_INPUTS: SearchInputState = {
-  searchbyNameBusinessName: "",
-  searchbyIdNumber: "",
-  searchbyEmailAddressPhone: "",
-};
+const SEARCH_DEBOUNCE_MS = 500;
 
 const PAYMENT_TERMS_OPTIONS = [
   { value: "due_immediately", label: "Due Immediately" },
@@ -160,46 +142,6 @@ function toQuickCustomerResult(customer: CustomerEntity): QuickCustomerResult {
   };
 }
 
-function SearchResultCard({
-  customer,
-  onSelect,
-}: {
-  customer: CustomerEntity;
-  onSelect: (customer: CustomerEntity) => void;
-}) {
-  return (
-    <Pressable
-      onPress={() => onSelect(customer)}
-      className="border border-gray-200 rounded-lg px-3 py-2.5"
-      style={({ pressed }) => ({
-        backgroundColor: pressed ? "#f4f5f6" : colors.backgroundTertiary,
-        opacity: customer.is_active === false ? 0.55 : 1,
-      })}
-    >
-      <Text className="text-gray-900 text-sm font-semibold">
-        {customer.business_name}
-        {customer.name ? `, ${customer.name}` : ""}
-      </Text>
-      <Text className="text-gray-600 text-sm mt-1">
-        Phone: {customer.business_phone_no || "N/A"}
-      </Text>
-      <Text className="text-gray-600 text-sm">Email: {customer.email || "N/A"}</Text>
-      {formatBillingAddress(customer.customer_billing_details) !== "" && (
-        <Text className="text-gray-600 text-sm">
-          Address: {formatBillingAddress(customer.customer_billing_details)}
-        </Text>
-      )}
-      <Text className="text-gray-600 text-sm">Customer No: {customer.no || "N/A"}</Text>
-      <Text className="text-gray-600 text-sm">
-        Customer Type: {getCustomerTypeLabel(customer.customer_type ?? null)}
-      </Text>
-      {customer.is_active === false && (
-        <Text className="text-red-500 text-sm mt-0.5 font-medium">Inactive</Text>
-      )}
-    </Pressable>
-  );
-}
-
 export default function AddCustomerScreen() {
   const router = useRouter();
   const { mode } = useLocalSearchParams<{ mode?: string | string[] }>();
@@ -218,16 +160,10 @@ export default function AddCustomerScreen() {
   const [isCustomerDetailsLoading, setIsCustomerDetailsLoading] = useState(false);
   const [customerDetailsError, setCustomerDetailsError] = useState<string | null>(null);
 
-  const [searchInputs, setSearchInputs] =
-    useState<SearchInputState>(EMPTY_SEARCH_INPUTS);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [debouncedQuery, setDebouncedQuery] = useState("");
   const [searchResults, setSearchResults] = useState<CustomerEntity[]>([]);
-  const [activeSearchField, setActiveSearchField] = useState<SearchFieldKey | null>(
-    null
-  );
-  const [searchLoading, setSearchLoading] = useState<SearchFieldKey | null>(null);
-  const debounceTimers = useRef<
-    Partial<Record<SearchFieldKey, ReturnType<typeof setTimeout>>>
-  >({});
+  const [searchLoading, setSearchLoading] = useState(false);
   const modeInitRef = useRef(false);
 
   const paymentTermValue = useMemo(
@@ -334,47 +270,32 @@ export default function AddCustomerScreen() {
   }, [isChangeMode, order.customerId, selectedCustomerData?.id]);
 
   useEffect(() => {
-    const timers = debounceTimers.current;
-    return () => {
-      Object.values(timers).forEach((timer) => {
-        if (timer) clearTimeout(timer);
-      });
-    };
-  }, []);
+    const t = setTimeout(() => setDebouncedQuery(searchQuery), SEARCH_DEBOUNCE_MS);
+    return () => clearTimeout(t);
+  }, [searchQuery]);
 
-  const handleSearch = useCallback((text: string, fieldKey: SearchFieldKey) => {
-    setSearchInputs((prev) => ({ ...prev, [fieldKey]: text }));
-
-    const existingTimer = debounceTimers.current[fieldKey];
-    if (existingTimer) clearTimeout(existingTimer);
-
-    const trimmed = text.trim();
+  useEffect(() => {
+    const trimmed = debouncedQuery.trim();
     if (!trimmed) {
       setSearchResults([]);
-      setActiveSearchField(null);
-      setSearchLoading(null);
+      setSearchLoading(false);
       return;
     }
-
-    setActiveSearchField(fieldKey);
-    setSearchLoading(fieldKey);
-
-    debounceTimers.current[fieldKey] = setTimeout(async () => {
-      try {
-        const res = await searchCustomers({
-          [fieldKey]: trimmed,
-          isActive: 1,
-          sort_by: "id:asc",
-        });
-        setSearchResults(res.data.entities || []);
-      } catch (error) {
-        console.warn("[AddCustomer] Search failed:", error);
+    setSearchLoading(true);
+    searchCustomers({
+      searchbyNameBusinessName: trimmed,
+      searchbyIdNumber: trimmed,
+      searchbyEmailAddressPhone: trimmed,
+      isActive: 1,
+      sort_by: "id:asc",
+    })
+      .then((res) => setSearchResults(res.data.entities || []))
+      .catch((err) => {
+        console.warn("[AddCustomer] Search failed:", err);
         setSearchResults([]);
-      } finally {
-        setSearchLoading((prev) => (prev === fieldKey ? null : prev));
-      }
-    }, 500);
-  }, []);
+      })
+      .finally(() => setSearchLoading(false));
+  }, [debouncedQuery]);
 
   const handleSelectCustomer = useCallback(
     (customer: CustomerEntity) => {
@@ -395,9 +316,7 @@ export default function AddCustomerScreen() {
         customerId: String(mapped.id),
       });
       setSearchResults([]);
-      setActiveSearchField(null);
-      setSearchLoading(null);
-      setSearchInputs(EMPTY_SEARCH_INPUTS);
+      setSearchQuery("");
     },
     [updateOrder]
   );
@@ -450,32 +369,6 @@ export default function AddCustomerScreen() {
     }
   }, [autoGenerate, updateOrder]);
 
-  const searchFields: {
-    key: SearchFieldKey;
-    placeholder: string;
-    icon: IoniconName;
-    zIndex: number;
-  }[] = [
-    {
-      key: "searchbyNameBusinessName",
-      placeholder: "Customer Name/ Business Name",
-      icon: "person-outline",
-      zIndex: 30,
-    },
-    {
-      key: "searchbyIdNumber",
-      placeholder: "Customer Number ID/ Number",
-      icon: "id-card-outline",
-      zIndex: 20,
-    },
-    {
-      key: "searchbyEmailAddressPhone",
-      placeholder: "Customer Email Address/ Phone",
-      icon: "mail-outline",
-      zIndex: 10,
-    },
-  ];
-
   return (
     <View className="flex-1 bg-[#F7F7F9] flex-row">
       <Pressable
@@ -483,88 +376,29 @@ export default function AddCustomerScreen() {
         className="bg-[#F7F7F9] h-full border-r border-gray-200"
         style={{ width: "50%" }}
       >
-        <View className="px-5 pt-4 pb-3 border-b border-gray-200">
-          <View className="flex-row items-center justify-between">
-            <Text className="text-[#40444D] text-xl leading-[24px] font-semibold">
-              Search for Customer by:
-            </Text>
+        <SearchCustomerTemplate
+          title="Search for Customer by:"
+          searchQuery={searchQuery}
+          onSearchChange={setSearchQuery}
+          searchPlaceholder="Customer Name / Business Name / ID / Email / Phone"
+          customers={searchResults}
+          isLoading={searchLoading}
+          onSelectCustomer={handleSelectCustomer}
+          emptyMessage="No customers found"
+          rightContent={
             <ThemedButton
               title="Save"
               onPress={() => router.back()}
               size="md"
               style={{ backgroundColor: colors.primary }}
             />
-          </View>
-        </View>
+          }
+          listMaxHeight={280}
+        />
         <ScrollView
           className="flex-1"
           contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 12, paddingBottom: 18 }}
         >
-            {searchFields.map((field) => {
-              const isActive = activeSearchField === field.key;
-              const isLoading = searchLoading === field.key;
-              const showDropdown = isActive && !!searchInputs[field.key].trim();
-
-              return (
-                <View key={field.key} style={{ zIndex: field.zIndex, marginBottom: 10 }}>
-                  <View className="flex-row items-center bg-[#F7F7F8] border border-[#E5E7EB] rounded-lg px-3 h-11">
-                    <Ionicons name={field.icon} size={iconSize.md} color={colors.textTertiary} />
-                    <TextInput
-                      className="flex-1 ml-2.5 text-gray-800"
-                      placeholder={field.placeholder}
-                      placeholderTextColor={colors.textTertiary}
-                      value={searchInputs[field.key]}
-                      keyboardType="default"
-                      autoCapitalize="none"
-                      onFocus={() => {
-                        if (searchInputs[field.key].trim()) {
-                          setActiveSearchField(field.key);
-                        }
-                      }}
-                      onChangeText={(text) => handleSearch(text, field.key)}
-                    />
-                    {isLoading && <ActivityIndicator size="small" color={colors.textTertiary} />}
-                  </View>
-
-                  {showDropdown && (
-                    <View
-                      className="border border-[#E5E7EB] rounded-lg mt-1 bg-[#F7F7F9] overflow-hidden"
-                      style={{ maxHeight: 240 }}
-                    >
-                      {isLoading ? (
-                        <View style={{ paddingVertical: 16, alignItems: "center" }}>
-                          <ActivityIndicator size="small" color="#E11D48" />
-                        </View>
-                      ) : searchResults.length > 0 ? (
-                        <ScrollView nestedScrollEnabled>
-                          <View className="p-2 gap-2">
-                            {searchResults.map((customer) => (
-                              <SearchResultCard
-                                key={customer.id}
-                                customer={customer}
-                                onSelect={handleSelectCustomer}
-                              />
-                            ))}
-                          </View>
-                        </ScrollView>
-                      ) : (
-                        <Text
-                          style={{
-                            padding: 12,
-                            color: colors.textTertiary,
-                            fontStyle: "italic",
-                            textAlign: "center",
-                          }}
-                        >
-                          No Data Found
-                        </Text>
-                      )}
-                    </View>
-                  )}
-                </View>
-              );
-            })}
-
             {!order.customerId && (
               <ThemedButton
                 title="Add New Customer"
@@ -579,7 +413,7 @@ export default function AddCustomerScreen() {
             )}
 
             <View className="bg-[#FFF8FA] border border-[#F5D4DF] rounded-xl px-4 py-3 mb-4">
-              <Text className="text-[#C88A98] text-sm mb-0.5">Current Status:</Text>
+              <Text className="text-[#C88A98] text-lg mb-0.5">Current Status:</Text>
               <Text className="text-[#1F2937] text-2xl font-bold mb-2">
                 {activeCustomer?.business_name ||
                   (isCustomerDetailsLoading
@@ -595,19 +429,19 @@ export default function AddCustomerScreen() {
                 </View>
               ) : activeCustomer ? (
                 <>
-                  <Text className="text-[#4B5563] text-sm">
+                  <Text className="text-[#5A5F66] text-sm">
                     Phone: {activeCustomer.business_phone_no || "N/A"}
                   </Text>
-                  <Text className="text-[#4B5563] text-sm">
+                  <Text className="text-[#5A5F66] text-sm">
                     Email: {activeCustomer.email || "N/A"}
                   </Text>
-                  <Text className="text-[#4B5563] text-sm">
+                  <Text className="text-[#5A5F66] text-sm">
                     Address: {formatBillingAddress(activeCustomer.customer_billing_details) || "N/A"}
                   </Text>
-                  <Text className="text-[#4B5563] text-sm">
+                  <Text className="text-[#5A5F66] text-sm">
                     Customer No: {activeCustomer.no || "N/A"}
                   </Text>
-                  <Text className="text-[#4B5563] text-sm mb-3">
+                  <Text className="text-[#5A5F66] text-sm mb-3">
                     Customer Type: {getCustomerTypeLabel(activeCustomer.customer_type)}
                   </Text>
 
@@ -648,19 +482,19 @@ export default function AddCustomerScreen() {
             </View>
 
             <View className="mb-3">
-              <Text className="text-[#4B5563] text-sm mb-1.5">Invoice Due Date</Text>
-              <View className="flex-row items-center justify-between bg-[#F7F7F8] border border-[#E5E7EB] rounded-lg px-3 h-11">
-                <Text className="text-[#9CA3AF]">{order.invoiceDueDate || "DD/MM/YYYY"}</Text>
+              <Text className="text-[#5A5F66] text-lg mb-1.5">Invoice Due Date</Text>
+              <View className="flex-row items-center justify-between bg-[#F7F7F8] border border-[#E5E7EB] rounded-xl px-3 py-3">
+                <Text className="text-[#9CA3AF] text-lg flex-1">{order.invoiceDueDate || "DD/MM/YYYY"}</Text>
                 <Ionicons name="calendar-outline" size={iconSize.md} color={colors.textTertiary} />
               </View>
             </View>
 
             <View className="mb-3">
-              <Text className="text-[#4B5563] text-sm mb-1.5">Order Number:</Text>
+              <Text className="text-[#5A5F66] text-lg mb-1.5">Order Number:</Text>
               <EditableStateInput
-                containerClassName="rounded-lg h-11 mb-2"
+                containerClassName="rounded-xl mb-2"
                 containerStyle={{ backgroundColor: "#F7F7F8" }}
-                inputClassName="px-3 h-11"
+                inputClassName="px-3 py-3 text-lg"
                 placeholder="Enter Order Number"
                 value={order.orderNumber}
                 editable={!autoGenerate}
@@ -679,7 +513,7 @@ export default function AddCustomerScreen() {
                 >
                   {autoGenerate && <Ionicons name="checkmark" size={iconSize.xs} color="white" />}
                 </View>
-                <Text className="text-gray-700">Auto Generate</Text>
+                <Text className="text-gray-700 text-lg">Auto Generate</Text>
               </Pressable>
             </View>
 
@@ -693,7 +527,7 @@ export default function AddCustomerScreen() {
             </View>
 
             <View className="flex-row items-center gap-2 mb-3">
-              <Text className="text-gray-700 text-sm">Skip MSA Eligibility check</Text>
+              <Text className="text-gray-700 text-lg">Skip MSA Eligibility check</Text>
               <Switch
                 value={skipMsaCheck}
                 onValueChange={setSkipMsaCheck}
@@ -703,9 +537,9 @@ export default function AddCustomerScreen() {
             </View>
 
             <View className="mb-3">
-              <Text className="text-[#4B5563] text-sm mb-1.5">Notes (Internal)</Text>
+              <Text className="text-[#5A5F66] text-lg mb-1.5">Notes (Internal)</Text>
               <TextInput
-                className="bg-[#F7F7F8] border border-[#E5E7EB] rounded-lg px-3 py-2.5 text-gray-800 min-h-[76px]"
+                className="bg-[#F7F7F8] border border-[#E5E7EB] rounded-xl px-3 py-3 text-gray-800 text-lg min-h-[100px]"
                 placeholder="Notes"
                 placeholderTextColor={colors.textTertiary}
                 value={order.notesInternal}
@@ -716,9 +550,9 @@ export default function AddCustomerScreen() {
             </View>
 
             <View className="mb-4">
-              <Text className="text-[#4B5563] text-sm mb-1.5">Notes (Print on Invoice)</Text>
+              <Text className="text-[#5A5F66] text-lg mb-1.5">Notes (Print on Invoice)</Text>
               <TextInput
-                className="bg-[#F7F7F8] border border-[#E5E7EB] rounded-lg px-3 py-2.5 text-gray-800 min-h-[76px]"
+                className="bg-[#F7F7F8] border border-[#E5E7EB] rounded-xl px-3 py-3 text-gray-800 text-lg min-h-[100px]"
                 placeholder="Notes"
                 placeholderTextColor={colors.textTertiary}
                 value={order.notesInvoice}

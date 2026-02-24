@@ -15,7 +15,10 @@
     "test:coverage": "jest --coverage",
     "mock:generate": "npx tsx scripts/generate-mock-data.ts",
     "mock:analyze": "npx tsx scripts/analyze-mock-data.ts",
-    "stocks:compare:remote": "powershell -ExecutionPolicy Bypass -File .\\scripts\\stocks-remote-count-compare.ps1"
+    "stocks:compare:remote": "powershell -ExecutionPolicy Bypass -File .\\scripts\\stocks-remote-count-compare.ps1",
+    "screenshot": "node scripts/adb-screenshot.js",
+    "screenshot:interactive": "node scripts/adb-screenshot.js --interactive",
+    "screenshot:maestro": "maestro test .maestro/screenshot-all-pages.yaml --output-dir screenshots"
   },
   "dependencies": {
     "@expo/vector-icons": "^15.0.3",
@@ -70,6 +73,7 @@
     "eslint": "^9.25.0",
     "eslint-config-expo": "~10.0.0",
     "jest": "^30.2.0",
+    "playwright": "^1.58.2",
     "prettier-plugin-tailwindcss": "^0.5.11",
     "tailwindcss": "^3.4.17",
     "ts-jest": "^29.4.6",

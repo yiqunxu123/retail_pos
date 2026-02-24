@@ -14,7 +14,7 @@
  */
 
 // Customer hooks
-export { useCustomerById, useCustomerSearch, useCustomers } from './useCustomers';
+export { dbCustomerToEntity, useCustomerById, useCustomerSearch, useCustomers } from './useCustomers';
 export type { CustomerView } from './useCustomers';
 
 // Customer Groups hooks
@@ -22,8 +22,8 @@ export { useCustomerGroupById, useCustomerGroups } from './useCustomerGroups';
 export type { CustomerGroupView } from './useCustomerGroups';
 
 // Category hooks
-export { useCategories } from './useCategories';
-export type { CategoryView } from './useCategories';
+export { useCategories, useCategoriesForForm } from './useCategories';
+export type { CategoryListItem, CategoryView } from './useCategories';
 
 // Product hooks
 export {
@@ -37,11 +37,11 @@ export type { ProductView } from './useProducts';
 
 // Stock hooks
 export { useStockAlerts, useStockSearch, useStocks } from './useStocks';
-export type { StockView, StocksQueryFilters } from './useStocks';
+export type { StockAlertView, StockView, StocksQueryFilters } from './useStocks';
 
 // Sale order hooks
-export { FULFILMENT_STATUS, ORDER_STATUS, fetchSaleOrderProducts, useParkedOrders, useSaleOrderById, useSaleOrderSearch, useSaleOrders } from './useSaleOrders';
-export type { ParkedOrderView, ResolvedOrderProduct, SaleOrderView } from './useSaleOrders';
+export { FULFILMENT_STATUS, ORDER_STATUS, fetchSaleOrderProducts, useFulfillments, useParkedOrders, useSaleOrderById, useSaleOrderSearch, useSaleOrders, useSaleReturns } from './useSaleOrders';
+export type { FulfillmentView, ParkedOrderView, ResolvedOrderProduct, SaleOrderView, SaleReturnView } from './useSaleOrders';
 
 // Payment hooks
 export { PAYMENT_STATUS, PAYMENT_TYPE, usePaymentById, usePaymentSearch, usePayments } from './usePayments';
@@ -54,6 +54,8 @@ export type { DashboardFilters, DashboardStats } from './useDashboardStats';
 // Channel hooks
 export { useChannels } from './useChannels';
 export type { Channel } from './useChannels';
+
+// Brand / Supplier hooks - TODO: implement useBrands.ts and useSuppliers.ts when needed
 
 // Cash management hooks
 export { useCashManagement } from './useCashManagement';

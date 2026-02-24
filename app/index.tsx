@@ -1,12 +1,13 @@
-import { colors, iconSize } from '@/utils/theme';
+import { colors, iconSize, modalContent } from '@/utils/theme';
 import { FontAwesome5, Ionicons, MaterialCommunityIcons, MaterialIcons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { LinearGradient } from "expo-linear-gradient";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { memo, useCallback, useEffect, useMemo, useState } from "react";
-import { Alert, Modal, Pressable, ScrollView, Text, ToastAndroid, TouchableOpacity, useWindowDimensions, View } from "react-native";
+import { Alert, Pressable, ScrollView, Text, ToastAndroid, TouchableOpacity, useWindowDimensions, View } from "react-native";
 import {
   ActionCard,
+  CenteredModal,
   DASHBOARD_SIDEBAR_WIDTH,
   DateRangePickerModal,
   StatCard,
@@ -371,7 +372,7 @@ export default function Dashboard() {
               activeOpacity={0.8}
             >
               <Text 
-                className="text-5xl font-semibold"
+                className="text-4xl font-semibold"
                 style={{ 
                   lineHeight: 52,
                   letterSpacing: -1,
@@ -619,7 +620,7 @@ export default function Dashboard() {
             activeOpacity={0.8}
           >
             <Text 
-              className="text-5xl font-semibold"
+              className="text-4xl font-semibold"
               style={{ 
                 lineHeight: 52,
                 letterSpacing: -1,
@@ -753,23 +754,16 @@ export default function Dashboard() {
         {/* ===== NAVIGATION GROUP ===== */}
         <View className="flex-row gap-4 mb-4">
           <ActionCard
-            title="Product Catalog"
-            backgroundColor="#3B82F6"
-            icon={<Ionicons name="cube-outline" size={iconSize['3xl']} color="white" />}
-            onPress={() => {
-              console.log(`[NavPerf] Product Catalog clicked at ${Date.now()}`);
-              router.push("/catalog/products");
-            }}
-            height={180}
-          />
-          <ActionCard
-            title="Inventory"
+            title="Inventory & Stock"
             backgroundColor="#10B981"
             icon={<Ionicons name="layers-outline" size={iconSize['3xl']} color="white" />}
             onPress={() => {
-              console.log(`[NavPerf] Inventory clicked at ${Date.now()}`);
+              console.log(`[NavPerf] Inventory & Stock clicked at ${Date.now()}`);
               router.push("/inventory/stocks");
             }}
+            isGrayedOut={!isClockedIn}
+            grayVariant="light"
+            disabled={!isClockedIn}
             height={180}
           />
           <ActionCard
@@ -782,19 +776,21 @@ export default function Dashboard() {
               console.log(`[NavPerf][Sales] click at ${t}`);
               router.push("/order/add-products");
             }}
-            height={180}
-          />
-          <ActionCard
-            title="Report"
-            backgroundColor="#F59E0B"
-            icon={<Ionicons name="bar-chart-outline" size={iconSize['3xl']} color="white" />}
-            onPress={() => {
-              console.log(`[NavPerf] Report clicked at ${Date.now()}`);
-              router.push("/sale/reports");
-            }}
+            isGrayedOut={!isClockedIn}
+            grayVariant="light"
+            disabled={!isClockedIn}
             height={180}
           />
         </View>
+
+        {/* Clock Status (when not clocked in) */}
+        {!isClockedIn && (
+          <View className="bg-amber-50 border border-amber-200 rounded-xl p-4 mb-4">
+            <Text className="text-base text-amber-700 font-medium text-center">
+              Please clock in using the Time Clock button on the right to start your shift.
+            </Text>
+          </View>
+        )}
       </ScrollView>
 
         {/* Bottom Stats Bar - Time & Clock Info */}
@@ -815,40 +811,30 @@ export default function Dashboard() {
       />
 
       {/* ===== CHANNEL PICKER MODAL ===== */}
-      <Modal
+      <CenteredModal
         visible={showChannelPicker}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setShowChannelPicker(false)}
-      >
-        <Pressable 
-          className="flex-1 bg-black/45 justify-center items-center px-4"
-          onPress={() => setShowChannelPicker(false)}
-        >
-          <Pressable 
-            className="bg-white rounded-xl overflow-hidden"
-            style={{
-              width: "92%",
-              maxWidth: 664,
-              maxHeight: "80%",
-              borderWidth: 1,
-              borderColor: colors.border,
-              shadowColor: "#000",
-              shadowOffset: { width: 0, height: 8 },
-              shadowOpacity: 0.18,
-              shadowRadius: 20,
-              elevation: 8,
-            }}
-            onPress={(e) => e.stopPropagation()}
+        onClose={() => setShowChannelPicker(false)}
+        size="md"
+        showCloseButton={false}
+        header={
+          <View className="flex-row justify-between items-center flex-1">
+            <Text className="text-2xl font-semibold" style={{ color: colors.text }}>Select Channels</Text>
+            <Pressable onPress={() => setShowChannelPicker(false)} style={({ pressed }) => ({ opacity: pressed ? 0.55 : 1 })}>
+              <Ionicons name="close" size={iconSize['2xl']} color={colors.textDark} />
+            </Pressable>
+          </View>
+        }
+        footer={
+          <TouchableOpacity
+            onPress={() => setShowChannelPicker(false)}
+            className="py-4 items-center rounded-lg flex-1"
+            style={{ backgroundColor: colors.primary }}
           >
-            <View className="flex-row justify-between items-center px-5 py-4 border-b border-[#E4E7EC]">
-              <Text className="text-2xl font-semibold" style={{ color: colors.text }}>Select Channels</Text>
-              <Pressable onPress={() => setShowChannelPicker(false)} style={({ pressed }) => ({ opacity: pressed ? 0.55 : 1 })}>
-                <Ionicons name="close" size={iconSize['2xl']} color={colors.textDark} />
-              </Pressable>
-            </View>
-
-            <View className="px-4 pt-4 pb-5">
+            <Text className="text-lg font-semibold" style={{ color: '#fff' }}>Done</Text>
+          </TouchableOpacity>
+        }
+      >
+        <View className="px-4 pt-4 pb-5">
               {/* All Channels Option */}
               <TouchableOpacity
                 onPress={selectAllChannels}
@@ -863,8 +849,8 @@ export default function Dashboard() {
                   color={selectedChannelIds.length === 0 ? '#fff' : colors.textTertiary} 
                 />
                 <Text 
-                  className="ml-4 text-lg font-semibold"
-                  style={{ color: selectedChannelIds.length === 0 ? '#fff' : colors.textMedium }}
+                  className="ml-4"
+                  style={{ fontSize: modalContent.valueFontSize, fontWeight: modalContent.titleFontWeight, color: selectedChannelIds.length === 0 ? '#fff' : modalContent.valueColor }}
                 >
                   All Channels
                 </Text>
@@ -890,8 +876,8 @@ export default function Dashboard() {
                         color={isSelected ? colors.info : colors.textTertiary} 
                       />
                       <Text 
-                        className="ml-4 text-lg font-medium"
-                        style={{ color: isSelected ? '#1D4ED8' : colors.textMedium }}
+                        className="ml-4"
+                        style={{ fontSize: modalContent.valueFontSize, fontWeight: modalContent.valueFontWeight, color: isSelected ? '#1D4ED8' : modalContent.valueColor }}
                       >
                         {ch.name}
                       </Text>
@@ -904,18 +890,8 @@ export default function Dashboard() {
                   );
                 })}
               </ScrollView>
-
-              <TouchableOpacity
-                onPress={() => setShowChannelPicker(false)}
-                className="mt-4 py-4 items-center rounded-lg"
-                style={{ backgroundColor: colors.primary }}
-              >
-                <Text className="text-lg font-semibold" style={{ color: '#fff' }}>Done</Text>
-              </TouchableOpacity>
             </View>
-          </Pressable>
-        </Pressable>
-      </Modal>
+      </CenteredModal>
     </View>
   );
 }

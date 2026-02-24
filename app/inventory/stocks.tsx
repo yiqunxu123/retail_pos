@@ -4,42 +4,50 @@
  * Aligned with KHUB web Stocks columns configuration.
  */
 
-import { buttonSize, colors, iconSize, radius } from '@/utils/theme';
+import { buttonSize, colors, iconSize, modalContent, radius } from '@/utils/theme';
 import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { useLocalSearchParams } from "expo-router";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
-  ActivityIndicator,
-  Alert,
-  InteractionManager,
-  Modal,
-  Pressable,
-  ScrollView,
-  Text,
-  TextInput,
-  View,
+    ActivityIndicator,
+    Alert,
+    InteractionManager,
+    Pressable,
+    ScrollView,
+    Text,
+    TextInput,
+    View,
 } from "react-native";
+import { useBulkEditContext } from "../../contexts/BulkEditContext";
+import { useTableContentWidth } from "../../hooks/useTableContentWidth";
 import {
-  ColumnDefinition,
-  DataTable,
-  DataTableRenderPerfMetrics,
-  FilterDefinition,
-  FilterDropdown,
-  PageHeader,
+    ACTION_COL_WIDTH,
+    ColumnDefinition,
+    DataTable,
+    DataTableRenderPerfMetrics,
+    FilterDefinition,
+    FilterDropdown,
+    PageHeader,
 } from "../../components";
+import { CenteredModal } from "../../components/CenteredModal";
 import {
-  BulkStockUpdateItem,
-  bulkUpdateStocks,
-  getStockByProductId,
-  StockChannelInfo,
-  updateStocks as updateStocksApi,
+    BulkStockUpdateItem,
+    bulkUpdateStocks,
+    getStockByProductId,
+    StockChannelInfo,
+    updateStocks as updateStocksApi,
 } from "../../utils/api";
 import { StocksQueryFilters, StockView, useStocks } from "../../utils/powersync/hooks";
 import type {
-  StocksPerfCallbacks,
-  StocksPerfSnapshotMeta,
+    StocksPerfCallbacks,
+    StocksPerfSnapshotMeta,
 } from "../../utils/powersync/hooks/useStocks";
 import { useSyncStream } from "../../utils/powersync/useSyncStream";
+import {
+    AddProductPanelController,
+    AddProductPanelControllerHandle,
+} from "../../components/catalog/AddProductPanelController";
 
 // ============================================================================
 // Helpers
@@ -383,6 +391,22 @@ function ActionButton({
 // ============================================================================
 
 export default function StocksScreen() {
+  const contentWidth = useTableContentWidth();
+  const params = useLocalSearchParams<{ openAddProduct?: string }>();
+  const [showAddProductPanel, setShowAddProductPanel] = useState(false);
+  const addProductPanelRef = useRef<AddProductPanelControllerHandle>(null);
+
+  useEffect(() => {
+    if (params.openAddProduct) {
+      setShowAddProductPanel(true);
+    }
+  }, [params.openAddProduct]);
+  useEffect(() => {
+    if (showAddProductPanel && addProductPanelRef.current) {
+      addProductPanelRef.current.open();
+    }
+  }, [showAddProductPanel]);
+
   const { data: channelRows } = useSyncStream<ChannelOptionRow>(
     "SELECT id, name, is_primary FROM channels ORDER BY name ASC",
     [],
@@ -1108,7 +1132,7 @@ export default function StocksScreen() {
       {
         key: "image",
         title: "Image",
-        width: 80,
+        width: "5%",
         visible: true,
         render: () => (
           <View className="w-12 h-12 rounded bg-gray-100 items-center justify-center">
@@ -1119,7 +1143,7 @@ export default function StocksScreen() {
       {
         key: "productName",
         title: "Product Name",
-        width: 300,
+        width: "18%",
         visible: true,
         hideable: false,
         render: (item) => (
@@ -1136,7 +1160,7 @@ export default function StocksScreen() {
       {
         key: "skuUpc",
         title: "SKU/UPC",
-        width: 180,
+        width: "12%",
         visible: true,
         render: (item) => (
           <View>
@@ -1148,28 +1172,42 @@ export default function StocksScreen() {
       {
         key: "channelName",
         title: "Channel Name",
-        width: 160,
+        width: "10%",
         visible: false,
         render: (item) => <Text className="text-[#1A1A1A] text-lg ">{item.channelName || "-"}</Text>,
       },
       {
         key: "categoryName",
         title: "Category",
-        width: 160,
+        width: "10%",
         visible: true,
         render: (item) => <Text className="text-[#1A1A1A] text-lg ">{item.categoryName || "-"}</Text>,
       },
       {
         key: "brandName",
         title: "Brand",
-        width: 160,
+        width: "10%",
         visible: true,
         render: (item) => <Text className="text-[#1A1A1A] text-lg ">{item.brandName || "-"}</Text>,
       },
       {
+        key: "status",
+        title: "Active",
+        width: "7%",
+        align: "center",
+        visible: true,
+        render: (item) => (
+          item.status === 1 && !item.deletedAt ? (
+            <Ionicons name="checkmark-circle" size={iconSize.lg} color={colors.success} />
+          ) : (
+            <Ionicons name="close-circle" size={iconSize.lg} color={colors.error} />
+          )
+        ),
+      },
+      {
         key: "baseCostPrice",
         title: "Base Cost Prices",
-        width: 150,
+        width: "9%",
         align: "center",
         visible: false,
         render: (item) => <Text className="text-[#1A1A1A] text-lg ">{formatCurrency(item.baseCostPrice)}</Text>,
@@ -1177,7 +1215,7 @@ export default function StocksScreen() {
       {
         key: "costPrice",
         title: "Net Cost Prices",
-        width: 150,
+        width: "9%",
         align: "center",
         visible: false,
         render: (item) => <Text className="text-[#1A1A1A] text-lg ">{formatCurrency(item.costPrice)}</Text>,
@@ -1185,7 +1223,7 @@ export default function StocksScreen() {
       {
         key: "salePrice",
         title: "Sale Price",
-        width: 150,
+        width: "9%",
         align: "center",
         visible: false,
         render: (item) => <Text className="text-green-600 font-bold text-lg ">{formatCurrency(item.salePrice)}</Text>,
@@ -1193,7 +1231,7 @@ export default function StocksScreen() {
       {
         key: "availableQty",
         title: "Available QTY",
-        width: 150,
+        width: "9%",
         align: "center",
         visible: true,
         render: (item) => (
@@ -1205,7 +1243,7 @@ export default function StocksScreen() {
       {
         key: "onHoldQty",
         title: "On Hold",
-        width: 120,
+        width: "8%",
         align: "center",
         visible: false,
         render: (item) => <Text className="text-[#1A1A1A] text-lg ">{formatQty(item.onHoldQty)}</Text>,
@@ -1213,7 +1251,7 @@ export default function StocksScreen() {
       {
         key: "backOrderQty",
         title: "Back Order QTY",
-        width: 150,
+        width: "9%",
         align: "center",
         visible: false,
         render: (item) => <Text className="text-[#1A1A1A] text-lg ">{formatQty(item.backOrderQty)}</Text>,
@@ -1221,7 +1259,7 @@ export default function StocksScreen() {
       {
         key: "comingSoonQty",
         title: "Coming Soon QTY",
-        width: 160,
+        width: "10%",
         align: "center",
         visible: false,
         render: (item) => <Text className="text-[#1A1A1A] text-lg ">{formatQty(item.comingSoonQty)}</Text>,
@@ -1229,7 +1267,7 @@ export default function StocksScreen() {
       {
         key: "deliveredWithoutStockQty",
         title: "Delivered Without Stock",
-        width: 200,
+        width: "12%",
         align: "center",
         visible: false,
         render: (item) => <Text className="text-[#1A1A1A] text-lg ">{formatQty(item.deliveredWithoutStockQty)}</Text>,
@@ -1237,7 +1275,7 @@ export default function StocksScreen() {
       {
         key: "damagedQty",
         title: "Damaged QTY",
-        width: 140,
+        width: "9%",
         align: "center",
         visible: false,
         render: (item) => <Text className="text-[#1A1A1A] text-lg ">{formatQty(item.damagedQty)}</Text>,
@@ -1245,7 +1283,7 @@ export default function StocksScreen() {
       {
         key: "totalQty",
         title: "Total Quantity",
-        width: 150,
+        width: "9%",
         align: "center",
         visible: true,
         render: (item) => <Text className="text-[#1A1A1A] text-lg ">{formatQty(item.totalQty)}</Text>,
@@ -1253,7 +1291,7 @@ export default function StocksScreen() {
       {
         key: "totalCost",
         title: "Total Cost",
-        width: 150,
+        width: "9%",
         align: "center",
         visible: true,
         render: (item) => <Text className="text-[#1A1A1A] text-lg ">{formatCurrency(item.totalCost)}</Text>,
@@ -1261,7 +1299,7 @@ export default function StocksScreen() {
       {
         key: "actions",
         title: "Actions",
-        width: 120,
+        width: ACTION_COL_WIDTH,
         align: "center",
         visible: true,
         hideable: false,
@@ -1453,7 +1491,7 @@ export default function StocksScreen() {
       <View className="gap-3">
         <View className="flex-row gap-4">
           <View className="flex-1">
-            <Text className="text-sm font-medium text-gray-700 mb-1">Channel Name</Text>
+            <Text className="text-[#5A5F66] text-lg mb-1.5">Channel Name</Text>
             <FilterDropdown
               label=""
               value={toStringIds(advancedFiltersDraft.channelIds)}
@@ -1464,7 +1502,7 @@ export default function StocksScreen() {
             />
           </View>
           <View className="flex-1">
-            <Text className="text-sm font-medium text-gray-700 mb-1">Brand</Text>
+            <Text className="text-[#5A5F66] text-lg mb-1.5">Brand</Text>
             <FilterDropdown
               label=""
               value={toStringIds(advancedFiltersDraft.brandIds)}
@@ -1478,7 +1516,7 @@ export default function StocksScreen() {
 
         <View className="flex-row gap-4">
           <View className="flex-1">
-            <Text className="text-sm font-medium text-gray-700 mb-1">Supplier</Text>
+            <Text className="text-[#5A5F66] text-lg mb-1.5">Supplier</Text>
             <FilterDropdown
               label=""
               value={toStringIds(advancedFiltersDraft.supplierIds)}
@@ -1489,7 +1527,7 @@ export default function StocksScreen() {
             />
           </View>
           <View className="flex-1">
-            <Text className="text-sm font-medium text-gray-700 mb-1">Category</Text>
+            <Text className="text-[#5A5F66] text-lg mb-1.5">Category</Text>
             <FilterDropdown
               label=""
               value={toStringIds(advancedFiltersDraft.categoryIds)}
@@ -1503,10 +1541,9 @@ export default function StocksScreen() {
 
         <View className="flex-row gap-4">
           <View className="flex-1">
-            <Text className="text-sm font-medium text-gray-700 mb-1">Zone</Text>
+            <Text className="text-[#5A5F66] text-lg mb-1.5">Zone</Text>
             <TextInput
-              className="bg-gray-50 border border-gray-200 rounded-lg px-3"
-              style={{ height: buttonSize.md.height, fontSize: 16 }}
+              className="bg-white border border-gray-200 rounded-xl px-3 py-3 text-lg shadow-sm"
               placeholder="Search Zone"
               placeholderTextColor={colors.textTertiary}
               value={advancedFiltersDraft.searchZone}
@@ -1516,10 +1553,9 @@ export default function StocksScreen() {
             />
           </View>
           <View className="flex-1">
-            <Text className="text-sm font-medium text-gray-700 mb-1">Aisle</Text>
+            <Text className="text-[#5A5F66] text-lg mb-1.5">Aisle</Text>
             <TextInput
-              className="bg-gray-50 border border-gray-200 rounded-lg px-3"
-              style={{ height: buttonSize.md.height, fontSize: 16 }}
+              className="bg-white border border-gray-200 rounded-xl px-3 py-3 text-lg shadow-sm"
               placeholder="Search Aisle"
               placeholderTextColor={colors.textTertiary}
               value={advancedFiltersDraft.searchAisle}
@@ -1531,10 +1567,9 @@ export default function StocksScreen() {
         </View>
 
         <View>
-          <Text className="text-sm font-medium text-gray-700 mb-1">Bin</Text>
+          <Text className="text-[#5A5F66] text-lg mb-1.5">Bin</Text>
           <TextInput
-            className="bg-gray-50 border border-gray-200 rounded-lg px-3"
-            style={{ height: buttonSize.md.height, fontSize: 16 }}
+            className="bg-white border border-gray-200 rounded-xl px-3 py-3 text-lg shadow-sm"
             placeholder="Search by Bin"
             placeholderTextColor={colors.textTertiary}
             value={advancedFiltersDraft.searchBin}
@@ -1545,7 +1580,7 @@ export default function StocksScreen() {
         </View>
 
         <View>
-          <Text className="text-sm font-medium text-gray-700 mb-1">Stock Type</Text>
+          <Text className="text-[#5A5F66] text-lg mb-1.5">Stock Type</Text>
           <FilterDropdown
             label=""
             value={advancedFiltersDraft.stockType || null}
@@ -1584,9 +1619,23 @@ export default function StocksScreen() {
     </View>
   );
 
-  const handleSelectionChange = useCallback((keys: string[]) => {
-    setSelectedRowKeys(keys);
-  }, []);
+  const { setConfig: setBulkEditConfig, setSelection: setBulkEditSelection } = useBulkEditContext();
+
+  useEffect(() => {
+    setBulkEditConfig({
+      label: "Bulk Edit Stock",
+      onPress: handleBulkEditOpen,
+    });
+    return () => setBulkEditConfig(null);
+  }, [handleBulkEditOpen, setBulkEditConfig]);
+
+  const handleSelectionChange = useCallback(
+    (keys: string[], rows: StockView[]) => {
+      setSelectedRowKeys(keys);
+      setBulkEditSelection(rows);
+    },
+    [setBulkEditSelection]
+  );
 
   const dataTableFilterValues = useMemo<Record<string, string | string[] | null>>(
     () => ({
@@ -1597,7 +1646,7 @@ export default function StocksScreen() {
 
   return (
     <View className="flex-1 bg-[#F7F7F9]">
-      <PageHeader title="Stocks" showBack={false} />
+      <PageHeader title="Inventory & Stock" showBack={false} />
 
       {!filtersReady ? (
         <View style={{ flex: 1, padding: 16 }}>
@@ -1660,14 +1709,16 @@ export default function StocksScreen() {
             filters={filters}
             filterValues={dataTableFilterValues}
             onFiltersChange={handleTableFiltersChange}
-            filtersInActionRow
+            filtersInSettingsModal
             columnSelector
+            toolbarButtonStyle="shopping-cart"
             settingsModalExtras={advanceFiltersContent}
             hideSettingsModalFooter
             onSettingsModalOpen={handleSettingsModalOpen}
             bulkActions
             bulkActionText="Bulk Edit Stock"
             bulkActionInActionRow
+            bulkActionInSidebar
             onBulkActionPress={handleBulkEditOpen}
             selectedRowKeys={selectedRowKeys}
             onSelectionChange={handleSelectionChange}
@@ -1682,32 +1733,64 @@ export default function StocksScreen() {
             onPageChange={handleTablePageChange}
             onRenderPerf={handleDataTableRenderPerf}
             horizontalScroll
-            minWidth={2400}
+            minWidth={contentWidth}
           />
         </>
       )}
 
-      <Modal
+      <CenteredModal
         visible={singleEditModalVisible}
-        transparent
-        animationType="fade"
-        onRequestClose={closeSingleEditModal}
-      >
-        <View className="flex-1 bg-black/50 justify-center items-center px-4">
-          <View className="bg-white rounded-xl p-5" style={{ width: "96%", maxHeight: "88%" }}>
-            <View className="flex-row items-start justify-between mb-3">
-              <View className="flex-1 pr-4">
-                <Text className="text-lg font-semibold text-gray-800">Stock Edit</Text>
-                <Text className="text-sm text-gray-600 mt-1" numberOfLines={1}>
-                  {singleEditProductName || "-"}
-                </Text>
-              </View>
-              <Pressable onPress={closeSingleEditModal} disabled={singleEditSubmitting}>
-                <Ionicons name="close" size={iconSize.xl} color={colors.textTertiary} />
-              </Pressable>
+        onClose={closeSingleEditModal}
+        size="md"
+        showCloseButton={false}
+        scrollable={false}
+        contentPadding={false}
+        header={
+          <View className="flex-row items-start justify-between flex-1">
+            <View className="flex-1">
+              <Text style={{ fontSize: modalContent.titleFontSize + 4, fontWeight: modalContent.titleFontWeight, color: modalContent.titleColor, marginBottom: 6 }}>
+                Stock Edit
+              </Text>
+              <Text style={{ fontSize: modalContent.labelFontSize, color: modalContent.labelColor, marginTop: 4 }} numberOfLines={1}>
+                {singleEditProductName || "-"}
+              </Text>
             </View>
-
-            {singleEditLoading ? (
+            <Pressable
+              onPress={closeSingleEditModal}
+              disabled={singleEditSubmitting}
+              className="p-1"
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            >
+              <Ionicons name="close" size={iconSize.lg} color={colors.textTertiary} />
+            </Pressable>
+          </View>
+        }
+        footer={
+          <View className="flex-row justify-end gap-3">
+            <Pressable
+              className="px-6 rounded-lg items-center justify-center"
+              onPress={closeSingleEditModal}
+              disabled={singleEditSubmitting}
+              style={{ height: buttonSize.md.height, minWidth: 90, backgroundColor: colors.background, borderWidth: 1, borderColor: colors.borderMedium, borderRadius: buttonSize.md.borderRadius }}
+            >
+              <Text className="text-base font-medium" style={{ color: colors.textMedium, textAlign: 'center' }}>Cancel</Text>
+            </Pressable>
+            <Pressable
+              className="px-6 rounded-lg items-center justify-center"
+              onPress={handleSingleEditSubmit}
+              disabled={singleEditSubmitting || singleEditLoading}
+              style={{ height: buttonSize.md.height, minWidth: 90, backgroundColor: colors.primary, borderRadius: buttonSize.md.borderRadius }}
+            >
+              {singleEditSubmitting ? (
+                <ActivityIndicator size="small" color="white" />
+              ) : (
+                <Text className="text-base font-medium" style={{ color: colors.textWhite, textAlign: 'center' }}>Save</Text>
+              )}
+            </Pressable>
+          </View>
+        }
+      >
+        {singleEditLoading ? (
               <View className="py-8 items-center justify-center">
                 <ActivityIndicator size="large" color={colors.info} />
               </View>
@@ -1715,33 +1798,33 @@ export default function StocksScreen() {
               <ScrollView style={{ maxHeight: "68%" }} showsVerticalScrollIndicator={false}>
                 <ScrollView horizontal showsHorizontalScrollIndicator={false}>
                   <View style={{ minWidth: 1500 }}>
-                    <View className="flex-row pb-2 border-b border-gray-200">
+                    <View className="flex-row items-center bg-gray-50 border-b border-gray-200 px-4 py-3" style={{ backgroundColor: modalContent.boxBackground, borderBottomColor: modalContent.boxBorderColor }}>
                       <View style={{ width: 220, paddingRight: 8 }}>
-                        <Text className="text-sm text-gray-500">Store Channels</Text>
+                        <Text style={{ fontSize: modalContent.labelFontSize, fontWeight: modalContent.valueFontWeight, color: modalContent.labelColor }}>Store Channels</Text>
                       </View>
                       <View style={{ width: 150, paddingRight: 8 }}>
-                        <Text className="text-sm text-gray-500">Available QTY</Text>
+                        <Text style={{ fontSize: modalContent.labelFontSize, fontWeight: modalContent.valueFontWeight, color: modalContent.labelColor }}>Available QTY</Text>
                       </View>
                       <View style={{ width: 145, paddingRight: 8 }}>
-                        <Text className="text-sm text-gray-500">On Hold Qty</Text>
+                        <Text style={{ fontSize: modalContent.labelFontSize, fontWeight: modalContent.valueFontWeight, color: modalContent.labelColor }}>On Hold Qty</Text>
                       </View>
                       <View style={{ width: 145, paddingRight: 8 }}>
-                        <Text className="text-sm text-gray-500">Damaged Qty</Text>
+                        <Text style={{ fontSize: modalContent.labelFontSize, fontWeight: modalContent.valueFontWeight, color: modalContent.labelColor }}>Damaged Qty</Text>
                       </View>
                       <View style={{ width: 145, paddingRight: 8 }}>
-                        <Text className="text-sm text-gray-500">Back Order Qty</Text>
+                        <Text style={{ fontSize: modalContent.labelFontSize, fontWeight: modalContent.valueFontWeight, color: modalContent.labelColor }}>Back Order Qty</Text>
                       </View>
                       <View style={{ width: 150, paddingRight: 8 }}>
-                        <Text className="text-sm text-gray-500">Coming Soon Qty</Text>
+                        <Text style={{ fontSize: modalContent.labelFontSize, fontWeight: modalContent.valueFontWeight, color: modalContent.labelColor }}>Coming Soon Qty</Text>
                       </View>
                       <View style={{ width: 195, paddingRight: 8 }}>
-                        <Text className="text-sm text-gray-500">Delivered Without Stock</Text>
+                        <Text style={{ fontSize: modalContent.labelFontSize, fontWeight: modalContent.valueFontWeight, color: modalContent.labelColor }}>Delivered Without Stock</Text>
                       </View>
                       <View style={{ width: 145, paddingRight: 8 }}>
-                        <Text className="text-sm text-gray-500">Minimum Qty</Text>
+                        <Text style={{ fontSize: modalContent.labelFontSize, fontWeight: modalContent.valueFontWeight, color: modalContent.labelColor }}>Minimum Qty</Text>
                       </View>
                       <View style={{ width: 145 }}>
-                        <Text className="text-sm text-gray-500">Maximum Qty</Text>
+                        <Text style={{ fontSize: modalContent.labelFontSize, fontWeight: modalContent.valueFontWeight, color: modalContent.labelColor }}>Maximum Qty</Text>
                       </View>
                     </View>
 
@@ -1759,10 +1842,13 @@ export default function StocksScreen() {
                       return (
                         <View
                           key={row.key}
-                          className="py-2"
-                          style={index < singleEditRows.length - 1 ? { borderBottomWidth: 1, borderBottomColor: colors.backgroundSecondary } : undefined}
+                          className="flex-row items-start px-4 py-3"
+                          style={{
+                            borderBottomWidth: index < singleEditRows.length - 1 ? 1 : 0,
+                            borderBottomColor: colors.backgroundSecondary,
+                            backgroundColor: index % 2 === 1 ? colors.backgroundLight : colors.background,
+                          }}
                         >
-                          <View className="flex-row items-start">
                             <View style={{ width: 220, paddingRight: 8 }}>
                               <Text className="text-sm font-medium text-gray-800" numberOfLines={2}>
                                 {row.channelName || "-"}
@@ -1916,7 +2002,6 @@ export default function StocksScreen() {
                                 </View>
                               </View>
                             </View>
-                          </View>
                         </View>
                       );
                     })}
@@ -1924,91 +2009,88 @@ export default function StocksScreen() {
                 </ScrollView>
               </ScrollView>
             )}
+      </CenteredModal>
 
-            <View className="flex-row justify-end mt-4 gap-2">
-              <Pressable
-                className="px-4 rounded-lg items-center justify-center"
-                style={{ height: buttonSize.md.height, backgroundColor: colors.backgroundSecondary, borderRadius: buttonSize.md.borderRadius }}
-                onPress={closeSingleEditModal}
-                disabled={singleEditSubmitting}
-              >
-                <Text className="font-medium" style={{ color: colors.textMedium }}>Close</Text>
-              </Pressable>
-              <Pressable
-                className="px-4 rounded-lg min-w-24 items-center justify-center"
-                style={{ height: buttonSize.md.height, backgroundColor: colors.primary, borderRadius: buttonSize.md.borderRadius }}
-                onPress={handleSingleEditSubmit}
-                disabled={singleEditSubmitting || singleEditLoading}
-              >
-                {singleEditSubmitting ? (
-                  <ActivityIndicator size="small" color="white" />
-                ) : (
-                  <Text className="text-white font-medium">Save</Text>
-                )}
-              </Pressable>
-            </View>
-          </View>
-        </View>
-      </Modal>
-
-      <Modal
+      <CenteredModal
         visible={bulkModalVisible}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setBulkModalVisible(false)}
-      >
-        <View className="flex-1 bg-black/50 justify-center items-center px-4">
-          <View className="bg-white rounded-lg" style={{ width: "94%", maxWidth: 1100, maxHeight: "85%" }}>
-            {/* Header */}
-            <View className="px-6 py-4 border-b border-gray-100">
-              <View className="flex-row items-start justify-between">
-                <View className="flex-1">
-                  <Text className="text-2xl font-bold" style={{ color: colors.textDark, marginBottom: 6 }}>
+        onClose={() => setBulkModalVisible(false)}
+        size="md"
+        showCloseButton={false}
+        scrollable={false}
+        contentPadding={false}
+        header={
+          <View className="flex-row items-start justify-between flex-1">
+            <View className="flex-1">
+              <Text style={{ fontSize: modalContent.titleFontSize + 4, fontWeight: modalContent.titleFontWeight, color: modalContent.titleColor, marginBottom: 6 }}>
                     Bulk Edit Stock
                   </Text>
-                  <Text className="text-sm" style={{ color: colors.textSecondary, marginTop: 4 }}>
+                  <Text style={{ fontSize: modalContent.labelFontSize, color: modalContent.labelColor, marginTop: 4 }}>
                     Please note that stock changes on this screen apply to unit: PIECE.
                   </Text>
-                  <Text className="text-sm" style={{ color: colors.textSecondary, marginTop: 2 }}>
-                    Channel: {bulkRows[0]?.channelName || "-"} | Selected: {bulkRows.length}
-                  </Text>
-                </View>
-                <Pressable 
-                  onPress={() => setBulkModalVisible(false)}
-                  className="p-1"
-                  hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-                >
-                  <Ionicons name="close" size={iconSize.lg} color={colors.textTertiary} />
-                </Pressable>
-              </View>
+                  <Text style={{ fontSize: modalContent.labelFontSize, color: modalContent.labelColor, marginTop: 2 }}>
+                Channel: {bulkRows[0]?.channelName || "-"} | Selected: {bulkRows.length}
+              </Text>
             </View>
-
-            {/* Table Content */}
+            <Pressable 
+              onPress={() => setBulkModalVisible(false)}
+              className="p-1"
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            >
+              <Ionicons name="close" size={iconSize.lg} color={colors.textTertiary} />
+            </Pressable>
+          </View>
+        }
+        footer={
+          <View className="flex-row justify-end gap-3">
+            <Pressable
+              className="px-6 rounded-lg items-center justify-center"
+              onPress={() => setBulkModalVisible(false)}
+              disabled={bulkSubmitting}
+              style={{ height: buttonSize.md.height, minWidth: 90, backgroundColor: colors.background, borderWidth: 1, borderColor: colors.borderMedium, borderRadius: buttonSize.md.borderRadius }}
+            >
+              <Text className="text-base font-medium" style={{ color: colors.textMedium, textAlign: 'center' }}>Cancel</Text>
+            </Pressable>
+            <Pressable
+              className="px-6 rounded-lg items-center justify-center"
+              onPress={handleBulkEditSubmit}
+              disabled={bulkSubmitting}
+              style={{ height: buttonSize.md.height, minWidth: 90, backgroundColor: colors.primary, borderRadius: buttonSize.md.borderRadius }}
+            >
+              {bulkSubmitting ? (
+                <ActivityIndicator size="small" color="white" />
+              ) : (
+                <Text className="text-base font-medium" style={{ color: colors.textWhite, textAlign: 'center' }}>Update</Text>
+              )}
+            </Pressable>
+          </View>
+        }
+      >
+        {/* Table Content */}
             <ScrollView style={{ maxHeight: 400 }} showsVerticalScrollIndicator={false}>
               <ScrollView horizontal showsHorizontalScrollIndicator={false}>
                 <View style={{ minWidth: 1050 }}>
                   {/* Table Header */}
-                  <View className="flex-row items-center bg-gray-50 border-b border-gray-200 px-4 py-3">
+                  <View className="flex-row items-center border-b px-4 py-3" style={{ backgroundColor: modalContent.boxBackground, borderBottomColor: modalContent.boxBorderColor }}>
                     <View style={{ width: 180 }}>
-                      <Text className="text-sm font-medium" style={{ color: colors.textSecondary }}>Products</Text>
+                      <Text style={{ fontSize: modalContent.labelFontSize, fontWeight: modalContent.valueFontWeight, color: modalContent.labelColor }}>Products</Text>
                     </View>
                     <View style={{ width: 140 }}>
-                      <Text className="text-sm font-medium" style={{ color: colors.textSecondary }}>Available Qty</Text>
+                      <Text style={{ fontSize: modalContent.labelFontSize, fontWeight: modalContent.valueFontWeight, color: modalContent.labelColor }}>Available Qty</Text>
                     </View>
                     <View style={{ width: 140 }}>
-                      <Text className="text-sm font-medium" style={{ color: colors.textSecondary }}>Damaged Qty</Text>
+                      <Text style={{ fontSize: modalContent.labelFontSize, fontWeight: modalContent.valueFontWeight, color: modalContent.labelColor }}>Damaged Qty</Text>
                     </View>
                     <View style={{ width: 130 }}>
-                      <Text className="text-sm font-medium" style={{ color: colors.textSecondary }}>On Hold Qty</Text>
+                      <Text style={{ fontSize: modalContent.labelFontSize, fontWeight: modalContent.valueFontWeight, color: modalContent.labelColor }}>On Hold Qty</Text>
                     </View>
                     <View style={{ width: 140 }}>
-                      <Text className="text-sm font-medium" style={{ color: colors.textSecondary }}>Back Order Qty</Text>
+                      <Text style={{ fontSize: modalContent.labelFontSize, fontWeight: modalContent.valueFontWeight, color: modalContent.labelColor }}>Back Order Qty</Text>
                     </View>
                     <View style={{ width: 180 }}>
-                      <Text className="text-sm font-medium" style={{ color: colors.textSecondary }}>Delivered Without Stock</Text>
+                      <Text style={{ fontSize: modalContent.labelFontSize, fontWeight: modalContent.valueFontWeight, color: modalContent.labelColor }}>Delivered Without Stock</Text>
                     </View>
                     <View style={{ width: 120 }}>
-                      <Text className="text-sm font-medium" style={{ color: colors.textSecondary }}>Channel Name</Text>
+                      <Text style={{ fontSize: modalContent.labelFontSize, fontWeight: modalContent.valueFontWeight, color: modalContent.labelColor }}>Channel Name</Text>
                     </View>
                   </View>
 
@@ -2200,33 +2282,15 @@ export default function StocksScreen() {
                 </View>
               </ScrollView>
             </ScrollView>
+      </CenteredModal>
 
-            {/* Footer Buttons */}
-            <View className="flex-row justify-end px-6 py-4 border-t border-gray-100 gap-3">
-              <Pressable
-                className="px-6 rounded-lg items-center justify-center"
-                onPress={() => setBulkModalVisible(false)}
-                disabled={bulkSubmitting}
-                style={{ height: buttonSize.md.height, minWidth: 90, backgroundColor: colors.background, borderWidth: 1, borderColor: colors.borderMedium, borderRadius: buttonSize.md.borderRadius }}
-              >
-                <Text className="text-base font-medium" style={{ color: colors.textMedium, textAlign: 'center' }}>Cancel</Text>
-              </Pressable>
-              <Pressable
-                className="px-6 rounded-lg items-center justify-center"
-                onPress={handleBulkEditSubmit}
-                disabled={bulkSubmitting}
-                style={{ height: buttonSize.md.height, minWidth: 90, backgroundColor: colors.primary, borderRadius: buttonSize.md.borderRadius }}
-              >
-                {bulkSubmitting ? (
-                  <ActivityIndicator size="small" color="white" />
-                ) : (
-                  <Text className="text-base font-medium" style={{ color: colors.textWhite, textAlign: 'center' }}>Update</Text>
-                )}
-              </Pressable>
-            </View>
-          </View>
-        </View>
-      </Modal>
+      <AddProductPanelController
+        ref={addProductPanelRef}
+        onVisibleStateChange={(visible) => {
+          if (!visible) setShowAddProductPanel(false);
+        }}
+        onSaveSuccess={refresh}
+      />
     </View>
   );
 }

@@ -108,7 +108,7 @@ export function DashboardSidebar({
         {/* Sales Return */}
         <SidebarButton
           title="Sales Return"
-          icon={<MaterialIcons name="assignment-return" size={iconSize['2xl']} />}
+          icon={<MaterialCommunityIcons name="arrow-left-box" size={iconSize['2xl']} />}
           onPress={() => navigateTo("/sale/sales-return")}
           variant={isClockedIn ? "outline" : "secondary"}
           disabled={!isClockedIn}
@@ -181,7 +181,7 @@ export function DashboardSidebar({
           <SidebarButton
             title="Exit Program"
             icon={<Ionicons name="close-circle-outline" size={iconSize['2xl']} />}
-            onPress={() => Alert.alert("Exit", "This would exit the POS application")}
+            onPress={handleLogout}
             variant="danger"
             fullWidth={false}
           />

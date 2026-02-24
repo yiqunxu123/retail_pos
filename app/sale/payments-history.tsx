@@ -3,11 +3,13 @@
  * Uses the unified DataTable component
  */
 
-import { Ionicons } from "@expo/vector-icons";
-import { useCallback, useMemo, useState } from "react";
-import { Pressable, Text, View } from "react-native";
 import { buttonSize, colors, iconSize } from "@/utils/theme";
-import { ColumnDefinition, DataTable, FilterDefinition, PageHeader } from "../../components";
+import { Ionicons } from "@expo/vector-icons";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { Alert, Pressable, Text, View } from "react-native";
+import { useBulkEditContext } from "../../contexts/BulkEditContext";
+import { ACTION_COL_WIDTH, ColumnDefinition, DataTable, FilterDefinition, PageHeader } from "../../components";
+import { useTableContentWidth } from "../../hooks/useTableContentWidth";
 import { PAYMENT_STATUS, PAYMENT_TYPE, PaymentView, usePayments } from "../../utils/powersync/hooks";
 
 // ============================================================================
@@ -53,7 +55,8 @@ function getStatusColor(status: number): { bg: string; text: string } {
 // ============================================================================
 
 export default function PaymentsHistoryScreen() {
-  const { payments, isLoading, isStreaming } = usePayments();
+  const contentWidth = useTableContentWidth();
+  const { payments, isLoading, isStreaming, refresh } = usePayments();
   const [activeTab, setActiveTab] = useState("Payments Logs");
 
   // Column config
@@ -62,7 +65,7 @@ export default function PaymentsHistoryScreen() {
     {
       key: "paymentNo",
       title: "Payment No",
-      width: 180,
+      width: "14%",
       visible: true,
       hideable: false,
       render: (item) => (
@@ -72,19 +75,19 @@ export default function PaymentsHistoryScreen() {
     {
       key: "businessName",
       title: "Business / Customer",
-      width: "flex",
+      width: "22%",
       visible: true,
       render: (item) => (
         <View>
-          <Text className="text-[#1A1A1A] text-lg" numberOfLines={1}>{item.businessName || '-'}</Text>
-          <Text className="text-blue-600 text-sm" numberOfLines={1}>{item.customerName || '-'}</Text>
+          <Text className="text-blue-600 text-lg font-bold" numberOfLines={1}>{item.businessName || '-'}</Text>
+          <Text className="text-blue-600 text-base" numberOfLines={1}>{item.customerName || '-'}</Text>
         </View>
       ),
     },
     {
       key: "paymentType",
       title: "Type",
-      width: 140,
+      width: "11%",
       visible: true,
       render: (item) => {
         const typeText = PAYMENT_TYPE[item.paymentType as keyof typeof PAYMENT_TYPE] || 'Unknown';
@@ -94,7 +97,7 @@ export default function PaymentsHistoryScreen() {
     {
       key: "amount",
       title: "Amount",
-      width: 120,
+      width: "10%",
       align: "center",
       visible: true,
       render: (item) => (
@@ -104,7 +107,7 @@ export default function PaymentsHistoryScreen() {
     {
       key: "status",
       title: "Status",
-      width: 140,
+      width: "11%",
       align: "center",
       visible: true,
       render: (item) => {
@@ -120,7 +123,7 @@ export default function PaymentsHistoryScreen() {
     {
       key: "paymentDate",
       title: "Date",
-      width: 140,
+      width: "11%",
       align: "center",
       visible: true,
       render: (item) => (
@@ -130,7 +133,7 @@ export default function PaymentsHistoryScreen() {
     {
       key: "memo",
       title: "Memo",
-      width: 200,
+      width: "15%",
       visible: true,
       render: (item) => (
         <Text className="text-gray-500 text-sm" numberOfLines={1}>{item.memo || '-'}</Text>
@@ -139,7 +142,7 @@ export default function PaymentsHistoryScreen() {
     {
       key: "actions",
       title: "Actions",
-      width: 80,
+      width: ACTION_COL_WIDTH,
       align: "center",
       visible: true,
       render: () => (
@@ -182,6 +185,21 @@ export default function PaymentsHistoryScreen() {
       ],
     },
   ];
+
+  const { setConfig: setBulkEditConfig, setSelection: setBulkEditSelection } = useBulkEditContext();
+
+  const handleBulkAction = useCallback((rows: PaymentView[]) => {
+    if (rows.length === 0) {
+      Alert.alert("Bulk Export", "Please select payment(s) first.");
+      return;
+    }
+    Alert.alert("Bulk Export", `${rows.length} payment(s) selected. Export is coming soon.`);
+  }, []);
+
+  useEffect(() => {
+    setBulkEditConfig({ label: "Bulk Export", onPress: handleBulkAction });
+    return () => setBulkEditConfig(null);
+  }, [handleBulkAction, setBulkEditConfig]);
 
   const handleSearch = useCallback((item: PaymentView, query: string) => {
     const q = query.toLowerCase();
@@ -231,14 +249,23 @@ export default function PaymentsHistoryScreen() {
         onSearch={handleSearch}
         filters={filters}
         onFilter={handleFilter}
+        filtersInSettingsModal
+        bulkActions
+        bulkActionText="Bulk Export"
+        bulkActionInActionRow
+        bulkActionInSidebar
+        onBulkActionPress={handleBulkAction}
+        onSelectionChange={(_, rows) => setBulkEditSelection(rows)}
         columnSelector
+        toolbarButtonStyle="shopping-cart"
+        onRefresh={refresh}
         isLoading={isLoading}
         isStreaming={isStreaming}
         emptyIcon="card-outline"
         emptyText="No payments found"
         totalCount={payments.length}
         horizontalScroll
-        minWidth={1100}
+        minWidth={contentWidth}
       />
     </View>
   );

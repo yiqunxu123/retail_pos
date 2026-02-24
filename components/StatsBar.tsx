@@ -29,8 +29,8 @@ export function StatsBar({ items }: StatsBarProps) {
           {items.map((item, index) => (
             <View
               key={index}
-              className="flex-1 rounded-xl px-2 border-2 border-white/40 items-center justify-center bg-black/10 shadow-sm"
-              style={{ height: 115 }}
+              className="flex-1 rounded-xl px-2 items-center justify-center bg-black/10 shadow-sm"
+              style={{ height: 115, borderWidth: 3, borderColor: '#FFFFFF' }}
             >
               <Text
                 className="text-xl font-semibold"
@@ -43,7 +43,7 @@ export function StatsBar({ items }: StatsBarProps) {
                 {item.label}
               </Text>
               <Text
-                className="text-4xl font-bold"
+                className="text-3xl font-bold"
                 style={{
                   color: "white",
                   lineHeight: 44,

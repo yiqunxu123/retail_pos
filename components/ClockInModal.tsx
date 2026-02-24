@@ -97,6 +97,7 @@ export function ClockInModal({ visible, onClose, onClockIn }: ClockInModalProps)
   // Number button component
   const NumberButton = ({ num }: { num: string }) => (
     <TouchableOpacity
+      testID={`clockin-num-${num}`}
       onPress={() => handleNumberPress(num)}
       className="rounded-lg items-center justify-center"
       style={{
@@ -360,6 +361,7 @@ export function ClockInModal({ visible, onClose, onClockIn }: ClockInModalProps)
 
                     {/* Clock In Button */}
                     <TouchableOpacity
+                      testID="clockin-submit"
                       onPress={handleClockIn}
                       disabled={pin.length === 0}
                       className="rounded-lg items-center justify-center flex-row gap-2"
@@ -396,6 +398,7 @@ export function ClockInModal({ visible, onClose, onClockIn }: ClockInModalProps)
 
                   {/* Clock In Button */}
                   <TouchableOpacity
+                    testID="clockin-submit"
                     onPress={handleClockIn}
                     disabled={pin.length === 0}
                     className="rounded-lg items-center justify-center flex-row gap-2"

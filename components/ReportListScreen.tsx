@@ -22,13 +22,13 @@ function ReportItem({ title, hasRoute, onPress }: { title: string; hasRoute: boo
       className="flex-row items-center justify-between px-4 py-4 rounded-lg border-2 mb-3"
       style={{ borderColor: hasRoute ? "#EC1A52" : "#D1D5DB" }}
     >
-      <Text className={hasRoute ? "text-gray-800 font-medium" : "text-gray-400 font-medium"}>{title}</Text>
+      <Text className={`text-2xl font-medium ${hasRoute ? "text-gray-800" : "text-gray-400"}`}>{title}</Text>
       <Ionicons name="chevron-forward" size={20} color={hasRoute ? "#9CA3AF" : "#D1D5DB"} />
     </Pressable>
   );
 }
 
-export function ReportListScreen({ title, reports, showBack = true }: ReportListScreenProps) {
+export function ReportListScreen({ title, reports, showBack = false }: ReportListScreenProps) {
   const handleReportPress = (report: ReportConfig) => {
     if (report.route) {
       router.push(report.route as any);

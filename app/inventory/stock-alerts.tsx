@@ -1,33 +1,30 @@
 /**
  * Stock Alerts Screen
- * Uses the unified DataTable component
+ * Uses the unified DataTable component with PowerSync data
+ * Shows products with available_qty = 0 (critical stock)
  */
 
-import { Text, View } from "react-native";
+import { useCallback, useEffect } from "react";
+import { Alert, Text, View } from "react-native";
+import { useBulkEditContext } from "../../contexts/BulkEditContext";
 import { ColumnDefinition, DataTable, FilterDefinition, PageHeader } from "../../components";
-import { StockAlert } from "../../types";
-
-// ============================================================================
-// Sample Data
-// ============================================================================
-
-const SAMPLE_ALERTS: StockAlert[] = [
-  { id: "1", productName: "Energy Drink XL", skuUpc: "QB-101 / 123456789", channelName: "Primary", categoryName: "Beverages", availableQty: 2, backOrderQty: 10, totalQty: 12, minQty: 20, maxQty: 100 },
-  { id: "2", productName: "Wireless Mouse", skuUpc: "QB-102 / 987654321", channelName: "Primary", categoryName: "Electronics", availableQty: 0, backOrderQty: 5, totalQty: 5, minQty: 10, maxQty: 50 },
-  { id: "3", productName: "Snack Pack Mix", skuUpc: "QB-103 / 456789123", channelName: "Secondary", categoryName: "Snacks", availableQty: 5, backOrderQty: 0, totalQty: 5, minQty: 15, maxQty: 75 },
-];
+import { useTableContentWidth } from "../../hooks/useTableContentWidth";
+import { useStockAlerts } from "../../utils/powersync/hooks";
+import type { StockAlertView } from "../../utils/powersync/hooks";
 
 // ============================================================================
 // Main Component
 // ============================================================================
 
 export default function StockAlertsScreen() {
-  // Column config
-  const columns: ColumnDefinition<StockAlert>[] = [
+  const contentWidth = useTableContentWidth();
+  const { alerts, isLoading, refresh, count } = useStockAlerts();
+
+  const columns: ColumnDefinition<StockAlertView>[] = [
     {
       key: "productName",
       title: "Product Name",
-      width: "flex",
+      width: "25%",
       visible: true,
       hideable: false,
       render: (item) => <Text className="text-[#1A1A1A] text-lg">{item.productName}</Text>,
@@ -35,28 +32,28 @@ export default function StockAlertsScreen() {
     {
       key: "skuUpc",
       title: "SKU/UPC",
-      width: 180,
+      width: "14%",
       visible: true,
       render: (item) => <Text className="text-gray-600 text-lg">{item.skuUpc}</Text>,
     },
     {
       key: "channelName",
       title: "Channel Name",
-      width: 140,
+      width: "12%",
       visible: true,
       render: (item) => <Text className="text-gray-600 text-lg">{item.channelName}</Text>,
     },
     {
       key: "categoryName",
       title: "Category Name",
-      width: 150,
+      width: "12%",
       visible: true,
       render: (item) => <Text className="text-gray-600 text-lg">{item.categoryName}</Text>,
     },
     {
       key: "availableQty",
       title: "Available Qty",
-      width: 120,
+      width: "10%",
       align: "center",
       visible: true,
       render: (item) => {
@@ -69,7 +66,7 @@ export default function StockAlertsScreen() {
     {
       key: "backOrderQty",
       title: "Back Order Qty",
-      width: 120,
+      width: "10%",
       align: "center",
       visible: true,
       render: (item) => <Text className="text-[#1A1A1A] text-lg">{item.backOrderQty}</Text>,
@@ -77,7 +74,7 @@ export default function StockAlertsScreen() {
     {
       key: "totalQty",
       title: "Total Qty",
-      width: 100,
+      width: "9%",
       align: "center",
       visible: true,
       render: (item) => <Text className="text-[#1A1A1A] text-lg">{item.totalQty}</Text>,
@@ -85,7 +82,7 @@ export default function StockAlertsScreen() {
     {
       key: "minQty",
       title: "Min Qty",
-      width: 100,
+      width: "8%",
       align: "center",
       visible: true,
       render: (item) => <Text className="text-blue-600 text-lg font-bold">{item.minQty}</Text>,
@@ -93,7 +90,7 @@ export default function StockAlertsScreen() {
     {
       key: "maxQty",
       title: "Max Qty",
-      width: 100,
+      width: "8%",
       align: "center",
       visible: true,
       render: (item) => <Text className="text-blue-600 text-lg font-bold">{item.maxQty}</Text>,
@@ -136,15 +133,30 @@ export default function StockAlertsScreen() {
     },
   ];
 
-  const handleSearch = (item: StockAlert, query: string) => {
+  const handleSearch = useCallback((item: StockAlertView, query: string) => {
     const q = query.toLowerCase();
     return (
       item.productName.toLowerCase().includes(q) ||
       item.skuUpc.toLowerCase().includes(q)
     );
-  };
+  }, []);
 
-  const handleFilter = (item: StockAlert, filters: Record<string, string | null>) => {
+  const { setConfig: setBulkEditConfig, setSelection: setBulkEditSelection } = useBulkEditContext();
+
+  const handleBulkAction = useCallback((rows: StockAlertView[]) => {
+    if (rows.length === 0) {
+      Alert.alert("Bulk Create PO", "Please select product(s) first.");
+      return;
+    }
+    Alert.alert("Bulk Create PO", `Create Purchase Order for ${rows.length} selected product(s)? This feature is coming soon.`);
+  }, []);
+
+  useEffect(() => {
+    setBulkEditConfig({ label: "Bulk Create PO", onPress: handleBulkAction });
+    return () => setBulkEditConfig(null);
+  }, [handleBulkAction, setBulkEditConfig]);
+
+  const handleFilter = useCallback((item: StockAlertView, filters: Record<string, string | null>) => {
     if (filters.channel && filters.channel !== "all") {
       if (item.channelName !== filters.channel) return false;
     }
@@ -165,14 +177,14 @@ export default function StockAlertsScreen() {
       }
     }
     return true;
-  };
+  }, []);
 
   return (
     <View className="flex-1 bg-[#F7F7F9]">
       <PageHeader title="Stock Alerts" showBack={false} />
 
-      <DataTable<StockAlert>
-        data={SAMPLE_ALERTS}
+      <DataTable<StockAlertView>
+        data={alerts}
         columns={columns}
         keyExtractor={(item) => item.id}
         searchable
@@ -181,15 +193,25 @@ export default function StockAlertsScreen() {
         onSearch={handleSearch}
         filters={filters}
         onFilter={handleFilter}
+        filtersInSettingsModal
+        bulkActions
+        bulkActionText="Bulk Create PO"
+        bulkActionInActionRow
+        bulkActionInSidebar
+        onBulkActionPress={handleBulkAction}
+        onSelectionChange={(_, rows) => setBulkEditSelection(rows)}
         columnSelector
+        toolbarButtonStyle="shopping-cart"
+        onRefresh={refresh}
+        isLoading={isLoading}
         horizontalScroll
-        minWidth={1100}
+        minWidth={contentWidth}
         addButton
         addButtonText="Create Purchase Order"
         onAddPress={() => {}}
         emptyIcon="cloud-offline-outline"
         emptyText="No Stock Alerts Found"
-        totalCount={SAMPLE_ALERTS.length}
+        totalCount={count}
       />
     </View>
   );

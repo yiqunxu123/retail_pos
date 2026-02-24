@@ -18,9 +18,9 @@ import { AddProductsOrderSummary } from "../../components/order/AddProductsOrder
 import { AddProductsTopBar } from "../../components/order/AddProductsTopBar";
 import { HiddenScannerInput } from "../../components/order/HiddenScannerInput";
 import {
-  SearchCustomerModalController,
-  SearchCustomerModalControllerHandle,
-} from "../../components/order/SearchCustomerModalController";
+  AddNotePanelController,
+  AddNotePanelControllerHandle,
+} from "../../components/order/AddNotePanelController";
 import {
   SearchProductModalController,
   SearchProductModalControllerHandle,
@@ -144,11 +144,10 @@ function AddProductsHeavy() {
   const processingTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const hiddenInputRef = useRef<TextInput>(null!);
   const searchProductModalRef = useRef<SearchProductModalControllerHandle>(null);
-  const customerModalRef = useRef<SearchCustomerModalControllerHandle>(null);
-  const customerModalVisibleRef = useRef(false);
+  const addNotePanelRef = useRef<AddNotePanelControllerHandle>(null);
   const { products: allProducts, isLoading: isProductsLoading } = useProducts({ enabled: modalsReady });
   const [showSearchProductModal, setShowSearchProductModal] = useState(false);
-  const [showCustomerModal, setShowCustomerModal] = useState(false);
+  const [showAddNotePanel, setShowAddNotePanel] = useState(false);
   const [showCashPaymentModal, setShowCashPaymentModal] = useState(false);
   const [showDiscountModal, setShowDiscountModal] = useState(false);
   const [selectedCustomerData, setSelectedCustomerData] = useState<QuickCustomerResult | null>(null);
@@ -247,7 +246,7 @@ function AddProductsHeavy() {
   // }, [scanLogs]);
   const hasBlockingScanModal = useMemo(
     () =>
-      showCustomerModal ||
+      showAddNotePanel ||
       showCashPaymentModal ||
       showDiscountModal ||
       showProductSettingsModal ||
@@ -259,7 +258,7 @@ function AddProductsHeavy() {
       showTaxModal ||
       showInvoiceModal,
     [
-      showCustomerModal,
+      showAddNotePanel,
       showCashPaymentModal,
       showDiscountModal,
       showProductSettingsModal,
@@ -272,13 +271,6 @@ function AddProductsHeavy() {
       showInvoiceModal,
     ]
   );
-  const handleCustomerModalVisibleStateChange = useCallback((visible: boolean) => {
-    customerModalVisibleRef.current = visible;
-    if (visible) {
-      hiddenInputRef.current?.blur();
-    }
-    setShowCustomerModal(visible);
-  }, []);
   const handleSearchProductModalVisibleStateChange = useCallback((visible: boolean) => {
     console.log(`[Modal] SearchProduct visible=${visible}`);
     if (visible) {
@@ -305,7 +297,7 @@ function AddProductsHeavy() {
       selectedProductId: selectedProduct?.id ?? null,
       // scanLogsLength: scanLogs.length,
       hasBlockingScanModal,
-      showCustomerModal,
+      showAddNotePanel,
       showCashPaymentModal,
       showDiscountModal,
       showParkOrderModal,
@@ -375,8 +367,8 @@ function AddProductsHeavy() {
 
   // Refocus hidden input whenever a modal closes
   const shouldRestoreScannerFocus = useCallback(
-    () => !hasBlockingScanModal && !customerModalVisibleRef.current && !showSearchProductModal,
-    [hasBlockingScanModal, showSearchProductModal]
+    () => !hasBlockingScanModal && !showSearchProductModal && !showAddNotePanel,
+    [hasBlockingScanModal, showSearchProductModal, showAddNotePanel]
   );
 
   // Process scan queue - runs independently from input
@@ -437,12 +429,22 @@ function AddProductsHeavy() {
     }
   }, [controllersReady, shouldRestoreScannerFocus]);
 
-  // Auto-open SearchProductModal when showSearchProductModal becomes true
+  // Auto-open SearchProductModal when showSearchProductModal becomes true.
+  // Must wait for modalsReady (Controller mounts) and use rAF so ref is set after commit.
   useEffect(() => {
-    if (showSearchProductModal && searchProductModalRef.current) {
-      searchProductModalRef.current.open();
+    if (!modalsReady || !showSearchProductModal) return;
+    const id = requestAnimationFrame(() => {
+      searchProductModalRef.current?.open();
+    });
+    return () => cancelAnimationFrame(id);
+  }, [showSearchProductModal, modalsReady]);
+
+  // Auto-open AddNotePanel when showAddNotePanel becomes true
+  useEffect(() => {
+    if (showAddNotePanel && addNotePanelRef.current) {
+      addNotePanelRef.current.open();
     }
-  }, [showSearchProductModal]);
+  }, [showAddNotePanel]);
 
   const handleHiddenInputFocus = useCallback(() => {
     // Scanner input focused
@@ -650,7 +652,7 @@ function AddProductsHeavy() {
 
   const handleOpenCustomerModal = useCallback(() => {
     hiddenInputRef.current?.blur();
-    customerModalRef.current?.open();
+    setShowAddNotePanel(true);
   }, []);
 
   const handleOrderSettingsChange = useCallback(
@@ -803,7 +805,14 @@ function AddProductsHeavy() {
   }, [router]);
 
   const handleAddNotes = useCallback(() => {
-    Alert.alert("Add Notes", "Feature coming soon");
+    setShowAddNotePanel(true);
+  }, []);
+
+  const handleAddNotePanelVisibleStateChange = useCallback((visible: boolean) => {
+    if (visible) {
+      hiddenInputRef.current?.blur();
+    }
+    if (!visible) setShowAddNotePanel(false);
   }, []);
 
   const handleAddTax = useCallback(() => {
@@ -1027,20 +1036,19 @@ function AddProductsHeavy() {
       {/* Modals — deferred to keep first paint fast */}
       {modalsReady && (<>
 
-      {controllersReady && (<SearchCustomerModalController
-        ref={customerModalRef}
-        onSelectCustomer={handleSelectCustomer}
-        currentCustomer={selectedCustomerData}
-        orderSettings={orderSettings}
-        onOrderSettingsChange={handleOrderSettingsChange}
-        onVisibleStateChange={handleCustomerModalVisibleStateChange}
-      />)}
-
       {showSearchProductModal && (<SearchProductModalController
         ref={searchProductModalRef}
         onSelectProduct={handleAddProductFromSearch}
         onVisibleStateChange={handleSearchProductModalVisibleStateChange}
       />)}
+
+      <AddNotePanelController
+        ref={addNotePanelRef}
+        onVisibleStateChange={handleAddNotePanelVisibleStateChange}
+        onSelectCustomer={handleSelectCustomer}
+        orderSettings={orderSettings}
+        onOrderSettingsChange={handleOrderSettingsChange}
+      />
 
       <CashPaymentModal
         visible={showCashPaymentModal}

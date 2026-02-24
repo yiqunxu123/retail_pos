@@ -122,14 +122,14 @@ export function FilterDropdown(props: FilterDropdownProps) {
 
   return (
     <View style={width ? { width } : undefined} className={!width ? "flex-1" : ""}>
-      {label && <Text className="text-[#5A5F66] text-base mb-1">{label}</Text>}
+      {label && <Text className="text-[#5A5F66] text-lg mb-1.5">{label}</Text>}
       
       <Pressable
         onPress={() => setIsOpen(true)}
         style={getContainerStyle()}
-        className={`${containerClass} rounded-xl px-3 py-2.5 flex-row items-center justify-between`}
+        className={`${containerClass} rounded-xl px-3 py-3 flex-row items-center justify-between`}
       >
-        <Text className={`${textStyles[variant]} flex-1 text-base`} numberOfLines={1}>
+        <Text className={`${textStyles[variant]} flex-1 text-lg`} numberOfLines={1}>
           {displayText}
         </Text>
         {allowClear && hasValue && variant === "default" ? (

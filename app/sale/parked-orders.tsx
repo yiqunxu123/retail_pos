@@ -13,10 +13,12 @@
 import { buttonSize, colors, iconSize } from "@/utils/theme";
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
-import { useCallback, useMemo } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { ActivityIndicator, Alert, Pressable, Text, View } from "react-native";
-import { ColumnDefinition, DataTable, PageHeader } from "../../components";
+import { useBulkEditContext } from "../../contexts/BulkEditContext";
+import { ACTION_COL_WIDTH, ColumnDefinition, DataTable, PageHeader } from "../../components";
 import { useParkedOrders } from "../../contexts/ParkedOrderContext";
+import { useTableContentWidth } from "../../hooks/useTableContentWidth";
 import { getSaleOrderStatusLabel } from "../../utils/constants";
 import { type ParkedOrderView } from "../../utils/powersync/hooks";
 
@@ -50,8 +52,10 @@ function formatDate(dateStr: string): string {
 // ============================================================================
 
 export default function ParkedOrdersScreen() {
-  const { remoteOrders, deleteParkedOrder, isLoading, count } =
+  const contentWidth = useTableContentWidth();
+  const { remoteOrders, deleteParkedOrder, isLoading, count, refresh } =
     useParkedOrders();
+  const [selectedRowKeys, setSelectedRowKeys] = useState<string[]>([]);
 
   const handleResumeOrder = useCallback((order: ParkedOrderView) => {
     Alert.alert("Resume Order", `Resume order ${order.orderNo}?`, [
@@ -92,6 +96,54 @@ export default function ParkedOrdersScreen() {
     [deleteParkedOrder]
   );
 
+  const handleBulkDelete = useCallback(
+    async (rows: ParkedOrderView[]) => {
+      if (rows.length === 0) {
+        Alert.alert("Bulk Delete", "Please select order(s) first.");
+        return;
+      }
+      Alert.alert(
+        "Bulk Delete Parked Orders",
+        `Delete ${rows.length} parked order(s)? This action cannot be undone.`,
+        [
+          { text: "Cancel", style: "cancel" },
+          {
+            text: "Delete",
+            style: "destructive",
+            onPress: async () => {
+              try {
+                for (const row of rows) {
+                  await deleteParkedOrder(row.id);
+                }
+                setSelectedRowKeys([]);
+                refresh();
+                Alert.alert("Success", `${rows.length} order(s) deleted.`);
+              } catch {
+                // Error alert already shown in context
+              }
+            },
+          },
+        ]
+      );
+    },
+    [deleteParkedOrder, refresh]
+  );
+
+  const { setConfig: setBulkEditConfig, setSelection: setBulkEditSelection } = useBulkEditContext();
+
+  useEffect(() => {
+    setBulkEditConfig({ label: "Bulk Delete", onPress: handleBulkDelete });
+    return () => setBulkEditConfig(null);
+  }, [handleBulkDelete, setBulkEditConfig]);
+
+  const handleSelectionChange = useCallback(
+    (keys: string[], rows: ParkedOrderView[]) => {
+      setSelectedRowKeys(keys);
+      setBulkEditSelection(rows);
+    },
+    [setBulkEditSelection]
+  );
+
   const handleSearch = useCallback((item: ParkedOrderView, query: string) => {
     const q = query.toLowerCase();
     return (
@@ -102,13 +154,12 @@ export default function ParkedOrdersScreen() {
     );
   }, []);
 
-  // Column configuration
   const columns = useMemo<ColumnDefinition<ParkedOrderView>[]>(
     () => [
     {
       key: "orderNo",
       title: "Order Number",
-      width: 180,
+      width: "14%",
       visible: true,
       hideable: false,
       render: (item) => (
@@ -120,7 +171,7 @@ export default function ParkedOrdersScreen() {
     {
       key: "date",
       title: "Date / Time",
-      width: 200,
+      width: "14%",
       visible: true,
       render: (item) => (
         <Text className="text-gray-600 text-lg">
@@ -131,18 +182,18 @@ export default function ParkedOrdersScreen() {
     {
       key: "customer",
       title: "Customer Name",
-      width: "flex",
+      width: "20%",
       visible: true,
       render: (item) => (
-        <Text className="text-blue-600 text-lg" numberOfLines={1}>
-          {item.customerName || "Guest Customer"}
+        <Text className="text-blue-600 text-base" numberOfLines={1}>
+          {item.businessName || item.customerName || "Guest Customer"}
         </Text>
       ),
     },
     {
       key: "createdBy",
       title: "Created By",
-      width: 140,
+      width: "12%",
       visible: true,
       render: (item) => (
         <Text className="text-gray-600 text-lg">{item.createdByName}</Text>
@@ -151,7 +202,7 @@ export default function ParkedOrdersScreen() {
     {
       key: "channel",
       title: "Channel Name",
-      width: 140,
+      width: "12%",
       visible: true,
       render: (item) => (
         <View className="bg-pink-100 px-3 py-1 rounded self-start">
@@ -164,7 +215,7 @@ export default function ParkedOrdersScreen() {
     {
       key: "items",
       title: "No. of Items",
-      width: 120,
+      width: "8%",
       align: "center",
       visible: true,
       render: (item) => (
@@ -174,7 +225,7 @@ export default function ParkedOrdersScreen() {
     {
       key: "total",
       title: "Total",
-      width: 140,
+      width: "10%",
       visible: true,
       render: (item) => (
         <Text className="text-red-600 text-lg font-bold">
@@ -185,7 +236,7 @@ export default function ParkedOrdersScreen() {
     {
       key: "status",
       title: "Status",
-      width: 120,
+      width: "8%",
       visible: true,
       render: (item) => (
         <View className="bg-purple-100 px-3 py-1 rounded self-start">
@@ -198,7 +249,7 @@ export default function ParkedOrdersScreen() {
     {
       key: "actions",
       title: "Actions",
-      width: 100,
+      width: ACTION_COL_WIDTH,
       align: "center",
       visible: true,
       render: (item) => (
@@ -248,9 +299,18 @@ export default function ParkedOrdersScreen() {
         searchPlaceholder="Search Parked Orders"
         searchHint="Search by Order No, Customer Name"
         onSearch={handleSearch}
+        bulkActions
+        bulkActionText="Bulk Delete"
+        bulkActionInActionRow
+        bulkActionInSidebar
+        onBulkActionPress={handleBulkDelete}
+        selectedRowKeys={selectedRowKeys}
+        onSelectionChange={handleSelectionChange}
         columnSelector
+        toolbarButtonStyle="shopping-cart"
+        onRefresh={refresh}
         horizontalScroll
-        minWidth={1200}
+        minWidth={contentWidth}
         emptyIcon="cart-outline"
         emptyText="No parked orders found"
         totalCount={count}

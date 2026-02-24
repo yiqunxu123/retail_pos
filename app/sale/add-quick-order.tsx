@@ -158,28 +158,28 @@ export default function AddQuickOrderScreen() {
             
             {/* Search Inputs */}
             <View className="mb-4">
-              <View className="flex-row items-center bg-white border border-blue-200 rounded-lg px-3 py-3 mb-2 shadow-sm">
+              <View className="flex-row items-center bg-white border-2 border-blue-200 rounded-xl px-3 py-3 mb-2 shadow-sm">
                 <Ionicons name="person-outline" size={iconSize.md} color={colors.primary} />
                 <TextInput
-                  className="flex-1 ml-2 text-gray-800"
+                  className="flex-1 ml-2 text-gray-800 text-lg"
                   placeholder="Search by Customer Name/Business"
                   placeholderTextColor={colors.textTertiary}
                   value={customerSearch}
                   onChangeText={setCustomerSearch}
                 />
               </View>
-              <View className="flex-row items-center bg-white border border-gray-200 rounded-lg px-3 py-3 mb-2 shadow-sm">
+              <View className="flex-row items-center bg-white border border-gray-200 rounded-xl px-3 py-3 mb-2 shadow-sm">
                 <Ionicons name="key-outline" size={iconSize.md} color={colors.textSecondary} />
                 <TextInput
-                  className="flex-1 ml-2 text-gray-800"
+                  className="flex-1 ml-2 text-gray-800 text-lg"
                   placeholder="Search by Customer ID/Number"
                   placeholderTextColor={colors.textTertiary}
                 />
               </View>
-              <View className="flex-row items-center bg-white border border-gray-200 rounded-lg px-3 py-3 shadow-sm">
+              <View className="flex-row items-center bg-white border border-gray-200 rounded-xl px-3 py-3 shadow-sm">
                 <Ionicons name="mail-outline" size={iconSize.md} color={colors.textSecondary} />
                 <TextInput
-                  className="flex-1 ml-2 text-gray-800"
+                  className="flex-1 ml-2 text-gray-800 text-lg"
                   placeholder="Search by Customer Email/Address"
                   placeholderTextColor={colors.textTertiary}
                 />
@@ -256,7 +256,7 @@ export default function AddQuickOrderScreen() {
                 <Text className="text-[#5A5F66] text-lg mb-1.5">Add product by Name, SKU, UPC</Text>
                 <Pressable 
                   onPress={() => setShowSearchModal(true)}
-                  className="flex-row items-center bg-white border border-gray-200 rounded-lg px-3 py-3 shadow-sm"
+                  className="flex-row items-center bg-white border border-gray-200 rounded-xl px-3 py-3 shadow-sm"
                 >
                   <Ionicons name="search" size={iconSize.base} color={colors.textTertiary} />
                   <Text className="flex-1 ml-2 text-gray-400 text-lg">Search Products</Text>
@@ -265,7 +265,7 @@ export default function AddQuickOrderScreen() {
               <View>
                 <Text className="text-[#5A5F66] text-lg mb-1.5 text-center">Scan Qty</Text>
                 <TextInput
-                  className="w-20 bg-white border border-gray-200 rounded-lg px-3 py-3 text-center text-gray-800 text-lg shadow-sm"
+                  className="w-20 bg-white border border-gray-200 rounded-xl px-3 py-3 text-center text-gray-800 text-lg shadow-sm"
                   keyboardType="numeric"
                   value={scanQty}
                   onChangeText={setScanQty}

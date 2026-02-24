@@ -1,5 +1,3 @@
-import { colors, iconSize } from '@/utils/theme';
-import { Ionicons } from "@expo/vector-icons";
 import React, {
   forwardRef,
   useCallback,
@@ -9,23 +7,8 @@ import React, {
   useRef,
   useState,
 } from "react";
-import {
-  ActivityIndicator,
-  Animated,
-  BackHandler,
-  FlatList,
-  Image,
-  InteractionManager,
-  ListRenderItemInfo,
-  Platform,
-  Pressable,
-  StyleSheet,
-  Text,
-  TextInput,
-  useWindowDimensions,
-  View,
-} from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { LeftSlidePanel, LeftSlidePanelHandle } from "./LeftSlidePanel";
+import { ProductSearchTemplate } from "./ProductSearchTemplate";
 import { useRenderTrace } from "../utils/debug/useRenderTrace";
 import { useProducts, useProductsPage } from "../utils/powersync/hooks";
 import type { ProductView } from "../utils/powersync/hooks/useProducts";
@@ -80,8 +63,6 @@ interface SearchProductModalWithDataProps extends SearchProductModalProps {
   modalRef: React.Ref<SearchProductModalHandle>;
 }
 
-const PANEL_WIDTH_RATIO = 0.5;
-const BACKDROP_MAX_OPACITY = 0.35;
 const DEFAULT_PAGE_SIZE = 10;
 const SEARCH_DEBOUNCE_MS = 150;
 let hiddenSkipCount = 0;
@@ -114,44 +95,14 @@ const SearchProductModalCore = forwardRef<
 ) {
   const isControlled = typeof visible === "boolean";
   const controlledVisible = visible ?? false;
-  const insets = useSafeAreaInsets();
-  const { width } = useWindowDimensions();
-  const panelWidth = Math.max(1, Math.round(width * PANEL_WIDTH_RATIO));
   const pageModeEnabled = paginationMode === "page";
   const normalizedPageSize = Math.max(1, Math.floor(pageSize || DEFAULT_PAGE_SIZE));
-  const safeAreaPadding = useMemo(
-    () =>
-      Platform.OS === "android"
-        ? {
-            paddingTop: insets.top,
-            paddingLeft: insets.left,
-            paddingRight: insets.right,
-          }
-        : null,
-    [insets.left, insets.right, insets.top]
-  );
+  const panelRef = useRef<LeftSlidePanelHandle>(null);
 
   const [searchQuery, setSearchQuery] = useState("");
   const [debouncedSearchQuery, setDebouncedSearchQuery] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
-  const [isModalOpen, setIsModalOpen] = useState(controlledVisible);
-  const progress = useRef(new Animated.Value(controlledVisible ? 1 : 0)).current;
-  const isOpenRef = useRef(controlledVisible);
-  const targetOpenRef = useRef(controlledVisible);
-  const isAnimatingRef = useRef(false);
   const searchQueryRef = useRef(searchQuery);
-  const touchGateRef = useRef<View | null>(null);
-  const frameRafRef = useRef<number | null>(null);
-  const interactionTaskRef =
-    useRef<ReturnType<typeof InteractionManager.runAfterInteractions> | null>(
-      null
-    );
-  const overlayMeasuredRef = useRef(false);
-  const panelMeasuredRef = useRef(false);
-  const firstItemReportedRef = useRef(false);
-  const overlayLayoutReportedRef = useRef(false);
-  const panelLayoutReportedRef = useRef(false);
-  const filterReadyReportedRef = useRef(false);
 
   useEffect(() => {
     searchQueryRef.current = searchQuery;
@@ -215,264 +166,23 @@ const SearchProductModalCore = forwardRef<
     : isLoading;
   const pageInfoLoading = pageModeEnabled ? pagedProductsResult.isCountLoading : false;
 
-  const panelTranslateX = useMemo(
-    () =>
-      progress.interpolate({
-        inputRange: [0, 1],
-        outputRange: [-panelWidth, 0],
-      }),
-    [panelWidth, progress]
-  );
-  const backdropOpacity = useMemo(
-    () =>
-      progress.interpolate({
-        inputRange: [0, 1],
-        outputRange: [0, BACKDROP_MAX_OPACITY],
-      }),
-    [progress]
-  );
-
-  const setTouchGateEnabled = useCallback((enabled: boolean) => {
-    const node = touchGateRef.current as
-      | (View & { setNativeProps?: (props: Record<string, unknown>) => void })
-      | null;
-    node?.setNativeProps?.({ pointerEvents: enabled ? "auto" : "none" });
-  }, []);
-
-  const clearScheduledOpenCallbacks = useCallback(() => {
-    if (frameRafRef.current != null) {
-      cancelAnimationFrame(frameRafRef.current);
-      frameRafRef.current = null;
-    }
-    interactionTaskRef.current?.cancel?.();
-    interactionTaskRef.current = null;
-  }, []);
-
-  const resetOpenMarkers = useCallback(() => {
-    firstItemReportedRef.current = false;
-    overlayLayoutReportedRef.current = false;
-    panelLayoutReportedRef.current = false;
-    filterReadyReportedRef.current = false;
-  }, []);
-
-  const maybeReportOverlayLayout = useCallback(() => {
-    if (
-      !overlayMeasuredRef.current ||
-      !isOpenRef.current ||
-      overlayLayoutReportedRef.current
-    ) {
-      return;
-    }
-    overlayLayoutReportedRef.current = true;
-    onOverlayLayout?.();
-  }, [onOverlayLayout]);
-
-  const maybeReportPanelLayout = useCallback(() => {
-    if (!panelMeasuredRef.current || !isOpenRef.current || panelLayoutReportedRef.current) {
-      return;
-    }
-    panelLayoutReportedRef.current = true;
-    onPanelLayout?.();
-  }, [onPanelLayout]);
-
-  const maybeReportFilterReady = useCallback(() => {
-    if (!isOpenRef.current || listLoading || filterReadyReportedRef.current) return;
-    filterReadyReportedRef.current = true;
-    onFilterReady?.({
-      displayCount: filteredProducts.length,
-      query: searchQueryRef.current.trim(),
-      filterMs: filteredResult.filterMs,
-    });
-  }, [filteredProducts.length, filteredResult.filterMs, listLoading, onFilterReady]);
-
-  const maybeReportFirstRowVisible = useCallback(() => {
-    if (!isOpenRef.current || listLoading || filteredProducts.length === 0 || firstItemReportedRef.current) {
-      return;
-    }
-    firstItemReportedRef.current = true;
-    onFirstListItemVisible?.({
-      displayCount: filteredProducts.length,
-      query: searchQueryRef.current.trim(),
-    });
-  }, [filteredProducts.length, listLoading, onFirstListItemVisible]);
-
-  const scheduleOpenCallbacks = useCallback(() => {
-    clearScheduledOpenCallbacks();
-    frameRafRef.current = requestAnimationFrame(() => {
-      frameRafRef.current = null;
-      if (!isOpenRef.current) return;
-      onNextFrame?.();
-      maybeReportFilterReady();
-      maybeReportFirstRowVisible();
-    });
-    interactionTaskRef.current = InteractionManager.runAfterInteractions(() => {
-      interactionTaskRef.current = null;
-      if (!isOpenRef.current) return;
-      onAfterInteractions?.();
-      maybeReportFilterReady();
-      maybeReportFirstRowVisible();
-    });
-  }, [
-    clearScheduledOpenCallbacks,
-    maybeReportFilterReady,
-    maybeReportFirstRowVisible,
-    onAfterInteractions,
-    onNextFrame,
-  ]);
-
-  const animateTo = useCallback(
-    (nextOpen: boolean, reason: string) => {
-      if (
-        targetOpenRef.current === nextOpen &&
-        isOpenRef.current === nextOpen &&
-        !isAnimatingRef.current
-      ) {
-        return;
-      }
-
-      targetOpenRef.current = nextOpen;
-      progress.stopAnimation();
-
-      if (nextOpen) {
-        isOpenRef.current = true;
-        setIsModalOpen(true);
-        resetOpenMarkers();
-        setTouchGateEnabled(true);
-        maybeReportOverlayLayout();
-        maybeReportPanelLayout();
-        onOpenStart?.();
-        onVisible?.();
-        scheduleOpenCallbacks();
-      } else {
-        clearScheduledOpenCallbacks();
-        onCloseStart?.(reason);
-      }
-
-      // Animation intentionally disabled: switch visibility immediately.
-      isAnimatingRef.current = true;
-      progress.setValue(nextOpen ? 1 : 0);
-      isAnimatingRef.current = false;
-      isOpenRef.current = nextOpen;
-      targetOpenRef.current = nextOpen;
-
-      if (nextOpen) {
-        onOpenEnd?.();
-        maybeReportFilterReady();
-        maybeReportFirstRowVisible();
-      } else {
-        setIsModalOpen(false);
-        setTouchGateEnabled(false);
-        onCloseEnd?.(reason);
-        setCurrentPage(1);
-        if (searchQueryRef.current) {
-          setSearchQuery("");
-          setDebouncedSearchQuery("");
-        }
-      }
-    },
-    [
-      clearScheduledOpenCallbacks,
-      maybeReportFilterReady,
-      maybeReportFirstRowVisible,
-      maybeReportOverlayLayout,
-      maybeReportPanelLayout,
-      onCloseEnd,
-      onCloseStart,
-      onOpenEnd,
-      onOpenStart,
-      onVisible,
-      progress,
-      resetOpenMarkers,
-      scheduleOpenCallbacks,
-      setTouchGateEnabled,
-    ]
-  );
-
   useImperativeHandle(
     ref,
     () => ({
-      open: () => animateTo(true, "imperative"),
-      close: (reason = "manual") => animateTo(false, reason),
-      isOpen: () => isOpenRef.current,
+      open: () => panelRef.current?.open(),
+      close: (reason = "manual") => panelRef.current?.close(reason),
+      isOpen: () => panelRef.current?.isOpen() ?? false,
     }),
-    [animateTo]
+    []
   );
 
-  useEffect(() => {
-    setTouchGateEnabled(isOpenRef.current);
-    return () => {
-      clearScheduledOpenCallbacks();
-    };
-  }, [clearScheduledOpenCallbacks, setTouchGateEnabled]);
-
-  useEffect(() => {
-    if (!isControlled) return;
-    animateTo(controlledVisible, "controlled");
-  }, [animateTo, controlledVisible, isControlled]);
-
   const handleCloseRequest = useCallback(
-    (reason: string) => {
+    (reason?: string) => {
       onClose(reason);
     },
     [onClose]
   );
 
-  useEffect(() => {
-    const subscription = BackHandler.addEventListener("hardwareBackPress", () => {
-      if (!isOpenRef.current) return false;
-      handleCloseRequest("hardware_back");
-      return true;
-    });
-    return () => subscription.remove();
-  }, [handleCloseRequest]);
-
-  useEffect(() => {
-    maybeReportFilterReady();
-    maybeReportFirstRowVisible();
-  }, [maybeReportFilterReady, maybeReportFirstRowVisible]);
-
-  const handleSelectProduct = useCallback(
-    (product: ProductView) => {
-      onSelectProduct({
-        id: product.id,
-        name: product.name,
-        sku: product.sku || product.upc || "",
-        category: product.categoryName || "Uncategorized",
-        quantity: 0,
-        price: product.salePrice,
-        image: product.images?.[0],
-      });
-    },
-    [onSelectProduct]
-  );
-
-  const handleFirstItemLayout = useCallback(() => {
-    maybeReportFirstRowVisible();
-  }, [maybeReportFirstRowVisible]);
-
-  const handleOverlayLayout = useCallback(() => {
-    overlayMeasuredRef.current = true;
-    maybeReportOverlayLayout();
-  }, [maybeReportOverlayLayout]);
-
-  const handlePanelLayout = useCallback(() => {
-    panelMeasuredRef.current = true;
-    maybeReportPanelLayout();
-  }, [maybeReportPanelLayout]);
-
-  const handleBackdropPress = useCallback(() => {
-    handleCloseRequest("backdrop");
-  }, [handleCloseRequest]);
-
-  const handleCloseButtonPress = useCallback(() => {
-    handleCloseRequest("close_button");
-  }, [handleCloseRequest]);
-
-  const keyExtractor = useCallback((item: ProductView) => item.id, []);
-
-  const canGoPrevPage = pageModeEnabled && currentPage > 1;
-  const canGoNextPage = pageModeEnabled && currentPage < totalPages;
-  const totalPagesText = pageInfoLoading ? "Total ... pages" : `Total ${totalPages} pages`;
   const handlePrevPage = useCallback(() => {
     setCurrentPage((prev) => Math.max(1, prev - 1));
   }, []);
@@ -483,85 +193,23 @@ const SearchProductModalCore = forwardRef<
     setCurrentPage(page);
   }, []);
 
-  const pageTokens = useMemo(() => {
-    if (!pageModeEnabled) return [currentPage];
-    const windowSize = 10;
-    const tokenTotalPages = Math.max(totalPages, currentPage);
-    const windowStart = Math.floor((currentPage - 1) / windowSize) * windowSize + 1;
-    const windowEnd = Math.min(tokenTotalPages, windowStart + windowSize - 1);
-    const length = windowEnd - windowStart + 1;
-    return Array.from({ length }, (_, i) => windowStart + i);
-  }, [currentPage, pageModeEnabled, totalPages]);
-
-  const renderProductRow = useCallback(
-    ({ item, index }: ListRenderItemInfo<ProductView>) => (
-      <Pressable
-        onPress={() => handleSelectProduct(item)}
-        onLayout={index === 0 ? handleFirstItemLayout : undefined}
-        className="flex-row items-center px-6 py-5" style={{ borderBottomWidth: 1, borderBottomColor: colors.borderLight }}
-      >
-        <View className="flex-1 flex-row items-center">
-          <View className="w-16 h-16 rounded-xl overflow-hidden items-center justify-center mr-4 border border-gray-100" style={{ backgroundColor: colors.backgroundTertiary }}>
-            {item.images?.[0] ? (
-              <Image source={{ uri: item.images[0] }} className="w-full h-full" resizeMode="cover" />
-            ) : (
-              <Ionicons name="cube-outline" size={iconSize['2xl']} color="#c4c8cf" />
-            )}
-          </View>
-
-          <View className="flex-1 min-w-[120px]">
-            <Text
-              className="text-lg font-bold"
-              style={{ color: colors.text }}
-              numberOfLines={2}
-            >
-              {item.name}
-            </Text>
-            <Text
-              className="text-sm"
-              style={{ color: colors.textTertiary, marginTop: 2 }}
-              numberOfLines={1}
-            >
-              {item.sku || item.upc || ""}
-            </Text>
-          </View>
-        </View>
-
-        <View className="w-40 items-center px-2 ml-[30px]">
-          <Text
-            className="text-base font-semibold"
-            style={{
-              color: colors.text,
-              textAlign: "center",
-            }}
-            numberOfLines={1}
-          >
-            {(item.categoryName || "Uncategorized").toUpperCase()}
-          </Text>
-        </View>
-
-        <View className="flex-1 items-end">
-          <Text
-            className="text-2xl font-bold"
-            style={{
-              color: colors.text,
-              transform: [{ translateX: -40 }],
-            }}
-          >
-            ${item.salePrice.toFixed(2)}
-          </Text>
-        </View>
-      </Pressable>
-    ),
-    [handleFirstItemLayout, handleSelectProduct]
-  );
+  const paginationProps = pageModeEnabled
+    ? {
+        currentPage,
+        totalPages,
+        totalCount,
+        isLoading: pageInfoLoading,
+        onPrevPage: handlePrevPage,
+        onNextPage: handleNextPage,
+        onSelectPage: handleSelectPage,
+      }
+    : undefined;
 
   useRenderTrace(
     "SearchProductModal",
     {
       visible: controlledVisible,
       controlled: isControlled,
-      keepMountedHidden: !isOpenRef.current,
       searchQuery,
       paginationMode,
       pageSize: normalizedPageSize,
@@ -589,264 +237,28 @@ const SearchProductModalCore = forwardRef<
     { throttleMs: 100 }
   );
 
-  // Disable all pointer events when modal is closed to prevent scanner input from going to search box
-  const rootPointerEvents = isModalOpen ? "box-none" : "none";
-
   return (
-    <View pointerEvents={rootPointerEvents} style={styles.rootContainer}>
-      <Animated.View
-        pointerEvents="none"
-        style={[styles.backdrop, { opacity: backdropOpacity }]}
-        onLayout={handleOverlayLayout}
-      />
-
-      <View ref={touchGateRef} pointerEvents="none" style={styles.backdropTouchGate}>
-        <View pointerEvents="none" style={{ width: panelWidth }} />
-        <Pressable style={styles.backdropPressArea} onPress={handleBackdropPress} />
-      </View>
-
-      <Animated.View
-        pointerEvents={isModalOpen ? "auto" : "none"}
-        style={[
-          styles.panel,
-          {
-            width: panelWidth,
-            transform: [{ translateX: panelTranslateX }],
-          },
-        ]}
-        onLayout={handlePanelLayout}
-      >
-        <View style={[styles.panelTouchBlocker, safeAreaPadding]}>
-          <View className="px-6 pt-6 pb-4 bg-white">
-            <View className="flex-row items-center justify-between mb-4">
-              <Text
-                className="text-2xl font-bold"
-                style={{ color: colors.primary }}
-              >
-                Search Products
-              </Text>
-              <Pressable
-                onPress={handleCloseButtonPress}
-                className="w-8 h-8 rounded-full items-center justify-center shadow-sm"
-                style={{ backgroundColor: colors.primary }}
-              >
-                <Ionicons name="close" size={iconSize.base} color="white" />
-              </Pressable>
-            </View>
-
-            <View className="flex-row items-center bg-white border-2 rounded-xl px-4 py-2.5 shadow-sm" style={{ borderColor: colors.primary }}>
-              <Ionicons name="search" size={iconSize.xl} color={colors.primary} />
-              <TextInput
-                className="flex-1 ml-3 text-gray-800 text-xl"
-                style={{  fontWeight: "500" }}
-                placeholder="SI"
-                placeholderTextColor={colors.textTertiary}
-                value={searchQuery}
-                onChangeText={setSearchQuery}
-                autoFocus={false}
-              />
-              {searchQuery.length > 0 && (
-                <Pressable onPress={() => setSearchQuery("")}>
-                  <Ionicons name="close-circle" size={iconSize.lg} color={colors.textTertiary} />
-                </Pressable>
-              )}
-            </View>
-          </View>
-
-          {listLoading ? (
-            <View className="flex-1 items-center justify-center">
-              <ActivityIndicator size="large" color={colors.primary} />
-            </View>
-          ) : filteredProducts.length === 0 ? (
-            <View className="flex-1 items-center justify-center">
-              <Ionicons name="cube-outline" size={iconSize['5xl']} color={colors.borderMedium} />
-              <Text  className="text-gray-400 mt-4 text-lg">
-                No products found
-              </Text>
-            </View>
-          ) : (
-            <View style={styles.listContainer}>
-              <FlatList
-                data={filteredProducts}
-                keyExtractor={keyExtractor}
-                renderItem={renderProductRow}
-                extraData={currentPage}
-                showsVerticalScrollIndicator={false}
-                keyboardShouldPersistTaps="handled"
-                contentContainerStyle={{ paddingBottom: 20 }}
-                initialNumToRender={16}
-                maxToRenderPerBatch={16}
-                windowSize={7}
-                removeClippedSubviews
-              />
-              {pageModeEnabled && (
-                <View style={styles.paginationContainer}>
-                  <Pressable
-                    accessibilityLabel="search-products-prev-page"
-                    onPress={handlePrevPage}
-                    disabled={!canGoPrevPage}
-                    style={[
-                      styles.paginationButton,
-                      !canGoPrevPage && styles.paginationButtonDisabled,
-                    ]}
-                  >
-                    <Text style={styles.paginationButtonText}>Prev</Text>
-                  </Pressable>
-
-                  <View style={styles.pageButtonsContainer}>
-                    {pageTokens.map((token) => {
-                      const isActive = token === currentPage;
-                      return (
-                        <Pressable
-                          key={`page-${token}`}
-                          accessibilityLabel={`search-products-page-${token}`}
-                          onPress={() => handleSelectPage(token)}
-                          style={[
-                            styles.pageButton,
-                            isActive && styles.pageButtonActive,
-                          ]}
-                        >
-                          <Text
-                            style={[
-                              styles.pageButtonText,
-                              isActive && styles.pageButtonTextActive,
-                            ]}
-                          >
-                            {token}
-                          </Text>
-                        </Pressable>
-                      );
-                    })}
-                  </View>
-
-                  <Text style={styles.totalPagesText}>{totalPagesText}</Text>
-
-                  <Pressable
-                    accessibilityLabel="search-products-next-page"
-                    onPress={handleNextPage}
-                    disabled={!canGoNextPage}
-                    style={[
-                      styles.paginationButton,
-                      !canGoNextPage && styles.paginationButtonDisabled,
-                    ]}
-                  >
-                    <Text style={styles.paginationButtonText}>Next</Text>
-                  </Pressable>
-                </View>
-              )}
-            </View>
-          )}
-        </View>
-      </Animated.View>
-    </View>
+    <LeftSlidePanel
+      ref={panelRef}
+      visible={isControlled ? controlledVisible : undefined}
+      onClose={handleCloseRequest}
+      title="Search Products"
+      body={
+        <ProductSearchTemplate
+          embedded
+          title="Search Products"
+          searchQuery={searchQuery}
+          onSearchChange={setSearchQuery}
+          searchPlaceholder="SI"
+          products={filteredProducts}
+          isLoading={listLoading}
+          onSelectProduct={onSelectProduct}
+          emptyMessage="No products found"
+          pagination={paginationProps}
+        />
+      }
+    />
   );
-});
-
-const styles = StyleSheet.create({
-  rootContainer: {
-    ...StyleSheet.absoluteFillObject,
-    zIndex: 1000,
-    elevation: 1000,
-  },
-  backdrop: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: "#000000",
-  },
-  backdropTouchGate: {
-    ...StyleSheet.absoluteFillObject,
-    flexDirection: "row",
-    zIndex: 1,
-  },
-  backdropPressArea: {
-    flex: 1,
-  },
-  panel: {
-    position: "absolute",
-    left: 0,
-    top: 0,
-    bottom: 0,
-    height: "100%",
-    backgroundColor: "#ffffff",
-    borderRightWidth: StyleSheet.hairlineWidth,
-    borderColor: colors.border,
-    shadowColor: "#000000",
-    shadowOpacity: 0.12,
-    shadowRadius: 8,
-    shadowOffset: { width: 2, height: 0 },
-    elevation: 8,
-    zIndex: 2,
-  },
-  panelTouchBlocker: {
-    flex: 1,
-  },
-  listContainer: {
-    flex: 1,
-  },
-  paginationContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderTopWidth: StyleSheet.hairlineWidth,
-    borderColor: colors.border,
-    backgroundColor: "#FFFFFF",
-  },
-  paginationButton: {
-    backgroundColor: colors.primary,
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    minWidth: 72,
-    alignItems: "center",
-  },
-  paginationButtonDisabled: {
-    backgroundColor: "#F3A9BC",
-  },
-  paginationButtonText: {
-    color: "#FFFFFF",
-    fontWeight: '700',
-    fontSize: 14,
-  },
-  pageButtonsContainer: {
-    flex: 1,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 6,
-    paddingHorizontal: 12,
-  },
-  pageButton: {
-    minWidth: 34,
-    height: 36,
-    paddingHorizontal: 8,
-    borderRadius: 8,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: colors.border,
-    backgroundColor: "#FFFFFF",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  pageButtonActive: {
-    backgroundColor: colors.primary,
-    borderColor: colors.primary,
-  },
-  pageButtonText: {
-    color: colors.text,
-    fontSize: 14,
-    fontWeight: '700',
-    textAlign: "center",
-  },
-  pageButtonTextActive: {
-    color: "#FFFFFF",
-  },
-  totalPagesText: {
-    marginRight: 8,
-    color: colors.textSecondary,
-    fontSize: 14,
-    fontWeight: '600',
-    minWidth: 82,
-    textAlign: "right",
-  },
 });
 
 function SearchProductModalWithData({

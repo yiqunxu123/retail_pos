@@ -34,39 +34,40 @@ function AddProductsCustomerCardComponent({
     >
       {customer ? (
         <View>
-          <Text style={{ color: colors.primary }} className="text-sm font-medium mb-1 text-center">
+          <Text style={{ color: colors.primary, fontSize: 16 }} className="font-medium mb-1 text-center">
             Current Status:
           </Text>
           <Text style={{ color: colors.text }} className="font-bold text-xl mb-3 text-center">
-            {customer.business_name}
+            {customer?.business_name ?? 'Customer'}
           </Text>
 
           <View className="items-center mb-4">
-            <View style={{ backgroundColor: colors.primaryLight }} className="border border-[#FECACA] rounded-full px-4 py-1.5 mb-2">
+            <View style={{ backgroundColor: 'transparent', borderWidth: 2, borderColor: colors.primary, borderRadius: 6, overflow: 'hidden' }} className="px-4 py-1.5 mb-2">
               <Text style={{ color: colors.primary }} className="text-sm font-semibold">
                 Loyalty Member
               </Text>
             </View>
-            <View className="bg-[#20232A] rounded-full px-4 py-1.5">
+            <View style={{ backgroundColor: '#20232A', borderRadius: 6, overflow: 'hidden' }} className="px-4 py-1.5 mt-2">
               <Text className="text-white text-sm">Loyalty Points: 760</Text>
             </View>
           </View>
 
-          <View className="flex-row gap-2">
+          <View className="flex-row gap-2 mt-4">
             <TouchableOpacity
               onPress={onOpenCustomerModal}
               className="flex-1 rounded-lg py-3 items-center shadow-sm"
               style={{ backgroundColor: colors.primary }}
             >
-              <Text className="text-white text-sm font-semibold text-center">
+              <Text className="text-white text-base font-semibold text-center">
                 Change{"\n"}Customer
               </Text>
             </TouchableOpacity>
             <TouchableOpacity
               onPress={onRemoveCustomer}
-              className="flex-1 bg-[#FEE2E2] rounded-lg py-3 items-center border border-[#FECACA]"
+              className="flex-1 rounded-lg py-3 items-center shadow-sm"
+              style={{ backgroundColor: colors.primary }}
             >
-              <Text style={{ color: colors.primary }} className="text-sm font-semibold text-center">
+              <Text className="text-white text-base font-semibold text-center">
                 Remove{"\n"}Customer
               </Text>
             </TouchableOpacity>
@@ -74,7 +75,7 @@ function AddProductsCustomerCardComponent({
         </View>
       ) : (
         <View className="items-center">
-          <Text style={{ color: colors.primary }} className="text-base font-medium mb-1">
+          <Text style={{ color: colors.primary, fontSize: 16 }} className="font-medium mb-1">
             Current Status:
           </Text>
           <Text style={{ color: colors.text }} className="font-bold text-2xl mb-6">

@@ -1,10 +1,9 @@
 import { useRouter } from "expo-router";
-import { useCallback, useMemo, useState } from "react";
-import {
-    Text,
-    View,
-} from "react-native";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { Alert, Text, View } from "react-native";
+import { useBulkEditContext } from "../../contexts/BulkEditContext";
 import { ColumnDefinition, DataTable, PageHeader } from "../../components";
+import { useTableContentWidth } from "../../hooks/useTableContentWidth";
 import { CategoryReportView, useCategoryVelocityReport } from "../../utils/powersync/hooks";
 
 // ============================================================================
@@ -66,6 +65,7 @@ function MarginBadge({ percentage }: { percentage: number }) {
 
 export default function CategoryVelocityReportScreen() {
   const router = useRouter();
+  const contentWidth = useTableContentWidth();
   
   // Data from PowerSync
   const { reports, isLoading, isStreaming, refresh } = useCategoryVelocityReport();
@@ -144,6 +144,21 @@ export default function CategoryVelocityReportScreen() {
 
   const avgMarginPercentage = totals.revenue > 0 ? (totals.margin / totals.revenue) * 100 : 0;
 
+  const { setConfig: setBulkEditConfig, setSelection: setBulkEditSelection } = useBulkEditContext();
+
+  const handleBulkAction = useCallback((rows: CategoryReportView[]) => {
+    if (rows.length === 0) {
+      Alert.alert("Bulk Export", "Please select row(s) first.");
+      return;
+    }
+    Alert.alert("Bulk Export", `${rows.length} row(s) selected. Export is coming soon.`);
+  }, []);
+
+  useEffect(() => {
+    setBulkEditConfig({ label: "Bulk Export", onPress: handleBulkAction });
+    return () => setBulkEditConfig(null);
+  }, [handleBulkAction, setBulkEditConfig]);
+
   const handleSearch = useCallback((item: CategoryReportView, query: string) =>
     item.categoryName.toLowerCase().includes(query.toLowerCase()), []);
 
@@ -171,7 +186,7 @@ export default function CategoryVelocityReportScreen() {
     {
       key: "categoryName",
       title: "Category Name",
-      width: 300,
+      width: "20%",
       render: (item) => (
         <Text className="text-[#1A1A1A] text-lg font-medium pr-2">{item.categoryName}</Text>
       ),
@@ -179,7 +194,7 @@ export default function CategoryVelocityReportScreen() {
     {
       key: "qtySold",
       title: "Qty Sold",
-      width: 120,
+      width: "10%",
       align: "center",
       render: (item) => (
         <Text className="text-[#1A1A1A] text-lg text-center">{String(item.qtySold)}</Text>
@@ -188,7 +203,7 @@ export default function CategoryVelocityReportScreen() {
     {
       key: "salesRevenue",
       title: "Revenue",
-      width: 150,
+      width: "14%",
       align: "right",
       render: (item) => (
         <Text className="text-[#1A1A1A] text-lg text-right">{formatCurrency(item.salesRevenue)}</Text>
@@ -197,7 +212,7 @@ export default function CategoryVelocityReportScreen() {
     {
       key: "cost",
       title: "Cost",
-      width: 150,
+      width: "14%",
       align: "right",
       render: (item) => (
         <Text className="text-[#1A1A1A] text-lg text-right">{formatCurrency(item.cost)}</Text>
@@ -206,7 +221,7 @@ export default function CategoryVelocityReportScreen() {
     {
       key: "margin",
       title: "Margin ($)",
-      width: 150,
+      width: "14%",
       align: "right",
       render: (item) => (
         <Text className="text-green-600 text-lg font-bold text-right">{formatCurrency(item.margin)}</Text>
@@ -215,7 +230,7 @@ export default function CategoryVelocityReportScreen() {
     {
       key: "marginPercentage",
       title: "Margin (%)",
-      width: 150,
+      width: "14%",
       align: "center",
       render: (item) => (
         <View className="items-center">
@@ -265,13 +280,21 @@ export default function CategoryVelocityReportScreen() {
         onFiltersChange={handleFiltersChange}
         sortOptions={SORT_OPTIONS}
         onSort={handleSort}
+        filtersInSettingsModal
+        bulkActions
+        bulkActionText="Bulk Export"
+        bulkActionInActionRow
+        bulkActionInSidebar
+        onBulkActionPress={handleBulkAction}
+        onSelectionChange={(_, rows) => setBulkEditSelection(rows)}
         isLoading={isLoading}
         isStreaming={isStreaming}
         onRefresh={refresh}
         columnSelector
+        toolbarButtonStyle="shopping-cart"
         ListFooterComponent={filteredReports.length > 0 ? renderTableFooter : null}
         horizontalScroll
-        minWidth={1020}
+        minWidth={contentWidth}
       />
     </View>
   );

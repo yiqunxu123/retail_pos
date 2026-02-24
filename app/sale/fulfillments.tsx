@@ -1,32 +1,23 @@
 /**
  * Fulfillments Screen
- * Uses the unified DataTable component
+ * Uses the unified DataTable component with PowerSync data
+ * Shows sale orders in progress (pending, picking, packing, etc.)
  */
 
 import { colors } from "@/utils/theme";
-import { useCallback, useMemo, useState } from "react";
-import { Pressable, Text, View } from "react-native";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { Alert, Pressable, Text, View } from "react-native";
+import { useBulkEditContext } from "../../contexts/BulkEditContext";
 import { ColumnDefinition, DataTable, FilterDefinition, PageHeader } from "../../components";
-import { Fulfillment } from "../../types";
+import { useTableContentWidth } from "../../hooks/useTableContentWidth";
+import { useFulfillments } from "../../utils/powersync/hooks";
+import type { FulfillmentView } from "../../utils/powersync/hooks";
 
 // ============================================================================
 // Constants
 // ============================================================================
 
 const TABS = ["All", "Pending", "Picking", "Packing"] as const;
-
-// ============================================================================
-// Sample Data
-// ============================================================================
-
-const SAMPLE_FULFILLMENTS: Fulfillment[] = [
-  { id: "1", businessName: "Geneshay Namh Inc/ Shan Convenience Store", customerName: "GENESHAY NAMH INC", orderNo: "SO-260122-05902", shippingType: "Pickup", pickerDetails: "Not assigned", pickerAssigned: false },
-  { id: "2", businessName: "ALASKA TAX CUSTOMER", customerName: "", orderNo: "SO-260122-05900", shippingType: "Pickup", pickerDetails: "Not assigned", pickerAssigned: false },
-  { id: "3", businessName: "Exxon Racers Edge", customerName: "Krishna", orderNo: "SO-260121-05899", shippingType: "Pickup", pickerDetails: "discountws", pickerAssigned: true },
-  { id: "4", businessName: "Jay Raghu Inc/ ATHENS FOOD MART", customerName: "PATEL ATULKUMAR/ MADHAVI SONI", orderNo: "SO-260121-05898", shippingType: "Pickup", pickerDetails: "Not assigned", pickerAssigned: false },
-  { id: "5", businessName: "Sams Grocery Store", customerName: "VIKAS BHAI", orderNo: "SO-260121-05896", shippingType: "Pickup", pickerDetails: "Not assigned", pickerAssigned: false },
-  { id: "6", businessName: "Jay Ramnam Inc", customerName: "Amitkumar Patel / ANKITA PATEL", orderNo: "SO-260121-05895", shippingType: "Dropoff", pickerDetails: "Not assigned", pickerAssigned: false },
-];
 
 // ============================================================================
 // Reusable Components
@@ -55,23 +46,23 @@ function PickerBadge({ isAssigned, details }: { isAssigned: boolean; details: st
 // ============================================================================
 
 export default function FulfillmentsScreen() {
+  const contentWidth = useTableContentWidth();
   const [activeTab, setActiveTab] = useState<typeof TABS[number]>("All");
-  const [fulfillments] = useState<Fulfillment[]>(SAMPLE_FULFILLMENTS);
+  const { fulfillments, isLoading, refresh, count } = useFulfillments();
 
-  // Column config
-  const columns = useMemo<ColumnDefinition<Fulfillment>[]>(
+  const columns = useMemo<ColumnDefinition<FulfillmentView>[]>(
     () => [
     {
       key: "businessName",
       title: "Business Name / Customer Name",
-      width: "flex",
+      width: "46%",
       visible: true,
       hideable: false,
       render: (item) => (
         <View>
-          <Text className="text-blue-600 font-medium text-lg">{item.businessName}</Text>
+          <Text className="text-blue-600 font-bold text-lg">{item.businessName}</Text>
           {item.customerName && (
-            <Text className="text-blue-500 text-sm">{item.customerName}</Text>
+            <Text className="text-blue-600 text-base">{item.customerName}</Text>
           )}
         </View>
       ),
@@ -79,7 +70,7 @@ export default function FulfillmentsScreen() {
     {
       key: "orderNo",
       title: "Order No",
-      width: 180,
+      width: "15%",
       align: "center",
       visible: true,
       render: (item) => <Text className="text-blue-600 text-lg">{item.orderNo}</Text>,
@@ -87,7 +78,7 @@ export default function FulfillmentsScreen() {
     {
       key: "shippingType",
       title: "Shipping",
-      width: 140,
+      width: "12%",
       align: "center",
       visible: true,
       render: (item) => <Text className="text-gray-600 text-lg">{item.shippingType}</Text>,
@@ -95,7 +86,7 @@ export default function FulfillmentsScreen() {
     {
       key: "pickerDetails",
       title: "Picker",
-      width: 180,
+      width: "15%",
       align: "center",
       visible: true,
       render: (item) => (
@@ -131,7 +122,7 @@ export default function FulfillmentsScreen() {
     },
   ];
 
-  const handleSearch = useCallback((item: Fulfillment, query: string) => {
+  const handleSearch = useCallback((item: FulfillmentView, query: string) => {
     const q = query.toLowerCase();
     return (
       item.businessName.toLowerCase().includes(q) ||
@@ -140,7 +131,22 @@ export default function FulfillmentsScreen() {
     );
   }, []);
 
-  const handleFilter = useCallback((item: Fulfillment, filters: Record<string, string | null>) => {
+  const { setConfig: setBulkEditConfig, setSelection: setBulkEditSelection } = useBulkEditContext();
+
+  const handleBulkAction = useCallback((rows: FulfillmentView[]) => {
+    if (rows.length === 0) {
+      Alert.alert("Bulk Assign", "Please select order(s) first.");
+      return;
+    }
+    Alert.alert("Bulk Assign Picker", `${rows.length} order(s) selected. Bulk assign picker is coming soon.`);
+  }, []);
+
+  useEffect(() => {
+    setBulkEditConfig({ label: "Bulk Assign", onPress: handleBulkAction });
+    return () => setBulkEditConfig(null);
+  }, [handleBulkAction, setBulkEditConfig]);
+
+  const handleFilter = useCallback((item: FulfillmentView, filters: Record<string, string | null>) => {
     if (filters.shippingType && filters.shippingType !== "all") {
       if (item.shippingType !== filters.shippingType) return false;
     }
@@ -173,7 +179,7 @@ export default function FulfillmentsScreen() {
         })}
       </View>
 
-      <DataTable<Fulfillment>
+      <DataTable<FulfillmentView>
         data={fulfillments}
         columns={columns}
         keyExtractor={(item) => item.id}
@@ -183,11 +189,22 @@ export default function FulfillmentsScreen() {
         onSearch={handleSearch}
         filters={filters}
         onFilter={handleFilter}
+        filtersInSettingsModal
         columnSelector
+        toolbarButtonStyle="shopping-cart"
+        onRefresh={refresh}
+        isLoading={isLoading}
         bulkActions
+        bulkActionText="Bulk Assign"
+        bulkActionInActionRow
+        bulkActionInSidebar
+        onBulkActionPress={handleBulkAction}
+        onSelectionChange={(_, rows) => setBulkEditSelection(rows)}
         emptyIcon="cube-outline"
         emptyText="No fulfillments found"
-        totalCount={fulfillments.length}
+        totalCount={count}
+        horizontalScroll
+        minWidth={contentWidth}
       />
     </View>
   );
