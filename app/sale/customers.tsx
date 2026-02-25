@@ -1,8 +1,8 @@
 /**
  * Customers Screen
- * 
+ *
  * Displays customer list with real-time sync from PowerSync.
- * Uses the unified DataTable component.
+ * Single selection only: View Customer Details / Edit when one customer selected.
  */
 
 import { buttonSize, colors, iconSize } from '@/utils/theme';
@@ -17,6 +17,7 @@ import {
   AddCustomerPanelController,
   AddCustomerPanelControllerHandle,
 } from "../../components/order/AddCustomerPanelController";
+import { AddQuickCustomerModal } from "../../components/AddQuickCustomerModal";
 import { CustomerDetailsModal } from "../../components/CustomerDetailsModal";
 import { CustomerView, useCustomers } from "../../utils/powersync/hooks";
 
@@ -108,9 +109,13 @@ export default function CustomersScreen() {
     }
   }, [showAddCustomerPanel]);
 
-  // Customer details modal — open when sidebar "View Customer Details" triggers
+  // Customer details modal
   const [showCustomerDetails, setShowCustomerDetails] = useState(false);
   const [detailsCustomer, setDetailsCustomer] = useState<ReturnType<typeof toCustomerDetails> | null>(null);
+  // Edit customer modal (AddQuickCustomerModal in edit mode)
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editCustomerId, setEditCustomerId] = useState<number | null>(null);
+
   useEffect(() => {
     if (!params.openCustomerDetails) return;
     const first = selectedRows[0] as CustomerView | undefined;
@@ -125,6 +130,14 @@ export default function CustomersScreen() {
   const handleViewCustomer = useCallback((customer: CustomerView) => {
     setDetailsCustomer(toCustomerDetails(customer));
     setShowCustomerDetails(true);
+  }, []);
+
+  const handleEditCustomer = useCallback((customer: CustomerView) => {
+    const id = Number(customer.id);
+    if (Number.isNaN(id)) return;
+    setEditCustomerId(id);
+    setShowCustomerDetails(false);
+    setShowEditModal(true);
   }, []);
 
   const handlePrintCustomer = useCallback((customer: CustomerView) => {
@@ -212,23 +225,42 @@ export default function CustomersScreen() {
             icon="eye-outline"
             onPress={() => handleViewCustomer(item)}
           />
+          <ActionButton
+            icon="pencil-outline"
+            onPress={() => handleEditCustomer(item)}
+          />
         </View>
       ),
     },
-  ], [handlePrintCustomer, handleViewCustomer]);
+  ], [handlePrintCustomer, handleViewCustomer, handleEditCustomer]);
 
-  const handleBulkAction = useCallback((rows: CustomerView[]) => {
-    if (rows.length === 0) {
-      Alert.alert("Bulk Edit Customers", "Please select customer(s) first.");
-      return;
-    }
-    Alert.alert("Bulk Edit Customers", `${rows.length} customer(s) selected. Bulk edit is coming soon.`);
-  }, []);
+  // Single selection only: View Customer Details + Edit Customer when 1 selected
+  const [selectedKeys, setSelectedKeysState] = useState<string[]>([]);
+
+  const handleEditFromSidebar = useCallback((rows: CustomerView[]) => {
+    const customer = rows[0];
+    if (!customer) return;
+    handleEditCustomer(customer);
+  }, [handleEditCustomer]);
+
+  const handleSelectionChange = useCallback(
+    (keys: string[], rows: CustomerView[]) => {
+      const single = rows.length <= 1 ? rows : [rows[rows.length - 1]];
+      const singleKeys = single.map((r) => r.id);
+      setSelectedKeysState(singleKeys);
+      setBulkEditSelection(single);
+    },
+    [setBulkEditSelection]
+  );
 
   useEffect(() => {
-    setBulkEditConfig({ label: "Bulk Edit", onPress: handleBulkAction });
+    setBulkEditConfig({
+      label: "Edit Customer",
+      onPress: handleEditFromSidebar,
+      viewSingleItem: handleViewCustomer,
+    });
     return () => setBulkEditConfig(null);
-  }, [handleBulkAction, setBulkEditConfig]);
+  }, [handleEditFromSidebar, handleViewCustomer, setBulkEditConfig]);
 
   // Search logic
   const handleSearch = useCallback((item: CustomerView, query: string) => {
@@ -253,11 +285,11 @@ export default function CustomersScreen() {
         searchHint="Search by Business Name, Customer Name, ID"
         onSearch={handleSearch}
         bulkActions
-        bulkActionText="Bulk Edit"
-        bulkActionInActionRow
+        bulkActionText="Edit Customer"
         bulkActionInSidebar
-        onBulkActionPress={handleBulkAction}
-        onSelectionChange={(_, rows) => setBulkEditSelection(rows)}
+        onBulkActionPress={handleEditFromSidebar}
+        selectedRowKeys={selectedKeys}
+        onSelectionChange={handleSelectionChange}
         columnSelector
         toolbarButtonStyle="shopping-cart"
         horizontalScroll
@@ -289,10 +321,37 @@ export default function CustomersScreen() {
           setDetailsCustomer(null);
         }}
         customer={detailsCustomer}
+        onEdit={
+          detailsCustomer
+            ? () => {
+                const id = Number(detailsCustomer.id);
+                if (!Number.isNaN(id)) {
+                  setShowCustomerDetails(false);
+                  setEditCustomerId(id);
+                  setShowEditModal(true);
+                }
+              }
+            : undefined
+        }
         onAddOrder={() => {
           setShowCustomerDetails(false);
           setDetailsCustomer(null);
           Alert.alert("New Order", "Redirecting to new order...");
+        }}
+      />
+
+      <AddQuickCustomerModal
+        visible={showEditModal}
+        onClose={() => {
+          setShowEditModal(false);
+          setEditCustomerId(null);
+        }}
+        customerId={editCustomerId}
+        onSave={() => {
+          setShowEditModal(false);
+          setEditCustomerId(null);
+          Alert.alert("Success", "Customer updated successfully.");
+          refresh();
         }}
       />
     </View>

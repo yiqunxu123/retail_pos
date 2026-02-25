@@ -22,12 +22,13 @@ import {
 import { useBulkEditContext } from "../../contexts/BulkEditContext";
 import { useTableContentWidth } from "../../hooks/useTableContentWidth";
 import {
-    ACTION_COL_WIDTH,
     ColumnDefinition,
     DataTable,
     DataTableRenderPerfMetrics,
     FilterDefinition,
     FilterDropdown,
+    ModalCloseButton,
+    ModalTitle,
     PageHeader,
 } from "../../components";
 import { CenteredModal } from "../../components/CenteredModal";
@@ -362,28 +363,6 @@ function distributeStock(
     new_onHold_qty: newOnHoldQty,
     new_inhand_qty: newInHandQty,
   };
-}
-
-function ActionButton({
-  icon,
-  iconColor,
-  backgroundColor,
-  onPress,
-}: {
-  icon: keyof typeof Ionicons.glyphMap;
-  iconColor: string;
-  backgroundColor: string;
-  onPress?: () => void;
-}) {
-  return (
-    <Pressable 
-      className="rounded-lg items-center justify-center"
-      style={{ width: buttonSize.md.height, height: buttonSize.md.height, backgroundColor, borderRadius: buttonSize.md.borderRadius }}
-      onPress={onPress}
-    >
-      <Ionicons name={icon} size={iconSize.md} color={iconColor} />
-    </Pressable>
-  );
 }
 
 // ============================================================================
@@ -1296,25 +1275,7 @@ export default function StocksScreen() {
         visible: true,
         render: (item) => <Text className="text-[#1A1A1A] text-lg ">{formatCurrency(item.totalCost)}</Text>,
       },
-      {
-        key: "actions",
-        title: "Actions",
-        width: ACTION_COL_WIDTH,
-        align: "center",
-        visible: true,
-        hideable: false,
-        render: (item) => (
-          <View className="flex-row items-center justify-center gap-1">
-            <ActionButton
-              icon="pencil"
-              iconColor={colors.primary}
-              backgroundColor={colors.primaryLight}
-              onPress={() => handleEdit(item)}
-            />
-          </View>
-        ),
-      },
-    ], [handleEdit]);
+    ], []);
 
   const filters: FilterDefinition[] = [
     {
@@ -1742,53 +1703,27 @@ export default function StocksScreen() {
         visible={singleEditModalVisible}
         onClose={closeSingleEditModal}
         size="md"
-        showCloseButton={false}
         scrollable={false}
         contentPadding={false}
         header={
           <View className="flex-row items-start justify-between flex-1">
             <View className="flex-1">
-              <Text style={{ fontSize: modalContent.titleFontSize + 4, fontWeight: modalContent.titleFontWeight, color: modalContent.titleColor, marginBottom: 6 }}>
-                Stock Edit
-              </Text>
+              <ModalTitle>Stock Edit</ModalTitle>
               <Text style={{ fontSize: modalContent.labelFontSize, color: modalContent.labelColor, marginTop: 4 }} numberOfLines={1}>
                 {singleEditProductName || "-"}
               </Text>
             </View>
-            <Pressable
-              onPress={closeSingleEditModal}
-              disabled={singleEditSubmitting}
-              className="p-1"
-              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-            >
-              <Ionicons name="close" size={iconSize.lg} color={colors.textTertiary} />
-            </Pressable>
+            <ModalCloseButton onPress={closeSingleEditModal} />
           </View>
         }
-        footer={
-          <View className="flex-row justify-end gap-3">
-            <Pressable
-              className="px-6 rounded-lg items-center justify-center"
-              onPress={closeSingleEditModal}
-              disabled={singleEditSubmitting}
-              style={{ height: buttonSize.md.height, minWidth: 90, backgroundColor: colors.background, borderWidth: 1, borderColor: colors.borderMedium, borderRadius: buttonSize.md.borderRadius }}
-            >
-              <Text className="text-base font-medium" style={{ color: colors.textMedium, textAlign: 'center' }}>Cancel</Text>
-            </Pressable>
-            <Pressable
-              className="px-6 rounded-lg items-center justify-center"
-              onPress={handleSingleEditSubmit}
-              disabled={singleEditSubmitting || singleEditLoading}
-              style={{ height: buttonSize.md.height, minWidth: 90, backgroundColor: colors.primary, borderRadius: buttonSize.md.borderRadius }}
-            >
-              {singleEditSubmitting ? (
-                <ActivityIndicator size="small" color="white" />
-              ) : (
-                <Text className="text-base font-medium" style={{ color: colors.textWhite, textAlign: 'center' }}>Save</Text>
-              )}
-            </Pressable>
-          </View>
-        }
+        footerProps={{
+          cancelLabel: "Cancel",
+          onCancel: closeSingleEditModal,
+          applyLabel: "Save",
+          onApply: handleSingleEditSubmit,
+          applyDisabled: singleEditSubmitting || singleEditLoading,
+          applyLoading: singleEditSubmitting,
+        }}
       >
         {singleEditLoading ? (
               <View className="py-8 items-center justify-center">
@@ -2014,61 +1949,37 @@ export default function StocksScreen() {
       <CenteredModal
         visible={bulkModalVisible}
         onClose={() => setBulkModalVisible(false)}
-        size="md"
-        showCloseButton={false}
+        size="xl"
         scrollable={false}
         contentPadding={false}
+        contentStyle={{ width: "100%", flex: 1 }}
         header={
           <View className="flex-row items-start justify-between flex-1">
             <View className="flex-1">
-              <Text style={{ fontSize: modalContent.titleFontSize + 4, fontWeight: modalContent.titleFontWeight, color: modalContent.titleColor, marginBottom: 6 }}>
-                    Bulk Edit Stock
-                  </Text>
-                  <Text style={{ fontSize: modalContent.labelFontSize, color: modalContent.labelColor, marginTop: 4 }}>
-                    Please note that stock changes on this screen apply to unit: PIECE.
-                  </Text>
-                  <Text style={{ fontSize: modalContent.labelFontSize, color: modalContent.labelColor, marginTop: 2 }}>
+              <ModalTitle>Bulk Edit Stock</ModalTitle>
+              <Text style={{ fontSize: modalContent.labelFontSize, color: modalContent.labelColor, marginTop: 4 }}>
+                Please note that stock changes on this screen apply to unit: PIECE.
+              </Text>
+              <Text style={{ fontSize: modalContent.labelFontSize, color: modalContent.labelColor, marginTop: 2 }}>
                 Channel: {bulkRows[0]?.channelName || "-"} | Selected: {bulkRows.length}
               </Text>
             </View>
-            <Pressable 
-              onPress={() => setBulkModalVisible(false)}
-              className="p-1"
-              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-            >
-              <Ionicons name="close" size={iconSize.lg} color={colors.textTertiary} />
-            </Pressable>
+            <ModalCloseButton onPress={() => setBulkModalVisible(false)} />
           </View>
         }
-        footer={
-          <View className="flex-row justify-end gap-3">
-            <Pressable
-              className="px-6 rounded-lg items-center justify-center"
-              onPress={() => setBulkModalVisible(false)}
-              disabled={bulkSubmitting}
-              style={{ height: buttonSize.md.height, minWidth: 90, backgroundColor: colors.background, borderWidth: 1, borderColor: colors.borderMedium, borderRadius: buttonSize.md.borderRadius }}
-            >
-              <Text className="text-base font-medium" style={{ color: colors.textMedium, textAlign: 'center' }}>Cancel</Text>
-            </Pressable>
-            <Pressable
-              className="px-6 rounded-lg items-center justify-center"
-              onPress={handleBulkEditSubmit}
-              disabled={bulkSubmitting}
-              style={{ height: buttonSize.md.height, minWidth: 90, backgroundColor: colors.primary, borderRadius: buttonSize.md.borderRadius }}
-            >
-              {bulkSubmitting ? (
-                <ActivityIndicator size="small" color="white" />
-              ) : (
-                <Text className="text-base font-medium" style={{ color: colors.textWhite, textAlign: 'center' }}>Update</Text>
-              )}
-            </Pressable>
-          </View>
-        }
+        footerProps={{
+          cancelLabel: "Cancel",
+          onCancel: () => setBulkModalVisible(false),
+          applyLabel: "Update",
+          onApply: handleBulkEditSubmit,
+          applyDisabled: bulkSubmitting,
+          applyLoading: bulkSubmitting,
+        }}
       >
         {/* Table Content */}
-            <ScrollView style={{ maxHeight: 400 }} showsVerticalScrollIndicator={false}>
-              <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-                <View style={{ minWidth: 1050 }}>
+            <ScrollView style={{ flex: 1, maxHeight: 400, width: "100%" }} showsVerticalScrollIndicator={false}>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ width: "100%" }}>
+                <View style={{ minWidth: 1050, width: "100%" }}>
                   {/* Table Header */}
                   <View className="flex-row items-center border-b px-4 py-3" style={{ backgroundColor: modalContent.boxBackground, borderBottomColor: modalContent.boxBorderColor }}>
                     <View style={{ width: 180 }}>

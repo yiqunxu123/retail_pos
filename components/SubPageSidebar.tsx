@@ -34,7 +34,7 @@ export function SubPageSidebar({
   const { logout } = useAuth();
   const { isClockedIn } = useClock();
   const { isStaffMode, setViewMode } = useViewMode();
-  const { config: bulkEditConfig, selectedCount, triggerBulkEdit } = useBulkEditContext();
+  const { config: bulkEditConfig, selectedCount, selectedRows, triggerBulkEdit } = useBulkEditContext();
 
   const handleChangeUser = () => {
     setViewMode(isStaffMode ? "admin" : "staff");
@@ -62,8 +62,9 @@ export function SubPageSidebar({
       return {
         title: "Create Sale Return",
         icon: <MaterialCommunityIcons name="arrow-left-box" size={iconSize['2xl']} />,
-        variant: "primary",
-        onPress: () => Alert.alert("Create Sale Return", "Feature coming soon"),
+        variant: "secondary",
+        onPress: undefined,
+        disabled: true,
       };
     } else if (pathname.includes("/sale/sales-history")) {
       return {
@@ -126,6 +127,14 @@ export function SubPageSidebar({
         icon: <Ionicons name="card-outline" size={iconSize['2xl']} />,
         variant: "primary",
         onPress: () => {},
+      };
+    } else if (pathname.includes("/settings")) {
+      return {
+        title: "Button 1",
+        icon: <Ionicons name="add-circle-outline" size={iconSize['2xl']} />,
+        variant: "secondary",
+        onPress: undefined,
+        disabled: true,
       };
     }
 
@@ -191,6 +200,7 @@ export function SubPageSidebar({
           title={dynamicBtn.title}
           icon={dynamicBtn.icon}
           variant={dynamicBtn.variant as any}
+          disabled={dynamicBtn.disabled}
           onPress={dynamicBtn.onPress}
         />
 
@@ -220,12 +230,12 @@ export function SubPageSidebar({
             <SidebarButton
               title="View Customer Details"
               icon={<Ionicons name="person-outline" size={iconSize['2xl']} />}
-              variant="yellow"
-              onPress={() =>
-                router.replace({
-                  pathname: "/sale/customers",
-                  params: { openCustomerDetails: String(Date.now()) },
-                })
+              variant={bulkEditConfig?.viewSingleItem && selectedCount === 1 ? "yellow" : "secondary"}
+              disabled={!bulkEditConfig?.viewSingleItem || selectedCount !== 1}
+              onPress={
+                bulkEditConfig?.viewSingleItem && selectedCount === 1 && selectedRows[0]
+                  ? () => bulkEditConfig.viewSingleItem!(selectedRows[0])
+                  : undefined
               }
             />
             <SidebarButton
@@ -235,19 +245,39 @@ export function SubPageSidebar({
               onPress={() => Alert.alert("Add Customer Payment", "Feature coming soon")}
             />
           </>
+        ) : pathname.includes("/settings") ? (
+          <>
+            <SidebarButton
+              title="Button 2"
+              icon={<MaterialCommunityIcons name="printer" size={iconSize['2xl']} />}
+              variant="secondary"
+              disabled={true}
+            />
+            <SidebarButton
+              title="Button 3"
+              icon={<MaterialCommunityIcons name="text-box-check-outline" size={iconSize['2xl']} />}
+              variant="secondary"
+              disabled={true}
+            />
+          </>
         ) : (
           <>
             <SidebarButton
               title="Print Invoice"
               icon={<MaterialCommunityIcons name="printer" size={iconSize['2xl']} />}
-              variant="yellow"
-              onPress={() => Alert.alert("Print Invoice", "Feature coming soon")}
+              variant="secondary"
+              disabled={true}
             />
             <SidebarButton
               title="View Invoice"
               icon={<MaterialCommunityIcons name="text-box-check-outline" size={iconSize['2xl']} />}
-              variant="outline"
-              onPress={() => Alert.alert("View Invoice", "Feature coming soon")}
+              variant={bulkEditConfig?.viewSingleItem && selectedCount === 1 ? "yellow" : "secondary"}
+              disabled={!bulkEditConfig?.viewSingleItem || selectedCount !== 1}
+              onPress={
+                bulkEditConfig?.viewSingleItem && selectedCount === 1 && selectedRows[0]
+                  ? () => bulkEditConfig.viewSingleItem!(selectedRows[0])
+                  : undefined
+              }
             />
           </>
         )}

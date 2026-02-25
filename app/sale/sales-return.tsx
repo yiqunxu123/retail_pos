@@ -250,18 +250,18 @@ export default function SalesReturnScreen() {
 
   const { setConfig: setBulkEditConfig, setSelection: setBulkEditSelection } = useBulkEditContext();
 
-  const handleBulkAction = useCallback((rows: SaleReturnView[]) => {
-    if (rows.length === 0) {
-      Alert.alert("Bulk Export", "Please select return(s) first.");
-      return;
-    }
-    Alert.alert("Bulk Export", `${rows.length} return(s) selected. Export is coming soon.`);
+  const handleEditReturn = useCallback((_rows: SaleReturnView[]) => {
+    Alert.alert("Edit Return", "Feature coming soon");
   }, []);
 
   useEffect(() => {
-    setBulkEditConfig({ label: "Bulk Export", onPress: handleBulkAction });
+    setBulkEditConfig({
+      label: "Edit Return",
+      onPress: handleEditReturn,
+      viewSingleItem: handleViewOrder,
+    });
     return () => setBulkEditConfig(null);
-  }, [handleBulkAction, setBulkEditConfig]);
+  }, [handleEditReturn, handleViewOrder, setBulkEditConfig]);
 
   const handleFilter = useCallback((item: SaleReturnView, filters: Record<string, string | null>) => {
     if (filters.status && filters.status !== "all") {
@@ -288,10 +288,10 @@ export default function SalesReturnScreen() {
         toolbarButtonStyle="shopping-cart"
         filtersInSettingsModal
         bulkActions
-        bulkActionText="Bulk Export"
+        bulkActionText="Edit Return"
         bulkActionInActionRow
         bulkActionInSidebar
-        onBulkActionPress={handleBulkAction}
+        onBulkActionPress={handleEditReturn}
         onSelectionChange={(_, rows) => setBulkEditSelection(rows)}
         onRefresh={refresh}
         isLoading={isLoading}
@@ -306,6 +306,7 @@ export default function SalesReturnScreen() {
         visible={showOrderDetails}
         onClose={() => setShowOrderDetails(false)}
         order={selectedOrder}
+        saleOrderId={selectedOrder?.id ?? null}
       />
     </View>
   );

@@ -40,12 +40,13 @@ export { useStockAlerts, useStockSearch, useStocks } from './useStocks';
 export type { StockAlertView, StockView, StocksQueryFilters } from './useStocks';
 
 // Sale order hooks
-export { FULFILMENT_STATUS, ORDER_STATUS, fetchSaleOrderProducts, useFulfillments, useParkedOrders, useSaleOrderById, useSaleOrderSearch, useSaleOrders, useSaleReturns } from './useSaleOrders';
-export type { FulfillmentView, ParkedOrderView, ResolvedOrderProduct, SaleOrderView, SaleReturnView } from './useSaleOrders';
+export { FULFILMENT_STATUS, ORDER_STATUS, fetchSaleOrderProducts, useFulfillments, useParkedOrders, useSaleOrderById, useSaleOrderDetails, useSaleOrderSearch, useSaleOrders, useSaleReturns } from './useSaleOrders';
+export type { FulfillmentView, ParkedOrderView, ResolvedOrderProduct, SaleOrderDetailView, SaleOrderView, SaleReturnView } from './useSaleOrders';
 
 // Payment hooks
-export { PAYMENT_STATUS, PAYMENT_TYPE, usePaymentById, usePaymentSearch, usePayments } from './usePayments';
-export type { PaymentView } from './usePayments';
+export { PAYMENT_STATUS, PAYMENT_TYPE, useInvoiceWithPayments, usePaymentById, usePaymentSearch, usePayments, usePaymentsWithInvoice } from './usePayments';
+export type { PaymentView, PaymentWithInvoiceView } from './usePayments';
+
 
 // Dashboard stats hooks
 export { useDashboardStats } from './useDashboardStats';

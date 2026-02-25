@@ -460,6 +460,21 @@ interface SaleOrderDetailRow {
   product_upc: string | null;
 }
 
+/** Order detail item for OrderDetailsModal (aligned with web) */
+export interface SaleOrderDetailView {
+  id: string;
+  srNo: number;
+  name: string;
+  sku: string;
+  upc?: string;
+  orderedQty: number;
+  unit: string;
+  deliveredQty: number;
+  remainingQty: number;
+  salePrice: number;
+  discount: number;
+}
+
 /** Resolved product item ready for OrderContext */
 export interface ResolvedOrderProduct {
   id: string;
@@ -489,7 +504,7 @@ export async function fetchSaleOrderProducts(
        sod.qty,
        sod.price,
        sod.discount,
-       sod.total_price,
+       sod.price * sod.qty as total_price,
        p.name  AS product_name,
        p.sku   AS product_sku,
        p.upc   AS product_upc
@@ -554,6 +569,54 @@ export function useSaleReturns() {
 }
 
 export type SaleReturnView = ReturnType<typeof useSaleReturns>['returns'][number];
+
+/** Get sale order details (line items) for a given sale order - for Order Details modal */
+export function useSaleOrderDetails(saleOrderId: string | null) {
+  const { data, isLoading, error } = useSyncStream<
+    SaleOrderDetailRow & { product_name: string | null; product_sku: string | null; product_upc: string | null }
+  >(
+    `SELECT
+       sod.id,
+       sod.sale_order_id,
+       sod.product_id,
+       sod.qty,
+       sod.price,
+       sod.discount,
+       sod.price * sod.qty as total_price,
+       p.name  AS product_name,
+       p.sku   AS product_sku,
+       p.upc   AS product_upc
+     FROM sale_order_details sod
+     LEFT JOIN products p ON p.id = sod.product_id
+     WHERE sod.sale_order_id = ?
+     ORDER BY sod.id`,
+    saleOrderId ? [saleOrderId] : [],
+    { enabled: !!saleOrderId }
+  );
+
+  const items = useMemo<SaleOrderDetailView[]>(
+    () =>
+      data.map((row, idx) => {
+        const qty = row.qty || 0;
+        return {
+          id: row.id,
+          srNo: idx + 1,
+          name: row.product_name || `Product #${row.product_id}`,
+          sku: row.product_sku || '',
+          upc: row.product_upc || undefined,
+          orderedQty: qty,
+          unit: 'Piece',
+          deliveredQty: qty,
+          remainingQty: 0,
+          salePrice: row.price || 0,
+          discount: row.discount || 0,
+        };
+      }),
+    [data]
+  );
+
+  return { items, isLoading, error };
+}
 
 /** Fulfillment view for fulfillments screen */
 export interface FulfillmentView {

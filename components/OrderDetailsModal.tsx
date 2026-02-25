@@ -1,9 +1,10 @@
 import { buttonSize, colors, iconSize, modalContent } from '@/utils/theme';
 import { ThemedButton } from './ThemedButton';
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Pressable, ScrollView, Text, View } from "react-native";
 import { CenteredModal } from "./CenteredModal";
+import { PAYMENT_TYPE, useInvoiceWithPayments, useSaleOrderDetails } from "@/utils/powersync/hooks";
 
 interface OrderItem {
   id: string;
@@ -57,6 +58,8 @@ interface OrderDetailsModalProps {
   visible: boolean;
   onClose: () => void;
   order: OrderDetails | null;
+  /** When set, fetches real items and payments from PowerSync (invoice-linked) */
+  saleOrderId?: string | null;
   onPrintReceipt?: () => void;
   onRefund?: () => void;
 }
@@ -73,13 +76,34 @@ export function OrderDetailsModal({
   visible,
   onClose,
   order,
+  saleOrderId,
   onPrintReceipt,
 }: OrderDetailsModalProps) {
   const [activeTab, setActiveTab] = useState<TabType>("Order Details");
-  
-  if (!order) {
+
+  const { items: detailItems } = useSaleOrderDetails(saleOrderId ?? null);
+  const { payments: invoicePayments } = useInvoiceWithPayments(saleOrderId ?? null);
+
+  const mergedOrder = useMemo<OrderDetails | null>(() => {
+    if (!order) return null;
+    const items = detailItems.length > 0 ? detailItems.map((it) => ({ ...it })) : order.items;
+    const payments: PaymentRecord[] = invoicePayments.length > 0
+      ? invoicePayments.map((p) => ({
+          id: p.id,
+          method: PAYMENT_TYPE[p.paymentType as keyof typeof PAYMENT_TYPE] || "Other",
+          amount: p.amount,
+          date: p.paymentDate || p.createdAt,
+          status: p.status === 1 ? "completed" : p.status === 3 ? "refunded" : "pending",
+        }))
+      : order.payments;
+    return { ...order, items, payments };
+  }, [order, detailItems, invoicePayments]);
+
+  if (!mergedOrder) {
     return null;
   }
+
+  const orderToShow = mergedOrder;
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
@@ -160,28 +184,28 @@ export function OrderDetailsModal({
               <View className="flex-row gap-4">
                 <InfoCard 
                   label="Customer Name" 
-                  value={order.customer.name} 
+                  value={orderToShow.customer.name} 
                 />
                 <InfoCard 
                   label="Cashier" 
-                  value={order.cashier || order.createdBy || "Cashier 1"} 
+                  value={orderToShow.cashier || orderToShow.createdBy || "Cashier 1"} 
                 />
                 <InfoCard 
                   label="Order Type" 
-                  value={order.orderType || "Walk In"} 
+                  value={orderToShow.orderType || "Walk In"} 
                   valueColor={colors.text}
                 />
                 <InfoCard 
                   label="Order Number" 
-                  value={order.orderNumber} 
+                  value={orderToShow.orderNumber} 
                 />
                 <InfoCard 
                   label="Order Date/Time" 
-                  value={formatDate(order.date)} 
+                  value={formatDate(orderToShow.date)} 
                 />
                 <InfoCard 
                   label="Shipping Type" 
-                  value={order.shippingType || "Pickup"} 
+                  value={orderToShow.shippingType || "Pickup"} 
                 />
               </View>
             </View>
@@ -191,16 +215,16 @@ export function OrderDetailsModal({
               <View className="flex-row gap-4">
                 <InfoCard 
                   label="Chanel Name" 
-                  value={order.channelName || "Primary"} 
+                  value={orderToShow.channelName || "Primary"} 
                 />
                 <InfoCard 
                   label="Sub Total" 
-                  value={`$${order.subTotal.toFixed(2)}`} 
+                  value={`$${orderToShow.subTotal.toFixed(2)}`} 
                   valueColor={colors.text}
                 />
                 <InfoCard 
                   label="Discount" 
-                  value={`$${order.discount.toFixed(2)}`} 
+                  value={`$${orderToShow.discount.toFixed(2)}`} 
                   valueColor={colors.text}
                 />
                 <View 
@@ -209,16 +233,16 @@ export function OrderDetailsModal({
                 >
                   <Text className="mb-1" style={{ fontSize: modalContent.labelFontSize, color: modalContent.labelColor }}>Total</Text>
                   <Text className="text-base font-bold" style={{ color: colors.success }}>
-                    ${order.total.toFixed(2)}
+                    ${orderToShow.total.toFixed(2)}
                   </Text>
                 </View>
                 <View className="flex-1" style={{ backgroundColor: modalContent.boxBackground, minWidth: "12%", padding: modalContent.boxPadding, borderRadius: modalContent.boxRadius, borderWidth: modalContent.boxBorderWidth, borderColor: modalContent.boxBorderColor }}>
                   <Text className="mb-1" style={{ fontSize: modalContent.labelFontSize, color: modalContent.labelColor }}>Invoice Status</Text>
-                  <InvoiceStatusBadge status={order.invoiceStatus || "Paid"} />
+                  <InvoiceStatusBadge status={orderToShow.invoiceStatus || "Paid"} />
                 </View>
                 <InfoCard 
                   label="Amount Paid" 
-                  value={`$${(order.amountPaid ?? order.total).toFixed(2)}`} 
+                  value={`$${(orderToShow.amountPaid ?? orderToShow.total).toFixed(2)}`} 
                 />
               </View>
             </View>
@@ -254,7 +278,7 @@ export function OrderDetailsModal({
             <View style={{ paddingHorizontal: "5%", paddingVertical: 16 }}>
               {activeTab === "Order Details" && (
                 <>
-                  {order.items.length === 0 ? (
+                  {orderToShow.items.length === 0 ? (
                     <View className="rounded-lg items-center shadow-sm" style={{ backgroundColor: colors.backgroundTertiary, padding: "8%" }}>
                       <Ionicons name="cube-outline" size={iconSize['4xl']} color={colors.textTertiary} />
                       <Text className="text-gray-500 mt-3 text-lg">No items in this order</Text>
@@ -278,12 +302,12 @@ export function OrderDetailsModal({
                       </View>
 
                       {/* Table Body */}
-                      {order.items.map((item, index) => (
+                      {orderToShow.items.map((item, index) => (
                         <View
                           key={item.id}
                           style={{ paddingHorizontal: "3%", paddingVertical: 12 }}
                           className={`flex-row items-center border-l border-r border-b border-gray-200 ${
-                            index === order.items.length - 1 ? "rounded-b-lg" : ""
+                            index === orderToShow.items.length - 1 ? "rounded-b-lg" : ""
                           }`}
                         >
                           <Text style={{ width: "6%", color: colors.textDark, fontSize: 14 }}>{item.srNo || index + 1}</Text>
@@ -314,7 +338,7 @@ export function OrderDetailsModal({
 
               {activeTab === "Payment History" && (
                 <>
-                  {order.payments.length === 0 ? (
+                  {orderToShow.payments.length === 0 ? (
                     <View className="rounded-lg items-center shadow-sm" style={{ backgroundColor: colors.backgroundTertiary, padding: "8%" }}>
                       <MaterialCommunityIcons name="cash-multiple" size={iconSize['4xl']} color={colors.textTertiary} />
                       <Text className="text-gray-500 mt-3 text-lg">No payment records</Text>
@@ -322,7 +346,7 @@ export function OrderDetailsModal({
                     </View>
                   ) : (
                     <View className="gap-2">
-                      {order.payments.map((payment) => (
+                      {orderToShow.payments.map((payment) => (
                         <View
                           key={payment.id}
                           className="flex-row items-center rounded-lg py-3 shadow-sm"
@@ -361,9 +385,9 @@ export function OrderDetailsModal({
 
               {activeTab === "Notes" && (
                 <>
-                  {order.note ? (
+                  {orderToShow.note ? (
                     <View className="bg-yellow-50 rounded-lg border border-yellow-200" style={{ padding: "4%" }}>
-                      <Text className="text-gray-700">{order.note}</Text>
+                      <Text className="text-gray-700">{orderToShow.note}</Text>
                     </View>
                   ) : (
                     <View className="rounded-lg items-center shadow-sm" style={{ backgroundColor: colors.backgroundTertiary, padding: "8%" }}>

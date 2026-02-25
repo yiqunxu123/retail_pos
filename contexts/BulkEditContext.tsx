@@ -10,6 +10,8 @@ import {
 export interface BulkEditConfig {
   label: string;
   onPress: (rows: any[]) => void;
+  /** When provided, View Invoice in sidebar is enabled when exactly 1 row selected */
+  viewSingleItem?: (row: any) => void;
 }
 
 interface BulkEditContextType {
