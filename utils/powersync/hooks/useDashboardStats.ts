@@ -184,7 +184,9 @@ export function useDashboardStats(filters?: DashboardFilters) {
   const payableDateFilter = dateRangeUTCRaw('purchase_invoices.created_at', startDate, endDate);
 
   const saleChannelFilter = channelFilterDirect(channelIds, 'so.channel_id');
-  const purchaseChannelFilter = channelFilterDirect(channelIds, 'po.channel_id');
+  // purchase_orders in the local PowerSync schema has no channel_id column.
+  // Keep payable query aligned with available local schema to avoid runtime SQL errors.
+  const purchaseChannelFilter = '';
   const stockChannelFilter = channelFilterDirect(channelIds, 's.channel_id');
   const invoiceChannelFilter = channelFilterViaInvoice(channelIds);
   const paymentChannelFilter = channelFilterViaPayment(channelIds);
@@ -220,9 +222,9 @@ export function useDashboardStats(filters?: DashboardFilters) {
       ), 0) AS paidAmount,
       COALESCE((
         SELECT ABS(SUM(purchase_invoices.invoice_balance))
-        FROM purchase_orders po
-        JOIN purchase_invoices ON po.id = purchase_invoices.purchase_order_id
-        WHERE po.status IN (${PurchaseOrderStatus.PARTIALLY_RECEIVED}, ${PurchaseOrderStatus.RECEIVED}, ${PurchaseOrderStatus.CLOSED})
+        FROM purchase_orders
+        JOIN purchase_invoices ON purchase_orders.id = purchase_invoices.purchase_order_id
+        WHERE purchase_orders.status IN (${PurchaseOrderStatus.PARTIALLY_RECEIVED}, ${PurchaseOrderStatus.RECEIVED}, ${PurchaseOrderStatus.CLOSED})
           AND ${payableDateFilter}
           ${purchaseChannelFilter}
       ), 0) AS payableAmount,

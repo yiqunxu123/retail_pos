@@ -238,7 +238,12 @@ export function useSyncStream<T>(
       }
     } catch (err: any) {
       if (err.name !== 'AbortError') {
-        console.error('[SyncStream] Error:', err)
+        console.error('[SyncStream] Error:', {
+          message: err?.message ? String(err.message) : String(err),
+          streamKey,
+          query,
+          params: stableParams,
+        })
         setError(err)
         const snapshotEndMs = getNowMs()
         onSnapshotEndRef.current?.({
